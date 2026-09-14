@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta charset="utf-8">
+  <?!= include('Styles'); ?>
+</head>
+<body>
+
+<header>
+  <div>
+    <div class="t" data-i18n="appTitle">Inventory &amp; Production Control</div>
+    <div class="s" id="hdrUser">…</div>
+  </div>
+  <div class="sp"></div>
+  <button class="langbtn" id="btnLang" onclick="gantiBahasa()">ID</button>
+</header>
+
+<main>
+
+  <!-- ============ IDENTITAS ============ -->
+  <section id="v-ident" class="hide">
+    <div class="card">
+      <h2 data-i18n="identT">Siapa yang pakai HP ini?</h2>
+      <div class="sub" data-i18n="identS">Dipakai untuk mencatat siapa yang menginput. Cukup sekali di HP ini.</div>
+      <div class="field">
+        <label data-i18n="identNama">Nama</label>
+        <select id="identPilih" onchange="identPilihNama(this.value)"></select>
+      </div>
+      <div class="field">
+        <label data-i18n="identLain">Atau ketik nama</label>
+        <input id="identNama" placeholder="">
+      </div>
+      <div class="field">
+        <label data-i18n="identPin">PIN supervisor (kosongkan kalau staff)</label>
+        <input id="identPin" type="tel" inputmode="numeric" placeholder="••••">
+      </div>
+      <button class="btn" onclick="simpanIdentitas()" data-i18n="identSimpan">Simpan &amp; mulai</button>
+    </div>
+  </section>
+
+  <!-- ============ BERANDA ============ -->
+  <section id="v-home">
+    <div class="stats">
+      <div class="stat"><div class="n" id="sMasuk">–</div><div class="l" data-i18n="statMasuk">kg masuk hari ini</div></div>
+      <div class="stat"><div class="n" id="sKeluar">–</div><div class="l" data-i18n="statKeluar">kg keluar hari ini</div></div>
+      <div class="stat"><div class="n" id="sProses">–</div><div class="l" data-i18n="statProses">kg sedang diproses</div></div>
+      <div class="stat warn"><div class="n" id="sQueue">–</div><div class="l" data-i18n="statQueue">Menunggu review</div></div>
+      <div class="stat alert wide"><div class="n" id="sSusut">–</div><div class="l" data-i18n="statSusut">Susut tinggi hari ini</div></div>
+    </div>
+
+    <div class="card cal">
+      <div class="calhead">
+        <button class="calnav" onclick="geserBulan(-1)" aria-label="prev">‹</button>
+        <div class="caltitle" id="calTitle">…</div>
+        <button class="calnav" onclick="geserBulan(1)" aria-label="next">›</button>
+      </div>
+      <div class="calgrid" id="calGrid"></div>
+      <div class="callegend">
+        <span><i style="background:var(--ok)"></i><span data-i18n="lgMasuk">masuk</span></span>
+        <span><i style="background:var(--warn)"></i><span data-i18n="lgKeluar">keluar</span></span>
+        <span><i style="background:#4338ca"></i><span data-i18n="lgJob">pekerjaan</span></span>
+        <span><i style="background:var(--danger)"></i><span data-i18n="lgSusut">susut tinggi</span></span>
+      </div>
+      <div id="calDay"></div>
+    </div>
+
+    <h3 class="sec" data-i18n="secBeli">Barang dari supplier</h3>
+    <div class="actions">
+      <button class="action" onclick="bukaMutasi('BELI_MASUK')">
+        <div class="ico d">⓪</div>
+        <div class="tx"><b data-i18n="a0t">Barang masuk (pembelian)</b><span data-i18n="a0s">Supplier → GBJ · foto surat jalan</span></div>
+      </button>
+      <button class="action" onclick="bukaMutasi('BELI_RETUR')">
+        <div class="ico e">↩</div>
+        <div class="tx"><b data-i18n="a5t">Retur ke supplier</b><span data-i18n="a5s">GBJ → supplier · mengurangi stok</span></div>
+      </button>
+    </div>
+
+    <h3 class="sec" data-i18n="secJual">Barang ke customer</h3>
+    <div class="actions">
+      <button class="action" onclick="bukaMutasi('JUAL_KELUAR')">
+        <div class="ico f">④</div>
+        <div class="tx"><b data-i18n="a6t">Barang keluar (terjual)</b><span data-i18n="a6s">GBJ → customer · mengurangi stok</span></div>
+      </button>
+      <button class="action" onclick="bukaMutasi('JUAL_RETUR')">
+        <div class="ico e">↩</div>
+        <div class="tx"><b data-i18n="a7t">Retur dari customer</b><span data-i18n="a7s">Customer → GBJ · menambah stok</span></div>
+      </button>
+    </div>
+
+    <h3 class="sec" data-i18n="secCatat">Gudang ↔ produksi</h3>
+    <div class="actions">
+      <button class="action" onclick="bukaTransfer('GBJ_KE_GP')">
+        <div class="ico">①</div>
+        <div class="tx"><b data-i18n="a1t">Transfer ke Produksi</b><span data-i18n="a1s">GBJ → GP · qty + foto</span></div>
+      </button>
+      <button class="action" onclick="tampil('job')">
+        <div class="ico b">②</div>
+        <div class="tx"><b data-i18n="a2t">Pekerjaan</b><span data-i18n="a2s">Bahan baku → barang jadi · susut otomatis</span></div>
+      </button>
+      <button class="action" onclick="bukaTransfer('GP_KE_GBJ')">
+        <div class="ico c">③</div>
+        <div class="tx"><b data-i18n="a3t">Transfer ke Gudang</b><span data-i18n="a3s">GP → GBJ · qty + foto</span></div>
+      </button>
+    </div>
+
+    <div id="homeRev" class="hide">
+      <h3 class="sec" data-i18n="secSup">Supervisor</h3>
+      <div class="actions">
+        <button class="action" onclick="tampil('review')">
+          <div class="ico c">✓</div>
+          <div class="tx"><b data-i18n="a4t">Antrian review</b><span data-i18n="a4s">Foto di sebelah angka · setuju / tandai</span></div>
+          <span class="badge hide" id="revBadge">0</span>
+        </button>
+      </div>
+    </div>
+
+    <div id="homeIdent" class="hide" style="margin-top:16px">
+      <button class="btn sec sm" onclick="tampil('ident')" data-i18n="identGanti">Ganti nama / PIN</button>
+    </div>
+  </section>
+
+  <!-- ============ ⓪ PENERIMAAN / RETUR ============ -->
+  <section id="v-beli" class="hide">
+    <div class="card">
+      <h2 id="rcvJudul">Barang masuk</h2>
+      <div class="sub" id="rcvSub"></div>
+
+      <div class="field">
+        <label id="rcvPartnerLabel" data-i18n="lblSupplier">Supplier</label>
+        <select id="rcvPartner"></select>
+      </div>
+
+      <div class="field" id="rcvFotoWrap">
+        <label id="rcvFotoLabel" data-i18n="lblFotoSJ">Foto surat jalan</label>
+        <div class="photo" id="rcvPhoto" onclick="pilihFoto('rcv')">
+          <div class="p1">📷 <span data-i18n="fotoAmbil">Ambil foto</span></div>
+          <div class="p2" data-i18n="fotoHintSJ">Bukti silang untuk angka yang diketik</div>
+        </div>
+        <input type="file" accept="image/*" capture="environment" id="rcvFile" class="hide" onchange="fotoTerpilih(event,'rcv')">
+        <div class="btnrow hide" id="rcvOcrRow">
+          <button class="btn sec sm" onclick="jalankanOcr()" id="btnOcr" data-i18n="btnOcr">🔍 Baca surat jalan</button>
+          <button class="btn sec sm" onclick="hapusFoto('rcv')" data-i18n="btnGanti">Ganti foto</button>
+        </div>
+        <div id="ocrHasil"></div>
+      </div>
+
+      <div class="field" id="rcvSJWrap">
+        <label data-i18n="lblNoSJ">No. surat jalan</label>
+        <input id="rcvNoSJ" placeholder="SJ/2026/09/0184">
+      </div>
+
+      <h3 class="sec" data-i18n="secItem">Item <span class="unit">kg</span></h3>
+      <div id="rcvLines"></div>
+      <button class="btn sec sm" onclick="tambahBaris('rcv')" data-i18n="btnTambahItem">+ Tambah item</button>
+
+      <div class="field" style="margin-top:14px">
+        <label data-i18n="lblCatatan">Catatan (opsional)</label>
+        <textarea id="rcvCatatan"></textarea>
+      </div>
+
+      <button class="btn" id="btnSimpanRcv" onclick="simpanMutasiUI()" data-i18n="btnSimpan">Simpan</button>
+      <div class="hint" data-i18n="hintPost">Langsung tercatat. Supervisor meninjau setelahnya — produksi tidak menunggu.</div>
+    </div>
+  </section>
+
+  <!-- ============ ① ③ TRANSFER ============ -->
+  <section id="v-transfer" class="hide">
+    <div class="card">
+      <h2 id="trfJudul">Transfer</h2>
+      <div class="sub" id="trfSub"></div>
+
+      <div class="field">
+        <label data-i18n="lblFoto">Foto bukti</label>
+        <div class="photo" id="trfPhoto" onclick="pilihFoto('trf')">
+          <div class="p1">📷 <span data-i18n="fotoAmbil">Ambil foto</span></div>
+          <div class="p2" data-i18n="fotoHint">Wajib — jadi bukti silang angka yang diketik</div>
+        </div>
+        <input type="file" accept="image/*" capture="environment" id="trfFile" class="hide" onchange="fotoTerpilih(event,'trf')">
+        <div class="btnrow hide" id="trfFotoRow">
+          <button class="btn sec sm" onclick="hapusFoto('trf')" data-i18n="btnGanti">Ganti foto</button>
+        </div>
+      </div>
+
+      <h3 class="sec" data-i18n="secItem">Item <span class="unit">kg</span></h3>
+      <div id="trfLines"></div>
+      <button class="btn sec sm" onclick="tambahBaris('trf')" data-i18n="btnTambahItem">+ Tambah item</button>
+
+      <div class="field" style="margin-top:14px">
+        <label data-i18n="lblCatatan">Catatan (opsional)</label>
+        <textarea id="trfCatatan"></textarea>
+      </div>
+
+      <button class="btn" id="btnSimpanTrf" onclick="simpanTransferUI()" data-i18n="btnSimpanTrf">Simpan transfer</button>
+      <div class="hint" data-i18n="hintPost">Langsung tercatat. Supervisor meninjau setelahnya — produksi tidak menunggu.</div>
+    </div>
+  </section>
+
+  <!-- ============ ② PEKERJAAN ============ -->
+  <section id="v-job" class="hide">
+    <div class="seg">
+      <button id="segJobList" class="on" onclick="segJob('list')" data-i18n="segBerjalan">Sedang dibuat</button>
+      <button id="segJobNew" onclick="segJob('new')" data-i18n="segMulai">Mulai baru</button>
+    </div>
+
+    <div id="jobList"><div class="load">…</div></div>
+
+    <div id="jobNew" class="hide">
+      <div class="card">
+        <h2 data-i18n="jobNewT">Mulai pekerjaan</h2>
+        <div class="sub" data-i18n="jobNewS">Pilih produk yang dibuat, lalu catat bahan baku yang masuk proses.</div>
+        <div class="field">
+          <label data-i18n="lblProduk">Produk yang dibuat</label>
+          <select id="jobProduk" onchange="ringkasJobBaru()"></select>
+        </div>
+        <h3 class="sec" data-i18n="secBahan">Bahan baku masuk <span class="unit">kg</span></h3>
+        <div id="jobLines"></div>
+        <button class="btn sec sm" onclick="tambahBaris('job')" data-i18n="btnTambahBahan">+ Tambah bahan</button>
+        <div class="banner ok" id="jobBaruRingkas" style="margin-top:14px"></div>
+        <div class="field">
+          <label data-i18n="lblFotoOpsi">Foto (opsional)</label>
+          <div class="photo" id="jobPhoto" onclick="pilihFoto('job')">
+            <div class="p1">📷 <span data-i18n="fotoAmbil">Ambil foto</span></div>
+          </div>
+          <input type="file" accept="image/*" capture="environment" id="jobFile" class="hide" onchange="fotoTerpilih(event,'job')">
+        </div>
+        <button class="btn" id="btnMulaiJob" onclick="mulaiJobUI()" data-i18n="btnMulaiJob">Mulai pekerjaan</button>
+      </div>
+    </div>
+
+    <div id="jobFinish" class="hide">
+      <div class="card">
+        <h2 data-i18n="jobFinT">Tutup pekerjaan</h2>
+        <div id="jobFinHead"></div>
+
+        <h3 class="sec" data-i18n="secJadi">Barang jadi <span class="unit">kg</span></h3>
+        <div id="finJadiLines"></div>
+        <button class="btn sec sm" onclick="tambahBaris('finJadi')" data-i18n="btnTambahItem">+ Tambah item</button>
+
+        <h3 class="sec" data-i18n="secScrap">Scrap / afkir <span class="unit">kg</span></h3>
+        <div id="finScrapLines"></div>
+        <button class="btn sec sm" onclick="tambahBaris('finScrap')" data-i18n="btnTambahItem">+ Tambah item</button>
+
+        <div id="susutPreview" style="margin-top:15px"></div>
+
+        <div class="field">
+          <label data-i18n="lblFotoOpsi">Foto (opsional)</label>
+          <div class="photo" id="finPhoto" onclick="pilihFoto('fin')">
+            <div class="p1">📷 <span data-i18n="fotoAmbil">Ambil foto</span></div>
+          </div>
+          <input type="file" accept="image/*" capture="environment" id="finFile" class="hide" onchange="fotoTerpilih(event,'fin')">
+        </div>
+        <div class="field">
+          <label data-i18n="lblCatatan">Catatan (opsional)</label>
+          <textarea id="finCatatan"></textarea>
+        </div>
+        <div class="btnrow">
+          <button class="btn sec" onclick="segJob('list')" data-i18n="btnBatal">Batal</button>
+          <button class="btn ok" id="btnTutupJob" onclick="tutupJobUI()" data-i18n="btnTutupJob">Tutup &amp; hitung susut</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="jobHasil" class="hide"></div>
+  </section>
+
+  <!-- ============ REVIEW ============ -->
+  <section id="v-review" class="hide">
+    <div class="seg">
+      <button id="segRevMenunggu" class="on" onclick="segRev('MENUNGGU')"><span data-i18n="segMenunggu">Menunggu</span> <span class="cnt" id="cntMenunggu"></span></button>
+      <button id="segRevDitandai" onclick="segRev('DITANDAI')"><span data-i18n="segDitandai">Ditandai</span> <span class="cnt" id="cntDitandai"></span></button>
+    </div>
+    <div class="banner n" id="revHint"></div>
+    <div id="revList"><div class="load">…</div></div>
+  </section>
+
+  <!-- ============ LAPORAN ============ -->
+  <section id="v-report" class="hide">
+    <div class="seg">
+      <button id="segRepSusut" class="on" onclick="segRep('susut')" data-i18n="segSusut">Susut</button>
+      <button id="segRepStok" onclick="segRep('stok')" data-i18n="segStok">Stok</button>
+      <button id="segRepBeli" onclick="segRep('beli')" data-i18n="segBeli">Beli</button>
+      <button id="segRepJual" onclick="segRep('jual')" data-i18n="segJual">Jual</button>
+      <button id="segRepTrf" onclick="segRep('trf')" data-i18n="segRiwayat">Transfer</button>
+      <button id="segRepHpp" class="hide" onclick="segRep('hpp')">HPP</button>
+    </div>
+    <div id="repBody"><div class="load">…</div></div>
+  </section>
+
+</main>
+
+<nav>
+  <button id="nav-home" class="on" onclick="tampil('home')"><span class="g">🏠</span><span data-i18n="navHome">Beranda</span></button>
+  <button id="nav-job" onclick="tampil('job')"><span class="g">⚙️</span><span data-i18n="navJob">Pekerjaan</span></button>
+  <button id="nav-review" class="hide" onclick="tampil('review')"><span class="g">✅</span><span data-i18n="navReview">Review</span><span class="dot hide" id="navDot"></span></button>
+  <button id="nav-report" onclick="tampil('report')"><span class="g">📊</span><span data-i18n="navReport">Laporan</span></button>
+</nav>
+
+<script>var BAHASA_AWAL = '<?= bahasaAwal ?>';</script>
+<?!= include('Script'); ?>
+</body>
+</html>
