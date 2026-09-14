@@ -1,8 +1,8 @@
 const fs=require('fs'), vm=require('vm');
 // harness dengan email KOSONG (simulasi akun Gmail non-Workspace)
-let src=fs.readFileSync('./harness.js','utf8').replace("return 'max@eramas.co.id';","return '';");
-fs.writeFileSync('/tmp/harness-noemail.js', src.replace("/home/claude/ipc-mvp/","/home/claude/ipc-mvp/"));
-const {ctx}=require('/tmp/harness-noemail.js');
+let src=fs.readFileSync(__dirname+'/harness.js','utf8').replace("return 'max@eramas.co.id';","return '';");
+fs.writeFileSync(__dirname + '/.harness-noemail.js', src);
+const {ctx}=require(__dirname + '/.harness-noemail.js');
 let pass=0,fail=0;
 const ok=(l,c,e)=>{c?(pass++,console.log('  ✓',l)):(fail++,console.log('  ✗',l,JSON.stringify(e)))};
 

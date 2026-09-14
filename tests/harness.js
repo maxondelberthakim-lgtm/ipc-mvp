@@ -12,6 +12,7 @@ function makeSheet(name){
     deleteColumns(){},
     setFrozenRows(){}, autoResizeColumns(){},
     appendRow(r){ this.rows.push(r.slice()); },
+    deleteRow(n){ this.rows.splice(n-1,1); },
     getRange(r,c,nr,nc){
       const sh=this;
       nr = nr||1; nc = nc||1;
