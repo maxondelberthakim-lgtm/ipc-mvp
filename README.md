@@ -35,6 +35,9 @@ runs on spreadsheets, so the data lands in the format the team already knows.
   Cancel voids it (not counted).
 - **COGS (HPP)** per job and per kg of output, plus the rupiah value of shrinkage — visible to
   supervisors only; the server never sends prices to warehouse staff.
+- **Input history + edit** under every form. Staff can fix their own entries until a supervisor
+  reviews them; supervisors can edit anything. Every change is logged (`Log_Edit`), status is
+  untouched, and editing a closed job recomputes shrinkage and COGS.
 - UI in **Bahasa Indonesia / English** (toggle); sheet & column names in Indonesian.
 - All quantities in **kilograms**.
 
@@ -70,7 +73,7 @@ Full steps in **[PANDUAN-SETUP.md](PANDUAN-SETUP.md)**. Short version:
 ## Development
 
 ```bash
-cd tests && npm test          # 148 checks: stock math, shrinkage, permissions, OCR parser
+cd tests && npm test          # 193 checks: stock math, shrinkage, permissions, OCR parser
 python3 tools/build-demo.py   # rebuild docs/index.html after editing apps-script/
 ```
 

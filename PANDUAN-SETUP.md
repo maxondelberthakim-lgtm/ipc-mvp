@@ -1,4 +1,4 @@
-# IPC — Inventory & Production Control (MVP v4)
+# IPC — Inventory & Production Control (MVP v5)
 
 Backend Google Sheets, frontend web app yang dibuka lewat browser HP.
 Tidak ada server, tidak ada hosting, tidak ada aplikasi yang perlu di-install.
@@ -197,6 +197,31 @@ supervisor tidak perlu PIN lagi.
 
 ---
 
+## Riwayat input & edit
+
+Di bawah setiap form (barang masuk, retur supplier, barang keluar, retur customer, transfer ①③)
+ada **Riwayat input** — 14 hari terakhir untuk proses itu. Tab **Pekerjaan → Selesai** melakukan
+hal yang sama untuk job yang sudah ditutup.
+
+| Siapa | Boleh mengubah |
+|---|---|
+| Staf | hanya entri yang **dia catat sendiri** dan masih **MENUNGGU** — belum disentuh supervisor |
+| Staf | job yang dia jalankan, dalam **24 jam** setelah ditutup |
+| Supervisor / Admin | semua entri, status apa pun (termasuk dari tab Review → Ditandai) |
+
+Aturan itu ditegakkan di server, bukan cuma di layar. Entri yang tidak boleh diubah tampil 🔒 *Terkunci*.
+
+Setiap perubahan dicatat di kolom `Log_Edit` (siapa, kapan, apa yang berubah — misal
+`14/09 05:41 Yanto: qty: 500 → 510 kg`) dan tampil di form edit sebagai *Riwayat perubahan*.
+Status **tidak** berubah karena edit: entri MENUNGGU yang diedit staf tetap MENUNGGU dan tetap
+lewat review. Angka lama tidak ditimpa diam-diam.
+
+Staf juga bisa **Batalkan input** untuk entrinya sendiri yang masih MENUNGGU (salah klik, dobel
+input). Itu jadi DIBATALKAN — tercatat, tidak dihitung di stok.
+
+Mengubah pekerjaan yang sudah selesai → susut, HPP, dan nilai susut **dihitung ulang** dengan
+harga bahan saat ini; baris `Pekerjaan_Detail` lama diganti.
+
 ## HPP (harga pokok produksi)
 
 ```
@@ -303,5 +328,6 @@ Version: **New version** → Deploy. Link di HP staff tidak berubah.
 | Antrian review tidak muncul | PIN salah, atau nama belum terdaftar sebagai SUPERVISOR |
 | Tab HPP tidak muncul | Sama — HPP hanya untuk SUPERVISOR / ADMIN |
 | HPP job = 0 | `Harga_Per_Kg` bahan bakunya kosong di `Master_Item` |
-| "Entri ini sudah final" | Setuju / Batal tidak bisa diubah lagi lewat app |
+| "Entri ini sudah final" | Setuju / Batal tidak bisa diubah statusnya lagi — tapi supervisor masih bisa mengubah angkanya lewat Ubah |
+| Tombol Ubah tidak ada, cuma 🔒 | Bukan entri kamu, atau sudah ditinjau — minta supervisor |
 | Stok GP minus | Pekerjaan memakai lebih banyak dari yang ditransfer — cek transfer yang belum dicatat |
