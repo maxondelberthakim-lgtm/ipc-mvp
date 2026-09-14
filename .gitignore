@@ -1,0 +1,4 @@
+node_modules/
+tests/.harness-noemail.js
+.DS_Store
+*.zip
