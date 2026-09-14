@@ -1,0 +1,7 @@
+{
+  "name": "ipc-mvp-tests",
+  "private": true,
+  "scripts": {
+    "test": "node test.js && node test-ident.js"
+  }
+}
