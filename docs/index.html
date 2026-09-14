@@ -237,6 +237,24 @@ nav button .dot{position:absolute;top:5px;right:50%;margin-right:-19px;width:8px
 .hpp b{font-variant-numeric:tabular-nums}
 .hpp .big2{font-size:16px;font-weight:700}
 
+/* ---------- riwayat & edit ---------- */
+.hist{display:flex;gap:9px;align-items:flex-start;padding:9px 0;border-top:1px solid var(--line)}
+.hist:first-child{border-top:0}
+.hist .hq{font-size:16px;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap;flex:0 0 78px}
+.hist .hx{flex:1;min-width:0}
+.hist .hx b{font-size:13px;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hist .hx small{display:block;color:var(--muted);font-size:11px;margin-top:1px}
+.hist .hb{flex:0 0 auto;display:flex;flex-direction:column;gap:5px;align-items:flex-end}
+.btn.xs{width:auto;padding:6px 10px;font-size:11.5px;border-radius:8px}
+.overlay{position:fixed;inset:0;background:rgba(17,24,39,.55);z-index:80;display:flex;align-items:flex-end;justify-content:center}
+.sheet{background:var(--surface);width:100%;max-width:720px;max-height:92vh;overflow:auto;border-radius:16px 16px 0 0;padding:14px 14px calc(18px + env(safe-area-inset-bottom))}
+.sheethead{display:flex;align-items:center;justify-content:space-between;margin-bottom:2px}
+.sheethead b{font-size:15px}
+.x2{background:#eef0f3;border:0;border-radius:50%;width:32px;height:32px;font-size:14px;cursor:pointer;color:var(--ink)}
+.logedit{background:var(--surface-2);border:1px solid var(--line);border-radius:9px;padding:8px 10px;font-size:11.5px;color:#4b5563;white-space:pre-line;margin-bottom:12px;font-variant-numeric:tabular-nums}
+.logedit::before{content:attr(data-judul);display:block;font-weight:700;font-size:10.5px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:3px}
+.jobdone{background:var(--surface);border:1px solid var(--line);border-radius:11px;padding:11px 12px;margin-bottom:9px;box-shadow:var(--shadow)}
+
 /* ---------- misc ---------- */
 .toast{
   position:fixed;left:50%;transform:translateX(-50%);bottom:96px;z-index:60;
@@ -425,6 +443,12 @@ nav button .dot{position:absolute;top:5px;right:50%;margin-right:-19px;width:8px
       <button class="btn" id="btnSimpanRcv" onclick="simpanMutasiUI()" data-i18n="btnSimpan">Simpan</button>
       <div class="hint" data-i18n="hintPost">Langsung tercatat. Supervisor meninjau setelahnya — produksi tidak menunggu.</div>
     </div>
+
+    <div class="card">
+      <h2 data-i18n="riwayatT">Riwayat input</h2>
+      <div class="sub" id="rcvRiwayatSub"></div>
+      <div id="rcvRiwayat"><div class="load">…</div></div>
+    </div>
   </section>
 
   <!-- ============ ① ③ TRANSFER ============ -->
@@ -457,16 +481,92 @@ nav button .dot{position:absolute;top:5px;right:50%;margin-right:-19px;width:8px
       <button class="btn" id="btnSimpanTrf" onclick="simpanTransferUI()" data-i18n="btnSimpanTrf">Simpan transfer</button>
       <div class="hint" data-i18n="hintPost">Langsung tercatat. Supervisor meninjau setelahnya — produksi tidak menunggu.</div>
     </div>
+
+    <div class="card">
+      <h2 data-i18n="riwayatT">Riwayat input</h2>
+      <div class="sub" id="trfRiwayatSub"></div>
+      <div id="trfRiwayat"><div class="load">…</div></div>
+    </div>
   </section>
+
+  <!-- ============ EDIT ENTRI (overlay) ============ -->
+  <div id="editWrap" class="overlay hide" onclick="if(event.target===this)tutupEdit()">
+    <div class="sheet">
+      <div class="sheethead">
+        <b data-i18n="editT">Ubah entri</b>
+        <button class="x2" onclick="tutupEdit()">✕</button>
+      </div>
+      <div class="sub" id="editSub"></div>
+      <div class="field" id="editPartnerWrap">
+        <label id="editPartnerLabel">Supplier</label>
+        <select id="editPartner"></select>
+      </div>
+      <div class="field">
+        <label data-i18n="item">Item</label>
+        <select id="editKode"></select>
+      </div>
+      <div class="field">
+        <label data-i18n="qty">Qty (kg)</label>
+        <input type="number" inputmode="decimal" step="any" min="0" id="editQty">
+      </div>
+      <div class="field" id="editSJWrap">
+        <label data-i18n="lblNoSJ">No. surat jalan</label>
+        <input id="editSJ">
+      </div>
+      <div class="field">
+        <label data-i18n="lblCatatan">Catatan (opsional)</label>
+        <textarea id="editCatatan"></textarea>
+      </div>
+      <div class="logedit hide" id="editLog"></div>
+      <div class="btnrow">
+        <button class="btn ghost hide" id="btnEditBatal" onclick="batalkanEntriUI()" data-i18n="batalkanInput">Batalkan input</button>
+        <button class="btn ok" id="btnEditSimpan" onclick="simpanEditUI()" data-i18n="simpanPerubahan">Simpan perubahan</button>
+      </div>
+    </div>
+  </div>
 
   <!-- ============ ② PEKERJAAN ============ -->
   <section id="v-job" class="hide">
     <div class="seg">
       <button id="segJobList" class="on" onclick="segJob('list')" data-i18n="segBerjalan">Sedang dibuat</button>
       <button id="segJobNew" onclick="segJob('new')" data-i18n="segMulai">Mulai baru</button>
+      <button id="segJobDone" onclick="segJob('done')" data-i18n="segSelesai">Selesai</button>
     </div>
 
     <div id="jobList"><div class="load">…</div></div>
+    <div id="jobDone" class="hide"><div class="load">…</div></div>
+
+    <div id="jobEdit" class="hide">
+      <div class="card">
+        <h2 data-i18n="jobEditT">Ubah pekerjaan</h2>
+        <div class="sub" id="jobEditSub"></div>
+        <div class="field">
+          <label data-i18n="lblProduk">Produk yang dibuat</label>
+          <select id="edProduk"></select>
+        </div>
+        <h3 class="sec" data-i18n="secBahan">Bahan baku masuk <span class="unit">kg</span></h3>
+        <div id="edBahanLines"></div>
+        <button class="btn sec sm" onclick="tambahBaris('edBahan')" data-i18n="btnTambahBahan">+ Tambah bahan</button>
+        <div id="edKeluar">
+          <h3 class="sec" data-i18n="secJadi">Barang jadi <span class="unit">kg</span></h3>
+          <div id="edJadiLines"></div>
+          <button class="btn sec sm" onclick="tambahBaris('edJadi')" data-i18n="btnTambahItem">+ Tambah item</button>
+          <h3 class="sec" data-i18n="secScrap">Scrap / afkir <span class="unit">kg</span></h3>
+          <div id="edScrapLines"></div>
+          <button class="btn sec sm" onclick="tambahBaris('edScrap')" data-i18n="btnTambahItem">+ Tambah item</button>
+          <div id="edSusutPreview" style="margin-top:15px"></div>
+        </div>
+        <div class="field" style="margin-top:14px">
+          <label data-i18n="lblCatatan">Catatan (opsional)</label>
+          <textarea id="edCatatan"></textarea>
+        </div>
+        <div class="logedit hide" id="edLog"></div>
+        <div class="btnrow">
+          <button class="btn sec" onclick="segJob('done')" data-i18n="btnBatal">Batal</button>
+          <button class="btn ok" id="btnEdSimpan" onclick="simpanEditJobUI()" data-i18n="simpanPerubahan">Simpan perubahan</button>
+        </div>
+      </div>
+    </div>
 
     <div id="jobNew" class="hide">
       <div class="card">
@@ -573,6 +673,7 @@ nav button .dot{position:absolute;top:5px;right:50%;margin-right:-19px;width:8px
       getMaxColumns(){ return this.rows[0] ? this.rows[0].length : 26; },
       deleteColumns(){}, setFrozenRows(){}, autoResizeColumns(){},
       appendRow(r){ this.rows.push(r.slice()); },
+    deleteRow(n){ this.rows.splice(n-1,1); },
       getRange(r,c,nr,nc){
         var sh=this; nr=nr||1; nc=nc||1;
         return {
@@ -630,7 +731,7 @@ nav button .dot{position:absolute;top:5px;right:50%;margin-right:-19px;width:8px
 </script>
 <script>
 /**********************************************************************
- * IPC — Inventory & Production Control (MVP v4)
+ * IPC — Inventory & Production Control (MVP v5)
  * File 1 of 3 : Config.gs
  *
  * SEMUA SATUAN KILOGRAM. Nama sheet & kolom Bahasa Indonesia.
@@ -641,7 +742,7 @@ nav button .dot{position:absolute;top:5px;right:50%;margin-right:-19px;width:8px
 
 var APP = {
   nama: 'IPC — Inventory & Production Control',
-  versi: '4.0.0-mvp',
+  versi: '5.0.0-mvp',
   zona: 'Asia/Jakarta',
   satuan: 'kg',
   folderFoto: 'IPC Foto Bukti'
@@ -692,7 +793,7 @@ HEADER[SHEET.PENERIMAAN] = [
   'ID','Waktu','Tanggal','Jenis','Supplier','No_Surat_Jalan',
   'Kode_Item','Nama_Item','Qty_Kg','Qty_OCR','Selisih_OCR',
   'Foto_URL','Foto_ID','Dicatat_Oleh','Nama_Pencatat',
-  'Status','Ditinjau_Oleh','Waktu_Tinjau','Catatan_Tinjau','Catatan'
+  'Status','Ditinjau_Oleh','Waktu_Tinjau','Catatan_Tinjau','Catatan','Log_Edit'
 ];
 
 /* ④ Penjualan keluar (KELUAR) & retur dari customer (RETUR_MASUK) */
@@ -700,14 +801,14 @@ HEADER[SHEET.PENGIRIMAN] = [
   'ID','Waktu','Tanggal','Jenis','Customer','No_Surat_Jalan',
   'Kode_Item','Nama_Item','Qty_Kg',
   'Foto_URL','Foto_ID','Dicatat_Oleh','Nama_Pencatat',
-  'Status','Ditinjau_Oleh','Waktu_Tinjau','Catatan_Tinjau','Catatan'
+  'Status','Ditinjau_Oleh','Waktu_Tinjau','Catatan_Tinjau','Catatan','Log_Edit'
 ];
 
 /* ① ③ Transfer internal — TANPA surat jalan, cukup foto + timestamp */
 HEADER[SHEET.TRANSFER] = [
   'ID','Waktu','Tanggal','Arah','Kode_Item','Nama_Item','Qty_Kg',
   'Foto_URL','Foto_ID','Dicatat_Oleh','Nama_Pencatat',
-  'Status','Ditinjau_Oleh','Waktu_Tinjau','Catatan_Tinjau','Catatan'
+  'Status','Ditinjau_Oleh','Waktu_Tinjau','Catatan_Tinjau','Catatan','Log_Edit'
 ];
 
 HEADER[SHEET.PEKERJAAN] = [
@@ -715,7 +816,7 @@ HEADER[SHEET.PEKERJAAN] = [
   'Total_Bahan_Baku_Kg','Total_Barang_Jadi_Kg','Total_Scrap_Kg',
   'Susut_Kg','Susut_Persen','Status_Susut',
   'HPP_Bahan','HPP_Proses','HPP_Total','HPP_Per_Kg','Nilai_Susut',
-  'Operator','Nama_Operator','Foto_Mulai_URL','Foto_Selesai_URL','Catatan'
+  'Operator','Nama_Operator','Foto_Mulai_URL','Foto_Selesai_URL','Catatan','Log_Edit'
 ];
 
 HEADER[SHEET.DETAIL] = [
@@ -891,7 +992,7 @@ function ambilAtauBuatFolder_() {
 }
 
 /**********************************************************************
- * IPC — Inventory & Production Control (MVP v4)
+ * IPC — Inventory & Production Control (MVP v5)
  * File 2 of 3 : Server.gs
  *
  * SEMUA QTY DALAM KILOGRAM.
@@ -1595,10 +1696,7 @@ function tinjauTransfer(id, aksi, catatan, ident) {
   var status = (aksi === 'setuju') ? STATUS_TRANSFER.DISETUJUI
              : (aksi === 'batal')  ? STATUS_TRANSFER.DIBATALKAN
              : STATUS_TRANSFER.DITANDAI;
-  var pre = String(id).slice(0, 4);
-  var nama = (pre === 'TRF-') ? SHEET.TRANSFER
-           : (pre === 'OUT-' || pre === 'RTC-') ? SHEET.PENGIRIMAN
-           : SHEET.PENERIMAAN;
+  var nama = sheetDariId_(id);
 
   var lock = LockService.getScriptLock();
   lock.waitLock(20000);
@@ -1883,6 +1981,314 @@ function laporanPenjualan(hari, ident) {
                status: r.Status, pencatat: r.Nama_Pencatat, foto: r.Foto_URL, fotoId: r.Foto_ID };
     }).reverse().slice(0, 150)
   };
+}
+
+/* =================================================================
+   RIWAYAT INPUT & EDIT
+   -----------------------------------------------------------------
+   Aturan:
+   - Supervisor / Admin : boleh edit entri apa pun, status apa pun.
+   - STAF               : hanya entri yang dia catat sendiri dan masih MENUNGGU.
+   - Setiap edit dicatat di kolom Log_Edit (siapa, kapan, apa yang berubah)
+     dan di Log_Audit. Status tidak berubah karena edit.
+   ================================================================= */
+
+var JENIS_RIWAYAT = {
+  BELI_MASUK : { sheet: 'PENERIMAAN', filter: function (r) { return r.Jenis === JENIS_PENERIMAAN.MASUK; } },
+  BELI_RETUR : { sheet: 'PENERIMAAN', filter: function (r) { return r.Jenis === JENIS_PENERIMAAN.RETUR; } },
+  JUAL_KELUAR: { sheet: 'PENGIRIMAN', filter: function (r) { return r.Jenis === JENIS_PENGIRIMAN.KELUAR; } },
+  JUAL_RETUR : { sheet: 'PENGIRIMAN', filter: function (r) { return r.Jenis === JENIS_PENGIRIMAN.RETUR_MASUK; } },
+  TRF_KE_GP  : { sheet: 'TRANSFER',   filter: function (r) { return r.Arah === ARAH.KE_PRODUKSI; } },
+  TRF_KE_GBJ : { sheet: 'TRANSFER',   filter: function (r) { return r.Arah === ARAH.KE_GUDANG; } }
+};
+
+function penandaPencatat_(u) { return u.email || ('manual:' + u.nama); }
+
+function bolehEditEntri_(u, r) {
+  if (bolehReview_(u)) return true;
+  return r.Status === STATUS_TRANSFER.MENUNGGU && r.Dicatat_Oleh === penandaPencatat_(u);
+}
+
+function sheetDariId_(id) {
+  var pre = String(id).slice(0, 4);
+  if (pre === 'TRF-') return SHEET.TRANSFER;
+  if (pre === 'OUT-' || pre === 'RTC-') return SHEET.PENGIRIMAN;
+  if (pre === 'JOB-') return SHEET.PEKERJAAN;
+  return SHEET.PENERIMAAN;
+}
+
+function ringkasEntri_(r, nama, u) {
+  var o = {
+    id: r.ID, waktu: jam_(r.Waktu), tanggal: r.Tanggal,
+    item: r.Nama_Item, kode: r.Kode_Item, qty: angka_(r.Qty_Kg),
+    status: r.Status, pencatat: r.Nama_Pencatat, catatan: r.Catatan,
+    noSuratJalan: r.No_Surat_Jalan || '',
+    foto: r.Foto_URL, fotoId: r.Foto_ID,
+    catatanTinjau: r.Catatan_Tinjau || '', logEdit: r.Log_Edit || '',
+    bolehEdit: bolehEditEntri_(u, r),
+    bolehBatal: bolehReview_(u) ? (r.Status === STATUS_TRANSFER.MENUNGGU || r.Status === STATUS_TRANSFER.DITANDAI)
+                                : (r.Status === STATUS_TRANSFER.MENUNGGU && r.Dicatat_Oleh === penandaPencatat_(u))
+  };
+  if (nama === SHEET.PENERIMAAN) { o.partner = r.Supplier; o.jenis = r.Jenis; }
+  if (nama === SHEET.PENGIRIMAN) { o.partner = r.Customer; o.jenis = r.Jenis; }
+  if (nama === SHEET.TRANSFER)   { o.partner = ''; o.jenis = r.Arah; }
+  return o;
+}
+
+/** Riwayat input satu proses, terbaru dulu. */
+function riwayatInput(jenis, hari, ident) {
+  var u = penggunaSaatIni_(ident);
+  var def = JENIS_RIWAYAT[jenis];
+  if (!def) throw new Error('Jenis riwayat tidak dikenal: ' + jenis);
+  var nama = SHEET[def.sheet];
+  var batas = new Date();
+  batas.setDate(batas.getDate() - (hari || 14));
+  return baca_(nama)
+    .filter(function (r) { return def.filter(r) && new Date(r.Waktu) >= batas; })
+    .map(function (r) { return ringkasEntri_(r, nama, u); })
+    .reverse()
+    .slice(0, 60);
+}
+
+/** Satu entri lengkap untuk form edit. */
+function ambilEntri(id, ident) {
+  var u = penggunaSaatIni_(ident);
+  var nama = sheetDariId_(id);
+  if (nama === SHEET.PEKERJAAN) throw new Error('Pakai ambilPekerjaan untuk job.');
+  var rows = baca_(nama);
+  for (var i = 0; i < rows.length; i++) {
+    if (rows[i].ID === id) {
+      var o = ringkasEntri_(rows[i], nama, u);
+      o.sheet = nama;
+      return o;
+    }
+  }
+  throw new Error('Entri tidak ditemukan: ' + id);
+}
+
+/**
+ * perubahan = { kode, qty, partner, noSuratJalan, catatan }  (yang tidak dikirim = tidak diubah)
+ */
+function simpanEditEntri(id, perubahan, ident) {
+  var u = penggunaSaatIni_(ident);
+  var nama = sheetDariId_(id);
+  if (nama === SHEET.PEKERJAAN) throw new Error('Pakai simpanEditPekerjaan untuk job.');
+  perubahan = perubahan || {};
+
+  var lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try {
+    var rows = baca_(nama), r = null;
+    for (var i = 0; i < rows.length; i++) if (rows[i].ID === id) r = rows[i];
+    if (!r) throw new Error('Entri tidak ditemukan: ' + id);
+    if (!bolehEditEntri_(u, r)) {
+      throw new Error(r.Status === STATUS_TRANSFER.MENUNGGU
+        ? 'Hanya bisa mengubah entri yang kamu catat sendiri.'
+        : 'Entri sudah ditinjau (' + r.Status + ') — hanya supervisor yang bisa mengubah.');
+    }
+
+    var peta = petaItem_();
+    var ubah = {}, log = [];
+
+    if (perubahan.kode !== undefined && perubahan.kode !== r.Kode_Item) {
+      var it = peta[perubahan.kode];
+      if (!it) throw new Error('Item tidak dikenal: ' + perubahan.kode);
+      ubah.Kode_Item = it.kode; ubah.Nama_Item = it.nama;
+      log.push('item: ' + r.Nama_Item + ' → ' + it.nama);
+    }
+    if (perubahan.qty !== undefined) {
+      var q = angka_(perubahan.qty);
+      if (q <= 0) throw new Error('Qty harus lebih dari 0.');
+      if (q !== angka_(r.Qty_Kg)) { ubah.Qty_Kg = q; log.push('qty: ' + angka_(r.Qty_Kg) + ' → ' + q + ' kg'); }
+    }
+    if (perubahan.partner !== undefined) {
+      var kolom = nama === SHEET.PENERIMAAN ? 'Supplier' : nama === SHEET.PENGIRIMAN ? 'Customer' : null;
+      if (kolom && String(perubahan.partner) !== String(r[kolom])) {
+        if (!String(perubahan.partner).trim()) throw new Error(kolom + ' tidak boleh kosong.');
+        ubah[kolom] = perubahan.partner; log.push(kolom.toLowerCase() + ': ' + r[kolom] + ' → ' + perubahan.partner);
+      }
+    }
+    if (perubahan.noSuratJalan !== undefined && nama !== SHEET.TRANSFER &&
+        String(perubahan.noSuratJalan) !== String(r.No_Surat_Jalan || '')) {
+      ubah.No_Surat_Jalan = perubahan.noSuratJalan;
+      log.push('surat jalan: ' + (r.No_Surat_Jalan || '—') + ' → ' + (perubahan.noSuratJalan || '—'));
+    }
+    if (perubahan.catatan !== undefined && String(perubahan.catatan) !== String(r.Catatan || '')) {
+      ubah.Catatan = perubahan.catatan; log.push('catatan diubah');
+    }
+
+    if (!log.length) return { ok: true, berubah: false };
+
+    var stempel = Utilities.formatDate(new Date(), APP.zona, 'dd/MM HH:mm') + ' ' + u.nama + ': ' + log.join('; ');
+    ubah.Log_Edit = [r.Log_Edit, stempel].filter(String).join('\n');
+    ubahBaris_(nama, r._baris, ubah);
+    catatLog_('EDIT', id, log.join('; '));
+    return { ok: true, berubah: true, log: log };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+/** Staf boleh membatalkan entrinya sendiri selama masih MENUNGGU; supervisor lewat tinjauTransfer. */
+function batalkanEntriSendiri(id, alasan, ident) {
+  var u = penggunaSaatIni_(ident);
+  if (bolehReview_(u)) return tinjauTransfer(id, 'batal', alasan, ident);
+  var nama = sheetDariId_(id);
+  var lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try {
+    var rows = baca_(nama);
+    for (var i = 0; i < rows.length; i++) {
+      if (rows[i].ID !== id) continue;
+      var r = rows[i];
+      if (r.Status !== STATUS_TRANSFER.MENUNGGU || r.Dicatat_Oleh !== penandaPencatat_(u)) {
+        throw new Error('Hanya entri sendiri yang masih menunggu review yang bisa dibatalkan.');
+      }
+      var stempel = Utilities.formatDate(new Date(), APP.zona, 'dd/MM HH:mm') + ' ' + u.nama + ': dibatalkan sendiri';
+      ubahBaris_(nama, r._baris, {
+        Status: STATUS_TRANSFER.DIBATALKAN, Ditinjau_Oleh: u.nama, Waktu_Tinjau: new Date(),
+        Catatan_Tinjau: [r.Catatan_Tinjau, alasan].filter(String).join(' | '),
+        Log_Edit: [r.Log_Edit, stempel].filter(String).join('\n')
+      });
+      catatLog_('BATAL_SENDIRI', id, alasan || '');
+      return { ok: true, status: STATUS_TRANSFER.DIBATALKAN };
+    }
+    throw new Error('Entri tidak ditemukan: ' + id);
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+/* ---------- pekerjaan: riwayat & edit ---------- */
+
+function bolehEditJob_(u, r) {
+  if (bolehReview_(u)) return true;
+  return r.Operator === penandaPencatat_(u) &&
+         (Date.now() - new Date(r.Waktu_Selesai || r.Waktu_Mulai).getTime()) < 24 * 3600 * 1000;
+}
+
+function daftarPekerjaanSelesai(hari, ident) {
+  var u = penggunaSaatIni_(ident);
+  var lihatHpp = bolehLihatHpp_(u);
+  var batas = new Date();
+  batas.setDate(batas.getDate() - (hari || 14));
+  return baca_(SHEET.PEKERJAAN)
+    .filter(function (r) { return r.Status === STATUS_PEKERJAAN.SELESAI && new Date(r.Waktu_Selesai) >= batas; })
+    .map(function (r) {
+      var o = {
+        id: r.ID, produk: r.Nama_Produk, kodeProduk: r.Kode_Produk,
+        selesai: jam_(r.Waktu_Selesai), masuk: angka_(r.Total_Bahan_Baku_Kg),
+        jadi: angka_(r.Total_Barang_Jadi_Kg), scrap: angka_(r.Total_Scrap_Kg),
+        susut: angka_(r.Susut_Kg), persen: angka_(r.Susut_Persen), status: r.Status_Susut,
+        operator: r.Nama_Operator, logEdit: r.Log_Edit || '', bolehEdit: bolehEditJob_(u, r)
+      };
+      if (lihatHpp) o.hpp = { total: angka_(r.HPP_Total), perKg: angka_(r.HPP_Per_Kg) };
+      return o;
+    })
+    .reverse().slice(0, 60);
+}
+
+function ambilPekerjaan(id, ident) {
+  var u = penggunaSaatIni_(ident);
+  var rows = baca_(SHEET.PEKERJAAN), r = null;
+  for (var i = 0; i < rows.length; i++) if (rows[i].ID === id) r = rows[i];
+  if (!r) throw new Error('Pekerjaan tidak ditemukan.');
+  var det = baca_(SHEET.DETAIL).filter(function (d) { return d.ID_Pekerjaan === id; });
+  function ambil(jenis) {
+    return det.filter(function (d) { return d.Jenis === jenis; })
+              .map(function (d) { return { kode: d.Kode_Item, nama: d.Nama_Item, qty: angka_(d.Qty_Kg) }; });
+  }
+  return {
+    id: r.ID, produk: r.Nama_Produk, kodeProduk: r.Kode_Produk, status: r.Status,
+    catatan: r.Catatan || '', logEdit: r.Log_Edit || '',
+    bahanBaku: ambil(JENIS_DETAIL.BAHAN_BAKU), barangJadi: ambil(JENIS_DETAIL.BARANG_JADI),
+    scrap: ambil(JENIS_DETAIL.SCRAP), bolehEdit: bolehEditJob_(u, r)
+  };
+}
+
+/**
+ * p = { kodeProduk, bahanBaku:[{kode,qty}], barangJadi:[...], scrap:[...], catatan }
+ * Baris detail lama diganti; susut & HPP dihitung ulang. Harga bahan memakai harga SAAT INI.
+ */
+function simpanEditPekerjaan(id, p, ident) {
+  var u = penggunaSaatIni_(ident);
+  p = p || {};
+  var lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try {
+    var rows = baca_(SHEET.PEKERJAAN), r = null;
+    for (var i = 0; i < rows.length; i++) if (rows[i].ID === id) r = rows[i];
+    if (!r) throw new Error('Pekerjaan tidak ditemukan.');
+    if (!bolehEditJob_(u, r)) throw new Error('Hanya operator (24 jam pertama) atau supervisor yang bisa mengubah pekerjaan ini.');
+    if (!p.bahanBaku || !p.bahanBaku.length) throw new Error('Bahan baku tidak boleh kosong.');
+    var selesai = r.Status === STATUS_PEKERJAAN.SELESAI;
+    if (selesai && (!p.barangJadi || !p.barangJadi.length)) throw new Error('Barang jadi tidak boleh kosong.');
+
+    var peta = petaItem_();
+    var produk = peta[p.kodeProduk || r.Kode_Produk];
+    if (!produk) throw new Error('Produk tidak dikenal.');
+
+    /* hapus detail lama — dari bawah ke atas supaya nomor baris tidak bergeser */
+    var sh = sheet_(SHEET.DETAIL);
+    baca_(SHEET.DETAIL).filter(function (d) { return d.ID_Pekerjaan === id; })
+      .map(function (d) { return d._baris; })
+      .sort(function (a, b) { return b - a; })
+      .forEach(function (baris) { sh.deleteRow(baris); });
+
+    var now = new Date();
+    var total = 0, hppBahan = 0, totalJadi = 0, totalScrap = 0;
+    function tulis(list, jenis, hitung) {
+      (list || []).forEach(function (b) {
+        var it = peta[b.kode]; if (!it) throw new Error('Item tidak dikenal: ' + b.kode);
+        var q = angka_(b.qty); if (q <= 0) return;
+        var nilai = jenis === JENIS_DETAIL.BAHAN_BAKU ? q * it.harga : '';
+        hitung(q, nilai);
+        tambah_(SHEET.DETAIL, { ID: buatId_('DTL'), ID_Pekerjaan: id, Jenis: jenis,
+          Kode_Item: it.kode, Nama_Item: it.nama, Qty_Kg: q,
+          Harga_Per_Kg: jenis === JENIS_DETAIL.BAHAN_BAKU ? it.harga : '',
+          Nilai: nilai === '' ? '' : bulat_(nilai, 0), Waktu: now });
+      });
+    }
+    tulis(p.bahanBaku,  JENIS_DETAIL.BAHAN_BAKU,  function (q, n) { total += q; hppBahan += n; });
+    tulis(p.barangJadi, JENIS_DETAIL.BARANG_JADI, function (q) { totalJadi += q; });
+    tulis(p.scrap,      JENIS_DETAIL.SCRAP,       function (q) { totalScrap += q; });
+    if (total <= 0) throw new Error('Total bahan baku harus > 0.');
+
+    var hppProses = total * biayaProsesPerKg_();
+    var hppTotal = hppBahan + hppProses;
+    var ubah = {
+      Kode_Produk: produk.kode, Nama_Produk: produk.nama,
+      Total_Bahan_Baku_Kg: bulat_(total, 3),
+      HPP_Bahan: bulat_(hppBahan, 0), HPP_Proses: bulat_(hppProses, 0), HPP_Total: bulat_(hppTotal, 0)
+    };
+    var log = ['bahan ' + angka_(r.Total_Bahan_Baku_Kg) + ' → ' + bulat_(total, 2) + ' kg'];
+    if (p.catatan !== undefined) ubah.Catatan = p.catatan;
+
+    if (selesai) {
+      var h = hitungSusut_(total, totalJadi, totalScrap, produk.kode);
+      var hargaRata = total > 0 ? hppBahan / total : 0;
+      ubah.Total_Barang_Jadi_Kg = bulat_(totalJadi, 3);
+      ubah.Total_Scrap_Kg = bulat_(totalScrap, 3);
+      ubah.Susut_Kg = h.susut; ubah.Susut_Persen = h.persen; ubah.Status_Susut = h.status;
+      ubah.HPP_Per_Kg = bulat_(totalJadi > 0 ? hppTotal / totalJadi : 0, 0);
+      ubah.Nilai_Susut = bulat_(Math.max(0, h.susut) * hargaRata, 0);
+      log.push('jadi ' + angka_(r.Total_Barang_Jadi_Kg) + ' → ' + bulat_(totalJadi, 2) + ' kg');
+      log.push('susut ' + angka_(r.Susut_Persen) + '% → ' + h.persen + '%');
+    }
+    if (produk.kode !== r.Kode_Produk) log.push('produk: ' + r.Nama_Produk + ' → ' + produk.nama);
+
+    var stempel = Utilities.formatDate(now, APP.zona, 'dd/MM HH:mm') + ' ' + u.nama + ': ' + log.join('; ');
+    ubah.Log_Edit = [r.Log_Edit, stempel].filter(String).join('\n');
+    ubahBaris_(SHEET.PEKERJAAN, r._baris, ubah);
+    catatLog_('EDIT_PEKERJAAN', id, log.join('; '));
+
+    var out = { ok: true, log: log, masuk: bulat_(total, 2) };
+    if (selesai) { out.susut = ubah.Susut_Kg; out.persen = ubah.Susut_Persen; out.status = ubah.Status_Susut; }
+    if (bolehLihatHpp_(u)) out.hpp = { total: ubah.HPP_Total, perKg: ubah.HPP_Per_Kg || 0 };
+    return out;
+  } finally {
+    lock.releaseLock();
+  }
 }
 
 /* =================================================================
@@ -2396,7 +2802,9 @@ function tesParserSuratJalan() {
                'mulaiPekerjaan','selesaikanPekerjaan','daftarPekerjaanBerjalan',
                'antrianReview','tinjauTransfer','tinjauMassal',
                'laporanSusut','laporanStok','riwayatPenerimaan','laporanPenjualan',
-               'riwayatTransfer','ocrSuratJalan','unggahFoto','kalender','laporanHpp'];
+               'riwayatTransfer','ocrSuratJalan','unggahFoto','kalender','laporanHpp',
+               'riwayatInput','ambilEntri','simpanEditEntri','batalkanEntriSendiri',
+               'daftarPekerjaanSelesai','ambilPekerjaan','simpanEditPekerjaan'];
     function buat(sukses, gagal){
       var o = { withSuccessHandler:function(f){ return buat(f, gagal); },
                 withFailureHandler:function(f){ return buat(sukses, f); } };
@@ -2531,7 +2939,16 @@ var T = {
     hpp:'HPP', hppBahan:'Bahan', hppProses:'Proses', hppTotal:'HPP total', hppPerKg:'HPP per kg jadi',
     nilaiSusut:'Nilai susut', hppSejauhIni:'HPP sejauh ini', biayaProses:'biaya proses',
     hppHint:'HPP = harga bahan baku saat job dimulai + biaya proses per kg. Hanya terlihat oleh Supervisor / Admin.',
-    hppPerProduk:'HPP per produk', hppDetail:'HPP per pekerjaan', rentang:'rentang'
+    hppPerProduk:'HPP per produk', hppDetail:'HPP per pekerjaan', rentang:'rentang',
+    /* riwayat & edit */
+    riwayatT:'Riwayat input', riwayatSub:'14 hari terakhir · ketuk Ubah untuk memperbaiki',
+    riwayatKosong:'Belum ada input untuk proses ini.', ubah:'Ubah', editT:'Ubah entri',
+    batalkanInput:'Batalkan input', simpanPerubahan:'Simpan perubahan', tersimpanEdit:'Perubahan tersimpan',
+    tanpaPerubahan:'Tidak ada yang berubah', logJudul:'Riwayat perubahan', terkunci:'Terkunci',
+    terkunciHint:'Sudah ditinjau — hanya supervisor yang bisa mengubah',
+    alasanBatalSendiri:'Kenapa dibatalkan?', konfirmBatal:'Batalkan input ini? Stok akan disesuaikan.',
+    segSelesai:'Selesai', jobEditT:'Ubah pekerjaan', kosongSelesai:'Belum ada pekerjaan selesai 14 hari terakhir.',
+    diubah:'diubah', hitungUlang:'Susut & HPP dihitung ulang'
   },
   en: {
     appTitle:'Inventory & Production Control',
@@ -2639,7 +3056,15 @@ var T = {
     hpp:'COGS', hppBahan:'Material', hppProses:'Process', hppTotal:'Total COGS', hppPerKg:'COGS per kg out',
     nilaiSusut:'Shrinkage value', hppSejauhIni:'COGS so far', biayaProses:'process cost',
     hppHint:'COGS = raw-material price at job start + process cost per kg. Visible to Supervisor / Admin only.',
-    hppPerProduk:'COGS by product', hppDetail:'COGS by job', rentang:'range'
+    hppPerProduk:'COGS by product', hppDetail:'COGS by job', rentang:'range',
+    riwayatT:'Input history', riwayatSub:'Last 14 days · tap Edit to correct',
+    riwayatKosong:'No entries for this process yet.', ubah:'Edit', editT:'Edit entry',
+    batalkanInput:'Cancel this entry', simpanPerubahan:'Save changes', tersimpanEdit:'Changes saved',
+    tanpaPerubahan:'Nothing changed', logJudul:'Change log', terkunci:'Locked',
+    terkunciHint:'Already reviewed — only a supervisor can change it',
+    alasanBatalSendiri:'Why cancel?', konfirmBatal:'Cancel this entry? Stock will be adjusted.',
+    segSelesai:'Done', jobEditT:'Edit job', kosongSelesai:'No jobs closed in the last 14 days.',
+    diubah:'edited', hitungUlang:'Shrinkage & COGS recomputed'
   }
 };
 
@@ -2674,7 +3099,8 @@ function terapkanBahasa(){
 var S = {
   ctx:null, view:'home', jobTab:'list', repTab:'susut', ident:{ nama:'', pin:'' },
   foto:{ rcv:null, trf:null, job:null, fin:null },
-  baris:{ rcv:[], trf:[], job:[], finJadi:[], finScrap:[] },
+  baris:{ rcv:[], trf:[], job:[], finJadi:[], finScrap:[], edBahan:[], edJadi:[], edScrap:[] },
+  edit:null, edJob:null,
   ocr:null, jobAktif:null, arah:'GBJ_KE_GP', modeExt:'BELI_MASUK',
   cal:{ bulan:null, data:null, hari:null }, revTab:'MENUNGGU'
 };
@@ -2894,8 +3320,9 @@ function isiSelectPartner(){
 /* =================================================================
    BARIS ITEM
    ================================================================= */
-var MODE_BARIS = { rcv:'all', trf:'all', job:'bahan', finJadi:'jadi', finScrap:'all' };
-var WADAH = { rcv:'rcvLines', trf:'trfLines', job:'jobLines', finJadi:'finJadiLines', finScrap:'finScrapLines' };
+var MODE_BARIS = { rcv:'all', trf:'all', job:'bahan', finJadi:'jadi', finScrap:'all', edBahan:'bahan', edJadi:'jadi', edScrap:'all' };
+var WADAH = { rcv:'rcvLines', trf:'trfLines', job:'jobLines', finJadi:'finJadiLines', finScrap:'finScrapLines',
+              edBahan:'edBahanLines', edJadi:'edJadiLines', edScrap:'edScrapLines' };
 
 function tambahBaris(k){ S.baris[k].push({ kode:'', qty:'' }); gambarBaris(k); }
 function hapusBaris(k, i){
@@ -2907,6 +3334,7 @@ function ubahBaris(k, i, field, val){
   S.baris[k][i][field] = val;
   if (k === 'finJadi' || k === 'finScrap') hitungPreviewSusut();
   if (k === 'job') ringkasJobBaru();
+  if (k.indexOf('ed') === 0) previewEditJob();
 }
 function gambarSemuaBaris(){ Object.keys(WADAH).forEach(gambarBaris); }
 
@@ -3015,6 +3443,7 @@ function bukaMutasi(mode){
   $('rcvPartner').value = '';
   gambarBaris('rcv');
   tampil('beli');
+  muatRiwayat('rcv');
 }
 
 function modeInfo(){
@@ -3125,6 +3554,7 @@ function bukaTransfer(arah){
   labelTransfer();
   gambarBaris('trf');
   tampil('transfer');
+  muatRiwayat('trf');
 }
 function labelTransfer(){
   var ke = S.arah === 'GBJ_KE_GP';
@@ -3154,11 +3584,15 @@ function segJob(tab){
   S.jobTab = tab;
   $('segJobList').classList.toggle('on', tab==='list');
   $('segJobNew').classList.toggle('on', tab==='new');
+  $('segJobDone').classList.toggle('on', tab==='done');
   $('jobList').classList.toggle('hide', tab!=='list');
   $('jobNew').classList.toggle('hide', tab!=='new');
+  $('jobDone').classList.toggle('hide', tab!=='done');
   $('jobFinish').classList.add('hide');
   $('jobHasil').classList.add('hide');
+  $('jobEdit').classList.add('hide');
   if (tab==='list') muatJob();
+  if (tab==='done') muatJobSelesai();
   if (tab==='new'){
     isiSelectProduk();
     if(!S.baris.job.length) S.baris.job=[{kode:'',qty:''}];
@@ -3332,6 +3766,172 @@ function tampilHasilJob(r){
   window.scrollTo(0,0);
 }
 
+
+/* =================================================================
+   RIWAYAT INPUT & EDIT ENTRI
+   ================================================================= */
+function jenisRiwayat(k){
+  if (k === 'trf') return S.arah === 'GBJ_KE_GP' ? 'TRF_KE_GP' : 'TRF_KE_GBJ';
+  return S.modeExt;   // BELI_MASUK | BELI_RETUR | JUAL_KELUAR | JUAL_RETUR
+}
+function muatRiwayat(k){
+  var el = $(k+'Riwayat'), sub = $(k+'RiwayatSub'); if (!el) return;
+  if (sub) sub.textContent = t('riwayatSub');
+  el.innerHTML = '<div class="load">…</div>';
+  panggil('riwayatInput',[jenisRiwayat(k), 14, S.ident]).then(function(rows){
+    if (!rows.length){ el.innerHTML = '<div style="font-size:12.5px;color:var(--muted);padding:6px 0">'+esc(t('riwayatKosong'))+'</div>'; return; }
+    el.innerHTML = rows.map(function(r){
+      var sub2 = [r.partner, r.noSuratJalan, r.waktu, r.pencatat].filter(Boolean).map(esc).join(' · ');
+      var tombol = r.bolehEdit
+        ? '<button class="btn sec xs" onclick="bukaEdit(\''+esc(r.id)+'\')">✎ '+esc(t('ubah'))+'</button>'
+        : '<span class="pill n" title="'+esc(t('terkunciHint'))+'">🔒 '+esc(t('terkunci'))+'</span>';
+      return '<div class="hist">' +
+        '<span class="hq">'+n2(r.qty)+' kg</span>' +
+        '<span class="hx"><b>'+esc(r.item)+'</b><small>'+sub2+(r.logEdit?' · <i>'+esc(t('diubah'))+'</i>':'')+'</small></span>' +
+        '<span class="hb">'+pillStatus(r.status)+tombol+'</span>' +
+      '</div>';
+    }).join('');
+  }).catch(function(e){ el.innerHTML = '<div class="banner bad">'+esc(e.message)+'</div>'; });
+}
+
+function bukaEdit(id){
+  panggil('ambilEntri',[id, S.ident]).then(function(r){
+    S.edit = r;
+    var beli = r.sheet === 'Penerimaan', jual = r.sheet === 'Pengiriman', trf = r.sheet === 'Transfer';
+    $('editSub').textContent = r.waktu + ' · ' + r.pencatat + ' · ' + r.status;
+    // partner
+    $('editPartnerWrap').classList.toggle('hide', trf);
+    if (!trf){
+      $('editPartnerLabel').textContent = jual ? t('lblCustomer') : t('lblSupplier');
+      var daftar = jual ? (S.ctx.customer||[]) : (S.ctx.supplier||[]);
+      $('editPartner').innerHTML = daftar.map(function(p){
+        return '<option value="'+esc(p.nama)+'"'+(p.nama===r.partner?' selected':'')+'>'+esc(p.nama)+'</option>';
+      }).join('');
+      if (r.partner && !daftar.some(function(p){ return p.nama===r.partner; })){
+        $('editPartner').innerHTML += '<option value="'+esc(r.partner)+'" selected>'+esc(r.partner)+'</option>';
+      }
+    }
+    // item
+    $('editKode').innerHTML = S.ctx.items.map(function(i){
+      return '<option value="'+esc(i.kode)+'"'+(i.kode===r.kode?' selected':'')+'>'+esc(i.nama)+'</option>';
+    }).join('');
+    $('editQty').value = r.qty;
+    $('editSJWrap').classList.toggle('hide', trf);
+    $('editSJ').value = r.noSuratJalan || '';
+    $('editCatatan').value = r.catatan || '';
+    var lg = $('editLog');
+    lg.classList.toggle('hide', !r.logEdit);
+    lg.setAttribute('data-judul', t('logJudul'));
+    lg.textContent = r.logEdit || '';
+    $('btnEditBatal').classList.toggle('hide', !r.bolehBatal);
+    $('editWrap').classList.remove('hide');
+  }).catch(function(e){ toast(e.message,'bad'); });
+}
+function tutupEdit(){ $('editWrap').classList.add('hide'); S.edit = null; }
+
+function simpanEditUI(){
+  if (!S.edit) return;
+  var b = $('btnEditSimpan'); sibuk(b, true);
+  var perubahan = { kode: $('editKode').value, qty: parseFloat($('editQty').value), catatan: $('editCatatan').value };
+  if (S.edit.sheet !== 'Transfer'){ perubahan.partner = $('editPartner').value; perubahan.noSuratJalan = $('editSJ').value; }
+  panggil('simpanEditEntri',[S.edit.id, perubahan, S.ident]).then(function(r){
+    sibuk(b,false,t('simpanPerubahan'));
+    toast(r.berubah ? t('tersimpanEdit') : t('tanpaPerubahan'), r.berubah ? 'ok' : '');
+    tutupEdit();
+    if (S.view==='beli') muatRiwayat('rcv');
+    if (S.view==='transfer') muatRiwayat('trf');
+    if (S.view==='review') muatReview();
+    muatKonteks(true);
+  }).catch(function(e){ sibuk(b,false,t('simpanPerubahan')); toast(e.message,'bad'); });
+}
+
+function batalkanEntriUI(){
+  if (!S.edit) return;
+  if (!window.confirm(t('konfirmBatal'))) return;
+  var alasan = window.prompt(t('alasanBatalSendiri')); if (alasan === null) return;
+  panggil('batalkanEntriSendiri',[S.edit.id, alasan || '', S.ident]).then(function(){
+    toast(t('dibatalkan'));
+    tutupEdit();
+    if (S.view==='beli') muatRiwayat('rcv');
+    if (S.view==='transfer') muatRiwayat('trf');
+    if (S.view==='review') muatReview();
+    muatKonteks(true);
+  }).catch(function(e){ toast(e.message,'bad'); });
+}
+
+/* ---------- pekerjaan selesai: daftar & edit ---------- */
+function muatJobSelesai(){
+  $('jobDone').innerHTML = '<div class="load">…</div>';
+  panggil('daftarPekerjaanSelesai',[14, S.ident]).then(function(rows){
+    if (!rows.length){ $('jobDone').innerHTML = '<div class="empty"><span class="g">✅</span>'+esc(t('kosongSelesai'))+'</div>'; return; }
+    $('jobDone').innerHTML = rows.map(function(j){
+      var warna = j.status==='NORMAL' ? 'var(--ok)' : 'var(--danger)';
+      return '<div class="jobdone">' +
+        '<div style="display:flex;align-items:flex-start;gap:10px">' +
+          '<div style="flex:1;min-width:0"><b style="font-size:14.5px">'+esc(j.produk)+'</b>' +
+            '<div class="m" style="font-size:11.5px;color:var(--muted)">'+esc(j.selesai)+' · '+esc(j.operator)+(j.logEdit?' · <i>'+esc(t('diubah'))+'</i>':'')+'</div>' +
+            '<div style="font-size:12px;margin-top:4px;font-variant-numeric:tabular-nums">'+n2(j.masuk)+' → '+n2(j.jadi)+' kg · '+esc(t('scrap'))+' '+n2(j.scrap)+
+              (j.hpp ? ' · <span style="color:#78350f">'+esc(t('hpp'))+' '+rp(j.hpp.perKg)+'/kg</span>' : '')+'</div></div>' +
+          '<div style="text-align:right"><div style="font-size:18px;font-weight:700;color:'+warna+';font-variant-numeric:tabular-nums">'+n2(j.persen)+'%</div>' +
+            pillSusut(j.status)+'</div>' +
+        '</div>' +
+        '<div style="margin-top:8px;display:flex;justify-content:flex-end">' +
+          (j.bolehEdit ? '<button class="btn sec xs" onclick="bukaEditJob(\''+esc(j.id)+'\')">✎ '+esc(t('ubah'))+'</button>'
+                       : '<span class="pill n">🔒 '+esc(t('terkunci'))+'</span>') +
+        '</div></div>';
+    }).join('');
+  }).catch(function(e){ $('jobDone').innerHTML = '<div class="banner bad">'+esc(e.message)+'</div>'; });
+}
+
+function bukaEditJob(id){
+  panggil('ambilPekerjaan',[id, S.ident]).then(function(j){
+    S.edJob = j;
+    $('jobEditSub').textContent = j.produk + ' · ' + j.status;
+    var sel = $('edProduk');
+    sel.innerHTML = itemsFilter('jadi').map(function(i){
+      return '<option value="'+esc(i.kode)+'"'+(i.kode===j.kodeProduk?' selected':'')+'>'+esc(i.nama)+'</option>'; }).join('');
+    S.baris.edBahan = j.bahanBaku.length ? j.bahanBaku.map(function(b){ return {kode:b.kode, qty:b.qty}; }) : [{kode:'',qty:''}];
+    S.baris.edJadi  = j.barangJadi.length ? j.barangJadi.map(function(b){ return {kode:b.kode, qty:b.qty}; }) : [{kode:j.kodeProduk,qty:''}];
+    S.baris.edScrap = j.scrap.length ? j.scrap.map(function(b){ return {kode:b.kode, qty:b.qty}; }) : [{kode:'',qty:''}];
+    $('edKeluar').classList.toggle('hide', j.status !== 'SELESAI');
+    $('edCatatan').value = j.catatan || '';
+    var lg = $('edLog'); lg.classList.toggle('hide', !j.logEdit); lg.setAttribute('data-judul', t('logJudul')); lg.textContent = j.logEdit || '';
+    gambarBaris('edBahan'); gambarBaris('edJadi'); gambarBaris('edScrap');
+    previewEditJob();
+    $('jobList').classList.add('hide'); $('jobNew').classList.add('hide'); $('jobDone').classList.add('hide');
+    $('jobFinish').classList.add('hide'); $('jobHasil').classList.add('hide');
+    $('jobEdit').classList.remove('hide');
+    window.scrollTo(0,0);
+  }).catch(function(e){ toast(e.message,'bad'); });
+}
+
+function previewEditJob(){
+  var el = $('edSusutPreview'); if (!el || !S.edJob || S.edJob.status !== 'SELESAI') return;
+  var masuk = totalBaris('edBahan'), jadi = totalBaris('edJadi'), scrap = totalBaris('edScrap');
+  var susut = masuk - jadi - scrap, persen = masuk > 0 ? susut/masuk*100 : 0;
+  var kelas = persen < 0 ? 'banner bad' : 'banner ok';
+  el.className = kelas;
+  el.innerHTML = '<b>'+esc(t('perkiraanSusut'))+': '+n2(susut)+' kg ('+n2(persen)+'%)</b>' +
+    '<div style="font-size:12px;margin-top:3px;opacity:.85">'+n2(masuk)+' − '+n2(jadi)+' − '+n2(scrap)+' = '+n2(susut)+' kg</div>';
+}
+
+function simpanEditJobUI(){
+  if (!S.edJob) return;
+  var bahan = ambilBaris('edBahan');
+  if (!bahan.length){ toast(t('wajibItem'),'bad'); return; }
+  var b = $('btnEdSimpan'); sibuk(b, true);
+  panggil('simpanEditPekerjaan',[S.edJob.id, {
+    kodeProduk: $('edProduk').value, bahanBaku: bahan,
+    barangJadi: ambilBaris('edJadi'), scrap: ambilBaris('edScrap'),
+    catatan: $('edCatatan').value
+  }, S.ident]).then(function(r){
+    sibuk(b,false,t('simpanPerubahan'));
+    toast(t('hitungUlang') + (r.persen!==undefined ? ' · '+n2(r.persen)+'%' : ''), r.status && r.status!=='NORMAL' ? 'bad' : 'ok');
+    S.edJob = null;
+    segJob('done'); muatKonteks(true);
+  }).catch(function(e){ sibuk(b,false,t('simpanPerubahan')); toast(e.message,'bad'); });
+}
+
 /* =================================================================
    ANTRIAN REVIEW
    ================================================================= */
@@ -3379,7 +3979,8 @@ function muatReview(){
           (r.noSuratJalan ? '<div class="kv"><span>'+esc(t('thSJ'))+'</span><b>'+esc(r.noSuratJalan)+'</b></div>' : '') +
           (r.catatan ? '<div class="kv"><span>'+esc(t('lblCatatan'))+'</span><b>'+esc(r.catatan)+'</b></div>' : '') +
           (r.catatanTinjau ? '<div class="kv"><span>'+esc(t('catatanTinjau'))+'</span><b>'+esc(r.catatanTinjau)+'</b></div>' : '') +
-          '<div class="btnrow" style="margin-top:11px">' +
+          '<div style="margin-top:9px;display:flex;justify-content:flex-end"><button class="btn sec xs" onclick="bukaEdit(\''+esc(r.id)+'\')">✎ '+esc(t('ubah'))+'</button></div>' +
+          '<div class="btnrow" style="margin-top:8px">' +
             '<button class="btn ghost" onclick="tinjau(\''+esc(r.id)+'\',\'batal\')">✕ '+esc(t('batal'))+'</button>' +
             (arsip ? '' : '<button class="btn warn" onclick="tinjau(\''+esc(r.id)+'\',\'tandai\')">⚑ '+esc(t('tandai'))+'</button>') +
             '<button class="btn ok" onclick="tinjau(\''+esc(r.id)+'\',\'setuju\')">✓ '+esc(t('setuju'))+'</button>' +
