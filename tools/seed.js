@@ -142,7 +142,9 @@
                'mulaiPekerjaan','selesaikanPekerjaan','daftarPekerjaanBerjalan',
                'antrianReview','tinjauTransfer','tinjauMassal',
                'laporanSusut','laporanStok','riwayatPenerimaan','laporanPenjualan',
-               'riwayatTransfer','ocrSuratJalan','unggahFoto','kalender','laporanHpp'];
+               'riwayatTransfer','ocrSuratJalan','unggahFoto','kalender','laporanHpp',
+               'riwayatInput','ambilEntri','simpanEditEntri','batalkanEntriSendiri',
+               'daftarPekerjaanSelesai','ambilPekerjaan','simpanEditPekerjaan'];
     function buat(sukses, gagal){
       var o = { withSuccessHandler:function(f){ return buat(f, gagal); },
                 withFailureHandler:function(f){ return buat(sukses, f); } };

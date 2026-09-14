@@ -10,6 +10,7 @@
       getMaxColumns(){ return this.rows[0] ? this.rows[0].length : 26; },
       deleteColumns(){}, setFrozenRows(){}, autoResizeColumns(){},
       appendRow(r){ this.rows.push(r.slice()); },
+    deleteRow(n){ this.rows.splice(n-1,1); },
       getRange(r,c,nr,nc){
         var sh=this; nr=nr||1; nc=nc||1;
         return {
