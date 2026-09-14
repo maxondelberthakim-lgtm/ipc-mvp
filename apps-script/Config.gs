@@ -1,5 +1,5 @@
 /**********************************************************************
- * IPC — Inventory & Production Control (MVP v4)
+ * IPC — Inventory & Production Control (MVP v5)
  * File 1 of 3 : Config.gs
  *
  * SEMUA SATUAN KILOGRAM. Nama sheet & kolom Bahasa Indonesia.
@@ -10,7 +10,7 @@
 
 var APP = {
   nama: 'IPC — Inventory & Production Control',
-  versi: '4.0.0-mvp',
+  versi: '5.0.0-mvp',
   zona: 'Asia/Jakarta',
   satuan: 'kg',
   folderFoto: 'IPC Foto Bukti'
@@ -61,7 +61,7 @@ HEADER[SHEET.PENERIMAAN] = [
   'ID','Waktu','Tanggal','Jenis','Supplier','No_Surat_Jalan',
   'Kode_Item','Nama_Item','Qty_Kg','Qty_OCR','Selisih_OCR',
   'Foto_URL','Foto_ID','Dicatat_Oleh','Nama_Pencatat',
-  'Status','Ditinjau_Oleh','Waktu_Tinjau','Catatan_Tinjau','Catatan'
+  'Status','Ditinjau_Oleh','Waktu_Tinjau','Catatan_Tinjau','Catatan','Log_Edit'
 ];
 
 /* ④ Penjualan keluar (KELUAR) & retur dari customer (RETUR_MASUK) */
@@ -69,14 +69,14 @@ HEADER[SHEET.PENGIRIMAN] = [
   'ID','Waktu','Tanggal','Jenis','Customer','No_Surat_Jalan',
   'Kode_Item','Nama_Item','Qty_Kg',
   'Foto_URL','Foto_ID','Dicatat_Oleh','Nama_Pencatat',
-  'Status','Ditinjau_Oleh','Waktu_Tinjau','Catatan_Tinjau','Catatan'
+  'Status','Ditinjau_Oleh','Waktu_Tinjau','Catatan_Tinjau','Catatan','Log_Edit'
 ];
 
 /* ① ③ Transfer internal — TANPA surat jalan, cukup foto + timestamp */
 HEADER[SHEET.TRANSFER] = [
   'ID','Waktu','Tanggal','Arah','Kode_Item','Nama_Item','Qty_Kg',
   'Foto_URL','Foto_ID','Dicatat_Oleh','Nama_Pencatat',
-  'Status','Ditinjau_Oleh','Waktu_Tinjau','Catatan_Tinjau','Catatan'
+  'Status','Ditinjau_Oleh','Waktu_Tinjau','Catatan_Tinjau','Catatan','Log_Edit'
 ];
 
 HEADER[SHEET.PEKERJAAN] = [
@@ -84,7 +84,7 @@ HEADER[SHEET.PEKERJAAN] = [
   'Total_Bahan_Baku_Kg','Total_Barang_Jadi_Kg','Total_Scrap_Kg',
   'Susut_Kg','Susut_Persen','Status_Susut',
   'HPP_Bahan','HPP_Proses','HPP_Total','HPP_Per_Kg','Nilai_Susut',
-  'Operator','Nama_Operator','Foto_Mulai_URL','Foto_Selesai_URL','Catatan'
+  'Operator','Nama_Operator','Foto_Mulai_URL','Foto_Selesai_URL','Catatan','Log_Edit'
 ];
 
 HEADER[SHEET.DETAIL] = [

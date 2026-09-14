@@ -113,7 +113,16 @@ var T = {
     hpp:'HPP', hppBahan:'Bahan', hppProses:'Proses', hppTotal:'HPP total', hppPerKg:'HPP per kg jadi',
     nilaiSusut:'Nilai susut', hppSejauhIni:'HPP sejauh ini', biayaProses:'biaya proses',
     hppHint:'HPP = harga bahan baku saat job dimulai + biaya proses per kg. Hanya terlihat oleh Supervisor / Admin.',
-    hppPerProduk:'HPP per produk', hppDetail:'HPP per pekerjaan', rentang:'rentang'
+    hppPerProduk:'HPP per produk', hppDetail:'HPP per pekerjaan', rentang:'rentang',
+    /* riwayat & edit */
+    riwayatT:'Riwayat input', riwayatSub:'14 hari terakhir · ketuk Ubah untuk memperbaiki',
+    riwayatKosong:'Belum ada input untuk proses ini.', ubah:'Ubah', editT:'Ubah entri',
+    batalkanInput:'Batalkan input', simpanPerubahan:'Simpan perubahan', tersimpanEdit:'Perubahan tersimpan',
+    tanpaPerubahan:'Tidak ada yang berubah', logJudul:'Riwayat perubahan', terkunci:'Terkunci',
+    terkunciHint:'Sudah ditinjau — hanya supervisor yang bisa mengubah',
+    alasanBatalSendiri:'Kenapa dibatalkan?', konfirmBatal:'Batalkan input ini? Stok akan disesuaikan.',
+    segSelesai:'Selesai', jobEditT:'Ubah pekerjaan', kosongSelesai:'Belum ada pekerjaan selesai 14 hari terakhir.',
+    diubah:'diubah', hitungUlang:'Susut & HPP dihitung ulang'
   },
   en: {
     appTitle:'Inventory & Production Control',
@@ -221,7 +230,15 @@ var T = {
     hpp:'COGS', hppBahan:'Material', hppProses:'Process', hppTotal:'Total COGS', hppPerKg:'COGS per kg out',
     nilaiSusut:'Shrinkage value', hppSejauhIni:'COGS so far', biayaProses:'process cost',
     hppHint:'COGS = raw-material price at job start + process cost per kg. Visible to Supervisor / Admin only.',
-    hppPerProduk:'COGS by product', hppDetail:'COGS by job', rentang:'range'
+    hppPerProduk:'COGS by product', hppDetail:'COGS by job', rentang:'range',
+    riwayatT:'Input history', riwayatSub:'Last 14 days · tap Edit to correct',
+    riwayatKosong:'No entries for this process yet.', ubah:'Edit', editT:'Edit entry',
+    batalkanInput:'Cancel this entry', simpanPerubahan:'Save changes', tersimpanEdit:'Changes saved',
+    tanpaPerubahan:'Nothing changed', logJudul:'Change log', terkunci:'Locked',
+    terkunciHint:'Already reviewed — only a supervisor can change it',
+    alasanBatalSendiri:'Why cancel?', konfirmBatal:'Cancel this entry? Stock will be adjusted.',
+    segSelesai:'Done', jobEditT:'Edit job', kosongSelesai:'No jobs closed in the last 14 days.',
+    diubah:'edited', hitungUlang:'Shrinkage & COGS recomputed'
   }
 };
 
@@ -256,7 +273,8 @@ function terapkanBahasa(){
 var S = {
   ctx:null, view:'home', jobTab:'list', repTab:'susut', ident:{ nama:'', pin:'' },
   foto:{ rcv:null, trf:null, job:null, fin:null },
-  baris:{ rcv:[], trf:[], job:[], finJadi:[], finScrap:[] },
+  baris:{ rcv:[], trf:[], job:[], finJadi:[], finScrap:[], edBahan:[], edJadi:[], edScrap:[] },
+  edit:null, edJob:null,
   ocr:null, jobAktif:null, arah:'GBJ_KE_GP', modeExt:'BELI_MASUK',
   cal:{ bulan:null, data:null, hari:null }, revTab:'MENUNGGU'
 };
@@ -476,8 +494,9 @@ function isiSelectPartner(){
 /* =================================================================
    BARIS ITEM
    ================================================================= */
-var MODE_BARIS = { rcv:'all', trf:'all', job:'bahan', finJadi:'jadi', finScrap:'all' };
-var WADAH = { rcv:'rcvLines', trf:'trfLines', job:'jobLines', finJadi:'finJadiLines', finScrap:'finScrapLines' };
+var MODE_BARIS = { rcv:'all', trf:'all', job:'bahan', finJadi:'jadi', finScrap:'all', edBahan:'bahan', edJadi:'jadi', edScrap:'all' };
+var WADAH = { rcv:'rcvLines', trf:'trfLines', job:'jobLines', finJadi:'finJadiLines', finScrap:'finScrapLines',
+              edBahan:'edBahanLines', edJadi:'edJadiLines', edScrap:'edScrapLines' };
 
 function tambahBaris(k){ S.baris[k].push({ kode:'', qty:'' }); gambarBaris(k); }
 function hapusBaris(k, i){
@@ -489,6 +508,7 @@ function ubahBaris(k, i, field, val){
   S.baris[k][i][field] = val;
   if (k === 'finJadi' || k === 'finScrap') hitungPreviewSusut();
   if (k === 'job') ringkasJobBaru();
+  if (k.indexOf('ed') === 0) previewEditJob();
 }
 function gambarSemuaBaris(){ Object.keys(WADAH).forEach(gambarBaris); }
 
@@ -597,6 +617,7 @@ function bukaMutasi(mode){
   $('rcvPartner').value = '';
   gambarBaris('rcv');
   tampil('beli');
+  muatRiwayat('rcv');
 }
 
 function modeInfo(){
@@ -707,6 +728,7 @@ function bukaTransfer(arah){
   labelTransfer();
   gambarBaris('trf');
   tampil('transfer');
+  muatRiwayat('trf');
 }
 function labelTransfer(){
   var ke = S.arah === 'GBJ_KE_GP';
@@ -736,11 +758,15 @@ function segJob(tab){
   S.jobTab = tab;
   $('segJobList').classList.toggle('on', tab==='list');
   $('segJobNew').classList.toggle('on', tab==='new');
+  $('segJobDone').classList.toggle('on', tab==='done');
   $('jobList').classList.toggle('hide', tab!=='list');
   $('jobNew').classList.toggle('hide', tab!=='new');
+  $('jobDone').classList.toggle('hide', tab!=='done');
   $('jobFinish').classList.add('hide');
   $('jobHasil').classList.add('hide');
+  $('jobEdit').classList.add('hide');
   if (tab==='list') muatJob();
+  if (tab==='done') muatJobSelesai();
   if (tab==='new'){
     isiSelectProduk();
     if(!S.baris.job.length) S.baris.job=[{kode:'',qty:''}];
@@ -914,6 +940,172 @@ function tampilHasilJob(r){
   window.scrollTo(0,0);
 }
 
+
+/* =================================================================
+   RIWAYAT INPUT & EDIT ENTRI
+   ================================================================= */
+function jenisRiwayat(k){
+  if (k === 'trf') return S.arah === 'GBJ_KE_GP' ? 'TRF_KE_GP' : 'TRF_KE_GBJ';
+  return S.modeExt;   // BELI_MASUK | BELI_RETUR | JUAL_KELUAR | JUAL_RETUR
+}
+function muatRiwayat(k){
+  var el = $(k+'Riwayat'), sub = $(k+'RiwayatSub'); if (!el) return;
+  if (sub) sub.textContent = t('riwayatSub');
+  el.innerHTML = '<div class="load">…</div>';
+  panggil('riwayatInput',[jenisRiwayat(k), 14, S.ident]).then(function(rows){
+    if (!rows.length){ el.innerHTML = '<div style="font-size:12.5px;color:var(--muted);padding:6px 0">'+esc(t('riwayatKosong'))+'</div>'; return; }
+    el.innerHTML = rows.map(function(r){
+      var sub2 = [r.partner, r.noSuratJalan, r.waktu, r.pencatat].filter(Boolean).map(esc).join(' · ');
+      var tombol = r.bolehEdit
+        ? '<button class="btn sec xs" onclick="bukaEdit(\''+esc(r.id)+'\')">✎ '+esc(t('ubah'))+'</button>'
+        : '<span class="pill n" title="'+esc(t('terkunciHint'))+'">🔒 '+esc(t('terkunci'))+'</span>';
+      return '<div class="hist">' +
+        '<span class="hq">'+n2(r.qty)+' kg</span>' +
+        '<span class="hx"><b>'+esc(r.item)+'</b><small>'+sub2+(r.logEdit?' · <i>'+esc(t('diubah'))+'</i>':'')+'</small></span>' +
+        '<span class="hb">'+pillStatus(r.status)+tombol+'</span>' +
+      '</div>';
+    }).join('');
+  }).catch(function(e){ el.innerHTML = '<div class="banner bad">'+esc(e.message)+'</div>'; });
+}
+
+function bukaEdit(id){
+  panggil('ambilEntri',[id, S.ident]).then(function(r){
+    S.edit = r;
+    var beli = r.sheet === 'Penerimaan', jual = r.sheet === 'Pengiriman', trf = r.sheet === 'Transfer';
+    $('editSub').textContent = r.waktu + ' · ' + r.pencatat + ' · ' + r.status;
+    // partner
+    $('editPartnerWrap').classList.toggle('hide', trf);
+    if (!trf){
+      $('editPartnerLabel').textContent = jual ? t('lblCustomer') : t('lblSupplier');
+      var daftar = jual ? (S.ctx.customer||[]) : (S.ctx.supplier||[]);
+      $('editPartner').innerHTML = daftar.map(function(p){
+        return '<option value="'+esc(p.nama)+'"'+(p.nama===r.partner?' selected':'')+'>'+esc(p.nama)+'</option>';
+      }).join('');
+      if (r.partner && !daftar.some(function(p){ return p.nama===r.partner; })){
+        $('editPartner').innerHTML += '<option value="'+esc(r.partner)+'" selected>'+esc(r.partner)+'</option>';
+      }
+    }
+    // item
+    $('editKode').innerHTML = S.ctx.items.map(function(i){
+      return '<option value="'+esc(i.kode)+'"'+(i.kode===r.kode?' selected':'')+'>'+esc(i.nama)+'</option>';
+    }).join('');
+    $('editQty').value = r.qty;
+    $('editSJWrap').classList.toggle('hide', trf);
+    $('editSJ').value = r.noSuratJalan || '';
+    $('editCatatan').value = r.catatan || '';
+    var lg = $('editLog');
+    lg.classList.toggle('hide', !r.logEdit);
+    lg.setAttribute('data-judul', t('logJudul'));
+    lg.textContent = r.logEdit || '';
+    $('btnEditBatal').classList.toggle('hide', !r.bolehBatal);
+    $('editWrap').classList.remove('hide');
+  }).catch(function(e){ toast(e.message,'bad'); });
+}
+function tutupEdit(){ $('editWrap').classList.add('hide'); S.edit = null; }
+
+function simpanEditUI(){
+  if (!S.edit) return;
+  var b = $('btnEditSimpan'); sibuk(b, true);
+  var perubahan = { kode: $('editKode').value, qty: parseFloat($('editQty').value), catatan: $('editCatatan').value };
+  if (S.edit.sheet !== 'Transfer'){ perubahan.partner = $('editPartner').value; perubahan.noSuratJalan = $('editSJ').value; }
+  panggil('simpanEditEntri',[S.edit.id, perubahan, S.ident]).then(function(r){
+    sibuk(b,false,t('simpanPerubahan'));
+    toast(r.berubah ? t('tersimpanEdit') : t('tanpaPerubahan'), r.berubah ? 'ok' : '');
+    tutupEdit();
+    if (S.view==='beli') muatRiwayat('rcv');
+    if (S.view==='transfer') muatRiwayat('trf');
+    if (S.view==='review') muatReview();
+    muatKonteks(true);
+  }).catch(function(e){ sibuk(b,false,t('simpanPerubahan')); toast(e.message,'bad'); });
+}
+
+function batalkanEntriUI(){
+  if (!S.edit) return;
+  if (!window.confirm(t('konfirmBatal'))) return;
+  var alasan = window.prompt(t('alasanBatalSendiri')); if (alasan === null) return;
+  panggil('batalkanEntriSendiri',[S.edit.id, alasan || '', S.ident]).then(function(){
+    toast(t('dibatalkan'));
+    tutupEdit();
+    if (S.view==='beli') muatRiwayat('rcv');
+    if (S.view==='transfer') muatRiwayat('trf');
+    if (S.view==='review') muatReview();
+    muatKonteks(true);
+  }).catch(function(e){ toast(e.message,'bad'); });
+}
+
+/* ---------- pekerjaan selesai: daftar & edit ---------- */
+function muatJobSelesai(){
+  $('jobDone').innerHTML = '<div class="load">…</div>';
+  panggil('daftarPekerjaanSelesai',[14, S.ident]).then(function(rows){
+    if (!rows.length){ $('jobDone').innerHTML = '<div class="empty"><span class="g">✅</span>'+esc(t('kosongSelesai'))+'</div>'; return; }
+    $('jobDone').innerHTML = rows.map(function(j){
+      var warna = j.status==='NORMAL' ? 'var(--ok)' : 'var(--danger)';
+      return '<div class="jobdone">' +
+        '<div style="display:flex;align-items:flex-start;gap:10px">' +
+          '<div style="flex:1;min-width:0"><b style="font-size:14.5px">'+esc(j.produk)+'</b>' +
+            '<div class="m" style="font-size:11.5px;color:var(--muted)">'+esc(j.selesai)+' · '+esc(j.operator)+(j.logEdit?' · <i>'+esc(t('diubah'))+'</i>':'')+'</div>' +
+            '<div style="font-size:12px;margin-top:4px;font-variant-numeric:tabular-nums">'+n2(j.masuk)+' → '+n2(j.jadi)+' kg · '+esc(t('scrap'))+' '+n2(j.scrap)+
+              (j.hpp ? ' · <span style="color:#78350f">'+esc(t('hpp'))+' '+rp(j.hpp.perKg)+'/kg</span>' : '')+'</div></div>' +
+          '<div style="text-align:right"><div style="font-size:18px;font-weight:700;color:'+warna+';font-variant-numeric:tabular-nums">'+n2(j.persen)+'%</div>' +
+            pillSusut(j.status)+'</div>' +
+        '</div>' +
+        '<div style="margin-top:8px;display:flex;justify-content:flex-end">' +
+          (j.bolehEdit ? '<button class="btn sec xs" onclick="bukaEditJob(\''+esc(j.id)+'\')">✎ '+esc(t('ubah'))+'</button>'
+                       : '<span class="pill n">🔒 '+esc(t('terkunci'))+'</span>') +
+        '</div></div>';
+    }).join('');
+  }).catch(function(e){ $('jobDone').innerHTML = '<div class="banner bad">'+esc(e.message)+'</div>'; });
+}
+
+function bukaEditJob(id){
+  panggil('ambilPekerjaan',[id, S.ident]).then(function(j){
+    S.edJob = j;
+    $('jobEditSub').textContent = j.produk + ' · ' + j.status;
+    var sel = $('edProduk');
+    sel.innerHTML = itemsFilter('jadi').map(function(i){
+      return '<option value="'+esc(i.kode)+'"'+(i.kode===j.kodeProduk?' selected':'')+'>'+esc(i.nama)+'</option>'; }).join('');
+    S.baris.edBahan = j.bahanBaku.length ? j.bahanBaku.map(function(b){ return {kode:b.kode, qty:b.qty}; }) : [{kode:'',qty:''}];
+    S.baris.edJadi  = j.barangJadi.length ? j.barangJadi.map(function(b){ return {kode:b.kode, qty:b.qty}; }) : [{kode:j.kodeProduk,qty:''}];
+    S.baris.edScrap = j.scrap.length ? j.scrap.map(function(b){ return {kode:b.kode, qty:b.qty}; }) : [{kode:'',qty:''}];
+    $('edKeluar').classList.toggle('hide', j.status !== 'SELESAI');
+    $('edCatatan').value = j.catatan || '';
+    var lg = $('edLog'); lg.classList.toggle('hide', !j.logEdit); lg.setAttribute('data-judul', t('logJudul')); lg.textContent = j.logEdit || '';
+    gambarBaris('edBahan'); gambarBaris('edJadi'); gambarBaris('edScrap');
+    previewEditJob();
+    $('jobList').classList.add('hide'); $('jobNew').classList.add('hide'); $('jobDone').classList.add('hide');
+    $('jobFinish').classList.add('hide'); $('jobHasil').classList.add('hide');
+    $('jobEdit').classList.remove('hide');
+    window.scrollTo(0,0);
+  }).catch(function(e){ toast(e.message,'bad'); });
+}
+
+function previewEditJob(){
+  var el = $('edSusutPreview'); if (!el || !S.edJob || S.edJob.status !== 'SELESAI') return;
+  var masuk = totalBaris('edBahan'), jadi = totalBaris('edJadi'), scrap = totalBaris('edScrap');
+  var susut = masuk - jadi - scrap, persen = masuk > 0 ? susut/masuk*100 : 0;
+  var kelas = persen < 0 ? 'banner bad' : 'banner ok';
+  el.className = kelas;
+  el.innerHTML = '<b>'+esc(t('perkiraanSusut'))+': '+n2(susut)+' kg ('+n2(persen)+'%)</b>' +
+    '<div style="font-size:12px;margin-top:3px;opacity:.85">'+n2(masuk)+' − '+n2(jadi)+' − '+n2(scrap)+' = '+n2(susut)+' kg</div>';
+}
+
+function simpanEditJobUI(){
+  if (!S.edJob) return;
+  var bahan = ambilBaris('edBahan');
+  if (!bahan.length){ toast(t('wajibItem'),'bad'); return; }
+  var b = $('btnEdSimpan'); sibuk(b, true);
+  panggil('simpanEditPekerjaan',[S.edJob.id, {
+    kodeProduk: $('edProduk').value, bahanBaku: bahan,
+    barangJadi: ambilBaris('edJadi'), scrap: ambilBaris('edScrap'),
+    catatan: $('edCatatan').value
+  }, S.ident]).then(function(r){
+    sibuk(b,false,t('simpanPerubahan'));
+    toast(t('hitungUlang') + (r.persen!==undefined ? ' · '+n2(r.persen)+'%' : ''), r.status && r.status!=='NORMAL' ? 'bad' : 'ok');
+    S.edJob = null;
+    segJob('done'); muatKonteks(true);
+  }).catch(function(e){ sibuk(b,false,t('simpanPerubahan')); toast(e.message,'bad'); });
+}
+
 /* =================================================================
    ANTRIAN REVIEW
    ================================================================= */
@@ -961,7 +1153,8 @@ function muatReview(){
           (r.noSuratJalan ? '<div class="kv"><span>'+esc(t('thSJ'))+'</span><b>'+esc(r.noSuratJalan)+'</b></div>' : '') +
           (r.catatan ? '<div class="kv"><span>'+esc(t('lblCatatan'))+'</span><b>'+esc(r.catatan)+'</b></div>' : '') +
           (r.catatanTinjau ? '<div class="kv"><span>'+esc(t('catatanTinjau'))+'</span><b>'+esc(r.catatanTinjau)+'</b></div>' : '') +
-          '<div class="btnrow" style="margin-top:11px">' +
+          '<div style="margin-top:9px;display:flex;justify-content:flex-end"><button class="btn sec xs" onclick="bukaEdit(\''+esc(r.id)+'\')">✎ '+esc(t('ubah'))+'</button></div>' +
+          '<div class="btnrow" style="margin-top:8px">' +
             '<button class="btn ghost" onclick="tinjau(\''+esc(r.id)+'\',\'batal\')">✕ '+esc(t('batal'))+'</button>' +
             (arsip ? '' : '<button class="btn warn" onclick="tinjau(\''+esc(r.id)+'\',\'tandai\')">⚑ '+esc(t('tandai'))+'</button>') +
             '<button class="btn ok" onclick="tinjau(\''+esc(r.id)+'\',\'setuju\')">✓ '+esc(t('setuju'))+'</button>' +

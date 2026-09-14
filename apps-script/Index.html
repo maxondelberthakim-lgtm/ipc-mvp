@@ -163,6 +163,12 @@
       <button class="btn" id="btnSimpanRcv" onclick="simpanMutasiUI()" data-i18n="btnSimpan">Simpan</button>
       <div class="hint" data-i18n="hintPost">Langsung tercatat. Supervisor meninjau setelahnya — produksi tidak menunggu.</div>
     </div>
+
+    <div class="card">
+      <h2 data-i18n="riwayatT">Riwayat input</h2>
+      <div class="sub" id="rcvRiwayatSub"></div>
+      <div id="rcvRiwayat"><div class="load">…</div></div>
+    </div>
   </section>
 
   <!-- ============ ① ③ TRANSFER ============ -->
@@ -195,16 +201,92 @@
       <button class="btn" id="btnSimpanTrf" onclick="simpanTransferUI()" data-i18n="btnSimpanTrf">Simpan transfer</button>
       <div class="hint" data-i18n="hintPost">Langsung tercatat. Supervisor meninjau setelahnya — produksi tidak menunggu.</div>
     </div>
+
+    <div class="card">
+      <h2 data-i18n="riwayatT">Riwayat input</h2>
+      <div class="sub" id="trfRiwayatSub"></div>
+      <div id="trfRiwayat"><div class="load">…</div></div>
+    </div>
   </section>
+
+  <!-- ============ EDIT ENTRI (overlay) ============ -->
+  <div id="editWrap" class="overlay hide" onclick="if(event.target===this)tutupEdit()">
+    <div class="sheet">
+      <div class="sheethead">
+        <b data-i18n="editT">Ubah entri</b>
+        <button class="x2" onclick="tutupEdit()">✕</button>
+      </div>
+      <div class="sub" id="editSub"></div>
+      <div class="field" id="editPartnerWrap">
+        <label id="editPartnerLabel">Supplier</label>
+        <select id="editPartner"></select>
+      </div>
+      <div class="field">
+        <label data-i18n="item">Item</label>
+        <select id="editKode"></select>
+      </div>
+      <div class="field">
+        <label data-i18n="qty">Qty (kg)</label>
+        <input type="number" inputmode="decimal" step="any" min="0" id="editQty">
+      </div>
+      <div class="field" id="editSJWrap">
+        <label data-i18n="lblNoSJ">No. surat jalan</label>
+        <input id="editSJ">
+      </div>
+      <div class="field">
+        <label data-i18n="lblCatatan">Catatan (opsional)</label>
+        <textarea id="editCatatan"></textarea>
+      </div>
+      <div class="logedit hide" id="editLog"></div>
+      <div class="btnrow">
+        <button class="btn ghost hide" id="btnEditBatal" onclick="batalkanEntriUI()" data-i18n="batalkanInput">Batalkan input</button>
+        <button class="btn ok" id="btnEditSimpan" onclick="simpanEditUI()" data-i18n="simpanPerubahan">Simpan perubahan</button>
+      </div>
+    </div>
+  </div>
 
   <!-- ============ ② PEKERJAAN ============ -->
   <section id="v-job" class="hide">
     <div class="seg">
       <button id="segJobList" class="on" onclick="segJob('list')" data-i18n="segBerjalan">Sedang dibuat</button>
       <button id="segJobNew" onclick="segJob('new')" data-i18n="segMulai">Mulai baru</button>
+      <button id="segJobDone" onclick="segJob('done')" data-i18n="segSelesai">Selesai</button>
     </div>
 
     <div id="jobList"><div class="load">…</div></div>
+    <div id="jobDone" class="hide"><div class="load">…</div></div>
+
+    <div id="jobEdit" class="hide">
+      <div class="card">
+        <h2 data-i18n="jobEditT">Ubah pekerjaan</h2>
+        <div class="sub" id="jobEditSub"></div>
+        <div class="field">
+          <label data-i18n="lblProduk">Produk yang dibuat</label>
+          <select id="edProduk"></select>
+        </div>
+        <h3 class="sec" data-i18n="secBahan">Bahan baku masuk <span class="unit">kg</span></h3>
+        <div id="edBahanLines"></div>
+        <button class="btn sec sm" onclick="tambahBaris('edBahan')" data-i18n="btnTambahBahan">+ Tambah bahan</button>
+        <div id="edKeluar">
+          <h3 class="sec" data-i18n="secJadi">Barang jadi <span class="unit">kg</span></h3>
+          <div id="edJadiLines"></div>
+          <button class="btn sec sm" onclick="tambahBaris('edJadi')" data-i18n="btnTambahItem">+ Tambah item</button>
+          <h3 class="sec" data-i18n="secScrap">Scrap / afkir <span class="unit">kg</span></h3>
+          <div id="edScrapLines"></div>
+          <button class="btn sec sm" onclick="tambahBaris('edScrap')" data-i18n="btnTambahItem">+ Tambah item</button>
+          <div id="edSusutPreview" style="margin-top:15px"></div>
+        </div>
+        <div class="field" style="margin-top:14px">
+          <label data-i18n="lblCatatan">Catatan (opsional)</label>
+          <textarea id="edCatatan"></textarea>
+        </div>
+        <div class="logedit hide" id="edLog"></div>
+        <div class="btnrow">
+          <button class="btn sec" onclick="segJob('done')" data-i18n="btnBatal">Batal</button>
+          <button class="btn ok" id="btnEdSimpan" onclick="simpanEditJobUI()" data-i18n="simpanPerubahan">Simpan perubahan</button>
+        </div>
+      </div>
+    </div>
 
     <div id="jobNew" class="hide">
       <div class="card">
