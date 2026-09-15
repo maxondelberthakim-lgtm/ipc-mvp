@@ -1,12 +1,12 @@
 const fs=require('fs');
-let src=fs.readFileSync(__dirname+'/harness.js','utf8').replace("return 'max@eramas.co.id';","return '';");
+let src=fs.readFileSync(__dirname+'/harness.js','utf8').replace("return 'pemilik@contoh.co.id';","return '';");
 fs.writeFileSync(__dirname + '/.h3.js', src);
 const {ctx}=require(__dirname + '/.h3.js');
 let pass=0,fail=0;
 const ok=(l,c,e)=>{c?(pass++,console.log('  ✓',l)):(fail++,console.log('  ✗',l,JSON.stringify(e)))};
 function tolak(label, fn, pola){ let e=''; try{ fn(); }catch(x){ e=String(x.message||x); } ok(label, pola.test(e), e); }
 ctx.setupSistem();
-const ANTO={nama:'Pak Anto',pin:'1111'}, YANTO={nama:'Yanto',pin:'2222'};
+const ANTO={nama:'Manager',pin:'1357'}, YANTO={nama:'Staff Gudang',pin:'1111'};
 
 console.log('— SKU: tambah / ubah / hapus —');
 tolak('staf tidak boleh', ()=>ctx.daftarSku(YANTO), /Supervisor/);
@@ -69,7 +69,7 @@ tolak('fisik negatif ditolak', ()=>ctx.simpanOpname({lokasi:'GBJ', baris:[{kode:
 tolak('semua kosong ditolak', ()=>ctx.simpanOpname({lokasi:'GBJ', baris:[{kode:'RM-CSW-W240', fisik:''}]}, ANTO), /Belum ada item/);
 const kal = ctx.kalender(null, ANTO);
 ok('opname muncul di kalender', kal.hari.some(h=>h.kejadian.some(e=>e.jenis==='OPNAME')));
-ok('aktivitas staf hitung opname', ctx.aktivitasStaf('Pak Anto',30,ANTO).daftar[0].jenis.OPNAME===3, ctx.aktivitasStaf('Pak Anto',30,ANTO).daftar[0].jenis);
+ok('aktivitas staf hitung opname', ctx.aktivitasStaf('Manager',30,ANTO).daftar[0].jenis.OPNAME===3, ctx.aktivitasStaf('Manager',30,ANTO).daftar[0].jenis);
 
 fs.unlinkSync(__dirname + '/.h3.js');
 console.log('\n================ '+pass+' lulus, '+fail+' gagal ================');

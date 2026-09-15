@@ -4,6 +4,7 @@ const ok=(l,c,e)=>{c?(pass++,console.log('  ✓',l)):(fail++,console.log('  ✗'
 function tolak(label, fn, pola){ let e=''; try{ fn(); }catch(x){ e=String(x.message||x); } ok(label, pola.test(e), e); }
 
 ctx.setupSistem();
+ctx.setSetting_('PAKSA_LOGIN_MANUAL','TIDAK'); ctx.setSetting_('AKSES_TERBUKA','YA'); // test pakai identitas email pemilik + nama bebas
 
 console.log('— 1. Setup & master —');
 const k = ctx.getKonteks({});
@@ -60,9 +61,9 @@ console.log('\n— 6. ② Pekerjaan: semua kg, tanpa nomor produksi —');
 ok('kolom No_Pekerjaan hilang', ctx.HEADER['Pekerjaan'].indexOf('No_Pekerjaan')===-1);
 const j1 = ctx.mulaiPekerjaan({ kodeProduk:'FG-MM-CSW',
   bahanBaku:[{kode:'RM-CSW-W240', qty:500}], ident:{nama:'Sri'} });
-ok('job kembalikan produk + kg', j1.produk==='Max Mede Mete Panggang' && j1.totalKg===500, j1);
+ok('job kembalikan produk + kg', j1.produk==='Mete Panggang Original' && j1.totalKg===500, j1);
 const list = ctx.daftarPekerjaanBerjalan({});
-ok('daftar tampilkan apa & berapa kg', list[0].produk==='Max Mede Mete Panggang' && list[0].totalKg===500, list[0]);
+ok('daftar tampilkan apa & berapa kg', list[0].produk==='Mete Panggang Original' && list[0].totalKg===500, list[0]);
 ok('bahan utama disebut', list[0].bahanUtama==='Kacang Mete Mentah W240', list[0].bahanUtama);
 ok('batas susut ikut dikirim', list[0].batas===5.5, list[0].batas);
 
@@ -76,7 +77,7 @@ ok('rincian: 1 bahan', f1.rincian.length===1, f1.rincian);
 ok('rincian susut = 20 kg (bahan tunggal = persis)', f1.rincian[0].susut===20, f1.rincian);
 ok('rincian sebut nama bahan', f1.rincian[0].nama==='Kacang Mete Mentah W240');
 const scrSku = ctx.baca_(ctx.SHEET.ITEM).find(r=>r.Kode_Item==='SCR-FG-MM-CSW');
-ok('SKU scrap produk dibuat otomatis', !!scrSku && scrSku.Kategori==='SCRAP' && /Scrap · Max Mede/.test(scrSku.Nama_Item), scrSku);
+ok('SKU scrap produk dibuat otomatis', !!scrSku && scrSku.Kategori==='SCRAP' && /Scrap · Mete Panggang/.test(scrSku.Nama_Item), scrSku);
 ok('scrap masuk stok GP atas nama SKU scrap', ctx.laporanStok({}).daftar.find(x=>x.kode==='SCR-FG-MM-CSW').gp===5);
 ok('SKU scrap muncul di items (bisa dijual)', ctx.getKonteks({}).items.some(i=>i.kode==='SCR-FG-MM-CSW' && i.kategori==='SCRAP'));
 

@@ -4,11 +4,12 @@ const ok=(l,c,e)=>{c?(pass++,console.log('  ✓',l)):(fail++,console.log('  ✗'
 function tolak(label, fn, pola){ let e=''; try{ fn(); }catch(x){ e=String(x.message||x); } ok(label, pola.test(e), e); }
 // email kosong -> identitas manual, supaya peran bisa diuji
 const fs=require('fs');
-const src=fs.readFileSync(__dirname+'/harness.js','utf8').replace("return 'max@eramas.co.id';","return '';");
+const src=fs.readFileSync(__dirname+'/harness.js','utf8').replace("return 'pemilik@contoh.co.id';","return '';");
 fs.writeFileSync(__dirname+'/.h2.js', src);
 const {ctx:c2}=require(__dirname+'/.h2.js');
 c2.setupSistem();
-const STAF={nama:'Yanto',pin:'2222'}, STAF2={nama:'Sri',pin:'3333'}, SPV={nama:'Pak Anto',pin:'1111'};
+c2.setSetting_('AKSES_TERBUKA','YA'); // Sri = nama tak terdaftar
+const STAF={nama:'Staff Gudang',pin:'1111'}, STAF2={nama:'Sri'}, SPV={nama:'Manager',pin:'1357'};
 
 console.log('— Riwayat input per proses —');
 c2.simpanPenerimaan({jenis:'MASUK',supplier:'CV Mitra Mete Sulawesi',noSuratJalan:'SJ/1',baris:[{kode:'RM-CSW-W240',qty:500}],ident:STAF});
@@ -37,7 +38,7 @@ ok('edit sukses', e1.ok && e1.berubah, e1);
 const rowM = c2.baca_(c2.SHEET.PENERIMAAN).find(r=>r.ID===idM);
 ok('qty jadi 510', rowM.Qty_Kg===510);
 ok('no SJ berubah', rowM.No_Surat_Jalan==='SJ/1-REV');
-ok('Log_Edit terisi nama + perubahan', /Yanto: .*qty: 500 → 510 kg/.test(rowM.Log_Edit), rowM.Log_Edit);
+ok('Log_Edit terisi nama + perubahan', /Staff Gudang: .*qty: 500 → 510 kg/.test(rowM.Log_Edit), rowM.Log_Edit);
 ok('status tetap MENUNGGU', rowM.Status==='MENUNGGU');
 ok('edit tanpa perubahan -> berubah:false', c2.simpanEditEntri(idM,{qty:510},STAF).berubah===false);
 tolak('qty 0 ditolak', ()=>c2.simpanEditEntri(idM,{qty:0},STAF), /lebih dari 0/);

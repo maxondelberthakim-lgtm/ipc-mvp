@@ -54,7 +54,7 @@ const SS = {
 const ctx = {
   console,
   SpreadsheetApp:{ getActiveSpreadsheet(){ return SS; } },
-  Session:{ getActiveUser(){ return { getEmail(){ return 'max@eramas.co.id'; } }; } },
+  Session:{ getActiveUser(){ return { getEmail(){ return 'pemilik@contoh.co.id'; } }; } },
   LockService:{ getScriptLock(){ return { waitLock(){}, releaseLock(){} }; } },
   DriveApp:{
     Access:{ANYONE_WITH_LINK:'a'}, Permission:{VIEW:'v'},
