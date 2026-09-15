@@ -41,30 +41,30 @@
 
   /* --- ⓪ pembelian masuk --- */
   simpanPenerimaan({ jenis:'MASUK', supplier:'CV Mitra Mete Sulawesi', noSuratJalan:'SJ/2026/09/0170',
-    baris:[{kode:'RM-CSW-W240', qty:1500},{kode:'RM-CSW-W320', qty:200}], qtyOcr:1700, ident:{nama:'Yanto'} });
+    baris:[{kode:'RM-CSW-W240', qty:1500},{kode:'RM-CSW-W320', qty:200}], qtyOcr:1700, ident:{nama:'Yanto',pin:'2222'} });
   geser(SHEET.PENERIMAAN, 60*70, 0, 2);
   simpanPenerimaan({ jenis:'MASUK', supplier:'UD Tani Kacang Jaya', noSuratJalan:'SJ/2026/09/0176',
     baris:[{kode:'RM-PNT-JAVA', qty:800},{kode:'RM-MIN-GRG', qty:200},{kode:'RM-BMB-BBQ', qty:40}],
-    ident:{nama:'Yanto'} });
+    ident:{nama:'Yanto',pin:'2222'} });
   geser(SHEET.PENERIMAAN, 60*46, 0, 3);
   simpanPenerimaan({ jenis:'MASUK', supplier:'Koperasi Sacha Inchi Kalimantan', noSuratJalan:'SJ/2026/09/0180',
-    baris:[{kode:'RM-SI-SEED', qty:500}], ident:{nama:'Yanto'} });
+    baris:[{kode:'RM-SI-SEED', qty:500}], ident:{nama:'Yanto',pin:'2222'} });
   geser(SHEET.PENERIMAAN, 60*20, 0, 1);
 
   /* --- retur: kadar air ketinggian --- */
   simpanPenerimaan({ jenis:'RETUR', supplier:'UD Tani Kacang Jaya',
     baris:[{kode:'RM-PNT-JAVA', qty:40}], catatan:'kadar air ketinggian, 2 karung berjamur',
-    ident:{nama:'Yanto'} });
+    ident:{nama:'Yanto',pin:'2222'} });
   geser(SHEET.PENERIMAAN, 60*18, 0, 1);
 
   /* --- pembelian yang masih menunggu review (angka ketik beda 5 kg dari OCR) --- */
   simpanPenerimaan({ jenis:'MASUK', supplier:'CV Mitra Mete Sulawesi', noSuratJalan:'SJ/2026/09/0184',
     baris:[{kode:'RM-CSW-W240', qty:305}], qtyOcr:300,
-    catatan:'timbangan gudang lebih 5 kg', ident:{nama:'Yanto'} });
+    catatan:'timbangan gudang lebih 5 kg', ident:{nama:'Yanto',pin:'2222'} });
 
   /* --- ① ③ transfer --- */
   function trf(arah, baris, menit, orang){
-    simpanTransfer({ arah:arah, baris:baris, ident:{nama:orang} });
+    simpanTransfer({ arah:arah, baris:baris, ident:{nama:orang, pin: orang==='Yanto'?'2222':orang==='Sri'?'3333':'4444'} });
     if (menit) geser(SHEET.TRANSFER, menit, 0, baris.length);
   }
   trf('GBJ_KE_GP', [{kode:'RM-CSW-W240', qty:1050}], 60*44, 'Sri');
@@ -78,9 +78,9 @@
 
   /* --- ② pekerjaan yang sudah selesai --- */
   function jobSelesai(produk, bahan, keluar, scrap, menit, orang){
-    var j = mulaiPekerjaan({ kodeProduk:produk, bahanBaku:bahan, ident:{nama:orang} });
+    var j = mulaiPekerjaan({ kodeProduk:produk, bahanBaku:bahan, ident:{nama:orang, pin: orang==='Yanto'?'2222':orang==='Sri'?'3333':'4444'} });
     selesaikanPekerjaan({ id:j.id, barangJadi:[{kode:produk, qty:keluar}],
-      scrap: scrap ? [{kode:'SCR-KULIT', qty:scrap}] : [], ident:{nama:orang} });
+      scrapKg: scrap || 0, ident:{nama:orang, pin: orang==='Yanto'?'2222':orang==='Sri'?'3333':'4444'} });
     geser(SHEET.PEKERJAAN, menit + 240, menit);
   }
   jobSelesai('FG-MM-CSW', [{kode:'RM-CSW-W240', qty:300}], 285, 3, 60*40, 'Sri');   // 4,0%  normal
@@ -92,17 +92,17 @@
   jobSelesai('FG-SC-SI',  [{kode:'RM-SI-SEED', qty:300}], 292, 4, 60*3, 'Rina');    // 1,3%  normal
 
   /* --- ② pekerjaan yang sedang berjalan --- */
-  mulaiPekerjaan({ kodeProduk:'FG-MM-CSW', bahanBaku:[{kode:'RM-CSW-W240', qty:420}], ident:{nama:'Sri'} });
+  mulaiPekerjaan({ kodeProduk:'FG-MM-CSW', bahanBaku:[{kode:'RM-CSW-W240', qty:420}], ident:{nama:'Sri',pin:'3333'} });
   geser(SHEET.PEKERJAAN, 165, 0);
   mulaiPekerjaan({ kodeProduk:'FG-JM-BBQ',
     bahanBaku:[{kode:'RM-PNT-JAVA', qty:180},{kode:'RM-MIN-GRG', qty:45},{kode:'RM-BMB-BBQ', qty:9}],
-    ident:{nama:'Yanto'} });
+    ident:{nama:'Yanto',pin:'2222'} });
   geser(SHEET.PEKERJAAN, 75, 0);
 
   /* --- ④ barang keluar ke customer --- */
   function kirim(jenis, customer, sj, baris, menit, orang){
     simpanPengiriman({ jenis:jenis, customer:customer, noSuratJalan:sj, baris:baris,
-      catatan: jenis==='RETUR_MASUK' ? 'kemasan penyok waktu kirim' : '', ident:{nama:orang} });
+      catatan: jenis==='RETUR_MASUK' ? 'kemasan penyok waktu kirim' : '', ident:{nama:orang, pin: orang==='Yanto'?'2222':orang==='Sri'?'3333':'4444'} });
     if (menit) geser(SHEET.PENGIRIMAN, menit, 0, baris.length);
   }
   kirim('KELUAR','PT Ritel Nusantara','DO/2026/09/0038',
@@ -117,24 +117,27 @@
     [{kode:'FG-MM-CSW', qty:40}], 0, 'Sri');   // menunggu review
 
   /* --- sebagian sudah di-review supaya riwayat tidak seragam --- */
-  var q = antrianReview({nama:'Pak Anto', pin:'2468'});
+  var q = antrianReview({nama:'Pak Anto', pin:'1111'});
   q.slice(4).forEach(function(x, i){
     try {
-      var sv = {nama:'Pak Anto', pin:'2468'};
+      var sv = {nama:'Pak Anto', pin:'1111'};
       if (i === 1) tinjauTransfer(x.id, 'tandai', 'cek ulang timbangan, angka beda dengan catatan manual', sv);
       else tinjauTransfer(x.id, 'setuju', '', sv);
     } catch(e){}
   });
 
-  /* --- demo: ganti peran lewat banner. STAF = anak gudang (tanpa HPP), ADMIN = manager --- */
+  /* --- demo: ganti peran lewat banner. STAF = Yanto, SUPERVISOR = Pak Anto, ADMIN = Max --- */
+  sheet_(SHEET.PENGGUNA).appendRow(['', 'Max', 'ADMIN', 'HQ', '0000', 'YA']);
   window.__peranDemo = 'ADMIN';
   var _pengguna = penggunaSaatIni_;
   penggunaSaatIni_ = function(ident){
-    var u = _pengguna(ident || {});
     var p = window.__peranDemo;
-    return { email: '', nama: p === 'STAF' ? 'Yanto' : 'Manager', peran: p, lokasi: '',
-             terdaftar: true, identitasManual: false, perluNama: false };
+    var nama = p === 'STAF' ? 'Yanto' : p === 'SUPERVISOR' ? 'Pak Anto' : 'Max';
+    return { email: '', nama: nama, peran: p, lokasi: '', terdaftar: true, identitasManual: false, perluNama: false };
   };
+  // contoh opname: GBJ, dua item
+  simpanOpname({ lokasi:'GBJ', baris:[{kode:'RM-CSW-W240', fisik:620, catatan:'2 karung sobek'}, {kode:'RM-PNT-JAVA', fisik:140}], catatan:'opname mingguan' }, {});
+  geser(SHEET.OPNAME, 60*15, 0, 2);
 
   /* --- jembatan google.script.run --- */
   window.google = { script: { run: (function(){
@@ -144,7 +147,9 @@
                'laporanSusut','laporanStok','riwayatPenerimaan','laporanPenjualan',
                'riwayatTransfer','ocrSuratJalan','unggahFoto','kalender','laporanHpp',
                'riwayatInput','ambilEntri','simpanEditEntri','batalkanEntriSendiri',
-               'daftarPekerjaanSelesai','ambilPekerjaan','simpanEditPekerjaan'];
+               'daftarPekerjaanSelesai','ambilPekerjaan','simpanEditPekerjaan',
+               'daftarPengguna','simpanPengguna','aktivitasStaf','daftarSku','simpanSku','hapusSku',
+               'siapkanOpname','simpanOpname','riwayatOpname'];
     function buat(sukses, gagal){
       var o = { withSuccessHandler:function(f){ return buat(f, gagal); },
                 withFailureHandler:function(f){ return buat(sukses, f); } };
