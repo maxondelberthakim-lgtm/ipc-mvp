@@ -23,13 +23,13 @@ backend = ("<script>\n" + shim + "\n</script>\n<script>\n" + cfg + "\n" + srv + 
 html = html.replace("__S__", backend + script)
 
 banner = '''
-<div id="demoBanner" style="background:#0b3b38;color:#cfe6e2;font:12.5px/1.45 -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;padding:9px 14px;display:flex;gap:10px;align-items:center">
-  <span style="flex:1">Demo — data contoh, tersimpan di browser ini saja. Lihat sebagai:</span>
-  <select id="demoPeran" onchange="window.__peranDemo=this.value;S.ctx=null;tampil('home')" style="flex:0 0 auto;max-width:55%;background:rgba(255,255,255,.14);color:#fff;border:0;border-radius:7px;padding:5px 8px;font-size:11.5px;font-weight:700">
-    <option value="ADMIN" style="color:#111">Admin (semua + pengguna)</option>
-    <option value="SUPERVISOR" style="color:#111">Supervisor (review, HPP, opname)</option>
-    <option value="STAF" style="color:#111">Anak gudang (input saja)</option>
-  </select>
+<div id="demoBanner" style="background:#0b3b38;color:#cfe6e2;font:12.5px/1.5 -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;padding:9px 14px">
+  <div style="display:flex;gap:10px;align-items:flex-start">
+    <span style="flex:1"><b style="color:#fff">Demo</b> — data contoh, tersimpan di browser ini saja; refresh = reset.
+      Login: <b style="color:#fff">Admin</b> 1234 · <b style="color:#fff">Direktur</b> 2468 · <b style="color:#fff">Manager</b> 1357 · <b style="color:#fff">Staff Gudang</b> 1111 · <b style="color:#fff">Yanto</b> 2222
+      &nbsp;<span style="opacity:.7">(ganti akun: Beranda → Ganti nama / PIN)</span></span>
+    <button onclick="document.getElementById('demoBanner').hidden=true" style="background:rgba(255,255,255,.14);color:#fff;border:0;border-radius:7px;padding:5px 10px;font-size:11.5px;font-weight:700;cursor:pointer;flex:0 0 auto">Tutup</button>
+  </div>
 </div>
 '''
 html = html.replace('<body>\n', '<body>\n' + banner, 1)

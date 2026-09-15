@@ -3,6 +3,10 @@
    ============================================================ */
 (function(){
   setupSistem();
+  // staf gudang tambahan untuk demo (supaya riwayat & aktivitas per user terlihat)
+  [['Yanto','2222','GBJ'],['Sri','3333','GP'],['Rina','4444','GP']].forEach(function(u){
+    tambah_(SHEET.PENGGUNA, { Email:'', Nama:u[0], Peran:PERAN.STAF, Lokasi:u[2], PIN:u[1], Aktif:'YA' });
+  });
 
   unggahFoto_ = function(dataUrl){ return { url: dataUrl || '', id: '' }; };
 
@@ -10,7 +14,7 @@
     'CV MITRA METE SULAWESI',
     'Jl. Perintis Kemerdekaan, Makassar',
     'SURAT JALAN No : SJ/2026/09/0184',
-    'Kepada : PT Eramas Agri Internasional — Gudang Barang Jadi',
+    'Kepada : PT Contoh Pangan Nusantara — Gudang Barang Jadi',
     '1. Kacang Mete Mentah W240 ......... 800 kg',
     '2. Kacang Mete Mentah W320 ......... 200 kg',
     'Total Netto : 1000 kg',
@@ -41,26 +45,26 @@
 
   /* --- ⓪ pembelian masuk --- */
   simpanPenerimaan({ jenis:'MASUK', supplier:'CV Mitra Mete Sulawesi', noSuratJalan:'SJ/2026/09/0170',
-    baris:[{kode:'RM-CSW-W240', qty:1500},{kode:'RM-CSW-W320', qty:200}], qtyOcr:1700, ident:{nama:'Yanto',pin:'2222'} });
+    baris:[{kode:'RM-CSW-W240', qty:1500},{kode:'RM-CSW-W320', qty:200}], qtyOcr:1700, ident:{nama:'Staff Gudang',pin:'1111'} });
   geser(SHEET.PENERIMAAN, 60*70, 0, 2);
   simpanPenerimaan({ jenis:'MASUK', supplier:'UD Tani Kacang Jaya', noSuratJalan:'SJ/2026/09/0176',
     baris:[{kode:'RM-PNT-JAVA', qty:800},{kode:'RM-MIN-GRG', qty:200},{kode:'RM-BMB-BBQ', qty:40}],
-    ident:{nama:'Yanto',pin:'2222'} });
+    ident:{nama:'Staff Gudang',pin:'1111'} });
   geser(SHEET.PENERIMAAN, 60*46, 0, 3);
   simpanPenerimaan({ jenis:'MASUK', supplier:'Koperasi Sacha Inchi Kalimantan', noSuratJalan:'SJ/2026/09/0180',
-    baris:[{kode:'RM-SI-SEED', qty:500}], ident:{nama:'Yanto',pin:'2222'} });
+    baris:[{kode:'RM-SI-SEED', qty:500}], ident:{nama:'Staff Gudang',pin:'1111'} });
   geser(SHEET.PENERIMAAN, 60*20, 0, 1);
 
   /* --- retur: kadar air ketinggian --- */
   simpanPenerimaan({ jenis:'RETUR', supplier:'UD Tani Kacang Jaya',
     baris:[{kode:'RM-PNT-JAVA', qty:40}], catatan:'kadar air ketinggian, 2 karung berjamur',
-    ident:{nama:'Yanto',pin:'2222'} });
+    ident:{nama:'Staff Gudang',pin:'1111'} });
   geser(SHEET.PENERIMAAN, 60*18, 0, 1);
 
   /* --- pembelian yang masih menunggu review (angka ketik beda 5 kg dari OCR) --- */
   simpanPenerimaan({ jenis:'MASUK', supplier:'CV Mitra Mete Sulawesi', noSuratJalan:'SJ/2026/09/0184',
     baris:[{kode:'RM-CSW-W240', qty:305}], qtyOcr:300,
-    catatan:'timbangan gudang lebih 5 kg', ident:{nama:'Yanto',pin:'2222'} });
+    catatan:'timbangan gudang lebih 5 kg', ident:{nama:'Staff Gudang',pin:'1111'} });
 
   /* --- ① ③ transfer --- */
   function trf(arah, baris, menit, orang){
@@ -96,7 +100,7 @@
   geser(SHEET.PEKERJAAN, 165, 0);
   mulaiPekerjaan({ kodeProduk:'FG-JM-BBQ',
     bahanBaku:[{kode:'RM-PNT-JAVA', qty:180},{kode:'RM-MIN-GRG', qty:45},{kode:'RM-BMB-BBQ', qty:9}],
-    ident:{nama:'Yanto',pin:'2222'} });
+    ident:{nama:'Staff Gudang',pin:'1111'} });
   geser(SHEET.PEKERJAAN, 75, 0);
 
   /* --- ④ barang keluar ke customer --- */
@@ -117,27 +121,21 @@
     [{kode:'FG-MM-CSW', qty:40}], 0, 'Sri');   // menunggu review
 
   /* --- sebagian sudah di-review supaya riwayat tidak seragam --- */
-  var q = antrianReview({nama:'Pak Anto', pin:'1111'});
+  var q = antrianReview({nama:'Manager', pin:'1357'});
   q.slice(4).forEach(function(x, i){
     try {
-      var sv = {nama:'Pak Anto', pin:'1111'};
+      var sv = {nama:'Manager', pin:'1357'};
       if (i === 1) tinjauTransfer(x.id, 'tandai', 'cek ulang timbangan, angka beda dengan catatan manual', sv);
       else tinjauTransfer(x.id, 'setuju', '', sv);
     } catch(e){}
   });
 
-  /* --- demo: ganti peran lewat banner. STAF = Yanto, SUPERVISOR = Pak Anto, ADMIN = Max --- */
-  sheet_(SHEET.PENGGUNA).appendRow(['', 'Max', 'ADMIN', 'HQ', '0000', 'YA']);
-  window.__peranDemo = 'ADMIN';
-  var _pengguna = penggunaSaatIni_;
-  penggunaSaatIni_ = function(ident){
-    var p = window.__peranDemo;
-    var nama = p === 'STAF' ? 'Yanto' : p === 'SUPERVISOR' ? 'Pak Anto' : 'Max';
-    return { email: '', nama: nama, peran: p, lokasi: '', terdaftar: true, identitasManual: false, perluNama: false };
-  };
-  // contoh opname: GBJ, dua item
-  simpanOpname({ lokasi:'GBJ', baris:[{kode:'RM-CSW-W240', fisik:620, catatan:'2 karung sobek'}, {kode:'RM-PNT-JAVA', fisik:140}], catatan:'opname mingguan' }, {});
+  /* --- contoh opname oleh Manager --- */
+  simpanOpname({ lokasi:'GBJ', baris:[{kode:'RM-CSW-W240', fisik:620, catatan:'2 karung sobek'}, {kode:'RM-PNT-JAVA', fisik:140}], catatan:'opname mingguan' }, {nama:'Manager', pin:'1357'});
   geser(SHEET.OPNAME, 60*15, 0, 2);
+
+  /* --- demo: login pakai layar identitas asli (nama + PIN). Akun ada di banner. --- */
+  try { localStorage.removeItem('ipc_nama'); localStorage.removeItem('ipc_pin'); } catch(e) {}
 
   /* --- jembatan google.script.run --- */
   window.google = { script: { run: (function(){
