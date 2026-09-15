@@ -301,13 +301,13 @@ nav button .dot{position:absolute;top:5px;right:50%;margin-right:-19px;width:8px
 </head>
 <body>
 
-<div id="demoBanner" style="background:#0b3b38;color:#cfe6e2;font:12.5px/1.45 -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;padding:9px 14px;display:flex;gap:10px;align-items:center">
-  <span style="flex:1">Demo — data contoh, tersimpan di browser ini saja. Lihat sebagai:</span>
-  <select id="demoPeran" onchange="window.__peranDemo=this.value;S.ctx=null;tampil('home')" style="flex:0 0 auto;max-width:55%;background:rgba(255,255,255,.14);color:#fff;border:0;border-radius:7px;padding:5px 8px;font-size:11.5px;font-weight:700">
-    <option value="ADMIN" style="color:#111">Admin (semua + pengguna)</option>
-    <option value="SUPERVISOR" style="color:#111">Supervisor (review, HPP, opname)</option>
-    <option value="STAF" style="color:#111">Anak gudang (input saja)</option>
-  </select>
+<div id="demoBanner" style="background:#0b3b38;color:#cfe6e2;font:12.5px/1.5 -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;padding:9px 14px">
+  <div style="display:flex;gap:10px;align-items:flex-start">
+    <span style="flex:1"><b style="color:#fff">Demo</b> — data contoh, tersimpan di browser ini saja; refresh = reset.
+      Login: <b style="color:#fff">Admin</b> 1234 · <b style="color:#fff">Direktur</b> 2468 · <b style="color:#fff">Manager</b> 1357 · <b style="color:#fff">Staff Gudang</b> 1111
+      &nbsp;<span style="opacity:.7">(ganti akun: Beranda → Ganti nama / PIN)</span></span>
+    <button onclick="document.getElementById('demoBanner').hidden=true" style="background:rgba(255,255,255,.14);color:#fff;border:0;border-radius:7px;padding:5px 10px;font-size:11.5px;font-weight:700;cursor:pointer;flex:0 0 auto">Tutup</button>
+  </div>
 </div>
 
 <header>
@@ -1003,12 +1003,15 @@ var DUMMY_CUSTOMER = [
   ['CUS-004','Ekspor — Singapore Trading','Ekspor curah',              'YA']
 ];
 
-/* Pengguna contoh — GANTI PIN-nya. Kosongkan Email kalau pakai Gmail pribadi. */
+/* Akun awal — GANTI PIN-nya setelah pilot. Kosongkan Email kalau pakai Gmail pribadi.
+   ADMIN      = semua + kelola pengguna
+   SUPERVISOR = review, HPP, opname, SKU, edit semua entri
+   STAF       = input pergerakan barang */
 var DUMMY_PENGGUNA = [
-  ['', 'Pak Anto', PERAN.SUPERVISOR, 'GBJ', '1111', 'YA'],
-  ['', 'Yanto',    PERAN.STAF,       'GBJ', '2222', 'YA'],
-  ['', 'Sri',      PERAN.STAF,       'GP',  '3333', 'YA'],
-  ['', 'Rina',     PERAN.STAF,       'GP',  '4444', 'YA']
+  ['', 'Admin',        PERAN.ADMIN,      'HQ',  '1234', 'YA'],
+  ['', 'Direktur',     PERAN.ADMIN,      'HQ',  '2468', 'YA'],
+  ['', 'Manager',      PERAN.SUPERVISOR, 'GBJ', '1357', 'YA'],
+  ['', 'Staff Gudang', PERAN.STAF,       'GBJ', '1111', 'YA']
 ];
 
 var DUMMY_STANDAR = [
@@ -3262,27 +3265,21 @@ function tesParserSuratJalan() {
     [{kode:'FG-MM-CSW', qty:40}], 0, 'Sri');   // menunggu review
 
   /* --- sebagian sudah di-review supaya riwayat tidak seragam --- */
-  var q = antrianReview({nama:'Pak Anto', pin:'1111'});
+  var q = antrianReview({nama:'Manager', pin:'1357'});
   q.slice(4).forEach(function(x, i){
     try {
-      var sv = {nama:'Pak Anto', pin:'1111'};
+      var sv = {nama:'Manager', pin:'1357'};
       if (i === 1) tinjauTransfer(x.id, 'tandai', 'cek ulang timbangan, angka beda dengan catatan manual', sv);
       else tinjauTransfer(x.id, 'setuju', '', sv);
     } catch(e){}
   });
 
-  /* --- demo: ganti peran lewat banner. STAF = Yanto, SUPERVISOR = Pak Anto, ADMIN = Max --- */
-  sheet_(SHEET.PENGGUNA).appendRow(['', 'Max', 'ADMIN', 'HQ', '0000', 'YA']);
-  window.__peranDemo = 'ADMIN';
-  var _pengguna = penggunaSaatIni_;
-  penggunaSaatIni_ = function(ident){
-    var p = window.__peranDemo;
-    var nama = p === 'STAF' ? 'Yanto' : p === 'SUPERVISOR' ? 'Pak Anto' : 'Max';
-    return { email: '', nama: nama, peran: p, lokasi: '', terdaftar: true, identitasManual: false, perluNama: false };
-  };
-  // contoh opname: GBJ, dua item
-  simpanOpname({ lokasi:'GBJ', baris:[{kode:'RM-CSW-W240', fisik:620, catatan:'2 karung sobek'}, {kode:'RM-PNT-JAVA', fisik:140}], catatan:'opname mingguan' }, {});
+  /* --- contoh opname oleh Manager --- */
+  simpanOpname({ lokasi:'GBJ', baris:[{kode:'RM-CSW-W240', fisik:620, catatan:'2 karung sobek'}, {kode:'RM-PNT-JAVA', fisik:140}], catatan:'opname mingguan' }, {nama:'Manager', pin:'1357'});
   geser(SHEET.OPNAME, 60*15, 0, 2);
+
+  /* --- demo: login pakai layar identitas asli (nama + PIN). Akun ada di banner. --- */
+  try { localStorage.removeItem('ipc_nama'); localStorage.removeItem('ipc_pin'); } catch(e) {}
 
   /* --- jembatan google.script.run --- */
   window.google = { script: { run: (function(){
@@ -3731,7 +3728,20 @@ function muatKonteks(diam){
     if (b){ b.textContent = c.ringkasan.menungguReview; b.classList.toggle('hide', !ada); }
     if (d) d.classList.toggle('hide', !(ada && c.bisaReview));
     isiSelectProduk(); isiSelectPartner(); gambarSemuaBaris();
-  }).catch(function(e){ if(!diam) toast(e.message,'bad'); else $('hdrUser').textContent = e.message; });
+  }).catch(function(e){
+    var msg = String(e.message || e);
+    /* login gagal (PIN salah / nonaktif / belum terdaftar) -> buang sesi lama, balik ke layar login */
+    if (/PIN salah|dinonaktifkan|belum terdaftar|Akses ditolak/.test(msg)){
+      S.ctx = null; S.ident.pin = '';
+      try{ localStorage.removeItem('ipc_pin'); }catch(x){}
+      $('hdrUser').textContent = '';
+      ['nav-review','nav-admin'].forEach(function(id){ $(id).classList.add('hide'); });
+      tampil('ident');
+      toast(msg,'bad');
+      return;
+    }
+    if(!diam) toast(msg,'bad'); else $('hdrUser').textContent = msg;
+  });
 }
 
 /* ---------------- kalender ---------------- */
@@ -3820,6 +3830,9 @@ function gambarHari(){
 /* ---------------- identitas ---------------- */
 function siapkanIdent(){
   var sel = $('identPilih');
+  if (!S.ctx || !S.ctx.daftarNama){
+    panggil('getKonteks',[{}]).then(function(c){ S.ctx = c; siapkanIdent(); }).catch(function(){});
+  }
   var daftar = (S.ctx && S.ctx.daftarNama) || [];
   sel.innerHTML = '<option value="">'+esc(t('identPilihOpsi'))+'</option>' +
     daftar.map(function(n){ return '<option value="'+esc(n)+'"'+(n===S.ident.nama?' selected':'')+'>'+esc(n)+'</option>'; }).join('');
