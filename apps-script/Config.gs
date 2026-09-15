@@ -10,7 +10,7 @@
 
 var APP = {
   nama: 'IPC — Inventory & Production Control',
-  versi: '6.0.0-mvp',
+  versi: '6.2.0',
   zona: 'Asia/Jakarta',
   satuan: 'kg',
   folderFoto: 'IPC Foto Bukti'
@@ -188,12 +188,15 @@ var DUMMY_CUSTOMER = [
   ['CUS-004','Ekspor — Singapore Trading','Ekspor curah',              'YA']
 ];
 
-/* Pengguna contoh — GANTI PIN-nya. Kosongkan Email kalau pakai Gmail pribadi. */
+/* Akun awal — GANTI PIN-nya setelah pilot. Kosongkan Email kalau pakai Gmail pribadi.
+   ADMIN      = semua + kelola pengguna
+   SUPERVISOR = review, HPP, opname, SKU, edit semua entri
+   STAF       = input pergerakan barang */
 var DUMMY_PENGGUNA = [
-  ['', 'Pak Anto', PERAN.SUPERVISOR, 'GBJ', '1111', 'YA'],
-  ['', 'Yanto',    PERAN.STAF,       'GBJ', '2222', 'YA'],
-  ['', 'Sri',      PERAN.STAF,       'GP',  '3333', 'YA'],
-  ['', 'Rina',     PERAN.STAF,       'GP',  '4444', 'YA']
+  ['', 'Admin',        PERAN.ADMIN,      'HQ',  '1234', 'YA'],
+  ['', 'Direktur',     PERAN.ADMIN,      'HQ',  '2468', 'YA'],
+  ['', 'Manager',      PERAN.SUPERVISOR, 'GBJ', '1357', 'YA'],
+  ['', 'Staff Gudang', PERAN.STAF,       'GBJ', '1111', 'YA']
 ];
 
 var DUMMY_STANDAR = [
@@ -210,7 +213,8 @@ var DEFAULT_SETTING = [
   ['WAJIB_SJ_KELUAR','YA','Wajibkan no. surat jalan / DO saat barang keluar ke customer'],
   ['OCR_BAHASA','id','Bahasa OCR'],
   ['BAHASA_DEFAULT','id','Bahasa awal UI: id / en'],
-  ['AKSES_TERBUKA','YA','YA = siapa pun yang punya link boleh pakai (MVP). TIDAK = hanya email di Master_Pengguna'],
+  ['PAKSA_LOGIN_MANUAL','YA','YA = semua orang (termasuk pemilik Sheet) login dengan Nama + PIN dari Master_Pengguna. TIDAK = email Google yang terdaftar langsung masuk tanpa PIN.'],
+  ['AKSES_TERBUKA','TIDAK','YA = nama yang belum terdaftar tetap boleh masuk sebagai PERAN_DEFAULT. TIDAK = hanya akun di Master_Pengguna (disarankan).'],
   ['PERAN_DEFAULT','STAF','Peran untuk email yang belum terdaftar (kalau AKSES_TERBUKA = YA)'],
   ['PIN_SUPERVISOR','2468','PIN darurat supervisor (hanya untuk nama yang BELUM terdaftar). Lebih baik isi PIN per user di Master_Pengguna. GANTI PIN INI.'],
   ['BIAYA_PROSES_PER_KG','2500','Biaya proses (tenaga, listrik, gas, dll) per kg bahan baku masuk. Dipakai untuk HPP.'],

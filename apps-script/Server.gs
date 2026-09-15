@@ -121,6 +121,9 @@ function penggunaSaatIni_(ident) {
   ident = ident || {};
   var email = emailAktif_();
   var emailAda = email && email !== 'anonim';
+  // PAKSA_LOGIN_MANUAL = YA (default): semua orang, termasuk pemilik Sheet, login dengan Nama + PIN.
+  var paksaManual = (getSetting_('PAKSA_LOGIN_MANUAL') || 'YA').toUpperCase() === 'YA';
+  if (paksaManual) emailAda = false;
 
   if (emailAda) {
     var rows = baca_(SHEET.PENGGUNA);
@@ -149,7 +152,8 @@ function penggunaSaatIni_(ident) {
       if (String(pr[j].Nama).toLowerCase().trim() !== nama.toLowerCase()) continue;
       if (String(pr[j].Aktif).toUpperCase() === 'TIDAK') throw new Error('Akun "' + nama + '" dinonaktifkan. Hubungi admin.');
       var pinUser = String(pr[j].PIN || '').trim();
-      if (pinUser && pin !== pinUser) throw new Error('PIN salah untuk ' + pr[j].Nama + '.');
+      if (!pinUser) throw new Error('Akun "' + pr[j].Nama + '" belum punya PIN. Minta admin mengatur PIN di menu Admin > Pengguna.');
+      if (pin !== pinUser) throw new Error('PIN salah untuk ' + pr[j].Nama + '.');
       nama = String(pr[j].Nama);          // pakai ejaan resmi
       peran = pr[j].Peran || peran;
       lokasi = pr[j].Lokasi || '';

@@ -415,7 +415,20 @@ function muatKonteks(diam){
     if (b){ b.textContent = c.ringkasan.menungguReview; b.classList.toggle('hide', !ada); }
     if (d) d.classList.toggle('hide', !(ada && c.bisaReview));
     isiSelectProduk(); isiSelectPartner(); gambarSemuaBaris();
-  }).catch(function(e){ if(!diam) toast(e.message,'bad'); else $('hdrUser').textContent = e.message; });
+  }).catch(function(e){
+    var msg = String(e.message || e);
+    /* login gagal (PIN salah / nonaktif / belum terdaftar) -> buang sesi lama, balik ke layar login */
+    if (/PIN salah|dinonaktifkan|belum terdaftar|belum punya PIN|Akses ditolak/.test(msg)){
+      S.ctx = null; S.ident.pin = '';
+      try{ localStorage.removeItem('ipc_pin'); }catch(x){}
+      $('hdrUser').textContent = '';
+      ['nav-review','nav-admin'].forEach(function(id){ $(id).classList.add('hide'); });
+      tampil('ident');
+      toast(msg,'bad');
+      return;
+    }
+    if(!diam) toast(msg,'bad'); else $('hdrUser').textContent = msg;
+  });
 }
 
 /* ---------------- kalender ---------------- */
@@ -504,6 +517,9 @@ function gambarHari(){
 /* ---------------- identitas ---------------- */
 function siapkanIdent(){
   var sel = $('identPilih');
+  if (!S.ctx || !S.ctx.daftarNama){
+    panggil('getKonteks',[{}]).then(function(c){ S.ctx = c; siapkanIdent(); }).catch(function(){});
+  }
   var daftar = (S.ctx && S.ctx.daftarNama) || [];
   sel.innerHTML = '<option value="">'+esc(t('identPilihOpsi'))+'</option>' +
     daftar.map(function(n){ return '<option value="'+esc(n)+'"'+(n===S.ident.nama?' selected':'')+'>'+esc(n)+'</option>'; }).join('');
