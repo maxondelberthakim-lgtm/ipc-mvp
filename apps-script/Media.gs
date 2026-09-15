@@ -185,7 +185,7 @@ function potongSekitar_(teks, idx) {
 
 function tesParserSuratJalan() {
   var contoh = [
-    'PT ERAMAS AGRI INTERNASIONAL',
+    'PT CONTOH PANGAN NUSANTARA',
     'SURAT JALAN No: SJ/2026/09/0184',
     'Kepada: Gudang Produksi',
     '1. Kacang Mete Mentah W240 ......... 250 kg',

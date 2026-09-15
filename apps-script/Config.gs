@@ -167,11 +167,11 @@ var DUMMY_ITEM = [
   ['RM-MIN-GRG' ,'Minyak Goreng',                KATEGORI_ITEM.BAHAN_BAKU , 18500, 0, 0, 'YA'],
   ['RM-GRM-HLS' ,'Garam Halus',                  KATEGORI_ITEM.BAHAN_BAKU , 6000, 0, 0, 'YA'],
   ['RM-BMB-BBQ' ,'Bumbu Tabur BBQ',              KATEGORI_ITEM.BAHAN_BAKU , 45000, 0, 0, 'YA'],
-  ['FG-MM-CSW'  ,'Max Mede Mete Panggang',       KATEGORI_ITEM.BARANG_JADI, '', 0, 0, 'YA'],
-  ['FG-MM-ALM'  ,'Max Mede Almond Panggang',     KATEGORI_ITEM.BARANG_JADI, '', 0, 0, 'YA'],
-  ['FG-JM-BBQ'  ,'Jomama Kacang Goreng BBQ',     KATEGORI_ITEM.BARANG_JADI, '', 0, 0, 'YA'],
-  ['FG-JM-ASN'  ,'Jomama Kacang Goreng Asin',    KATEGORI_ITEM.BARANG_JADI, '', 0, 0, 'YA'],
-  ['FG-SC-SI'   ,'Sachiko Sacha Inchi Oil',      KATEGORI_ITEM.BARANG_JADI, '', 0, 0, 'YA']
+  ['FG-MM-CSW'  ,'Mete Panggang Original',       KATEGORI_ITEM.BARANG_JADI, '', 0, 0, 'YA'],
+  ['FG-MM-ALM'  ,'Almond Panggang',     KATEGORI_ITEM.BARANG_JADI, '', 0, 0, 'YA'],
+  ['FG-JM-BBQ'  ,'Kacang Goreng BBQ',     KATEGORI_ITEM.BARANG_JADI, '', 0, 0, 'YA'],
+  ['FG-JM-ASN'  ,'Kacang Goreng Asin',    KATEGORI_ITEM.BARANG_JADI, '', 0, 0, 'YA'],
+  ['FG-SC-SI'   ,'Minyak Sacha Inchi',      KATEGORI_ITEM.BARANG_JADI, '', 0, 0, 'YA']
 ];
 
 var DUMMY_SUPPLIER = [
@@ -200,11 +200,11 @@ var DUMMY_PENGGUNA = [
 ];
 
 var DUMMY_STANDAR = [
-  ['FG-MM-CSW','Max Mede Mete Panggang',   4.0, 1.5, 'Susut panggang normal'],
-  ['FG-MM-ALM','Max Mede Almond Panggang', 3.5, 1.5, ''],
-  ['FG-JM-BBQ','Jomama Kacang Goreng BBQ', 6.0, 2.0, 'Susut goreng lebih tinggi'],
-  ['FG-JM-ASN','Jomama Kacang Goreng Asin',6.0, 2.0, ''],
-  ['FG-SC-SI' ,'Sachiko Sacha Inchi Oil',  2.0, 1.0, '']
+  ['FG-MM-CSW','Mete Panggang Original',   4.0, 1.5, 'Susut panggang normal'],
+  ['FG-MM-ALM','Almond Panggang', 3.5, 1.5, ''],
+  ['FG-JM-BBQ','Kacang Goreng BBQ', 6.0, 2.0, 'Susut goreng lebih tinggi'],
+  ['FG-JM-ASN','Kacang Goreng Asin',6.0, 2.0, ''],
+  ['FG-SC-SI' ,'Minyak Sacha Inchi',  2.0, 1.0, '']
 ];
 
 var DEFAULT_SETTING = [
