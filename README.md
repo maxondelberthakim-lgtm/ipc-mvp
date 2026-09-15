@@ -35,6 +35,11 @@ runs on spreadsheets, so the data lands in the format the team already knows.
   Cancel voids it (not counted).
 - **COGS (HPP)** per job and per kg of output, plus the rupiah value of shrinkage — visible to
   supervisors only; the server never sends prices to warehouse staff.
+- **Per-user PIN sign-in** — every entry is attributable to one person. Roles: STAF / SUPERVISOR / ADMIN.
+- **Admin menu**: stock count (opname) that writes adjustments instead of overwriting; SKU add / edit / delete
+  from the phone; per-staff activity; user management (admin only).
+- **Scrap is a real SKU** — `SCR-<product>` created automatically per product, so scrap stock is visible
+  per product and can be sold like any other item.
 - **Input history + edit** under every form. Staff can fix their own entries until a supervisor
   reviews them; supervisors can edit anything. Every change is logged (`Log_Edit`), status is
   untouched, and editing a closed job recomputes shrinkage and COGS.
@@ -73,7 +78,7 @@ Full steps in **[PANDUAN-SETUP.md](PANDUAN-SETUP.md)**. Short version:
 ## Development
 
 ```bash
-cd tests && npm test          # 193 checks: stock math, shrinkage, permissions, OCR parser
+cd tests && npm test          # 240 checks: stock math, shrinkage, permissions, OCR parser
 python3 tools/build-demo.py   # rebuild docs/index.html after editing apps-script/
 ```
 

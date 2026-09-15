@@ -1,4 +1,4 @@
-# IPC — Inventory & Production Control (MVP v5)
+# IPC — Inventory & Production Control (MVP v6)
 
 Backend Google Sheets, frontend web app yang dibuka lewat browser HP.
 Tidak ada server, tidak ada hosting, tidak ada aplikasi yang perlu di-install.
@@ -101,10 +101,16 @@ Simpan. Dropdown fungsi → **`setupSistem`** → **Run**.
 Izinkan: **Review permissions → pilih akun → Advanced → Go to (nama project) → Allow**.
 (Peringatan "unverified app" normal — ini script milik akun kamu sendiri.)
 
-Cek Sheet: 12 tab sudah ada — `Master_Item`, `Master_Supplier`, dan `Master_Customer` terisi dummy.
+Cek Sheet: 13 tab sudah ada — `Master_Item`, `Master_Supplier`, dan `Master_Customer` terisi dummy.
 
-### 6. Ganti PIN supervisor
-Tab **`Pengaturan`**, baris `PIN_SUPERVISOR` — defaultnya `2468`. **Ganti sekarang.**
+### 6. Isi pengguna & PIN
+Tab **`Master_Pengguna`** sudah terisi 4 contoh (Pak Anto, Yanto, Sri, Rina) dengan PIN dummy.
+**Ganti nama & PIN-nya** — atau hapus dan tambah lewat app: Admin → Pengguna.
+Akun kamu sendiri (baris pertama, email Google) belum punya PIN; kalau kamu login lewat nama,
+isi kolom `PIN`-nya juga.
+
+`PIN_SUPERVISOR` di `Pengaturan` sekarang cuma PIN darurat untuk nama yang *belum terdaftar* —
+tidak bisa dipakai untuk masuk sebagai user yang sudah ada.
 
 ### 7. Deploy
 **Deploy → New deployment → ⚙ → Web app**
@@ -196,6 +202,58 @@ Kalau `Nama` di sini cocok dengan nama yang dipilih staff di HP, perannya ikut b
 supervisor tidak perlu PIN lagi.
 
 ---
+
+## Login: nama + PIN per orang
+
+Setiap orang punya baris di `Master_Pengguna` dengan **PIN sendiri** (4–8 angka). Di HP, staf
+pilih nama lalu ketik PIN — kalau salah, ditolak. Jadi riwayat input benar-benar per orang:
+Yanto tidak bisa input atas nama Sri.
+
+| Peran | Bisa apa |
+|---|---|
+| `STAF` | input semua pergerakan, edit entri sendiri yang masih menunggu |
+| `SUPERVISOR` | + review, HPP, stock opname, kelola SKU, aktivitas staf |
+| `ADMIN` | + kelola pengguna (tambah, ubah peran, reset PIN, nonaktifkan) |
+
+Admin terakhir yang aktif tidak bisa diturunkan atau dinonaktifkan — supaya tidak terkunci dari luar.
+
+## Menu Admin (Supervisor / Admin)
+
+**Opname** — stock opname. Cara kerjanya:
+
+1. Pilih lokasi (GBJ atau GP). App menampilkan semua item dengan **stok sistem** — angka hasil hitungan
+   dari seluruh transaksi.
+2. Hitung barang yang benar-benar ada di rak, isi di kolom **Fisik**. Item yang tidak dihitung, kosongkan.
+3. Simpan. Selisih (fisik − sistem) tersimpan di tab `Stock_Opname` sebagai **penyesuaian**:
+   stok sistem langsung = angka fisik, dan selisihnya tercatat siapa yang menghitung, kapan, catatan apa.
+4. Di neraca stok per item (Laporan → Stok), penyesuaian ini muncul sebagai baris sendiri —
+   tidak disembunyikan di angka lain.
+
+Yang perlu kamu tahu: opname **tidak menghapus** transaksi apa pun. Kalau selisih minus muncul
+berulang di item yang sama, itu bukan salah hitung — ada pergerakan yang tidak dicatat, dan sekarang
+kamu punya tanggal dan besarnya.
+
+**SKU** — tambah / ubah / hapus item dari HP, tanpa buka Sheet. Hapus = benar-benar dihapus kalau
+belum pernah dipakai; kalau sudah ada transaksinya, dinonaktifkan (hilang dari dropdown, riwayat tetap
+utuh). Kode SKU yang sudah dipakai tidak bisa diganti. Stok awal di sini hanya berlaku sebelum opname
+pertama — untuk mengisi "stok sebenarnya berapa", pakai opname.
+
+**Aktivitas** — siapa input apa, 30 hari terakhir. Per orang: jumlah entri, kg, jenis, terakhir aktif,
+dan daftar kejadiannya. Karena login pakai PIN, angka ini bisa dipercaya per orang.
+
+**Pengguna** (Admin saja) — tambah user, ubah peran, ganti/hapus PIN, nonaktifkan.
+
+## Scrap
+
+Scrap **tidak lagi** pakai SKU generik. Saat pekerjaan ditutup, kamu isi satu angka: scrap berapa kg.
+Sistem otomatis membuat SKU `SCR-<kode produk>` (mis. `SCR-FG-MM-CSW` = "Scrap · Max Mede Mete
+Panggang") kalau belum ada, dan mencatat scrap-nya di situ. Akibatnya:
+
+- stok scrap **per produk** kelihatan di Laporan → Stok (di GP, karena lahirnya di produksi)
+- bisa ditransfer ③ ke GBJ lalu **dijual lewat ④** seperti barang lain
+- muncul di Admin → SKU dengan label *scrap*; kamu bisa isi `Harga_Per_Kg` kalau mau
+
+Rumus susut tidak berubah: scrap tetap dikurangkan sebagai output, bukan susut.
 
 ## Riwayat input & edit
 
@@ -325,7 +383,11 @@ Version: **New version** → Deploy. Link di HP staff tidak berubah.
 | Stok GBJ minus setelah jual | Barang keluar lebih banyak dari yang pernah masuk — cek transfer balik dari GP |
 | Foto tidak muncul di antrian review | Domain melarang link-sharing — buka lewat link di tab Riwayat |
 | Staff tidak diminta nama | Akunnya satu domain Workspace — email kebaca otomatis, ini normal |
-| Antrian review tidak muncul | PIN salah, atau nama belum terdaftar sebagai SUPERVISOR |
+| "PIN salah untuk …" | Nama itu sudah punya PIN di `Master_Pengguna` — tanya admin |
+| "Akun … dinonaktifkan" | Admin menonaktifkan user ini — Admin → Pengguna → aktifkan lagi |
+| Antrian review tidak muncul | Peran bukan SUPERVISOR / ADMIN |
+| Tab Admin tidak ada | Sama — STAF tidak punya menu Admin |
+| Tab Pengguna tidak ada di Admin | Hanya ADMIN yang lihat; SUPERVISOR tidak |
 | Tab HPP tidak muncul | Sama — HPP hanya untuk SUPERVISOR / ADMIN |
 | HPP job = 0 | `Harga_Per_Kg` bahan bakunya kosong di `Master_Item` |
 | "Entri ini sudah final" | Setuju / Batal tidak bisa diubah statusnya lagi — tapi supervisor masih bisa mengubah angkanya lewat Ubah |
