@@ -8,7 +8,9 @@ typed quantity, a photo and a timestamp — then reviewed after the fact by a su
 runs on spreadsheets, so the data lands in the format the team already knows.
 
 > **[▶ Try the live demo](https://maxondelberthakim-lgtm.github.io/ipc-mvp/)** — real backend
-> logic running in the browser on sample data. Nothing you do there is saved.
+> logic running in the browser on sample data. Nothing you do there is saved (refresh = reset).
+>
+> Demo sign-in (name · PIN): **Admin** 1234 · **Direktur** 2468 · **Manager** 1357 · **Staff Gudang** 1111
 
 ## What it does
 

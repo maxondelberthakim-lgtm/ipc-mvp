@@ -103,9 +103,19 @@ Izinkan: **Review permissions → pilih akun → Advanced → Go to (nama projec
 
 Cek Sheet: 13 tab sudah ada — `Master_Item`, `Master_Supplier`, dan `Master_Customer` terisi dummy.
 
-### 6. Isi pengguna & PIN
-Tab **`Master_Pengguna`** sudah terisi 4 contoh (Pak Anto, Yanto, Sri, Rina) dengan PIN dummy.
-**Ganti nama & PIN-nya** — atau hapus dan tambah lewat app: Admin → Pengguna.
+### 6. Akun awal & PIN
+Tab **`Master_Pengguna`** terisi 4 akun awal:
+
+| Nama | PIN | Peran | Bisa apa |
+|---|---|---|---|
+| **Admin** | `1234` | ADMIN | semua + kelola pengguna |
+| **Direktur** | `2468` | ADMIN | semua + kelola pengguna |
+| **Manager** | `1357` | SUPERVISOR | review pindahan, HPP, opname, SKU, edit semua entri |
+| **Staff Gudang** | `1111` | STAF | input pergerakan barang, edit entri sendiri yang menunggu |
+
+**Ganti PIN-nya sebelum staf beneran pakai** — lewat app: Admin → Pengguna → ✎. Tambah orang
+sungguhan di situ juga (satu akun per orang, bukan satu akun "Staff Gudang" dipakai ramai-ramai —
+kalau tidak, riwayat per orang jadi tidak ada artinya).
 Akun kamu sendiri (baris pertama, email Google) belum punya PIN; kalau kamu login lewat nama,
 isi kolom `PIN`-nya juga.
 
