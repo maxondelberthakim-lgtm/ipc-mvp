@@ -7,7 +7,7 @@ ctx.setupSistem();
 
 console.log('— 1. Setup & master —');
 const k = ctx.getKonteks({});
-ok('16 item aktif', k.items.length===16, k.items.length);
+ok('14 item aktif (scrap dibuat otomatis)', k.items.length===14, k.items.length);
 ok('4 supplier aktif', k.supplier.length===4, k.supplier.length);
 ok('4 customer aktif', k.customer.length===4, k.customer.length);
 ok('user ADMIN & bisa review', k.user.peran==='ADMIN' && k.bisaReview);
@@ -68,13 +68,17 @@ ok('batas susut ikut dikirim', list[0].batas===5.5, list[0].batas);
 
 console.log('\n— 7. Tutup job: total susut + susutnya apa —');
 const f1 = ctx.selesaikanPekerjaan({ id:j1.id,
-  barangJadi:[{kode:'FG-MM-CSW', qty:475}], scrap:[{kode:'SCR-KULIT', qty:5}], ident:{nama:'Sri'} });
+  barangJadi:[{kode:'FG-MM-CSW', qty:475}], scrapKg:5, ident:{nama:'Sri'} });
 // 500 - 475 - 5 = 20 kg = 4% ; batas 4+1.5=5.5 -> NORMAL
 ok('susut 20 kg', f1.susut===20, f1);
 ok('4%, NORMAL', f1.persen===4 && f1.status==='NORMAL', f1);
 ok('rincian: 1 bahan', f1.rincian.length===1, f1.rincian);
 ok('rincian susut = 20 kg (bahan tunggal = persis)', f1.rincian[0].susut===20, f1.rincian);
 ok('rincian sebut nama bahan', f1.rincian[0].nama==='Kacang Mete Mentah W240');
+const scrSku = ctx.baca_(ctx.SHEET.ITEM).find(r=>r.Kode_Item==='SCR-FG-MM-CSW');
+ok('SKU scrap produk dibuat otomatis', !!scrSku && scrSku.Kategori==='SCRAP' && /Scrap · Max Mede/.test(scrSku.Nama_Item), scrSku);
+ok('scrap masuk stok GP atas nama SKU scrap', ctx.laporanStok({}).daftar.find(x=>x.kode==='SCR-FG-MM-CSW').gp===5);
+ok('SKU scrap muncul di items (bisa dijual)', ctx.getKonteks({}).items.some(i=>i.kode==='SCR-FG-MM-CSW' && i.kategori==='SCRAP'));
 
 console.log('\n— 8. Job multi-bahan: susut dialokasikan proporsional —');
 ctx.simpanPenerimaan({jenis:'MASUK',supplier:'UD Tani Kacang Jaya',noSuratJalan:'SJ/2',
@@ -83,7 +87,7 @@ ctx.simpanTransfer({arah:'GBJ_KE_GP',baris:[{kode:'RM-PNT-JAVA',qty:300},{kode:'
 const j2 = ctx.mulaiPekerjaan({ kodeProduk:'FG-JM-BBQ', bahanBaku:[
   {kode:'RM-PNT-JAVA', qty:300}, {kode:'RM-MIN-GRG', qty:80}, {kode:'RM-BMB-BBQ', qty:20}] });
 ok('total masuk 400 kg', j2.totalKg===400, j2);
-const f2 = ctx.selesaikanPekerjaan({ id:j2.id, barangJadi:[{kode:'FG-JM-BBQ', qty:355}], scrap:[{kode:'SCR-PECAH', qty:5}] });
+const f2 = ctx.selesaikanPekerjaan({ id:j2.id, barangJadi:[{kode:'FG-JM-BBQ', qty:355}], scrapKg:5 });
 // 400 - 355 - 5 = 40 kg = 10% ; batas 6+2=8 -> TINGGI
 ok('susut 40 kg = 10% TINGGI', f2.susut===40 && f2.persen===10 && f2.status==='TINGGI', f2);
 ok('rincian 3 bahan', f2.rincian.length===3, f2.rincian.length);
@@ -116,12 +120,17 @@ ok('FG di GBJ 500 kg sebelum dijual', fgSebelum.gbj===500, fgSebelum);
 
 const j = ctx.simpanPengiriman({ jenis:'KELUAR', customer:'PT Ritel Nusantara',
   noSuratJalan:'DO/2026/09/0042', baris:[{kode:'FG-MM-CSW', qty:300}], ident:{nama:'Sri'} });
+// jual scrap: transfer scrap ke GBJ dulu, lalu keluar
+ctx.simpanTransfer({arah:'GP_KE_GBJ', baris:[{kode:'SCR-FG-MM-CSW', qty:5}], ident:{nama:'Sri'}});
+ctx.simpanPengiriman({ jenis:'KELUAR', customer:'Toko Grosir Pasar Baru', noSuratJalan:'DO/SCR/1',
+  baris:[{kode:'SCR-FG-MM-CSW', qty:5}], ident:{nama:'Sri'} });
+ok('scrap bisa dijual ke customer', ctx.laporanStok({}).daftar.find(x=>x.kode==='SCR-FG-MM-CSW').jual===5);
 ok('penjualan 300 kg tersimpan', j.totalKg===300 && j.jenis==='KELUAR', j);
 stokJ = ctx.laporanStok({});
 let fg = stokJ.daftar.find(s=>s.kode==='FG-MM-CSW');
 ok('GBJ turun jadi 200', fg.gbj===200, fg);
 ok('kolom jual = 300', fg.jual===300, fg);
-ok('total keluar masuk ringkasan', stokJ.total.jual===300, stokJ.total);
+ok('total keluar masuk ringkasan', stokJ.total.jual===305, stokJ.total);
 
 tolak('keluar tanpa customer ditolak',
   ()=>ctx.simpanPengiriman({jenis:'KELUAR',noSuratJalan:'X',baris:[{kode:'FG-MM-CSW',qty:1}]}), /[Cc]ustomer/);
@@ -141,18 +150,18 @@ console.log('\n— 9d. Laporan penjualan —');
 ctx.simpanPengiriman({ jenis:'KELUAR', customer:'Toko Grosir Pasar Baru',
   noSuratJalan:'DO/2026/09/0043', baris:[{kode:'FG-JM-BBQ', qty:120}], ident:{nama:'Yanto'} });
 const jual = ctx.laporanPenjualan(30, {});
-ok('total keluar 420 kg', jual.total.keluar===420, jual.total);
+ok('total keluar 425 kg', jual.total.keluar===425, jual.total);
 ok('total retur customer 25 kg', jual.total.retur===25, jual.total);
-ok('bersih 395 kg', jual.total.bersih===395, jual.total);
+ok('bersih 400 kg', jual.total.bersih===400, jual.total);
 ok('2 customer', jual.perCustomer.length===2, jual.perCustomer);
 const cRitel = jual.perCustomer.find(c=>c.customer==='PT Ritel Nusantara');
 ok('Ritel bersih 275 kg', cRitel.bersih===275, cRitel);
-ok('perItem ada 2 item', jual.perItem.length===2, jual.perItem);
+ok('perItem ada 3 item', jual.perItem.length===3, jual.perItem);
 ok('perItem diurut bersih desc', jual.perItem[0].bersih >= jual.perItem[1].bersih);
 
 console.log('\n— 10. Antrian review gabungan —');
 const q = ctx.antrianReview({});
-ok('pembelian + penjualan + transfer satu antrian', q.length===14, q.length);
+ok('pembelian + penjualan + transfer satu antrian', q.length===16, q.length);
 ok('ada entri PENERIMAAN', q.some(x=>x.sumber==='PENERIMAAN'));
 ok('ada entri TRANSFER', q.some(x=>x.sumber==='TRANSFER'));
 ok('label retur benar', q.some(x=>x.jenis==='RETUR' && /^GBJ →/.test(x.label)), q.filter(x=>x.jenis==='RETUR')[0]);
@@ -166,7 +175,7 @@ ok('label penjualan benar', q.some(x=>x.jenis==='KELUAR' && /^GBJ → PT Ritel/.
 ok('label retur customer benar', q.some(x=>x.jenis==='RETUR_MASUK' && / → GBJ$/.test(x.label)));
 const idOut = q.find(x=>x.sumber==='PENGIRIMAN').id;
 ctx.tinjauTransfer(idOut,'setuju','',{});
-ok('review pengiriman jalan (routing ID benar)', ctx.antrianReview({}).length===11, ctx.antrianReview({}).length);
+ok('review pengiriman jalan (routing ID benar)', ctx.antrianReview({}).length===13, ctx.antrianReview({}).length);
 tolak('tidak bisa review 2x', ()=>ctx.tinjauTransfer(idRcv,'setuju','',{}), /sudah final/);
 
 console.log('\n— 11. Review: Setuju / Tandai (arsip) / Batal —');
@@ -227,7 +236,7 @@ const jH = ctx.mulaiPekerjaan({ kodeProduk:'FG-MM-CSW', bahanBaku:[{kode:'RM-CSW
 ok('admin dapat hpp saat mulai', jH.hpp && jH.hpp.bahan===18500000 && jH.hpp.proses===250000, jH.hpp);
 const listH = ctx.daftarPekerjaanBerjalan({});
 ok('kartu job admin ada hpp', listH.find(x=>x.id===jH.id).hpp.total===18750000);
-const fH = ctx.selesaikanPekerjaan({ id:jH.id, barangJadi:[{kode:'FG-MM-CSW', qty:95}], scrap:[{kode:'SCR-KULIT', qty:1}] });
+const fH = ctx.selesaikanPekerjaan({ id:jH.id, barangJadi:[{kode:'FG-MM-CSW', qty:95}], scrapKg:1 });
 ok('HPP per kg = 18.750.000 / 95 = 197.368', fH.hpp.perKg===197368, fH.hpp);
 ok('nilai susut = 4 kg × 185.000 = 740.000', fH.hpp.nilaiSusut===740000, fH.hpp);
 const detH = ctx.baca_(ctx.SHEET.DETAIL).filter(d=>d.ID_Pekerjaan===jH.id && d.Jenis==='BAHAN_BAKU')[0];

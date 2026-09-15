@@ -8,7 +8,7 @@ const src=fs.readFileSync(__dirname+'/harness.js','utf8').replace("return 'max@e
 fs.writeFileSync(__dirname+'/.h2.js', src);
 const {ctx:c2}=require(__dirname+'/.h2.js');
 c2.setupSistem();
-const STAF={nama:'Yanto'}, STAF2={nama:'Sri'}, SPV={nama:'Pak Anto',pin:'2468'};
+const STAF={nama:'Yanto',pin:'2222'}, STAF2={nama:'Sri',pin:'3333'}, SPV={nama:'Pak Anto',pin:'1111'};
 
 console.log('— Riwayat input per proses —');
 c2.simpanPenerimaan({jenis:'MASUK',supplier:'CV Mitra Mete Sulawesi',noSuratJalan:'SJ/1',baris:[{kode:'RM-CSW-W240',qty:500}],ident:STAF});
@@ -63,7 +63,7 @@ tolak('tidak bisa dibatalkan 2x', ()=>c2.batalkanEntriSendiri(idOut,'x',STAF), /
 
 console.log('\n— Edit pekerjaan: hitung ulang susut & HPP —');
 const j = c2.mulaiPekerjaan({kodeProduk:'FG-MM-CSW',bahanBaku:[{kode:'RM-CSW-W240',qty:300}],ident:STAF2});
-c2.selesaikanPekerjaan({id:j.id,barangJadi:[{kode:'FG-MM-CSW',qty:285}],scrap:[{kode:'SCR-KULIT',qty:3}],ident:STAF2});
+c2.selesaikanPekerjaan({id:j.id,barangJadi:[{kode:'FG-MM-CSW',qty:285}],scrapKg:3,ident:STAF2});
 const sel = c2.daftarPekerjaanSelesai(14,STAF2);
 ok('daftar selesai ada 1', sel.length===1 && sel[0].susut===12, sel[0]);
 ok('operator boleh edit (<24 jam)', sel[0].bolehEdit===true);
@@ -74,7 +74,7 @@ const detSebelum = c2.baca_(c2.SHEET.DETAIL).filter(d=>d.ID_Pekerjaan===j.id).le
 const full = c2.ambilPekerjaan(j.id, STAF2);
 ok('ambilPekerjaan: 1 bahan, 1 jadi, 1 scrap', full.bahanBaku.length===1 && full.barangJadi.length===1 && full.scrap.length===1);
 // salah ketik: barang jadi 285 -> harusnya 275, scrap 3 -> 5
-const e3 = c2.simpanEditPekerjaan(j.id, {bahanBaku:[{kode:'RM-CSW-W240',qty:300}], barangJadi:[{kode:'FG-MM-CSW',qty:275}], scrap:[{kode:'SCR-KULIT',qty:5}]}, STAF2);
+const e3 = c2.simpanEditPekerjaan(j.id, {bahanBaku:[{kode:'RM-CSW-W240',qty:300}], barangJadi:[{kode:'FG-MM-CSW',qty:275}], scrapKg:5}, STAF2);
 ok('susut dihitung ulang: 300-275-5 = 20 kg', e3.susut===20 && e3.persen===6.67, e3);
 ok('status jadi TINGGI (batas 5.5)', e3.status==='TINGGI');
 const detSesudah = c2.baca_(c2.SHEET.DETAIL).filter(d=>d.ID_Pekerjaan===j.id);
@@ -85,7 +85,7 @@ ok('nilai susut 20 × 185.000', rowJ.Nilai_Susut===3700000, rowJ.Nilai_Susut);
 ok('Log_Edit pekerjaan terisi', /Sri: .*jadi 285 → 275/.test(rowJ.Log_Edit), rowJ.Log_Edit);
 ok('staf tidak dapat hpp di hasil edit', e3.hpp===undefined);
 tolak('staf lain ditolak edit job', ()=>c2.simpanEditPekerjaan(j.id,{bahanBaku:[{kode:'RM-CSW-W240',qty:1}],barangJadi:[{kode:'FG-MM-CSW',qty:1}]},STAF), /operator/);
-const e4 = c2.simpanEditPekerjaan(j.id, {bahanBaku:[{kode:'RM-CSW-W240',qty:300}], barangJadi:[{kode:'FG-MM-CSW',qty:285}], scrap:[{kode:'SCR-KULIT',qty:3}]}, SPV);
+const e4 = c2.simpanEditPekerjaan(j.id, {bahanBaku:[{kode:'RM-CSW-W240',qty:300}], barangJadi:[{kode:'FG-MM-CSW',qty:285}], scrapKg:3}, SPV);
 ok('supervisor bisa & dapat hpp', e4.hpp && e4.hpp.perKg===Math.round(56250000/285), e4.hpp);
 ok('laporan susut konsisten setelah edit', c2.laporanSusut(30,SPV).total.susut===12);
 ok('stok GP ikut angka terbaru', c2.laporanStok(SPV).daftar.find(s=>s.kode==='FG-MM-CSW').gp===285);
