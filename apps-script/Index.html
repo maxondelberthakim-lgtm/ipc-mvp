@@ -32,8 +32,9 @@
         <input id="identNama" placeholder="">
       </div>
       <div class="field">
-        <label data-i18n="identPin">PIN supervisor (kosongkan kalau staff)</label>
-        <input id="identPin" type="tel" inputmode="numeric" placeholder="••••">
+        <label data-i18n="identPin">PIN</label>
+        <input id="identPin" type="password" inputmode="numeric" placeholder="••••">
+        <div class="hint" data-i18n="identPinHint">PIN kamu dari admin. Kalau belum punya, kosongkan.</div>
       </div>
       <button class="btn" onclick="simpanIdentitas()" data-i18n="identSimpan">Simpan &amp; mulai</button>
     </div>
@@ -272,8 +273,9 @@
           <div id="edJadiLines"></div>
           <button class="btn sec sm" onclick="tambahBaris('edJadi')" data-i18n="btnTambahItem">+ Tambah item</button>
           <h3 class="sec" data-i18n="secScrap">Scrap / afkir <span class="unit">kg</span></h3>
-          <div id="edScrapLines"></div>
-          <button class="btn sec sm" onclick="tambahBaris('edScrap')" data-i18n="btnTambahItem">+ Tambah item</button>
+          <div class="field">
+            <input type="number" inputmode="decimal" step="any" min="0" id="edScrapKg" placeholder="0" oninput="previewEditJob()">
+          </div>
           <div id="edSusutPreview" style="margin-top:15px"></div>
         </div>
         <div class="field" style="margin-top:14px">
@@ -321,8 +323,10 @@
         <button class="btn sec sm" onclick="tambahBaris('finJadi')" data-i18n="btnTambahItem">+ Tambah item</button>
 
         <h3 class="sec" data-i18n="secScrap">Scrap / afkir <span class="unit">kg</span></h3>
-        <div id="finScrapLines"></div>
-        <button class="btn sec sm" onclick="tambahBaris('finScrap')" data-i18n="btnTambahItem">+ Tambah item</button>
+        <div class="field">
+          <input type="number" inputmode="decimal" step="any" min="0" id="finScrapKg" placeholder="0" oninput="hitungPreviewSusut()">
+          <div class="hint" id="finScrapHint"></div>
+        </div>
 
         <div id="susutPreview" style="margin-top:15px"></div>
 
@@ -370,6 +374,61 @@
     <div id="repBody"><div class="load">…</div></div>
   </section>
 
+  <!-- ============ ADMIN ============ -->
+  <section id="v-admin" class="hide">
+    <div class="seg">
+      <button id="segAdmOpname" class="on" onclick="segAdm('opname')" data-i18n="segOpname">Opname</button>
+      <button id="segAdmSku" onclick="segAdm('sku')">SKU</button>
+      <button id="segAdmAkt" onclick="segAdm('akt')" data-i18n="segAkt">Aktivitas</button>
+      <button id="segAdmUser" class="hide" onclick="segAdm('user')" data-i18n="segUser">Pengguna</button>
+    </div>
+    <div id="admBody"><div class="load">…</div></div>
+  </section>
+
+  <!-- ============ FORM SKU (overlay) ============ -->
+  <div id="skuWrap" class="overlay hide" onclick="if(event.target===this)tutupSku()">
+    <div class="sheet">
+      <div class="sheethead"><b id="skuJudul">SKU</b><button class="x2" onclick="tutupSku()">✕</button></div>
+      <div class="field"><label data-i18n="skuKode">Kode</label><input id="skuKode" placeholder="RM-XXX" style="text-transform:uppercase"></div>
+      <div class="field"><label data-i18n="skuNama">Nama</label><input id="skuNama"></div>
+      <div class="field"><label data-i18n="skuKat">Kategori</label>
+        <select id="skuKat">
+          <option value="BAHAN_BAKU">Bahan baku</option>
+          <option value="BARANG_JADI">Barang jadi</option>
+          <option value="KEDUANYA">Keduanya</option>
+        </select></div>
+      <div class="field" id="skuHargaWrap"><label data-i18n="skuHarga">Harga beli per kg (untuk HPP)</label><input type="number" inputmode="decimal" id="skuHarga" placeholder="0"></div>
+      <div class="row">
+        <div class="field"><label data-i18n="skuAwalGBJ">Stok awal GBJ (kg)</label><input type="number" inputmode="decimal" id="skuAwalGBJ" placeholder="0"></div>
+        <div class="field"><label data-i18n="skuAwalGP">Stok awal GP (kg)</label><input type="number" inputmode="decimal" id="skuAwalGP" placeholder="0"></div>
+      </div>
+      <div class="field"><label><input type="checkbox" id="skuAktif" checked style="width:auto;margin-right:8px"><span data-i18n="skuAktif">Aktif (muncul di dropdown)</span></label></div>
+      <div class="btnrow">
+        <button class="btn ghost hide" id="btnSkuHapus" onclick="hapusSkuUI()" data-i18n="hapus">Hapus</button>
+        <button class="btn ok" id="btnSkuSimpan" onclick="simpanSkuUI()" data-i18n="simpanPerubahan">Simpan perubahan</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ FORM PENGGUNA (overlay) ============ -->
+  <div id="userWrap" class="overlay hide" onclick="if(event.target===this)tutupUser()">
+    <div class="sheet">
+      <div class="sheethead"><b id="userJudul">Pengguna</b><button class="x2" onclick="tutupUser()">✕</button></div>
+      <div class="field"><label data-i18n="identNama">Nama</label><input id="userNama"></div>
+      <div class="field"><label data-i18n="userPeran">Peran</label>
+        <select id="userPeran">
+          <option value="STAF">STAF — input pergerakan</option>
+          <option value="SUPERVISOR">SUPERVISOR — review, HPP, opname, SKU</option>
+          <option value="ADMIN">ADMIN — semua + kelola pengguna</option>
+        </select></div>
+      <div class="field"><label data-i18n="userLokasi">Lokasi (opsional)</label><input id="userLokasi" placeholder="GBJ / GP / HQ"></div>
+      <div class="field"><label data-i18n="userEmail">Email Google (opsional)</label><input id="userEmail" placeholder="hanya kalau pakai Google Workspace"></div>
+      <div class="field"><label data-i18n="userPin">PIN (4–8 angka)</label><input id="userPin" type="tel" inputmode="numeric" placeholder=""><div class="hint" id="userPinHint"></div></div>
+      <div class="field"><label><input type="checkbox" id="userAktif" checked style="width:auto;margin-right:8px"><span data-i18n="userAktif">Aktif (boleh login)</span></label></div>
+      <button class="btn ok" id="btnUserSimpan" onclick="simpanUserUI()" data-i18n="simpanPerubahan">Simpan perubahan</button>
+    </div>
+  </div>
+
 </main>
 
 <nav>
@@ -377,6 +436,7 @@
   <button id="nav-job" onclick="tampil('job')"><span class="g">⚙️</span><span data-i18n="navJob">Pekerjaan</span></button>
   <button id="nav-review" class="hide" onclick="tampil('review')"><span class="g">✅</span><span data-i18n="navReview">Review</span><span class="dot hide" id="navDot"></span></button>
   <button id="nav-report" onclick="tampil('report')"><span class="g">📊</span><span data-i18n="navReport">Laporan</span></button>
+  <button id="nav-admin" class="hide" onclick="tampil('admin')"><span class="g">🛠️</span><span data-i18n="navAdmin">Admin</span></button>
 </nav>
 
 <script>var BAHASA_AWAL = '<?= bahasaAwal ?>';</script>

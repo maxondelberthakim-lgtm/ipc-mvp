@@ -1,5 +1,5 @@
 /**********************************************************************
- * IPC — Inventory & Production Control (MVP v5)
+ * IPC — Inventory & Production Control (MVP v6)
  * File 1 of 3 : Config.gs
  *
  * SEMUA SATUAN KILOGRAM. Nama sheet & kolom Bahasa Indonesia.
@@ -10,7 +10,7 @@
 
 var APP = {
   nama: 'IPC — Inventory & Production Control',
-  versi: '5.0.0-mvp',
+  versi: '6.0.0-mvp',
   zona: 'Asia/Jakarta',
   satuan: 'kg',
   folderFoto: 'IPC Foto Bukti'
@@ -30,6 +30,7 @@ var SHEET = {
   TRANSFER   : 'Transfer',          // ① GBJ→GP  ③ GP→GBJ
   PEKERJAAN  : 'Pekerjaan',         // ②
   DETAIL     : 'Pekerjaan_Detail',
+  OPNAME     : 'Stock_Opname',      // hitung fisik → penyesuaian stok
   LOG        : 'Log_Audit',
   SETTING    : 'Pengaturan'
 };
@@ -49,7 +50,7 @@ HEADER[SHEET.CUSTOMER] = [
 ];
 
 HEADER[SHEET.PENGGUNA] = [
-  'Email','Nama','Peran','Lokasi','Aktif'
+  'Email','Nama','Peran','Lokasi','PIN','Aktif'
 ];
 
 HEADER[SHEET.STANDAR] = [
@@ -89,6 +90,13 @@ HEADER[SHEET.PEKERJAAN] = [
 
 HEADER[SHEET.DETAIL] = [
   'ID','ID_Pekerjaan','Jenis','Kode_Item','Nama_Item','Qty_Kg','Harga_Per_Kg','Nilai','Waktu'
+];
+
+/* Stock opname: satu baris per item per sesi hitung. Selisih = fisik − sistem, dipakai
+   sebagai penyesuaian stok (positif menambah, negatif mengurangi). */
+HEADER[SHEET.OPNAME] = [
+  'ID','ID_Sesi','Waktu','Tanggal','Lokasi','Kode_Item','Nama_Item',
+  'Stok_Sistem','Stok_Fisik','Selisih','Catatan','Dicatat_Oleh','Nama_Pencatat'
 ];
 
 HEADER[SHEET.LOG] = [
@@ -135,10 +143,13 @@ var JENIS_DETAIL = {
 var KATEGORI_ITEM = {
   BAHAN_BAKU  : 'BAHAN_BAKU',
   BARANG_JADI : 'BARANG_JADI',
-  KEDUANYA    : 'KEDUANYA'
+  KEDUANYA    : 'KEDUANYA',
+  SCRAP       : 'SCRAP'        // dibuat otomatis per produk: SCR-<kode produk>. Bisa dijual (④).
 };
+var PREFIX_SCRAP = 'SCR-';
 
 var PERAN = { STAF: 'STAF', SUPERVISOR: 'SUPERVISOR', ADMIN: 'ADMIN' };
+var LOKASI = { GBJ: 'GBJ', GP: 'GP' };
 
 var DEFAULT_SUSUT_NORMAL_PERSEN = 3.0;
 var DEFAULT_TOLERANSI_PERSEN    = 1.5;
@@ -160,9 +171,7 @@ var DUMMY_ITEM = [
   ['FG-MM-ALM'  ,'Max Mede Almond Panggang',     KATEGORI_ITEM.BARANG_JADI, '', 0, 0, 'YA'],
   ['FG-JM-BBQ'  ,'Jomama Kacang Goreng BBQ',     KATEGORI_ITEM.BARANG_JADI, '', 0, 0, 'YA'],
   ['FG-JM-ASN'  ,'Jomama Kacang Goreng Asin',    KATEGORI_ITEM.BARANG_JADI, '', 0, 0, 'YA'],
-  ['FG-SC-SI'   ,'Sachiko Sacha Inchi Oil',      KATEGORI_ITEM.BARANG_JADI, '', 0, 0, 'YA'],
-  ['SCR-KULIT'  ,'Kulit / Ari',                  KATEGORI_ITEM.KEDUANYA   , 0, 0, 0, 'YA'],
-  ['SCR-PECAH'  ,'Pecahan / Reject',             KATEGORI_ITEM.KEDUANYA   , 0, 0, 0, 'YA']
+  ['FG-SC-SI'   ,'Sachiko Sacha Inchi Oil',      KATEGORI_ITEM.BARANG_JADI, '', 0, 0, 'YA']
 ];
 
 var DUMMY_SUPPLIER = [
@@ -177,6 +186,14 @@ var DUMMY_CUSTOMER = [
   ['CUS-002','Toko Grosir Pasar Baru',    'Grosir curah',              'YA'],
   ['CUS-003','Distributor Bali Sejahtera','Distributor Bali & NTB',    'YA'],
   ['CUS-004','Ekspor — Singapore Trading','Ekspor curah',              'YA']
+];
+
+/* Pengguna contoh — GANTI PIN-nya. Kosongkan Email kalau pakai Gmail pribadi. */
+var DUMMY_PENGGUNA = [
+  ['', 'Pak Anto', PERAN.SUPERVISOR, 'GBJ', '1111', 'YA'],
+  ['', 'Yanto',    PERAN.STAF,       'GBJ', '2222', 'YA'],
+  ['', 'Sri',      PERAN.STAF,       'GP',  '3333', 'YA'],
+  ['', 'Rina',     PERAN.STAF,       'GP',  '4444', 'YA']
 ];
 
 var DUMMY_STANDAR = [
@@ -195,7 +212,7 @@ var DEFAULT_SETTING = [
   ['BAHASA_DEFAULT','id','Bahasa awal UI: id / en'],
   ['AKSES_TERBUKA','YA','YA = siapa pun yang punya link boleh pakai (MVP). TIDAK = hanya email di Master_Pengguna'],
   ['PERAN_DEFAULT','STAF','Peran untuk email yang belum terdaftar (kalau AKSES_TERBUKA = YA)'],
-  ['PIN_SUPERVISOR','2468','PIN untuk membuka antrian review kalau email staff tidak terbaca. GANTI PIN INI.'],
+  ['PIN_SUPERVISOR','2468','PIN darurat supervisor (hanya untuk nama yang BELUM terdaftar). Lebih baik isi PIN per user di Master_Pengguna. GANTI PIN INI.'],
   ['BIAYA_PROSES_PER_KG','2500','Biaya proses (tenaga, listrik, gas, dll) per kg bahan baku masuk. Dipakai untuk HPP.'],
   ['MATA_UANG','Rp','Simbol mata uang di tampilan HPP']
 ];
@@ -228,8 +245,9 @@ function setupSistem() {
 
   var email = Session.getActiveUser().getEmail();
   var shU = ss.getSheetByName(SHEET.PENGGUNA);
-  if (shU.getLastRow() < 2 && email) {
-    shU.appendRow([email, email.split('@')[0], PERAN.ADMIN, 'HQ', 'YA']);
+  if (shU.getLastRow() < 2) {
+    if (email) shU.appendRow([email, email.split('@')[0], PERAN.ADMIN, 'HQ', '', 'YA']);
+    DUMMY_PENGGUNA.forEach(function (r) { shU.appendRow(r); });
   }
 
   var folder = ambilAtauBuatFolder_();

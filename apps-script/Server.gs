@@ -1,5 +1,5 @@
 /**********************************************************************
- * IPC — Inventory & Production Control (MVP v5)
+ * IPC — Inventory & Production Control (MVP v6)
  * File 2 of 3 : Server.gs
  *
  * SEMUA QTY DALAM KILOGRAM.
@@ -138,26 +138,38 @@ function penggunaSaatIni_(ident) {
   }
 
   var nama = String(ident.nama || '').trim();
+  var pin  = String(ident.pin || '').trim();
   var peran = getSetting_('PERAN_DEFAULT') || PERAN.STAF;
-  var pinBenar = String(getSetting_('PIN_SUPERVISOR') || '').trim();
-  if (pinBenar && String(ident.pin || '').trim() === pinBenar) peran = PERAN.SUPERVISOR;
+  var lokasi = '';
+  var terdaftar = false;
 
   if (nama) {
     var pr = baca_(SHEET.PENGGUNA);
     for (var j = 0; j < pr.length; j++) {
-      if (String(pr[j].Nama).toLowerCase().trim() === nama.toLowerCase() &&
-          String(pr[j].Aktif).toUpperCase() !== 'TIDAK') {
-        if (peran !== PERAN.SUPERVISOR) peran = pr[j].Peran || peran;
-        break;
-      }
+      if (String(pr[j].Nama).toLowerCase().trim() !== nama.toLowerCase()) continue;
+      if (String(pr[j].Aktif).toUpperCase() === 'TIDAK') throw new Error('Akun "' + nama + '" dinonaktifkan. Hubungi admin.');
+      var pinUser = String(pr[j].PIN || '').trim();
+      if (pinUser && pin !== pinUser) throw new Error('PIN salah untuk ' + pr[j].Nama + '.');
+      nama = String(pr[j].Nama);          // pakai ejaan resmi
+      peran = pr[j].Peran || peran;
+      lokasi = pr[j].Lokasi || '';
+      terdaftar = true;
+      break;
+    }
+    if (!terdaftar) {
+      var terbukaM = (getSetting_('AKSES_TERBUKA') || 'YA').toUpperCase() === 'YA';
+      if (!terbukaM) throw new Error('Nama "' + nama + '" belum terdaftar. Minta admin menambahkan kamu.');
+      var pinDarurat = String(getSetting_('PIN_SUPERVISOR') || '').trim();
+      if (pinDarurat && pin === pinDarurat) peran = PERAN.SUPERVISOR;
     }
   }
 
-  return { email: '', nama: nama || '(belum diisi)', peran: peran, lokasi: '',
-           terdaftar: false, identitasManual: true, perluNama: !nama };
+  return { email: '', nama: nama || '(belum diisi)', peran: peran, lokasi: lokasi,
+           terdaftar: terdaftar, identitasManual: true, perluNama: !nama };
 }
 
 function bolehReview_(u) { return u.peran === PERAN.SUPERVISOR || u.peran === PERAN.ADMIN; }
+function bolehAdmin_(u)  { return u.peran === PERAN.ADMIN; }
 
 /** HPP & harga hanya untuk manager (Supervisor / Admin). STAF tidak pernah menerimanya. */
 function bolehLihatHpp_(u) { return bolehReview_(u); }
@@ -181,6 +193,25 @@ function petaItem_() {
     };
   });
   return peta;
+}
+
+/**
+ * SKU scrap untuk satu produk: SCR-<kode produk>. Dibuat kalau belum ada.
+ * Scrap disimpan per produk supaya bisa dilihat stoknya dan dijual lewat ④.
+ */
+function skuScrapUntuk_(produk) {
+  var kode = PREFIX_SCRAP + produk.kode;
+  var rows = baca_(SHEET.ITEM);
+  for (var i = 0; i < rows.length; i++) {
+    if (rows[i].Kode_Item === kode) {
+      return { kode: kode, nama: rows[i].Nama_Item, kategori: rows[i].Kategori, harga: angka_(rows[i].Harga_Per_Kg) };
+    }
+  }
+  var nama = 'Scrap · ' + produk.nama;
+  tambah_(SHEET.ITEM, { Kode_Item: kode, Nama_Item: nama, Kategori: KATEGORI_ITEM.SCRAP,
+                        Harga_Per_Kg: '', Stok_Awal_GBJ: 0, Stok_Awal_GP: 0, Aktif: 'YA' });
+  catatLog_('SKU_SCRAP', kode, 'dibuat otomatis untuk ' + produk.nama);
+  return { kode: kode, nama: nama, kategori: KATEGORI_ITEM.SCRAP, harga: 0 };
 }
 
 /* ================= BOOTSTRAP ================= */
@@ -234,6 +265,7 @@ function getKonteks(ident) {
     app: { nama: APP.nama, versi: APP.versi, satuan: APP.satuan },
     user: u,
     bisaReview: bolehReview_(u),
+    bisaAdmin: bolehAdmin_(u),
     lihatHpp: bolehLihatHpp_(u),
     mataUang: mataUang_(),
     identitasManual: !!u.identitasManual,
@@ -515,13 +547,17 @@ function selesaikanPekerjaan(p) {
         Kode_Item: it.kode, Nama_Item: it.nama, Qty_Kg: q, Waktu: now });
     });
 
-    (p.scrap || []).forEach(function (b) {
-      var it = peta[b.kode]; if (!it) throw new Error('Item tidak dikenal: ' + b.kode);
-      var q = angka_(b.qty); if (q <= 0) return;
-      totalScrap += q;
+    /* scrap: satu angka, dicatat sebagai SKU scrap milik produk ini */
+    var scrapKg = angka_(p.scrapKg);
+    (p.scrap || []).forEach(function (b) { scrapKg += angka_(b.qty); });   // format lama (list) masih diterima
+    if (scrapKg < 0) throw new Error('Scrap tidak boleh negatif.');
+    if (scrapKg > 0) {
+      var produkJob = peta[job.Kode_Produk] || { kode: job.Kode_Produk, nama: job.Nama_Produk };
+      var scr = skuScrapUntuk_(produkJob);
+      totalScrap = scrapKg;
       tambah_(SHEET.DETAIL, { ID: buatId_('DTL'), ID_Pekerjaan: job.ID, Jenis: JENIS_DETAIL.SCRAP,
-        Kode_Item: it.kode, Nama_Item: it.nama, Qty_Kg: q, Waktu: now });
-    });
+        Kode_Item: scr.kode, Nama_Item: scr.nama, Qty_Kg: scrapKg, Waktu: now });
+    }
 
     var masuk = angka_(job.Total_Bahan_Baku_Kg);
     var h = hitungSusut_(masuk, totalJadi, totalScrap, job.Kode_Produk);
@@ -845,6 +881,7 @@ function laporanStok(ident) {
                      awal: (it.awalGBJ || 0) + (it.awalGP || 0),
                      beli: 0, retur: 0, jual: 0, returCust: 0,
                      keGP: 0, keGBJ: 0, dipakai: 0, dihasilkan: 0,
+                     opnameGBJ: 0, opnameGP: 0,
                      gbj: it.awalGBJ || 0, gp: it.awalGP || 0 };
     }
     return stok[kode];
@@ -878,17 +915,24 @@ function laporanStok(ident) {
     else { s.dihasilkan += q; s.gp += q; }
   });
 
+  /* penyesuaian dari stock opname: selisih = fisik − sistem saat dihitung */
+  baca_(SHEET.OPNAME).forEach(function (r) {
+    var s = sel(r.Kode_Item), d = angka_(r.Selisih);
+    if (r.Lokasi === LOKASI.GP) { s.opnameGP += d; s.gp += d; }
+    else { s.opnameGBJ += d; s.gbj += d; }
+  });
+
   var daftar = Object.keys(stok).map(function (k) {
     var s = stok[k];
     ['awalGBJ','awalGP','awal','beli','retur','jual','returCust',
-     'keGP','keGBJ','dipakai','dihasilkan','gbj','gp'].forEach(function (f) {
+     'keGP','keGBJ','dipakai','dihasilkan','opnameGBJ','opnameGP','gbj','gp'].forEach(function (f) {
       s[f] = bulat_(s[f], 2);
     });
     s.total = bulat_(s.gbj + s.gp, 2);
     return s;
   }).filter(function (s) {
     return s.awal || s.beli || s.retur || s.jual || s.returCust ||
-           s.keGP || s.keGBJ || s.dipakai || s.dihasilkan;
+           s.keGP || s.keGBJ || s.dipakai || s.dihasilkan || s.opnameGBJ || s.opnameGP;
   }).sort(function (a, b) { return b.total - a.total; });
 
   var tot = { beli: 0, retur: 0, jual: 0, returCust: 0, gbj: 0, gp: 0, total: 0 };
@@ -1209,7 +1253,9 @@ function ambilPekerjaan(id, ident) {
     id: r.ID, produk: r.Nama_Produk, kodeProduk: r.Kode_Produk, status: r.Status,
     catatan: r.Catatan || '', logEdit: r.Log_Edit || '',
     bahanBaku: ambil(JENIS_DETAIL.BAHAN_BAKU), barangJadi: ambil(JENIS_DETAIL.BARANG_JADI),
-    scrap: ambil(JENIS_DETAIL.SCRAP), bolehEdit: bolehEditJob_(u, r)
+    scrap: ambil(JENIS_DETAIL.SCRAP),
+    scrapKg: ambil(JENIS_DETAIL.SCRAP).reduce(function (a, b) { return a + b.qty; }, 0),
+    bolehEdit: bolehEditJob_(u, r)
   };
 }
 
@@ -1258,7 +1304,14 @@ function simpanEditPekerjaan(id, p, ident) {
     }
     tulis(p.bahanBaku,  JENIS_DETAIL.BAHAN_BAKU,  function (q, n) { total += q; hppBahan += n; });
     tulis(p.barangJadi, JENIS_DETAIL.BARANG_JADI, function (q) { totalJadi += q; });
-    tulis(p.scrap,      JENIS_DETAIL.SCRAP,       function (q) { totalScrap += q; });
+    var scrapKgEd = angka_(p.scrapKg);
+    (p.scrap || []).forEach(function (b) { scrapKgEd += angka_(b.qty); });
+    if (scrapKgEd > 0) {
+      var scrEd = skuScrapUntuk_(produk);
+      totalScrap = scrapKgEd;
+      tambah_(SHEET.DETAIL, { ID: buatId_('DTL'), ID_Pekerjaan: id, Jenis: JENIS_DETAIL.SCRAP,
+        Kode_Item: scrEd.kode, Nama_Item: scrEd.nama, Qty_Kg: scrapKgEd, Harga_Per_Kg: '', Nilai: '', Waktu: now });
+    }
     if (total <= 0) throw new Error('Total bahan baku harus > 0.');
 
     var hppProses = total * biayaProsesPerKg_();
@@ -1296,6 +1349,323 @@ function simpanEditPekerjaan(id, p, ident) {
   } finally {
     lock.releaseLock();
   }
+}
+
+/* =================================================================
+   ADMINISTRASI
+   ================================================================= */
+
+/* ---------- pengguna (ADMIN) ---------- */
+
+function daftarPengguna(ident) {
+  var u = penggunaSaatIni_(ident);
+  if (!bolehAdmin_(u)) throw new Error('Hanya Admin yang bisa mengelola pengguna.');
+  return baca_(SHEET.PENGGUNA).map(function (r) {
+    return { baris: r._baris, email: r.Email || '', nama: r.Nama, peran: r.Peran || PERAN.STAF,
+             lokasi: r.Lokasi || '', punyaPin: !!String(r.PIN || '').trim(),
+             aktif: String(r.Aktif).toUpperCase() !== 'TIDAK' };
+  });
+}
+
+/**
+ * p = { baris (kosong = tambah baru), nama, email, peran, lokasi, pin (kosong = tidak diubah;
+ *       'HAPUS' = kosongkan), aktif }
+ */
+function simpanPengguna(p, ident) {
+  var u = penggunaSaatIni_(ident);
+  if (!bolehAdmin_(u)) throw new Error('Hanya Admin yang bisa mengelola pengguna.');
+  p = p || {};
+  var nama = String(p.nama || '').trim();
+  if (!nama) throw new Error('Nama wajib diisi.');
+  var peran = [PERAN.STAF, PERAN.SUPERVISOR, PERAN.ADMIN].indexOf(p.peran) >= 0 ? p.peran : PERAN.STAF;
+  var pin = p.pin === undefined || p.pin === null ? undefined : String(p.pin).trim();
+  if (pin !== undefined && pin !== '' && pin !== 'HAPUS' && !/^\d{4,8}$/.test(pin)) {
+    throw new Error('PIN harus 4–8 angka.');
+  }
+
+  var lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try {
+    var rows = baca_(SHEET.PENGGUNA);
+    // nama harus unik
+    for (var i = 0; i < rows.length; i++) {
+      if (String(rows[i].Nama).toLowerCase() === nama.toLowerCase() && rows[i]._baris !== p.baris) {
+        throw new Error('Nama "' + nama + '" sudah dipakai.');
+      }
+    }
+    // jangan sampai admin terakhir dinonaktifkan / diturunkan
+    var adminAktif = rows.filter(function (r) {
+      return r.Peran === PERAN.ADMIN && String(r.Aktif).toUpperCase() !== 'TIDAK';
+    });
+    var target = null;
+    for (var k = 0; k < rows.length; k++) if (rows[k]._baris === p.baris) target = rows[k];
+    if (target && target.Peran === PERAN.ADMIN && adminAktif.length <= 1 &&
+        (peran !== PERAN.ADMIN || p.aktif === false)) {
+      throw new Error('Tidak bisa — ini admin terakhir yang aktif.');
+    }
+
+    var log;
+    if (target) {
+      var ubah = { Nama: nama, Email: p.email || '', Peran: peran, Lokasi: p.lokasi || '',
+                   Aktif: p.aktif === false ? 'TIDAK' : 'YA' };
+      if (pin === 'HAPUS') ubah.PIN = '';
+      else if (pin) ubah.PIN = pin;
+      ubahBaris_(SHEET.PENGGUNA, target._baris, ubah);
+      log = 'ubah ' + nama + ' → ' + peran + (ubah.Aktif === 'TIDAK' ? ' (nonaktif)' : '') + (pin ? ' (PIN diubah)' : '');
+    } else {
+      tambah_(SHEET.PENGGUNA, { Email: p.email || '', Nama: nama, Peran: peran, Lokasi: p.lokasi || '',
+                                PIN: (pin && pin !== 'HAPUS') ? pin : '', Aktif: p.aktif === false ? 'TIDAK' : 'YA' });
+      log = 'tambah ' + nama + ' (' + peran + ')';
+    }
+    catatLog_('ADMIN_PENGGUNA', nama, log);
+    return { ok: true };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+/** Aktivitas satu pengguna (atau semua kalau nama kosong) dalam N hari. */
+function aktivitasStaf(nama, hari, ident) {
+  var u = penggunaSaatIni_(ident);
+  if (!bolehReview_(u)) throw new Error('Hanya Supervisor / Admin.');
+  hari = hari || 30;
+  var batas = new Date(); batas.setDate(batas.getDate() - hari);
+  var target = String(nama || '').trim().toLowerCase();
+  function cocok(n) { return !target || String(n || '').toLowerCase() === target; }
+
+  var per = {};
+  function tambah(n, jenis, kg, waktu, label) {
+    if (!cocok(n)) return;
+    var k = n || '(tanpa nama)';
+    if (!per[k]) per[k] = { nama: k, total: 0, kg: 0, jenis: {}, terakhir: 0, kejadian: [] };
+    var x = per[k];
+    x.total++; x.kg += kg;
+    x.jenis[jenis] = (x.jenis[jenis] || 0) + 1;
+    var t = new Date(waktu).getTime();
+    if (t > x.terakhir) x.terakhir = t;
+    x.kejadian.push({ t: t, waktu: jam_(waktu), jenis: jenis, label: label, kg: kg });
+  }
+
+  baca_(SHEET.PENERIMAAN).forEach(function (r) {
+    if (new Date(r.Waktu) < batas) return;
+    tambah(r.Nama_Pencatat, r.Jenis === JENIS_PENERIMAAN.RETUR ? 'RETUR_SUPPLIER' : 'MASUK', angka_(r.Qty_Kg), r.Waktu, r.Nama_Item + ' · ' + r.Supplier);
+  });
+  baca_(SHEET.PENGIRIMAN).forEach(function (r) {
+    if (new Date(r.Waktu) < batas) return;
+    tambah(r.Nama_Pencatat, r.Jenis === JENIS_PENGIRIMAN.RETUR_MASUK ? 'RETUR_CUSTOMER' : 'KELUAR', angka_(r.Qty_Kg), r.Waktu, r.Nama_Item + ' · ' + r.Customer);
+  });
+  baca_(SHEET.TRANSFER).forEach(function (r) {
+    if (new Date(r.Waktu) < batas) return;
+    tambah(r.Nama_Pencatat, r.Arah === ARAH.KE_PRODUKSI ? 'KE_GP' : 'KE_GBJ', angka_(r.Qty_Kg), r.Waktu, r.Nama_Item);
+  });
+  baca_(SHEET.PEKERJAAN).forEach(function (r) {
+    if (new Date(r.Waktu_Mulai) < batas) return;
+    tambah(r.Nama_Operator, 'JOB', angka_(r.Total_Bahan_Baku_Kg), r.Waktu_Mulai, r.Nama_Produk);
+  });
+  baca_(SHEET.OPNAME).forEach(function (r) {
+    if (new Date(r.Waktu) < batas) return;
+    tambah(r.Nama_Pencatat, 'OPNAME', Math.abs(angka_(r.Selisih)), r.Waktu, r.Nama_Item + ' · ' + r.Lokasi);
+  });
+  // review & edit dari log audit
+  baca_(SHEET.LOG).forEach(function (r) {
+    if (new Date(r.Waktu) < batas) return;
+    if (r.Aksi !== 'REVIEW' && r.Aksi !== 'EDIT' && r.Aksi !== 'EDIT_PEKERJAAN' && r.Aksi !== 'BATAL_SENDIRI') return;
+    // nama pelaku ada di detail? Log_Audit menyimpan email; untuk manual-ident pakai Ditinjau_Oleh — cukup hitung per aksi
+  });
+
+  var daftar = Object.keys(per).map(function (k) {
+    var x = per[k];
+    x.kg = bulat_(x.kg, 1);
+    x.terakhirTxt = x.terakhir ? jam_(new Date(x.terakhir)) : '';
+    x.kejadian.sort(function (a, b) { return b.t - a.t; });
+    x.kejadian = x.kejadian.slice(0, 80);
+    return x;
+  }).sort(function (a, b) { return b.total - a.total; });
+
+  return { hari: hari, daftar: daftar };
+}
+
+/* ---------- SKU (SUPERVISOR / ADMIN) ---------- */
+
+function daftarSku(ident) {
+  var u = penggunaSaatIni_(ident);
+  if (!bolehReview_(u)) throw new Error('Hanya Supervisor / Admin.');
+  var dipakai = skuDipakai_();
+  var lihatHpp = bolehLihatHpp_(u);
+  return baca_(SHEET.ITEM).map(function (r) {
+    var o = { baris: r._baris, kode: r.Kode_Item, nama: r.Nama_Item, kategori: r.Kategori,
+              awalGBJ: angka_(r.Stok_Awal_GBJ), awalGP: angka_(r.Stok_Awal_GP),
+              aktif: String(r.Aktif).toUpperCase() !== 'TIDAK', dipakai: !!dipakai[r.Kode_Item] };
+    if (lihatHpp) o.harga = angka_(r.Harga_Per_Kg);
+    return o;
+  });
+}
+
+function skuDipakai_() {
+  var d = {};
+  [SHEET.PENERIMAAN, SHEET.PENGIRIMAN, SHEET.TRANSFER, SHEET.DETAIL, SHEET.OPNAME].forEach(function (nama) {
+    baca_(nama).forEach(function (r) { if (r.Kode_Item) d[r.Kode_Item] = true; });
+  });
+  baca_(SHEET.PEKERJAAN).forEach(function (r) { if (r.Kode_Produk) d[r.Kode_Produk] = true; });
+  return d;
+}
+
+/** p = { baris (kosong = baru), kode, nama, kategori, harga, awalGBJ, awalGP, aktif } */
+function simpanSku(p, ident) {
+  var u = penggunaSaatIni_(ident);
+  if (!bolehReview_(u)) throw new Error('Hanya Supervisor / Admin.');
+  p = p || {};
+  var kode = String(p.kode || '').trim().toUpperCase().replace(/\s+/g, '-');
+  var nama = String(p.nama || '').trim();
+  if (!kode || !nama) throw new Error('Kode dan nama wajib diisi.');
+  if (!/^[A-Z0-9][A-Z0-9\-_.]{1,30}$/.test(kode)) throw new Error('Kode: huruf/angka/strip saja, 2–31 karakter.');
+  var kat = [KATEGORI_ITEM.BAHAN_BAKU, KATEGORI_ITEM.BARANG_JADI, KATEGORI_ITEM.KEDUANYA].indexOf(p.kategori) >= 0
+            ? p.kategori : KATEGORI_ITEM.BAHAN_BAKU;
+
+  var lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try {
+    var rows = baca_(SHEET.ITEM), target = null;
+    for (var i = 0; i < rows.length; i++) {
+      if (rows[i]._baris === p.baris) target = rows[i];
+      else if (String(rows[i].Kode_Item).toUpperCase() === kode) throw new Error('Kode "' + kode + '" sudah ada.');
+    }
+    var ubah = { Kode_Item: kode, Nama_Item: nama, Kategori: kat,
+                 Stok_Awal_GBJ: angka_(p.awalGBJ), Stok_Awal_GP: angka_(p.awalGP),
+                 Aktif: p.aktif === false ? 'TIDAK' : 'YA' };
+    if (p.harga !== undefined && p.harga !== null && String(p.harga) !== '') ubah.Harga_Per_Kg = angka_(p.harga);
+    if (target) {
+      if (target.Kode_Item !== kode && skuDipakai_()[target.Kode_Item]) {
+        throw new Error('Kode tidak bisa diganti — SKU ini sudah dipakai di transaksi. Nonaktifkan lalu buat yang baru.');
+      }
+      ubahBaris_(SHEET.ITEM, target._baris, ubah);
+      catatLog_('ADMIN_SKU', kode, 'ubah ' + nama);
+    } else {
+      if (ubah.Harga_Per_Kg === undefined) ubah.Harga_Per_Kg = '';
+      tambah_(SHEET.ITEM, ubah);
+      catatLog_('ADMIN_SKU', kode, 'tambah ' + nama);
+    }
+    return { ok: true, kode: kode };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+/** Hapus beneran kalau belum pernah dipakai; kalau sudah, nonaktifkan. */
+function hapusSku(kode, ident) {
+  var u = penggunaSaatIni_(ident);
+  if (!bolehReview_(u)) throw new Error('Hanya Supervisor / Admin.');
+  var lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try {
+    var rows = baca_(SHEET.ITEM), target = null;
+    for (var i = 0; i < rows.length; i++) if (rows[i].Kode_Item === kode) target = rows[i];
+    if (!target) throw new Error('SKU tidak ditemukan: ' + kode);
+    if (skuDipakai_()[kode]) {
+      ubahBaris_(SHEET.ITEM, target._baris, { Aktif: 'TIDAK' });
+      catatLog_('ADMIN_SKU', kode, 'nonaktif (sudah dipakai)');
+      return { ok: true, dihapus: false, dinonaktifkan: true };
+    }
+    sheet_(SHEET.ITEM).deleteRow(target._baris);
+    catatLog_('ADMIN_SKU', kode, 'hapus');
+    return { ok: true, dihapus: true, dinonaktifkan: false };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+/* ---------- STOCK OPNAME (SUPERVISOR / ADMIN) ---------- */
+
+/**
+ * Daftar item + stok sistem di satu lokasi, siap diisi stok fisik.
+ */
+function siapkanOpname(lokasi, ident) {
+  var u = penggunaSaatIni_(ident);
+  if (!bolehReview_(u)) throw new Error('Hanya Supervisor / Admin yang bisa stock opname.');
+  lokasi = lokasi === LOKASI.GP ? LOKASI.GP : LOKASI.GBJ;
+  var stok = {};
+  laporanStok(ident).daftar.forEach(function (s) { stok[s.kode] = s; });
+  var items = baca_(SHEET.ITEM).filter(function (r) {
+    return r.Kode_Item && String(r.Aktif).toUpperCase() !== 'TIDAK';
+  }).map(function (r) {
+    var s = stok[r.Kode_Item];
+    return { kode: r.Kode_Item, nama: r.Nama_Item, kategori: r.Kategori,
+             sistem: s ? (lokasi === LOKASI.GP ? s.gp : s.gbj) : 0 };
+  });
+  return { lokasi: lokasi, waktu: jam_(new Date()), items: items };
+}
+
+/**
+ * p = { lokasi, baris:[{kode, fisik}], catatan }
+ * Baris yang fisik-nya kosong dilewati. Selisih 0 tetap dicatat (bukti sudah dihitung).
+ */
+function simpanOpname(p, ident) {
+  var u = penggunaSaatIni_(ident);
+  if (!bolehReview_(u)) throw new Error('Hanya Supervisor / Admin yang bisa stock opname.');
+  if (!p || !p.baris || !p.baris.length) throw new Error('Belum ada item yang dihitung.');
+  var lokasi = p.lokasi === LOKASI.GP ? LOKASI.GP : LOKASI.GBJ;
+
+  var lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try {
+    var peta = petaItem_();
+    var stok = {};
+    laporanStok(ident).daftar.forEach(function (s) { stok[s.kode] = s; });
+    var now = new Date();
+    var idSesi = buatId_('OPN');
+    var n = 0, totalSelisih = 0, plus = 0, minus = 0;
+
+    p.baris.forEach(function (b) {
+      if (b.fisik === '' || b.fisik === null || b.fisik === undefined) return;
+      var it = peta[b.kode]; if (!it) throw new Error('Item tidak dikenal: ' + b.kode);
+      var fisik = angka_(b.fisik);
+      if (fisik < 0) throw new Error('Stok fisik tidak boleh negatif (' + it.nama + ').');
+      var s = stok[b.kode];
+      var sistem = s ? (lokasi === LOKASI.GP ? s.gp : s.gbj) : 0;
+      var selisih = bulat_(fisik - sistem, 3);
+      n++; totalSelisih += selisih;
+      if (selisih > 0) plus += selisih; else minus += -selisih;
+      tambah_(SHEET.OPNAME, {
+        ID: buatId_('OPI'), ID_Sesi: idSesi, Waktu: now, Tanggal: tglStr_(now), Lokasi: lokasi,
+        Kode_Item: it.kode, Nama_Item: it.nama,
+        Stok_Sistem: bulat_(sistem, 3), Stok_Fisik: fisik, Selisih: selisih,
+        Catatan: b.catatan || p.catatan || '',
+        Dicatat_Oleh: penandaPencatat_(u), Nama_Pencatat: u.nama
+      });
+    });
+    if (!n) throw new Error('Belum ada item yang diisi stok fisiknya.');
+
+    catatLog_('OPNAME', idSesi, lokasi + ' • ' + n + ' item • selisih ' + bulat_(totalSelisih, 2) + ' kg');
+    return { ok: true, idSesi: idSesi, lokasi: lokasi, jumlahItem: n,
+             selisih: bulat_(totalSelisih, 2), lebih: bulat_(plus, 2), kurang: bulat_(minus, 2) };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function riwayatOpname(hari, ident) {
+  var u = penggunaSaatIni_(ident);
+  if (!bolehReview_(u)) throw new Error('Hanya Supervisor / Admin.');
+  var batas = new Date(); batas.setDate(batas.getDate() - (hari || 90));
+  var sesi = {};
+  baca_(SHEET.OPNAME).forEach(function (r) {
+    if (new Date(r.Waktu) < batas) return;
+    var k = r.ID_Sesi;
+    if (!sesi[k]) sesi[k] = { idSesi: k, waktuRaw: new Date(r.Waktu).getTime(), waktu: jam_(r.Waktu),
+                              lokasi: r.Lokasi, oleh: r.Nama_Pencatat, jumlahItem: 0,
+                              lebih: 0, kurang: 0, item: [] };
+    var x = sesi[k], d = angka_(r.Selisih);
+    x.jumlahItem++;
+    if (d > 0) x.lebih += d; else x.kurang += -d;
+    x.item.push({ nama: r.Nama_Item, kode: r.Kode_Item, sistem: angka_(r.Stok_Sistem),
+                  fisik: angka_(r.Stok_Fisik), selisih: d, catatan: r.Catatan });
+  });
+  return Object.keys(sesi).map(function (k) {
+    var x = sesi[k];
+    x.lebih = bulat_(x.lebih, 2); x.kurang = bulat_(x.kurang, 2);
+    x.item.sort(function (a, b) { return Math.abs(b.selisih) - Math.abs(a.selisih); });
+    return x;
+  }).sort(function (a, b) { return b.waktuRaw - a.waktuRaw; });
 }
 
 /* =================================================================
@@ -1379,6 +1749,20 @@ function kalender(bulan, ident) {
           oleh: r.Nama_Operator });
       }
     }
+  });
+
+  var sesiOpn = {};
+  baca_(SHEET.OPNAME).forEach(function (r) {
+    var d = new Date(r.Waktu); if (!dalam(d)) return;
+    var k = r.ID_Sesi;
+    if (!sesiOpn[k]) { sesiOpn[k] = { d: d, lokasi: r.Lokasi, n: 0, selisih: 0, oleh: r.Nama_Pencatat }; }
+    sesiOpn[k].n++; sesiOpn[k].selisih += angka_(r.Selisih);
+  });
+  Object.keys(sesiOpn).forEach(function (k) {
+    var o = sesiOpn[k]; var x = h(o.d); x.opname = (x.opname || 0) + 1;
+    pushK(o.d, { t: o.d.getTime(), jam: Utilities.formatDate(o.d, APP.zona, 'HH:mm'),
+      jenis: 'OPNAME', label: o.lokasi + ' · ' + o.n + ' item', item: '', qty: bulat_(o.selisih, 1),
+      status: '', oleh: o.oleh });
   });
 
   var daftar = Object.keys(hari).sort().map(function (k) {
