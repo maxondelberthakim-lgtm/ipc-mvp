@@ -20,6 +20,41 @@ function include(nama) {
   return HtmlService.createHtmlOutputFromFile(nama).getContent();
 }
 
+/* ================= API JSON (untuk frontend GitHub Pages) =================
+ * Frontend statis di GitHub memanggil POST {fn, args} ke URL /exec ini.
+ * Content-Type text/plain -> tidak kena preflight CORS. Balasan JSON.
+ * Hanya fungsi di daftar putih (RPC_WL) yang boleh dipanggil. */
+var RPC_WL = {
+  getKonteks:1, simpanPenerimaan:1, simpanPengiriman:1, simpanTransfer:1,
+  mulaiPekerjaan:1, selesaikanPekerjaan:1, daftarPekerjaanBerjalan:1, daftarPekerjaanSelesai:1,
+  ambilPekerjaan:1, simpanEditPekerjaan:1,
+  riwayatInput:1, ambilEntri:1, simpanEditEntri:1, batalkanEntriSendiri:1,
+  antrianReview:1, tinjauTransfer:1,
+  laporanSusut:1, laporanStok:1, riwayatPenerimaan:1, laporanPenjualan:1, laporanHpp:1, riwayatTransfer:1,
+  kalender:1, ocrSuratJalan:1,
+  daftarPengguna:1, simpanPengguna:1, aktivitasStaf:1,
+  daftarSku:1, simpanSku:1, hapusSku:1,
+  siapkanOpname:1, simpanOpname:1, riwayatOpname:1
+};
+
+function doPost(e) {
+  var out = { ok:false };
+  try {
+    var body = JSON.parse((e && e.postData && e.postData.contents) || '{}');
+    var fn = String(body.fn || '');
+    if (!RPC_WL[fn]) throw new Error('Fungsi tidak dikenal: ' + fn);
+    var f = globalThis[fn];
+    if (typeof f !== 'function') throw new Error('Fungsi tidak tersedia: ' + fn);
+    out.ok = true;
+    out.data = f.apply(null, body.args || []);
+  } catch (err) {
+    out.ok = false;
+    out.error = (err && err.message) ? err.message : String(err);
+  }
+  return ContentService.createTextOutput(JSON.stringify(out))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
 /* ================= UTIL SHEET ================= */
 
 function ss_() { return SpreadsheetApp.getActiveSpreadsheet(); }

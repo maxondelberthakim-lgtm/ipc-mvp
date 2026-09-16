@@ -55,7 +55,7 @@ var T = {
     kosongData:'Belum ada data.',
     wajibFoto:'Foto bukti wajib diisi.', wajibItem:'Isi minimal satu item dengan qty.',
     wajibSupplier:'Pilih supplier dulu.', wajibSJ:'No. surat jalan wajib diisi.',
-    menyimpan:'Menyimpan…', tersimpan:'Tersimpan', gagal:'Gagal',
+    menyimpan:'Menyimpan…', tersimpan:'Tersimpan', gagal:'Gagal', keluar:'Keluar',
     ocrJalan:'Membaca surat jalan…', ocrTidakKetemu:'Tidak ada angka yang terbaca. Ketik manual.',
     ocrSaran:'OCR membaca', ocrPakai:'Pakai', ocrCocok:'Cocok dengan surat jalan', ocrBeda:'Beda dengan surat jalan',
     setuju:'Setuju', tandai:'Tandai', alasanTandai:'Alasan ditandai?',
@@ -201,7 +201,7 @@ var T = {
     kosongData:'No data yet.',
     wajibFoto:'A proof photo is required.', wajibItem:'Add at least one item with a quantity.',
     wajibSupplier:'Select a supplier first.', wajibSJ:'Delivery note number is required.',
-    menyimpan:'Saving…', tersimpan:'Saved', gagal:'Failed',
+    menyimpan:'Saving…', tersimpan:'Saved', gagal:'Failed', keluar:'Log out',
     ocrJalan:'Reading delivery note…', ocrTidakKetemu:'No number recognised. Type it manually.',
     ocrSaran:'OCR read', ocrPakai:'Use', ocrCocok:'Matches the delivery note', ocrBeda:'Differs from the delivery note',
     setuju:'Approve', tandai:'Flag', alasanTandai:'Reason for flagging?',
@@ -347,12 +347,32 @@ function toast(msg, jenis){
   setTimeout(function(){ d.remove(); }, jenis==='bad' ? 4200 : 2600);
 }
 
+/* Transport: kalau API_URL diset (versi GitHub Pages) -> fetch JSON ke Apps Script API.
+   Kalau tidak (versi HtmlService lama) -> google.script.run. Satu sumber kode untuk keduanya. */
 function panggil(fn, args){
+  if (window.API_URL){
+    return fetch(window.API_URL, {
+      method:'POST', redirect:'follow',
+      headers:{'Content-Type':'text/plain;charset=utf-8'},   // text/plain = tanpa preflight CORS
+      body: JSON.stringify({ fn: fn, args: args||[] })
+    }).then(function(r){ return r.json(); }).then(function(j){
+      if (j && j.ok) return j.data;
+      throw new Error(j && j.error ? j.error : 'Gagal menghubungi server');
+    });
+  }
   return new Promise(function(res, rej){
     google.script.run.withSuccessHandler(res).withFailureHandler(function(e){
       rej(new Error(e && e.message ? e.message : String(e)));
     })[fn].apply(null, args||[]);
   });
+}
+
+function keluar(){
+  try{ localStorage.removeItem('ipc_nama'); localStorage.removeItem('ipc_pin'); }catch(e){}
+  S.ident = { nama:'', pin:'' }; S.ctx = null;
+  $('hdrUser').textContent = '';
+  ['nav-review','nav-admin'].forEach(function(id){ var el=$(id); if(el) el.classList.add('hide'); });
+  tampil('ident');
 }
 
 function sibuk(btn, on, teksAsli){
@@ -369,6 +389,7 @@ function tampil(v){
     var el = $('v-'+x); if(el) el.classList.toggle('hide', x !== v);
     var nb = $('nav-'+x); if(nb) nb.classList.toggle('on', x === v);
   });
+  var bk = $('btnKeluar'); if (bk) bk.classList.toggle('hide', v==='ident');
   window.scrollTo(0,0);
   if (v==='ident')  siapkanIdent();
   if (v==='home')   muatKonteks();

@@ -10,7 +10,7 @@
 
 var APP = {
   nama: 'IPC — Inventory & Production Control',
-  versi: '6.2.0',
+  versi: '6.3.0',
   zona: 'Asia/Jakarta',
   satuan: 'kg',
   folderFoto: 'IPC Foto Bukti'
@@ -158,34 +158,28 @@ var DEFAULT_TOLERANSI_PERSEN    = 1.5;
  * DUMMY DATA — ganti lewat sheet Master_Item / Master_Supplier
  * ------------------------------------------------------------------ */
 var DUMMY_ITEM = [
-  ['RM-CSW-W240','Kacang Mete Mentah W240',      KATEGORI_ITEM.BAHAN_BAKU , 185000, 0, 0, 'YA'],
-  ['RM-CSW-W320','Kacang Mete Mentah W320',      KATEGORI_ITEM.BAHAN_BAKU , 170000, 0, 0, 'YA'],
-  ['RM-CSW-LP'  ,'Kacang Mete Mentah LP (pecah)',KATEGORI_ITEM.BAHAN_BAKU , 120000, 0, 0, 'YA'],
-  ['RM-PNT-JAVA','Kacang Tanah Java',            KATEGORI_ITEM.BAHAN_BAKU , 28000, 0, 0, 'YA'],
-  ['RM-ALM-NP'  ,'Almond Non Pareil',            KATEGORI_ITEM.BAHAN_BAKU , 210000, 0, 0, 'YA'],
-  ['RM-SI-SEED' ,'Sacha Inchi Seed',             KATEGORI_ITEM.BAHAN_BAKU , 95000, 0, 0, 'YA'],
-  ['RM-MIN-GRG' ,'Minyak Goreng',                KATEGORI_ITEM.BAHAN_BAKU , 18500, 0, 0, 'YA'],
-  ['RM-GRM-HLS' ,'Garam Halus',                  KATEGORI_ITEM.BAHAN_BAKU , 6000, 0, 0, 'YA'],
-  ['RM-BMB-BBQ' ,'Bumbu Tabur BBQ',              KATEGORI_ITEM.BAHAN_BAKU , 45000, 0, 0, 'YA'],
-  ['FG-MM-CSW'  ,'Mete Panggang Original',       KATEGORI_ITEM.BARANG_JADI, '', 0, 0, 'YA'],
-  ['FG-MM-ALM'  ,'Almond Panggang',     KATEGORI_ITEM.BARANG_JADI, '', 0, 0, 'YA'],
-  ['FG-JM-BBQ'  ,'Kacang Goreng BBQ',     KATEGORI_ITEM.BARANG_JADI, '', 0, 0, 'YA'],
-  ['FG-JM-ASN'  ,'Kacang Goreng Asin',    KATEGORI_ITEM.BARANG_JADI, '', 0, 0, 'YA'],
-  ['FG-SC-SI'   ,'Minyak Sacha Inchi',      KATEGORI_ITEM.BARANG_JADI, '', 0, 0, 'YA']
+  // Bahan baku polybag (harga pokok per kg, Agustus 2026)
+  ['RM-BP-KW' ,'Biji Plastik KW',         KATEGORI_ITEM.BAHAN_BAKU , 13000, 0, 0, 'YA'],
+  ['RM-BP-SUP','Biji Plastik Super',      KATEGORI_ITEM.BAHAN_BAKU , 15000, 0, 0, 'YA'],
+  ['RM-BP-SPL','Biji Plastik Super Plus', KATEGORI_ITEM.BAHAN_BAKU , 15000, 0, 0, 'YA'],
+  ['RM-PG-KW' ,'Pigmen KW',               KATEGORI_ITEM.BAHAN_BAKU , 28000, 0, 0, 'YA'],
+  ['RM-PG-SPL','Pigmen Super Plus',       KATEGORI_ITEM.BAHAN_BAKU , 33300, 0, 0, 'YA'],
+  ['RM-AF'    ,'Antifoam',                KATEGORI_ITEM.BAHAN_BAKU , 13500, 0, 0, 'YA'],
+  ['RM-BS-KW' ,'BS KW',                   KATEGORI_ITEM.BAHAN_BAKU , 13000, 0, 0, 'YA'],
+  ['RM-BS-SUP','BS Super',                KATEGORI_ITEM.BAHAN_BAKU , 15000, 0, 0, 'YA'],
+  ['RM-BS-SPL','BS Super Plus',           KATEGORI_ITEM.BAHAN_BAKU , 15000, 0, 0, 'YA'],
+  // Barang jadi
+  ['FG-PB-HP' ,'Polybag H Plast',         KATEGORI_ITEM.BARANG_JADI, '',    0, 0, 'YA']
 ];
 
 var DUMMY_SUPPLIER = [
-  ['SUP-001','CV Mitra Mete Sulawesi','Mete gelondong & kupas','YA'],
-  ['SUP-002','UD Tani Kacang Jaya',   'Kacang tanah lokal',    'YA'],
-  ['SUP-003','PT Almond Import Nusantara','Almond & kacang impor','YA'],
-  ['SUP-004','Koperasi Sacha Inchi Kalimantan','Sacha inchi seed','YA']
+  ['SUP-001','Supplier Biji Plastik (ganti nama)','Isi nama supplier sebenarnya','YA'],
+  ['SUP-002','Supplier Pigmen & Antifoam (ganti nama)','','YA']
 ];
 
 var DUMMY_CUSTOMER = [
-  ['CUS-001','PT Ritel Nusantara',        'Modern trade — Jabodetabek','YA'],
-  ['CUS-002','Toko Grosir Pasar Baru',    'Grosir curah',              'YA'],
-  ['CUS-003','Distributor Bali Sejahtera','Distributor Bali & NTB',    'YA'],
-  ['CUS-004','Ekspor — Singapore Trading','Ekspor curah',              'YA']
+  ['CUS-001','Customer Polybag 1 (ganti nama)','Isi nama customer sebenarnya','YA'],
+  ['CUS-002','Customer Polybag 2 (ganti nama)','','YA']
 ];
 
 /* Akun awal — GANTI PIN-nya setelah pilot. Kosongkan Email kalau pakai Gmail pribadi.
@@ -200,11 +194,7 @@ var DUMMY_PENGGUNA = [
 ];
 
 var DUMMY_STANDAR = [
-  ['FG-MM-CSW','Mete Panggang Original',   4.0, 1.5, 'Susut panggang normal'],
-  ['FG-MM-ALM','Almond Panggang', 3.5, 1.5, ''],
-  ['FG-JM-BBQ','Kacang Goreng BBQ', 6.0, 2.0, 'Susut goreng lebih tinggi'],
-  ['FG-JM-ASN','Kacang Goreng Asin',6.0, 2.0, ''],
-  ['FG-SC-SI' ,'Minyak Sacha Inchi',  2.0, 1.0, '']
+  ['FG-PB-HP','Polybag H Plast', 3.0, 1.5, 'Angka awal — sesuaikan dari data pilot']
 ];
 
 var DEFAULT_SETTING = [
@@ -272,6 +262,25 @@ function seedJika(ss, nama, rows) {
   if (sh.getLastRow() >= 2) return;
   if (!rows.length) return;
   sh.getRange(2, 1, rows.length, rows[0].length).setValues(rows);
+}
+
+/**
+ * Ganti isi Master_Item, Master_Supplier, Master_Customer & Master_Standar_Susut dengan daftar DUMMY_* di file ini.
+ * Hanya boleh saat belum ada transaksi (aman untuk setup awal / ganti daftar SKU sebelum go-live).
+ */
+function seedUlangMaster() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  [SHEET.PENERIMAAN, SHEET.PENGIRIMAN, SHEET.TRANSFER, SHEET.PEKERJAAN, SHEET.OPNAME].forEach(function (n) {
+    var sh = ss.getSheetByName(n);
+    if (sh && sh.getLastRow() >= 2) throw new Error('Sudah ada transaksi di ' + n + '. Ubah SKU lewat menu Admin > SKU, jangan seed ulang.');
+  });
+  [[SHEET.ITEM, DUMMY_ITEM], [SHEET.STANDAR, DUMMY_STANDAR],
+   [SHEET.SUPPLIER, DUMMY_SUPPLIER], [SHEET.CUSTOMER, DUMMY_CUSTOMER]].forEach(function (pair) {
+    var sh = ss.getSheetByName(pair[0]);
+    if (sh.getLastRow() >= 2) sh.deleteRows(2, sh.getLastRow() - 1);
+    sh.getRange(2, 1, pair[1].length, pair[1][0].length).setValues(pair[1]);
+  });
+  catatLog_('SEED_ULANG_MASTER', '', DUMMY_ITEM.length + ' item, ' + DUMMY_SUPPLIER.length + ' supplier, ' + DUMMY_CUSTOMER.length + ' customer, ' + DUMMY_STANDAR.length + ' standar susut');
 }
 
 function ambilAtauBuatFolder_() {
