@@ -304,7 +304,7 @@ nav button .dot{position:absolute;top:5px;right:50%;margin-right:-19px;width:8px
 <div id="demoBanner" style="background:#0b3b38;color:#cfe6e2;font:12.5px/1.5 -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;padding:9px 14px">
   <div style="display:flex;gap:10px;align-items:flex-start">
     <span style="flex:1"><b style="color:#fff">Demo</b> — data contoh, tersimpan di browser ini saja; refresh = reset.
-      Login: <b style="color:#fff">Admin</b> 1234 · <b style="color:#fff">Direktur</b> 2468 · <b style="color:#fff">Manager</b> 1357 · <b style="color:#fff">Staff Gudang</b> 1111
+      Login: <b style="color:#fff">Admin</b> 1234 · <b style="color:#fff">Direktur</b> 2468 · <b style="color:#fff">Manager</b> 1357 · <b style="color:#fff">Staff Gudang</b> 1111 · <b style="color:#fff">Yanto</b> 2222
       &nbsp;<span style="opacity:.7">(ganti akun: Beranda → Ganti nama / PIN)</span></span>
     <button onclick="document.getElementById('demoBanner').hidden=true" style="background:rgba(255,255,255,.14);color:#fff;border:0;border-radius:7px;padding:5px 10px;font-size:11.5px;font-weight:700;cursor:pointer;flex:0 0 auto">Tutup</button>
   </div>
@@ -825,7 +825,7 @@ nav button .dot{position:absolute;top:5px;right:50%;margin-right:-19px;width:8px
 
 var APP = {
   nama: 'IPC — Inventory & Production Control',
-  versi: '6.0.0-mvp',
+  versi: '6.2.0',
   zona: 'Asia/Jakarta',
   satuan: 'kg',
   folderFoto: 'IPC Foto Bukti'
@@ -982,11 +982,11 @@ var DUMMY_ITEM = [
   ['RM-MIN-GRG' ,'Minyak Goreng',                KATEGORI_ITEM.BAHAN_BAKU , 18500, 0, 0, 'YA'],
   ['RM-GRM-HLS' ,'Garam Halus',                  KATEGORI_ITEM.BAHAN_BAKU , 6000, 0, 0, 'YA'],
   ['RM-BMB-BBQ' ,'Bumbu Tabur BBQ',              KATEGORI_ITEM.BAHAN_BAKU , 45000, 0, 0, 'YA'],
-  ['FG-MM-CSW'  ,'Max Mede Mete Panggang',       KATEGORI_ITEM.BARANG_JADI, '', 0, 0, 'YA'],
-  ['FG-MM-ALM'  ,'Max Mede Almond Panggang',     KATEGORI_ITEM.BARANG_JADI, '', 0, 0, 'YA'],
-  ['FG-JM-BBQ'  ,'Jomama Kacang Goreng BBQ',     KATEGORI_ITEM.BARANG_JADI, '', 0, 0, 'YA'],
-  ['FG-JM-ASN'  ,'Jomama Kacang Goreng Asin',    KATEGORI_ITEM.BARANG_JADI, '', 0, 0, 'YA'],
-  ['FG-SC-SI'   ,'Sachiko Sacha Inchi Oil',      KATEGORI_ITEM.BARANG_JADI, '', 0, 0, 'YA']
+  ['FG-MM-CSW'  ,'Mete Panggang Original',       KATEGORI_ITEM.BARANG_JADI, '', 0, 0, 'YA'],
+  ['FG-MM-ALM'  ,'Almond Panggang',     KATEGORI_ITEM.BARANG_JADI, '', 0, 0, 'YA'],
+  ['FG-JM-BBQ'  ,'Kacang Goreng BBQ',     KATEGORI_ITEM.BARANG_JADI, '', 0, 0, 'YA'],
+  ['FG-JM-ASN'  ,'Kacang Goreng Asin',    KATEGORI_ITEM.BARANG_JADI, '', 0, 0, 'YA'],
+  ['FG-SC-SI'   ,'Minyak Sacha Inchi',      KATEGORI_ITEM.BARANG_JADI, '', 0, 0, 'YA']
 ];
 
 var DUMMY_SUPPLIER = [
@@ -1015,11 +1015,11 @@ var DUMMY_PENGGUNA = [
 ];
 
 var DUMMY_STANDAR = [
-  ['FG-MM-CSW','Max Mede Mete Panggang',   4.0, 1.5, 'Susut panggang normal'],
-  ['FG-MM-ALM','Max Mede Almond Panggang', 3.5, 1.5, ''],
-  ['FG-JM-BBQ','Jomama Kacang Goreng BBQ', 6.0, 2.0, 'Susut goreng lebih tinggi'],
-  ['FG-JM-ASN','Jomama Kacang Goreng Asin',6.0, 2.0, ''],
-  ['FG-SC-SI' ,'Sachiko Sacha Inchi Oil',  2.0, 1.0, '']
+  ['FG-MM-CSW','Mete Panggang Original',   4.0, 1.5, 'Susut panggang normal'],
+  ['FG-MM-ALM','Almond Panggang', 3.5, 1.5, ''],
+  ['FG-JM-BBQ','Kacang Goreng BBQ', 6.0, 2.0, 'Susut goreng lebih tinggi'],
+  ['FG-JM-ASN','Kacang Goreng Asin',6.0, 2.0, ''],
+  ['FG-SC-SI' ,'Minyak Sacha Inchi',  2.0, 1.0, '']
 ];
 
 var DEFAULT_SETTING = [
@@ -1028,7 +1028,8 @@ var DEFAULT_SETTING = [
   ['WAJIB_SJ_KELUAR','YA','Wajibkan no. surat jalan / DO saat barang keluar ke customer'],
   ['OCR_BAHASA','id','Bahasa OCR'],
   ['BAHASA_DEFAULT','id','Bahasa awal UI: id / en'],
-  ['AKSES_TERBUKA','YA','YA = siapa pun yang punya link boleh pakai (MVP). TIDAK = hanya email di Master_Pengguna'],
+  ['PAKSA_LOGIN_MANUAL','YA','YA = semua orang (termasuk pemilik Sheet) login dengan Nama + PIN dari Master_Pengguna. TIDAK = email Google yang terdaftar langsung masuk tanpa PIN.'],
+  ['AKSES_TERBUKA','TIDAK','YA = nama yang belum terdaftar tetap boleh masuk sebagai PERAN_DEFAULT. TIDAK = hanya akun di Master_Pengguna (disarankan).'],
   ['PERAN_DEFAULT','STAF','Peran untuk email yang belum terdaftar (kalau AKSES_TERBUKA = YA)'],
   ['PIN_SUPERVISOR','2468','PIN darurat supervisor (hanya untuk nama yang BELUM terdaftar). Lebih baik isi PIN per user di Master_Pengguna. GANTI PIN INI.'],
   ['BIAYA_PROSES_PER_KG','2500','Biaya proses (tenaga, listrik, gas, dll) per kg bahan baku masuk. Dipakai untuk HPP.'],
@@ -1218,6 +1219,9 @@ function penggunaSaatIni_(ident) {
   ident = ident || {};
   var email = emailAktif_();
   var emailAda = email && email !== 'anonim';
+  // PAKSA_LOGIN_MANUAL = YA (default): semua orang, termasuk pemilik Sheet, login dengan Nama + PIN.
+  var paksaManual = (getSetting_('PAKSA_LOGIN_MANUAL') || 'YA').toUpperCase() === 'YA';
+  if (paksaManual) emailAda = false;
 
   if (emailAda) {
     var rows = baca_(SHEET.PENGGUNA);
@@ -1246,7 +1250,8 @@ function penggunaSaatIni_(ident) {
       if (String(pr[j].Nama).toLowerCase().trim() !== nama.toLowerCase()) continue;
       if (String(pr[j].Aktif).toUpperCase() === 'TIDAK') throw new Error('Akun "' + nama + '" dinonaktifkan. Hubungi admin.');
       var pinUser = String(pr[j].PIN || '').trim();
-      if (pinUser && pin !== pinUser) throw new Error('PIN salah untuk ' + pr[j].Nama + '.');
+      if (!pinUser) throw new Error('Akun "' + pr[j].Nama + '" belum punya PIN. Minta admin mengatur PIN di menu Admin > Pengguna.');
+      if (pin !== pinUser) throw new Error('PIN salah untuk ' + pr[j].Nama + '.');
       nama = String(pr[j].Nama);          // pakai ejaan resmi
       peran = pr[j].Peran || peran;
       lokasi = pr[j].Lokasi || '';
@@ -3133,7 +3138,7 @@ function potongSekitar_(teks, idx) {
 
 function tesParserSuratJalan() {
   var contoh = [
-    'PT ERAMAS AGRI INTERNASIONAL',
+    'PT CONTOH PANGAN NUSANTARA',
     'SURAT JALAN No: SJ/2026/09/0184',
     'Kepada: Gudang Produksi',
     '1. Kacang Mete Mentah W240 ......... 250 kg',
@@ -3151,6 +3156,10 @@ function tesParserSuratJalan() {
    ============================================================ */
 (function(){
   setupSistem();
+  // staf gudang tambahan untuk demo (supaya riwayat & aktivitas per user terlihat)
+  [['Yanto','2222','GBJ'],['Sri','3333','GP'],['Rina','4444','GP']].forEach(function(u){
+    tambah_(SHEET.PENGGUNA, { Email:'', Nama:u[0], Peran:PERAN.STAF, Lokasi:u[2], PIN:u[1], Aktif:'YA' });
+  });
 
   unggahFoto_ = function(dataUrl){ return { url: dataUrl || '', id: '' }; };
 
@@ -3158,7 +3167,7 @@ function tesParserSuratJalan() {
     'CV MITRA METE SULAWESI',
     'Jl. Perintis Kemerdekaan, Makassar',
     'SURAT JALAN No : SJ/2026/09/0184',
-    'Kepada : PT Eramas Agri Internasional — Gudang Barang Jadi',
+    'Kepada : PT Contoh Pangan Nusantara — Gudang Barang Jadi',
     '1. Kacang Mete Mentah W240 ......... 800 kg',
     '2. Kacang Mete Mentah W320 ......... 200 kg',
     'Total Netto : 1000 kg',
@@ -3189,26 +3198,26 @@ function tesParserSuratJalan() {
 
   /* --- ⓪ pembelian masuk --- */
   simpanPenerimaan({ jenis:'MASUK', supplier:'CV Mitra Mete Sulawesi', noSuratJalan:'SJ/2026/09/0170',
-    baris:[{kode:'RM-CSW-W240', qty:1500},{kode:'RM-CSW-W320', qty:200}], qtyOcr:1700, ident:{nama:'Yanto',pin:'2222'} });
+    baris:[{kode:'RM-CSW-W240', qty:1500},{kode:'RM-CSW-W320', qty:200}], qtyOcr:1700, ident:{nama:'Staff Gudang',pin:'1111'} });
   geser(SHEET.PENERIMAAN, 60*70, 0, 2);
   simpanPenerimaan({ jenis:'MASUK', supplier:'UD Tani Kacang Jaya', noSuratJalan:'SJ/2026/09/0176',
     baris:[{kode:'RM-PNT-JAVA', qty:800},{kode:'RM-MIN-GRG', qty:200},{kode:'RM-BMB-BBQ', qty:40}],
-    ident:{nama:'Yanto',pin:'2222'} });
+    ident:{nama:'Staff Gudang',pin:'1111'} });
   geser(SHEET.PENERIMAAN, 60*46, 0, 3);
   simpanPenerimaan({ jenis:'MASUK', supplier:'Koperasi Sacha Inchi Kalimantan', noSuratJalan:'SJ/2026/09/0180',
-    baris:[{kode:'RM-SI-SEED', qty:500}], ident:{nama:'Yanto',pin:'2222'} });
+    baris:[{kode:'RM-SI-SEED', qty:500}], ident:{nama:'Staff Gudang',pin:'1111'} });
   geser(SHEET.PENERIMAAN, 60*20, 0, 1);
 
   /* --- retur: kadar air ketinggian --- */
   simpanPenerimaan({ jenis:'RETUR', supplier:'UD Tani Kacang Jaya',
     baris:[{kode:'RM-PNT-JAVA', qty:40}], catatan:'kadar air ketinggian, 2 karung berjamur',
-    ident:{nama:'Yanto',pin:'2222'} });
+    ident:{nama:'Staff Gudang',pin:'1111'} });
   geser(SHEET.PENERIMAAN, 60*18, 0, 1);
 
   /* --- pembelian yang masih menunggu review (angka ketik beda 5 kg dari OCR) --- */
   simpanPenerimaan({ jenis:'MASUK', supplier:'CV Mitra Mete Sulawesi', noSuratJalan:'SJ/2026/09/0184',
     baris:[{kode:'RM-CSW-W240', qty:305}], qtyOcr:300,
-    catatan:'timbangan gudang lebih 5 kg', ident:{nama:'Yanto',pin:'2222'} });
+    catatan:'timbangan gudang lebih 5 kg', ident:{nama:'Staff Gudang',pin:'1111'} });
 
   /* --- ① ③ transfer --- */
   function trf(arah, baris, menit, orang){
@@ -3244,7 +3253,7 @@ function tesParserSuratJalan() {
   geser(SHEET.PEKERJAAN, 165, 0);
   mulaiPekerjaan({ kodeProduk:'FG-JM-BBQ',
     bahanBaku:[{kode:'RM-PNT-JAVA', qty:180},{kode:'RM-MIN-GRG', qty:45},{kode:'RM-BMB-BBQ', qty:9}],
-    ident:{nama:'Yanto',pin:'2222'} });
+    ident:{nama:'Staff Gudang',pin:'1111'} });
   geser(SHEET.PEKERJAAN, 75, 0);
 
   /* --- ④ barang keluar ke customer --- */
@@ -3731,7 +3740,7 @@ function muatKonteks(diam){
   }).catch(function(e){
     var msg = String(e.message || e);
     /* login gagal (PIN salah / nonaktif / belum terdaftar) -> buang sesi lama, balik ke layar login */
-    if (/PIN salah|dinonaktifkan|belum terdaftar|Akses ditolak/.test(msg)){
+    if (/PIN salah|dinonaktifkan|belum terdaftar|belum punya PIN|Akses ditolak/.test(msg)){
       S.ctx = null; S.ident.pin = '';
       try{ localStorage.removeItem('ipc_pin'); }catch(x){}
       $('hdrUser').textContent = '';
