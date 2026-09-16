@@ -73,14 +73,14 @@ Full steps in **[PANDUAN-SETUP.md](PANDUAN-SETUP.md)**. Short version:
 2. Paste the six files from `apps-script/` (names must match: `Config`, `Server`, `Media`, `Index`, `Styles`, `Script`)
 3. **Services → + Drive API (v2)** — enables OCR
 4. Run `setupSistem()` once, grant permissions
-5. Change `PIN_SUPERVISOR` in the `Pengaturan` tab
+5. Change the four default PINs (Admin → Pengguna). Everyone — the sheet owner included — logs in with name + PIN (`PAKSA_LOGIN_MANUAL=YA`); unregistered names are refused (`AKSES_TERBUKA=TIDAK`)
 6. **Deploy → Web app** — execute as *Me*, access *Anyone with a Google account*
 7. Send the URL to staff; they add it to their home screen
 
 ## Development
 
 ```bash
-cd tests && npm test          # 240 checks: stock math, shrinkage, permissions, OCR parser
+cd tests && npm test          # 248 checks: stock math, shrinkage, permissions, OCR parser
 python3 tools/build-demo.py   # rebuild docs/index.html after editing apps-script/
 ```
 

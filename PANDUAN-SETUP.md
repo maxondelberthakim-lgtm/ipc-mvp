@@ -116,11 +116,13 @@ Tab **`Master_Pengguna`** terisi 4 akun awal:
 **Ganti PIN-nya sebelum staf beneran pakai** — lewat app: Admin → Pengguna → ✎. Tambah orang
 sungguhan di situ juga (satu akun per orang, bukan satu akun "Staff Gudang" dipakai ramai-ramai —
 kalau tidak, riwayat per orang jadi tidak ada artinya).
-Akun kamu sendiri (baris pertama, email Google) belum punya PIN; kalau kamu login lewat nama,
-isi kolom `PIN`-nya juga.
+**Semua orang login dengan Nama + PIN**, termasuk kamu sebagai pemilik Sheet (setting
+`PAKSA_LOGIN_MANUAL = YA`). Akun yang belum punya PIN tidak bisa masuk. Nama yang tidak
+terdaftar ditolak (`AKSES_TERBUKA = TIDAK`); ubah ke `YA` hanya untuk masa uji coba.
+Baris pertama `Master_Pengguna` (email Google-mu) hanya dipakai kalau `PAKSA_LOGIN_MANUAL = TIDAK`.
 
-`PIN_SUPERVISOR` di `Pengaturan` sekarang cuma PIN darurat untuk nama yang *belum terdaftar* —
-tidak bisa dipakai untuk masuk sebagai user yang sudah ada.
+`PIN_SUPERVISOR` di `Pengaturan` cuma PIN darurat untuk nama yang *belum terdaftar* saat
+`AKSES_TERBUKA = YA` — tidak bisa dipakai untuk masuk sebagai user yang sudah ada.
 
 ### 7. Deploy
 **Deploy → New deployment → ⚙ → Web app**
@@ -256,7 +258,7 @@ dan daftar kejadiannya. Karena login pakai PIN, angka ini bisa dipercaya per ora
 ## Scrap
 
 Scrap **tidak lagi** pakai SKU generik. Saat pekerjaan ditutup, kamu isi satu angka: scrap berapa kg.
-Sistem otomatis membuat SKU `SCR-<kode produk>` (mis. `SCR-FG-MM-CSW` = "Scrap · Max Mede Mete
+Sistem otomatis membuat SKU `SCR-<kode produk>` (mis. `SCR-FG-MM-CSW` = "Scrap · Mete Panggang Mete
 Panggang") kalau belum ada, dan mencatat scrap-nya di situ. Akibatnya:
 
 - stok scrap **per produk** kelihatan di Laporan → Stok (di GP, karena lahirnya di produksi)
