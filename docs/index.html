@@ -316,6 +316,7 @@ nav button .dot{position:absolute;top:5px;right:50%;margin-right:-19px;width:8px
     <div class="s" id="hdrUser">…</div>
   </div>
   <div class="sp"></div>
+  <button class="langbtn" id="btnKeluar" onclick="keluar()" data-i18n="keluar" style="margin-right:8px">Keluar</button>
   <button class="langbtn" id="btnLang" onclick="gantiBahasa()">ID</button>
 </header>
 
@@ -757,6 +758,7 @@ nav button .dot{position:absolute;top:5px;right:50%;margin-right:-19px;width:8px
       deleteColumns(){}, setFrozenRows(){}, autoResizeColumns(){},
       appendRow(r){ this.rows.push(r.slice()); },
     deleteRow(n){ this.rows.splice(n-1,1); },
+      deleteRows(n,k){ this.rows.splice(n-1,k||1); },
       getRange(r,c,nr,nc){
         var sh=this; nr=nr||1; nc=nc||1;
         return {
@@ -825,7 +827,7 @@ nav button .dot{position:absolute;top:5px;right:50%;margin-right:-19px;width:8px
 
 var APP = {
   nama: 'IPC — Inventory & Production Control',
-  versi: '6.2.0',
+  versi: '6.3.0',
   zona: 'Asia/Jakarta',
   satuan: 'kg',
   folderFoto: 'IPC Foto Bukti'
@@ -973,34 +975,28 @@ var DEFAULT_TOLERANSI_PERSEN    = 1.5;
  * DUMMY DATA — ganti lewat sheet Master_Item / Master_Supplier
  * ------------------------------------------------------------------ */
 var DUMMY_ITEM = [
-  ['RM-CSW-W240','Kacang Mete Mentah W240',      KATEGORI_ITEM.BAHAN_BAKU , 185000, 0, 0, 'YA'],
-  ['RM-CSW-W320','Kacang Mete Mentah W320',      KATEGORI_ITEM.BAHAN_BAKU , 170000, 0, 0, 'YA'],
-  ['RM-CSW-LP'  ,'Kacang Mete Mentah LP (pecah)',KATEGORI_ITEM.BAHAN_BAKU , 120000, 0, 0, 'YA'],
-  ['RM-PNT-JAVA','Kacang Tanah Java',            KATEGORI_ITEM.BAHAN_BAKU , 28000, 0, 0, 'YA'],
-  ['RM-ALM-NP'  ,'Almond Non Pareil',            KATEGORI_ITEM.BAHAN_BAKU , 210000, 0, 0, 'YA'],
-  ['RM-SI-SEED' ,'Sacha Inchi Seed',             KATEGORI_ITEM.BAHAN_BAKU , 95000, 0, 0, 'YA'],
-  ['RM-MIN-GRG' ,'Minyak Goreng',                KATEGORI_ITEM.BAHAN_BAKU , 18500, 0, 0, 'YA'],
-  ['RM-GRM-HLS' ,'Garam Halus',                  KATEGORI_ITEM.BAHAN_BAKU , 6000, 0, 0, 'YA'],
-  ['RM-BMB-BBQ' ,'Bumbu Tabur BBQ',              KATEGORI_ITEM.BAHAN_BAKU , 45000, 0, 0, 'YA'],
-  ['FG-MM-CSW'  ,'Mete Panggang Original',       KATEGORI_ITEM.BARANG_JADI, '', 0, 0, 'YA'],
-  ['FG-MM-ALM'  ,'Almond Panggang',     KATEGORI_ITEM.BARANG_JADI, '', 0, 0, 'YA'],
-  ['FG-JM-BBQ'  ,'Kacang Goreng BBQ',     KATEGORI_ITEM.BARANG_JADI, '', 0, 0, 'YA'],
-  ['FG-JM-ASN'  ,'Kacang Goreng Asin',    KATEGORI_ITEM.BARANG_JADI, '', 0, 0, 'YA'],
-  ['FG-SC-SI'   ,'Minyak Sacha Inchi',      KATEGORI_ITEM.BARANG_JADI, '', 0, 0, 'YA']
+  // Bahan baku polybag (harga pokok per kg, Agustus 2026)
+  ['RM-BP-KW' ,'Biji Plastik KW',         KATEGORI_ITEM.BAHAN_BAKU , 13000, 0, 0, 'YA'],
+  ['RM-BP-SUP','Biji Plastik Super',      KATEGORI_ITEM.BAHAN_BAKU , 15000, 0, 0, 'YA'],
+  ['RM-BP-SPL','Biji Plastik Super Plus', KATEGORI_ITEM.BAHAN_BAKU , 15000, 0, 0, 'YA'],
+  ['RM-PG-KW' ,'Pigmen KW',               KATEGORI_ITEM.BAHAN_BAKU , 28000, 0, 0, 'YA'],
+  ['RM-PG-SPL','Pigmen Super Plus',       KATEGORI_ITEM.BAHAN_BAKU , 33300, 0, 0, 'YA'],
+  ['RM-AF'    ,'Antifoam',                KATEGORI_ITEM.BAHAN_BAKU , 13500, 0, 0, 'YA'],
+  ['RM-BS-KW' ,'BS KW',                   KATEGORI_ITEM.BAHAN_BAKU , 13000, 0, 0, 'YA'],
+  ['RM-BS-SUP','BS Super',                KATEGORI_ITEM.BAHAN_BAKU , 15000, 0, 0, 'YA'],
+  ['RM-BS-SPL','BS Super Plus',           KATEGORI_ITEM.BAHAN_BAKU , 15000, 0, 0, 'YA'],
+  // Barang jadi
+  ['FG-PB-HP' ,'Polybag H Plast',         KATEGORI_ITEM.BARANG_JADI, '',    0, 0, 'YA']
 ];
 
 var DUMMY_SUPPLIER = [
-  ['SUP-001','CV Mitra Mete Sulawesi','Mete gelondong & kupas','YA'],
-  ['SUP-002','UD Tani Kacang Jaya',   'Kacang tanah lokal',    'YA'],
-  ['SUP-003','PT Almond Import Nusantara','Almond & kacang impor','YA'],
-  ['SUP-004','Koperasi Sacha Inchi Kalimantan','Sacha inchi seed','YA']
+  ['SUP-001','Supplier Biji Plastik (ganti nama)','Isi nama supplier sebenarnya','YA'],
+  ['SUP-002','Supplier Pigmen & Antifoam (ganti nama)','','YA']
 ];
 
 var DUMMY_CUSTOMER = [
-  ['CUS-001','PT Ritel Nusantara',        'Modern trade — Jabodetabek','YA'],
-  ['CUS-002','Toko Grosir Pasar Baru',    'Grosir curah',              'YA'],
-  ['CUS-003','Distributor Bali Sejahtera','Distributor Bali & NTB',    'YA'],
-  ['CUS-004','Ekspor — Singapore Trading','Ekspor curah',              'YA']
+  ['CUS-001','Customer Polybag 1 (ganti nama)','Isi nama customer sebenarnya','YA'],
+  ['CUS-002','Customer Polybag 2 (ganti nama)','','YA']
 ];
 
 /* Akun awal — GANTI PIN-nya setelah pilot. Kosongkan Email kalau pakai Gmail pribadi.
@@ -1015,11 +1011,7 @@ var DUMMY_PENGGUNA = [
 ];
 
 var DUMMY_STANDAR = [
-  ['FG-MM-CSW','Mete Panggang Original',   4.0, 1.5, 'Susut panggang normal'],
-  ['FG-MM-ALM','Almond Panggang', 3.5, 1.5, ''],
-  ['FG-JM-BBQ','Kacang Goreng BBQ', 6.0, 2.0, 'Susut goreng lebih tinggi'],
-  ['FG-JM-ASN','Kacang Goreng Asin',6.0, 2.0, ''],
-  ['FG-SC-SI' ,'Minyak Sacha Inchi',  2.0, 1.0, '']
+  ['FG-PB-HP','Polybag H Plast', 3.0, 1.5, 'Angka awal — sesuaikan dari data pilot']
 ];
 
 var DEFAULT_SETTING = [
@@ -1089,6 +1081,25 @@ function seedJika(ss, nama, rows) {
   sh.getRange(2, 1, rows.length, rows[0].length).setValues(rows);
 }
 
+/**
+ * Ganti isi Master_Item, Master_Supplier, Master_Customer & Master_Standar_Susut dengan daftar DUMMY_* di file ini.
+ * Hanya boleh saat belum ada transaksi (aman untuk setup awal / ganti daftar SKU sebelum go-live).
+ */
+function seedUlangMaster() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  [SHEET.PENERIMAAN, SHEET.PENGIRIMAN, SHEET.TRANSFER, SHEET.PEKERJAAN, SHEET.OPNAME].forEach(function (n) {
+    var sh = ss.getSheetByName(n);
+    if (sh && sh.getLastRow() >= 2) throw new Error('Sudah ada transaksi di ' + n + '. Ubah SKU lewat menu Admin > SKU, jangan seed ulang.');
+  });
+  [[SHEET.ITEM, DUMMY_ITEM], [SHEET.STANDAR, DUMMY_STANDAR],
+   [SHEET.SUPPLIER, DUMMY_SUPPLIER], [SHEET.CUSTOMER, DUMMY_CUSTOMER]].forEach(function (pair) {
+    var sh = ss.getSheetByName(pair[0]);
+    if (sh.getLastRow() >= 2) sh.deleteRows(2, sh.getLastRow() - 1);
+    sh.getRange(2, 1, pair[1].length, pair[1][0].length).setValues(pair[1]);
+  });
+  catatLog_('SEED_ULANG_MASTER', '', DUMMY_ITEM.length + ' item, ' + DUMMY_SUPPLIER.length + ' supplier, ' + DUMMY_CUSTOMER.length + ' customer, ' + DUMMY_STANDAR.length + ' standar susut');
+}
+
 function ambilAtauBuatFolder_() {
   var id = getSetting_('FOLDER_FOTO_ID');
   if (id) { try { return DriveApp.getFolderById(id); } catch (e) {} }
@@ -1116,6 +1127,41 @@ function doGet(e) {
 
 function include(nama) {
   return HtmlService.createHtmlOutputFromFile(nama).getContent();
+}
+
+/* ================= API JSON (untuk frontend GitHub Pages) =================
+ * Frontend statis di GitHub memanggil POST {fn, args} ke URL /exec ini.
+ * Content-Type text/plain -> tidak kena preflight CORS. Balasan JSON.
+ * Hanya fungsi di daftar putih (RPC_WL) yang boleh dipanggil. */
+var RPC_WL = {
+  getKonteks:1, simpanPenerimaan:1, simpanPengiriman:1, simpanTransfer:1,
+  mulaiPekerjaan:1, selesaikanPekerjaan:1, daftarPekerjaanBerjalan:1, daftarPekerjaanSelesai:1,
+  ambilPekerjaan:1, simpanEditPekerjaan:1,
+  riwayatInput:1, ambilEntri:1, simpanEditEntri:1, batalkanEntriSendiri:1,
+  antrianReview:1, tinjauTransfer:1,
+  laporanSusut:1, laporanStok:1, riwayatPenerimaan:1, laporanPenjualan:1, laporanHpp:1, riwayatTransfer:1,
+  kalender:1, ocrSuratJalan:1,
+  daftarPengguna:1, simpanPengguna:1, aktivitasStaf:1,
+  daftarSku:1, simpanSku:1, hapusSku:1,
+  siapkanOpname:1, simpanOpname:1, riwayatOpname:1
+};
+
+function doPost(e) {
+  var out = { ok:false };
+  try {
+    var body = JSON.parse((e && e.postData && e.postData.contents) || '{}');
+    var fn = String(body.fn || '');
+    if (!RPC_WL[fn]) throw new Error('Fungsi tidak dikenal: ' + fn);
+    var f = globalThis[fn];
+    if (typeof f !== 'function') throw new Error('Fungsi tidak tersedia: ' + fn);
+    out.ok = true;
+    out.data = f.apply(null, body.args || []);
+  } catch (err) {
+    out.ok = false;
+    out.error = (err && err.message) ? err.message : String(err);
+  }
+  return ContentService.createTextOutput(JSON.stringify(out))
+    .setMimeType(ContentService.MimeType.JSON);
 }
 
 /* ================= UTIL SHEET ================= */
@@ -3151,6 +3197,44 @@ function tesParserSuratJalan() {
 
 </script>
 <script>
+/* Master data contoh (kacang) untuk tes & demo — TIDAK dipakai di deploy sungguhan */
+DUMMY_ITEM = [
+  ['RM-CSW-W240','Kacang Mete Mentah W240',      KATEGORI_ITEM.BAHAN_BAKU , 185000, 0, 0, 'YA'],
+  ['RM-CSW-W320','Kacang Mete Mentah W320',      KATEGORI_ITEM.BAHAN_BAKU , 170000, 0, 0, 'YA'],
+  ['RM-CSW-LP'  ,'Kacang Mete Mentah LP (pecah)',KATEGORI_ITEM.BAHAN_BAKU , 120000, 0, 0, 'YA'],
+  ['RM-PNT-JAVA','Kacang Tanah Java',            KATEGORI_ITEM.BAHAN_BAKU , 28000, 0, 0, 'YA'],
+  ['RM-ALM-NP'  ,'Almond Non Pareil',            KATEGORI_ITEM.BAHAN_BAKU , 210000, 0, 0, 'YA'],
+  ['RM-SI-SEED' ,'Sacha Inchi Seed',             KATEGORI_ITEM.BAHAN_BAKU , 95000, 0, 0, 'YA'],
+  ['RM-MIN-GRG' ,'Minyak Goreng',                KATEGORI_ITEM.BAHAN_BAKU , 18500, 0, 0, 'YA'],
+  ['RM-GRM-HLS' ,'Garam Halus',                  KATEGORI_ITEM.BAHAN_BAKU , 6000, 0, 0, 'YA'],
+  ['RM-BMB-BBQ' ,'Bumbu Tabur BBQ',              KATEGORI_ITEM.BAHAN_BAKU , 45000, 0, 0, 'YA'],
+  ['FG-MM-CSW'  ,'Mete Panggang Original',       KATEGORI_ITEM.BARANG_JADI, '', 0, 0, 'YA'],
+  ['FG-MM-ALM'  ,'Almond Panggang',     KATEGORI_ITEM.BARANG_JADI, '', 0, 0, 'YA'],
+  ['FG-JM-BBQ'  ,'Kacang Goreng BBQ',     KATEGORI_ITEM.BARANG_JADI, '', 0, 0, 'YA'],
+  ['FG-JM-ASN'  ,'Kacang Goreng Asin',    KATEGORI_ITEM.BARANG_JADI, '', 0, 0, 'YA'],
+  ['FG-SC-SI'   ,'Minyak Sacha Inchi',      KATEGORI_ITEM.BARANG_JADI, '', 0, 0, 'YA']
+];
+DUMMY_STANDAR = [
+  ['FG-MM-CSW','Mete Panggang Original',   4.0, 1.5, 'Susut panggang normal'],
+  ['FG-MM-ALM','Almond Panggang', 3.5, 1.5, ''],
+  ['FG-JM-BBQ','Kacang Goreng BBQ', 6.0, 2.0, 'Susut goreng lebih tinggi'],
+  ['FG-JM-ASN','Kacang Goreng Asin',6.0, 2.0, ''],
+  ['FG-SC-SI' ,'Minyak Sacha Inchi',  2.0, 1.0, '']
+];
+
+DUMMY_SUPPLIER = [
+  ['SUP-001','CV Mitra Mete Sulawesi','Mete gelondong & kupas','YA'],
+  ['SUP-002','UD Tani Kacang Jaya',   'Kacang tanah lokal',    'YA'],
+  ['SUP-003','PT Almond Import Nusantara','Almond & kacang impor','YA'],
+  ['SUP-004','Koperasi Sacha Inchi Kalimantan','Sacha inchi seed','YA']
+];
+DUMMY_CUSTOMER = [
+  ['CUS-001','PT Ritel Nusantara',        'Modern trade — Jabodetabek','YA'],
+  ['CUS-002','Toko Grosir Pasar Baru',    'Grosir curah',              'YA'],
+  ['CUS-003','Distributor Bali Sejahtera','Distributor Bali & NTB',    'YA'],
+  ['CUS-004','Ekspor — Singapore Trading','Ekspor curah',              'YA']
+];
+
 /* ============================================================
    Data contoh — supaya demo terbuka dalam keadaan "pabrik jalan"
    ============================================================ */
@@ -3377,7 +3461,7 @@ var T = {
     kosongData:'Belum ada data.',
     wajibFoto:'Foto bukti wajib diisi.', wajibItem:'Isi minimal satu item dengan qty.',
     wajibSupplier:'Pilih supplier dulu.', wajibSJ:'No. surat jalan wajib diisi.',
-    menyimpan:'Menyimpan…', tersimpan:'Tersimpan', gagal:'Gagal',
+    menyimpan:'Menyimpan…', tersimpan:'Tersimpan', gagal:'Gagal', keluar:'Keluar',
     ocrJalan:'Membaca surat jalan…', ocrTidakKetemu:'Tidak ada angka yang terbaca. Ketik manual.',
     ocrSaran:'OCR membaca', ocrPakai:'Pakai', ocrCocok:'Cocok dengan surat jalan', ocrBeda:'Beda dengan surat jalan',
     setuju:'Setuju', tandai:'Tandai', alasanTandai:'Alasan ditandai?',
@@ -3523,7 +3607,7 @@ var T = {
     kosongData:'No data yet.',
     wajibFoto:'A proof photo is required.', wajibItem:'Add at least one item with a quantity.',
     wajibSupplier:'Select a supplier first.', wajibSJ:'Delivery note number is required.',
-    menyimpan:'Saving…', tersimpan:'Saved', gagal:'Failed',
+    menyimpan:'Saving…', tersimpan:'Saved', gagal:'Failed', keluar:'Log out',
     ocrJalan:'Reading delivery note…', ocrTidakKetemu:'No number recognised. Type it manually.',
     ocrSaran:'OCR read', ocrPakai:'Use', ocrCocok:'Matches the delivery note', ocrBeda:'Differs from the delivery note',
     setuju:'Approve', tandai:'Flag', alasanTandai:'Reason for flagging?',
@@ -3669,12 +3753,32 @@ function toast(msg, jenis){
   setTimeout(function(){ d.remove(); }, jenis==='bad' ? 4200 : 2600);
 }
 
+/* Transport: kalau API_URL diset (versi GitHub Pages) -> fetch JSON ke Apps Script API.
+   Kalau tidak (versi HtmlService lama) -> google.script.run. Satu sumber kode untuk keduanya. */
 function panggil(fn, args){
+  if (window.API_URL){
+    return fetch(window.API_URL, {
+      method:'POST', redirect:'follow',
+      headers:{'Content-Type':'text/plain;charset=utf-8'},   // text/plain = tanpa preflight CORS
+      body: JSON.stringify({ fn: fn, args: args||[] })
+    }).then(function(r){ return r.json(); }).then(function(j){
+      if (j && j.ok) return j.data;
+      throw new Error(j && j.error ? j.error : 'Gagal menghubungi server');
+    });
+  }
   return new Promise(function(res, rej){
     google.script.run.withSuccessHandler(res).withFailureHandler(function(e){
       rej(new Error(e && e.message ? e.message : String(e)));
     })[fn].apply(null, args||[]);
   });
+}
+
+function keluar(){
+  try{ localStorage.removeItem('ipc_nama'); localStorage.removeItem('ipc_pin'); }catch(e){}
+  S.ident = { nama:'', pin:'' }; S.ctx = null;
+  $('hdrUser').textContent = '';
+  ['nav-review','nav-admin'].forEach(function(id){ var el=$(id); if(el) el.classList.add('hide'); });
+  tampil('ident');
 }
 
 function sibuk(btn, on, teksAsli){
@@ -3691,6 +3795,7 @@ function tampil(v){
     var el = $('v-'+x); if(el) el.classList.toggle('hide', x !== v);
     var nb = $('nav-'+x); if(nb) nb.classList.toggle('on', x === v);
   });
+  var bk = $('btnKeluar'); if (bk) bk.classList.toggle('hide', v==='ident');
   window.scrollTo(0,0);
   if (v==='ident')  siapkanIdent();
   if (v==='home')   muatKonteks();
