@@ -1,0 +1,2594 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0f3b38">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="IPC">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <title>IPC Gudang &amp; Produksi</title>
+  <style>
+:root{
+  --bg:#f4f5f7; --surface:#ffffff; --surface-2:#fafbfc;
+  --ink:#111827; --muted:#6b7280; --line:#e5e7eb;
+  --primary:#0f766e; --primary-ink:#ffffff; --primary-soft:#e6f2f1;
+  --ok:#047857; --ok-soft:#e7f5ef;
+  --warn:#b45309; --warn-soft:#fdf3e3;
+  --danger:#b91c1c; --danger-soft:#fdecec;
+  --r:14px; --shadow:0 1px 2px rgba(16,24,40,.06),0 1px 3px rgba(16,24,40,.08);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0}
+body{
+  font:15px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  background:var(--bg); color:var(--ink);
+  padding-bottom:84px; -webkit-font-smoothing:antialiased;
+}
+.hide{display:none !important}
+
+/* ---------- header ---------- */
+header{
+  position:sticky;top:0;z-index:30;background:#0b3b38;color:#fff;
+  padding:10px 14px calc(10px + env(safe-area-inset-top)) 14px;
+  padding-top:calc(10px + env(safe-area-inset-top));
+  display:flex;align-items:center;gap:10px;
+}
+header .t{font-weight:700;font-size:15px;letter-spacing:.2px}
+header .s{font-size:11.5px;opacity:.72;margin-top:1px}
+header .sp{flex:1}
+.langbtn{
+  background:rgba(255,255,255,.14);color:#fff;border:0;border-radius:999px;
+  padding:7px 12px;font-size:12px;font-weight:700;letter-spacing:.4px;cursor:pointer;
+}
+
+/* ---------- layout ---------- */
+main{padding:14px;max-width:720px;margin:0 auto}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);padding:14px;margin-bottom:12px}
+.card h2{margin:0 0 2px;font-size:15px}
+.card .sub{color:var(--muted);font-size:12.5px;margin-bottom:12px}
+h3.sec{font-size:11.5px;text-transform:uppercase;letter-spacing:.09em;color:var(--muted);margin:18px 0 8px;font-weight:700}
+h3.sec .unit{background:#eef0f3;color:#4b5563;border-radius:5px;padding:2px 6px;margin-left:5px;letter-spacing:0;font-size:10.5px}
+.bigrow{display:flex;align-items:baseline;gap:9px}
+.big{font-size:30px;font-weight:700;line-height:1.05;font-variant-numeric:tabular-nums}
+.big .u{font-size:14px;font-weight:600;color:var(--muted);margin-left:3px}
+.jobhead{background:var(--primary-soft);border-radius:11px;padding:12px 13px;margin-bottom:14px}
+.jobhead .p{font-size:16px;font-weight:700}
+.jobhead .k{font-size:11.5px;color:#3f6f6a;margin-top:4px}
+.bar{height:6px;background:#eceef1;border-radius:3px;overflow:hidden;position:relative;margin:7px 0 6px}
+.bar>i{display:block;height:100%;border-radius:3px}
+.bar>u{position:absolute;top:-2px;bottom:-2px;width:1.5px;background:#9aa3ad}
+.listrow{padding:11px 0;border-top:1px solid var(--line)}
+.stokrow{display:flex;align-items:baseline;gap:9px;width:100%;background:none;border:0;padding:0;
+  font-family:inherit;color:inherit;cursor:pointer;text-align:left}
+.stokrow .nm{flex:1;font-size:14px;font-weight:650}
+.stokrow .vl{font-size:18px;font-weight:700;font-variant-numeric:tabular-nums}
+.stokrow .cv{color:var(--muted);font-size:12px;width:14px;text-align:right}
+.sub2{font-size:11.5px;color:var(--muted);font-variant-numeric:tabular-nums;margin-top:2px}
+.neraca{margin-top:10px}
+.nblok{background:var(--surface-2);border:1px solid var(--line);border-radius:10px;padding:10px 11px;margin-bottom:8px}
+.nhead{font-size:10.5px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);
+  font-weight:700;margin-bottom:7px}
+.nrow{display:flex;justify-content:space-between;align-items:baseline;gap:10px;
+  font-size:12.5px;padding:4px 0;font-variant-numeric:tabular-nums}
+.nrow span{color:#4b5563}
+.nrow b{font-weight:650;white-space:nowrap}
+.nrow.tot2{border-top:1px solid var(--line);margin-top:5px;padding-top:7px;font-size:13.5px}
+.nrow.tot2 span{color:var(--ink);font-weight:650}
+.nrow.grand{background:var(--primary-soft);border-radius:9px;padding:9px 11px;font-size:14px}
+.nrow.grand span{color:#0b3b38;font-weight:700}
+.nrow.grand b{font-size:16px}
+.listrow:first-child{border-top:0}
+.tot{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--line);border-radius:11px;overflow:hidden;margin-bottom:14px}
+.tot>div{background:var(--surface);padding:12px 13px}
+.tot .n{font-size:22px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1.1}
+.tot .l{font-size:11.5px;color:var(--muted);margin-top:3px}
+.tot .wide{grid-column:1 / -1}
+
+/* ---------- stat tiles ---------- */
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+.stat.wide{grid-column:1 / -1}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:12px 13px;box-shadow:var(--shadow)}
+.stat .n{font-size:26px;font-weight:700;line-height:1.1;font-variant-numeric:tabular-nums}
+.stat .l{font-size:11.5px;color:var(--muted);margin-top:3px}
+.stat.alert .n{color:var(--danger)}
+.stat.warn .n{color:var(--warn)}
+
+/* ---------- big action buttons ---------- */
+.actions{display:grid;gap:10px}
+.action{
+  display:flex;align-items:center;gap:13px;width:100%;text-align:left;cursor:pointer;
+  background:var(--surface);border:1px solid var(--line);border-radius:var(--r);
+  padding:15px 14px;box-shadow:var(--shadow);font-size:15px;color:var(--ink);
+}
+.action:active{background:var(--surface-2)}
+.action .ico{
+  width:42px;height:42px;flex:0 0 42px;border-radius:12px;background:var(--primary-soft);
+  color:var(--primary);display:flex;align-items:center;justify-content:center;font-size:19px;font-weight:700;
+}
+.action .ico.b{background:#eef2ff;color:#4338ca}
+.action .ico.c{background:var(--warn-soft);color:var(--warn)}
+.action .ico.d{background:#e8f0fb;color:#1d4ed8}
+.action .ico.e{background:#fbeaea;color:#a4262c}
+.action .ico.f{background:#eaf5ee;color:#15803d}
+.action .tx b{display:block;font-weight:650}
+.action .tx span{font-size:12.5px;color:var(--muted)}
+.action .badge{margin-left:auto;background:var(--danger);color:#fff;border-radius:999px;font-size:12px;font-weight:700;padding:3px 9px}
+
+/* ---------- form ---------- */
+label{display:block;font-size:12.5px;font-weight:650;margin:0 0 5px;color:#374151}
+input,select,textarea{
+  width:100%;padding:12px 12px;font-size:16px;border:1px solid #d1d5db;border-radius:10px;
+  background:#fff;color:var(--ink);font-family:inherit;
+}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--primary);outline-offset:-1px;border-color:var(--primary)}
+textarea{min-height:64px;resize:vertical}
+.field{margin-bottom:13px}
+.row{display:flex;gap:9px}
+.row>*{flex:1}
+.row .w90{flex:0 0 96px}
+.hint{font-size:11.5px;color:var(--muted);margin-top:5px}
+
+/* ---------- buttons ---------- */
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:7px;width:100%;
+  padding:14px 16px;border:0;border-radius:11px;font-size:15px;font-weight:650;cursor:pointer;
+  background:var(--primary);color:var(--primary-ink);font-family:inherit;
+}
+.btn:disabled{opacity:.5}
+.btn.sec{background:#eef0f3;color:#374151}
+.btn.ok{background:var(--ok)}
+.btn.danger{background:var(--danger)}
+.btn.sm{width:auto;padding:9px 14px;font-size:13px;border-radius:9px}
+.btnrow{display:flex;gap:9px;margin-top:6px}
+
+/* ---------- item lines ---------- */
+.line{border:1px solid var(--line);border-radius:11px;padding:11px;margin-bottom:9px;background:var(--surface-2)}
+.line .top{display:flex;gap:8px;align-items:center;margin-bottom:8px}
+.line .top .no{font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.05em}
+.line .top .x{margin-left:auto;background:none;border:0;color:var(--danger);font-size:13px;font-weight:650;cursor:pointer;padding:4px 6px}
+
+/* ---------- photo ---------- */
+.photo{border:1.5px dashed #cbd5e1;border-radius:12px;padding:16px;text-align:center;background:var(--surface-2);cursor:pointer}
+.photo.filled{padding:0;border-style:solid;overflow:hidden;background:#000}
+.photo img{width:100%;display:block;max-height:280px;object-fit:contain}
+.photo .p1{font-weight:650;font-size:14px}
+.photo .p2{font-size:12px;color:var(--muted);margin-top:3px}
+
+/* ---------- review card ---------- */
+.rev{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);overflow:hidden;margin-bottom:12px}
+.rev .body{padding:13px}
+.rev img.ph{width:100%;max-height:230px;object-fit:cover;display:block;background:#111}
+.rev .qty{font-size:24px;font-weight:700;font-variant-numeric:tabular-nums}
+.rev .meta{font-size:12px;color:var(--muted);margin-top:3px}
+.kv{display:flex;justify-content:space-between;font-size:13px;padding:5px 0;border-top:1px solid var(--line)}
+.kv span:first-child{color:var(--muted)}
+.kv b{font-variant-numeric:tabular-nums}
+
+/* ---------- pills ---------- */
+.pill{display:inline-block;font-size:11px;font-weight:700;padding:3px 9px;border-radius:999px;letter-spacing:.03em}
+.pill.ok{background:var(--ok-soft);color:var(--ok)}
+.pill.warn{background:var(--warn-soft);color:var(--warn)}
+.pill.bad{background:var(--danger-soft);color:var(--danger)}
+.pill.n{background:#eef0f3;color:#4b5563}
+
+/* ---------- table ---------- */
+.tblwrap{overflow-x:auto;-webkit-overflow-scrolling:touch;margin:0 -14px;padding:0 14px}
+table{border-collapse:collapse;width:100%;font-size:13px;min-width:460px}
+th,td{padding:9px 8px;text-align:left;border-bottom:1px solid var(--line);white-space:nowrap}
+th{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:700}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+
+/* ---------- job card ---------- */
+.job{background:var(--surface);border:1px solid var(--line);border-left:3px solid var(--primary);border-radius:11px;padding:12px;margin-bottom:10px;box-shadow:var(--shadow);cursor:pointer}
+.job b{font-size:14.5px}
+.job .m{font-size:12px;color:var(--muted);margin-top:2px}
+.job .bb{font-size:12.5px;margin-top:7px;padding-top:7px;border-top:1px dashed var(--line);color:#374151}
+
+/* ---------- bottom nav ---------- */
+nav{
+  position:fixed;left:0;right:0;bottom:0;z-index:40;background:rgba(255,255,255,.96);
+  backdrop-filter:blur(8px);border-top:1px solid var(--line);
+  display:flex;padding-bottom:env(safe-area-inset-bottom);
+}
+nav button{
+  flex:1;background:none;border:0;padding:9px 2px 10px;cursor:pointer;color:var(--muted);
+  font-size:10.5px;font-weight:650;font-family:inherit;display:flex;flex-direction:column;align-items:center;gap:3px;position:relative;
+}
+nav button .g{font-size:19px;line-height:1}
+nav button.on{color:var(--primary)}
+nav button .dot{position:absolute;top:5px;right:50%;margin-right:-19px;width:8px;height:8px;border-radius:50%;background:var(--danger)}
+
+/* ---------- kalender ---------- */
+.cal{padding:12px 13px 10px}
+.calhead{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.caltitle{flex:1;text-align:center;font-weight:700;font-size:14.5px}
+.calnav{width:36px;height:36px;border:0;border-radius:9px;background:#eef0f3;font-size:20px;line-height:1;cursor:pointer;color:var(--ink);font-family:inherit}
+.calgrid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}
+.calgrid .wd{font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);text-align:center;padding:3px 0 5px;font-weight:700}
+.calgrid .d{aspect-ratio:1/1;border-radius:9px;border:1px solid transparent;background:none;padding:4px 2px 3px;
+  display:flex;flex-direction:column;align-items:center;justify-content:space-between;cursor:pointer;font-family:inherit;color:var(--ink);min-width:0}
+.calgrid .d .num{font-size:13px;font-weight:600;line-height:1}
+.calgrid .d.mute .num{color:#c2c7cf}
+.calgrid .d.today{border-color:var(--primary);background:var(--primary-soft)}
+.calgrid .d.on{background:var(--ink);color:#fff}
+.calgrid .d.on .num{color:#fff}
+.calgrid .d .dots{display:flex;gap:2px;height:5px}
+.calgrid .d .dots i{width:5px;height:5px;border-radius:50%;display:block}
+.calgrid .d .kg{font-size:8.5px;color:var(--muted);line-height:1;font-variant-numeric:tabular-nums;white-space:nowrap}
+.calgrid .d.on .kg{color:rgba(255,255,255,.75)}
+.calgrid .d .badge2{position:relative}
+.callegend{display:flex;flex-wrap:wrap;gap:6px 12px;font-size:10.5px;color:var(--muted);margin:9px 2px 0}
+.callegend i{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:4px;vertical-align:middle}
+.dayhead{display:flex;align-items:baseline;gap:8px;margin:12px 0 6px;padding-top:10px;border-top:1px solid var(--line)}
+.dayhead b{font-size:14px}
+.dayhead span{font-size:11.5px;color:var(--muted)}
+.ev{display:flex;gap:9px;align-items:flex-start;padding:7px 0;border-top:1px dashed var(--line);font-size:12.5px}
+.ev:first-of-type{border-top:0}
+.ev .jm{color:var(--muted);font-variant-numeric:tabular-nums;flex:0 0 38px;font-size:11.5px;padding-top:1px}
+.ev .tp{width:7px;height:7px;border-radius:50%;flex:0 0 7px;margin-top:5px}
+.ev .tx{flex:1;min-width:0}
+.ev .tx b{font-weight:650}
+.ev .tx small{display:block;color:var(--muted);font-size:11px;margin-top:1px}
+.ev .q{font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
+.seg .cnt{display:inline-block;min-width:16px;padding:0 5px;border-radius:999px;background:#d1d5db;color:#111;font-size:10.5px;line-height:16px;margin-left:2px}
+.seg button.on .cnt{background:var(--danger);color:#fff}
+.seg .cnt:empty{display:none}
+.banner.n{background:#eef0f3;color:#374151;border:1px solid #e2e5ea}
+.btn.ghost{background:#fff;color:var(--danger);border:1.5px solid var(--danger)}
+.btn.warn{background:var(--warn)}
+.hpp{background:#fffbeb;border:1px solid #fde68a;border-radius:9px;padding:8px 10px;margin-top:8px;font-size:12px;color:#78350f}
+.hpp b{font-variant-numeric:tabular-nums}
+.hpp .big2{font-size:16px;font-weight:700}
+
+/* ---------- riwayat & edit ---------- */
+.hist{display:flex;gap:9px;align-items:flex-start;padding:9px 0;border-top:1px solid var(--line)}
+.hist:first-child{border-top:0}
+.hist .hq{font-size:16px;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap;flex:0 0 78px}
+.hist .hx{flex:1;min-width:0}
+.hist .hx b{font-size:13px;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hist .hx small{display:block;color:var(--muted);font-size:11px;margin-top:1px}
+.hist .hb{flex:0 0 auto;display:flex;flex-direction:column;gap:5px;align-items:flex-end}
+.btn.xs{width:auto;padding:6px 10px;font-size:11.5px;border-radius:8px}
+.overlay{position:fixed;inset:0;background:rgba(17,24,39,.55);z-index:80;display:flex;align-items:flex-end;justify-content:center}
+.sheet{background:var(--surface);width:100%;max-width:720px;max-height:92vh;overflow:auto;border-radius:16px 16px 0 0;padding:14px 14px calc(18px + env(safe-area-inset-bottom))}
+.sheethead{display:flex;align-items:center;justify-content:space-between;margin-bottom:2px}
+.sheethead b{font-size:15px}
+.x2{background:#eef0f3;border:0;border-radius:50%;width:32px;height:32px;font-size:14px;cursor:pointer;color:var(--ink)}
+.logedit{background:var(--surface-2);border:1px solid var(--line);border-radius:9px;padding:8px 10px;font-size:11.5px;color:#4b5563;white-space:pre-line;margin-bottom:12px;font-variant-numeric:tabular-nums}
+.logedit::before{content:attr(data-judul);display:block;font-weight:700;font-size:10.5px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:3px}
+.jobdone{background:var(--surface);border:1px solid var(--line);border-radius:11px;padding:11px 12px;margin-bottom:9px;box-shadow:var(--shadow)}
+
+/* ---------- admin ---------- */
+.oprow{display:grid;grid-template-columns:1fr 84px 96px;gap:8px;align-items:center;padding:8px 0;border-top:1px solid var(--line)}
+.oprow:first-child{border-top:0}
+.oprow .nm{font-size:13px;font-weight:600;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.oprow .nm small{display:block;font-weight:400;color:var(--muted);font-size:11px}
+.oprow .sys{text-align:right;font-variant-numeric:tabular-nums;font-size:13px;color:var(--muted)}
+.oprow input{padding:9px 8px;font-size:15px;text-align:right}
+.oprow.diff input{border-color:var(--warn);background:#fffbeb}
+.ophead{display:grid;grid-template-columns:1fr 84px 96px;gap:8px;font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:700;padding-bottom:6px}
+.ophead span:not(:first-child){text-align:right}
+.chip{display:inline-block;font-size:10.5px;padding:2px 7px;border-radius:6px;background:#eef0f3;color:#4b5563;margin-left:5px;vertical-align:middle}
+.chip.scr{background:#fdf3e3;color:#7c4a06}
+.chip.off{background:#fdecec;color:#b91c1c}
+.userrow{display:flex;align-items:center;gap:10px;padding:10px 0;border-top:1px solid var(--line)}
+.userrow:first-child{border-top:0}
+.userrow .av{width:34px;height:34px;border-radius:50%;background:var(--primary-soft);color:var(--primary);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;flex:0 0 34px}
+.userrow .nm{flex:1;min-width:0}
+.userrow .nm b{display:block;font-size:13.5px}
+.userrow .nm small{color:var(--muted);font-size:11px}
+.pill.adm{background:#eef2ff;color:#4338ca}
+.pill.spv{background:var(--warn-soft);color:var(--warn)}
+
+/* ---------- misc ---------- */
+.toast{
+  position:fixed;left:50%;transform:translateX(-50%);bottom:96px;z-index:60;
+  background:#111827;color:#fff;padding:12px 17px;border-radius:11px;font-size:13.5px;
+  max-width:88%;box-shadow:0 8px 24px rgba(0,0,0,.22);text-align:center;
+}
+.toast.ok{background:var(--ok)} .toast.bad{background:var(--danger)}
+.empty{text-align:center;padding:34px 16px;color:var(--muted);font-size:13.5px}
+.empty .g{font-size:34px;display:block;margin-bottom:8px;opacity:.4}
+.load{text-align:center;padding:30px;color:var(--muted);font-size:13px}
+.spin{display:inline-block;width:15px;height:15px;border:2px solid rgba(255,255,255,.35);border-top-color:#fff;border-radius:50%;animation:sp .7s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+.seg{display:flex;background:#eef0f3;border-radius:10px;padding:3px;margin-bottom:13px}
+.seg button{flex:1;border:0;background:none;padding:9px 4px;border-radius:8px;font-size:12.5px;font-weight:650;color:var(--muted);cursor:pointer;font-family:inherit;white-space:nowrap}
+.seg button.on{background:#fff;color:var(--ink);box-shadow:var(--shadow)}
+.banner{border-radius:11px;padding:11px 12px;font-size:13px;margin-bottom:12px}
+.banner.warn{background:var(--warn-soft);color:#7c4a06;border:1px solid #f3dcb4}
+.banner.bad{background:var(--danger-soft);color:#8f1d1d;border:1px solid #f5cccc}
+.banner.ok{background:var(--ok-soft);color:#065f46;border:1px solid #b7e4d0}
+</style>
+
+</head>
+<body>
+
+<header>
+  <div>
+    <div class="t" data-i18n="appTitle">Inventory &amp; Production Control</div>
+    <div class="s" id="hdrUser">…</div>
+  </div>
+  <div class="sp"></div>
+  <button class="langbtn" id="btnKeluar" onclick="keluar()" data-i18n="keluar" style="margin-right:8px">Keluar</button>
+  <button class="langbtn" id="btnLang" onclick="gantiBahasa()">ID</button>
+</header>
+
+<main>
+
+  <!-- ============ IDENTITAS ============ -->
+  <section id="v-ident" class="hide">
+    <div class="card">
+      <h2 data-i18n="identT">Siapa yang pakai HP ini?</h2>
+      <div class="sub" data-i18n="identS">Dipakai untuk mencatat siapa yang menginput. Cukup sekali di HP ini.</div>
+      <div class="field">
+        <label data-i18n="identNama">Nama</label>
+        <select id="identPilih" onchange="identPilihNama(this.value)"></select>
+      </div>
+      <div class="field">
+        <label data-i18n="identLain">Atau ketik nama</label>
+        <input id="identNama" placeholder="">
+      </div>
+      <div class="field">
+        <label data-i18n="identPin">PIN</label>
+        <input id="identPin" type="password" inputmode="numeric" placeholder="••••">
+        <div class="hint" data-i18n="identPinHint">PIN kamu dari admin. Kalau belum punya, kosongkan.</div>
+      </div>
+      <button class="btn" onclick="simpanIdentitas()" data-i18n="identSimpan">Simpan &amp; mulai</button>
+    </div>
+  </section>
+
+  <!-- ============ BERANDA ============ -->
+  <section id="v-home">
+    <div class="stats">
+      <div class="stat"><div class="n" id="sMasuk">–</div><div class="l" data-i18n="statMasuk">kg masuk hari ini</div></div>
+      <div class="stat"><div class="n" id="sKeluar">–</div><div class="l" data-i18n="statKeluar">kg keluar hari ini</div></div>
+      <div class="stat"><div class="n" id="sProses">–</div><div class="l" data-i18n="statProses">kg sedang diproses</div></div>
+      <div class="stat warn"><div class="n" id="sQueue">–</div><div class="l" data-i18n="statQueue">Menunggu review</div></div>
+      <div class="stat alert wide"><div class="n" id="sSusut">–</div><div class="l" data-i18n="statSusut">Susut tinggi hari ini</div></div>
+    </div>
+
+    <div class="card cal">
+      <div class="calhead">
+        <button class="calnav" onclick="geserBulan(-1)" aria-label="prev">‹</button>
+        <div class="caltitle" id="calTitle">…</div>
+        <button class="calnav" onclick="geserBulan(1)" aria-label="next">›</button>
+      </div>
+      <div class="calgrid" id="calGrid"></div>
+      <div class="callegend">
+        <span><i style="background:var(--ok)"></i><span data-i18n="lgMasuk">masuk</span></span>
+        <span><i style="background:var(--warn)"></i><span data-i18n="lgKeluar">keluar</span></span>
+        <span><i style="background:#4338ca"></i><span data-i18n="lgJob">pekerjaan</span></span>
+        <span><i style="background:var(--danger)"></i><span data-i18n="lgSusut">susut tinggi</span></span>
+      </div>
+      <div id="calDay"></div>
+    </div>
+
+    <h3 class="sec" data-i18n="secBeli">Barang dari supplier</h3>
+    <div class="actions">
+      <button class="action" onclick="bukaMutasi('BELI_MASUK')">
+        <div class="ico d">⓪</div>
+        <div class="tx"><b data-i18n="a0t">Barang masuk (pembelian)</b><span data-i18n="a0s">Supplier → GBJ · foto surat jalan</span></div>
+      </button>
+      <button class="action" onclick="bukaMutasi('BELI_RETUR')">
+        <div class="ico e">↩</div>
+        <div class="tx"><b data-i18n="a5t">Retur ke supplier</b><span data-i18n="a5s">GBJ → supplier · mengurangi stok</span></div>
+      </button>
+    </div>
+
+    <h3 class="sec" data-i18n="secJual">Barang ke customer</h3>
+    <div class="actions">
+      <button class="action" onclick="bukaMutasi('JUAL_KELUAR')">
+        <div class="ico f">④</div>
+        <div class="tx"><b data-i18n="a6t">Barang keluar (terjual)</b><span data-i18n="a6s">GBJ → customer · mengurangi stok</span></div>
+      </button>
+      <button class="action" onclick="bukaMutasi('JUAL_RETUR')">
+        <div class="ico e">↩</div>
+        <div class="tx"><b data-i18n="a7t">Retur dari customer</b><span data-i18n="a7s">Customer → GBJ · menambah stok</span></div>
+      </button>
+    </div>
+
+    <h3 class="sec" data-i18n="secCatat">Gudang ↔ produksi</h3>
+    <div class="actions">
+      <button class="action" onclick="bukaTransfer('GBJ_KE_GP')">
+        <div class="ico">①</div>
+        <div class="tx"><b data-i18n="a1t">Transfer ke Produksi</b><span data-i18n="a1s">GBJ → GP · qty + foto</span></div>
+      </button>
+      <button class="action" onclick="tampil('job')">
+        <div class="ico b">②</div>
+        <div class="tx"><b data-i18n="a2t">Pekerjaan</b><span data-i18n="a2s">Bahan baku → barang jadi · susut otomatis</span></div>
+      </button>
+      <button class="action" onclick="bukaTransfer('GP_KE_GBJ')">
+        <div class="ico c">③</div>
+        <div class="tx"><b data-i18n="a3t">Transfer ke Gudang</b><span data-i18n="a3s">GP → GBJ · qty + foto</span></div>
+      </button>
+    </div>
+
+    <div id="homeRev" class="hide">
+      <h3 class="sec" data-i18n="secSup">Supervisor</h3>
+      <div class="actions">
+        <button class="action" onclick="tampil('review')">
+          <div class="ico c">✓</div>
+          <div class="tx"><b data-i18n="a4t">Antrian review</b><span data-i18n="a4s">Foto di sebelah angka · setuju / tandai</span></div>
+          <span class="badge hide" id="revBadge">0</span>
+        </button>
+      </div>
+    </div>
+
+    <div id="homeIdent" class="hide" style="margin-top:16px">
+      <button class="btn sec sm" onclick="tampil('ident')" data-i18n="identGanti">Ganti nama / PIN</button>
+    </div>
+  </section>
+
+  <!-- ============ ⓪ PENERIMAAN / RETUR ============ -->
+  <section id="v-beli" class="hide">
+    <div class="card">
+      <h2 id="rcvJudul">Barang masuk</h2>
+      <div class="sub" id="rcvSub"></div>
+
+      <div class="field">
+        <label id="rcvPartnerLabel" data-i18n="lblSupplier">Supplier</label>
+        <select id="rcvPartner"></select>
+      </div>
+
+      <div class="field" id="rcvFotoWrap">
+        <label id="rcvFotoLabel" data-i18n="lblFotoSJ">Foto surat jalan</label>
+        <div class="photo" id="rcvPhoto" onclick="pilihFoto('rcv')">
+          <div class="p1">📷 <span data-i18n="fotoAmbil">Ambil foto</span></div>
+          <div class="p2" data-i18n="fotoHintSJ">Bukti silang untuk angka yang diketik</div>
+        </div>
+        <input type="file" accept="image/*" capture="environment" id="rcvFile" class="hide" onchange="fotoTerpilih(event,'rcv')">
+        <div class="btnrow hide" id="rcvOcrRow">
+          <button class="btn sec sm" onclick="jalankanOcr()" id="btnOcr" data-i18n="btnOcr">🔍 Baca surat jalan</button>
+          <button class="btn sec sm" onclick="hapusFoto('rcv')" data-i18n="btnGanti">Ganti foto</button>
+        </div>
+        <div id="ocrHasil"></div>
+      </div>
+
+      <div class="field" id="rcvSJWrap">
+        <label data-i18n="lblNoSJ">No. surat jalan</label>
+        <input id="rcvNoSJ" placeholder="SJ/2026/09/0184">
+      </div>
+
+      <h3 class="sec" data-i18n="secItem">Item <span class="unit">kg</span></h3>
+      <div id="rcvLines"></div>
+      <button class="btn sec sm" onclick="tambahBaris('rcv')" data-i18n="btnTambahItem">+ Tambah item</button>
+
+      <div class="field" style="margin-top:14px">
+        <label data-i18n="lblCatatan">Catatan (opsional)</label>
+        <textarea id="rcvCatatan"></textarea>
+      </div>
+
+      <button class="btn" id="btnSimpanRcv" onclick="simpanMutasiUI()" data-i18n="btnSimpan">Simpan</button>
+      <div class="hint" data-i18n="hintPost">Langsung tercatat. Supervisor meninjau setelahnya — produksi tidak menunggu.</div>
+    </div>
+
+    <div class="card">
+      <h2 data-i18n="riwayatT">Riwayat input</h2>
+      <div class="sub" id="rcvRiwayatSub"></div>
+      <div id="rcvRiwayat"><div class="load">…</div></div>
+    </div>
+  </section>
+
+  <!-- ============ ① ③ TRANSFER ============ -->
+  <section id="v-transfer" class="hide">
+    <div class="card">
+      <h2 id="trfJudul">Transfer</h2>
+      <div class="sub" id="trfSub"></div>
+
+      <div class="field">
+        <label data-i18n="lblFoto">Foto bukti</label>
+        <div class="photo" id="trfPhoto" onclick="pilihFoto('trf')">
+          <div class="p1">📷 <span data-i18n="fotoAmbil">Ambil foto</span></div>
+          <div class="p2" data-i18n="fotoHint">Wajib — jadi bukti silang angka yang diketik</div>
+        </div>
+        <input type="file" accept="image/*" capture="environment" id="trfFile" class="hide" onchange="fotoTerpilih(event,'trf')">
+        <div class="btnrow hide" id="trfFotoRow">
+          <button class="btn sec sm" onclick="hapusFoto('trf')" data-i18n="btnGanti">Ganti foto</button>
+        </div>
+      </div>
+
+      <h3 class="sec" data-i18n="secItem">Item <span class="unit">kg</span></h3>
+      <div id="trfLines"></div>
+      <button class="btn sec sm" onclick="tambahBaris('trf')" data-i18n="btnTambahItem">+ Tambah item</button>
+
+      <div class="field" style="margin-top:14px">
+        <label data-i18n="lblCatatan">Catatan (opsional)</label>
+        <textarea id="trfCatatan"></textarea>
+      </div>
+
+      <button class="btn" id="btnSimpanTrf" onclick="simpanTransferUI()" data-i18n="btnSimpanTrf">Simpan transfer</button>
+      <div class="hint" data-i18n="hintPost">Langsung tercatat. Supervisor meninjau setelahnya — produksi tidak menunggu.</div>
+    </div>
+
+    <div class="card">
+      <h2 data-i18n="riwayatT">Riwayat input</h2>
+      <div class="sub" id="trfRiwayatSub"></div>
+      <div id="trfRiwayat"><div class="load">…</div></div>
+    </div>
+  </section>
+
+  <!-- ============ EDIT ENTRI (overlay) ============ -->
+  <div id="editWrap" class="overlay hide" onclick="if(event.target===this)tutupEdit()">
+    <div class="sheet">
+      <div class="sheethead">
+        <b data-i18n="editT">Ubah entri</b>
+        <button class="x2" onclick="tutupEdit()">✕</button>
+      </div>
+      <div class="sub" id="editSub"></div>
+      <div class="field" id="editPartnerWrap">
+        <label id="editPartnerLabel">Supplier</label>
+        <select id="editPartner"></select>
+      </div>
+      <div class="field">
+        <label data-i18n="item">Item</label>
+        <select id="editKode"></select>
+      </div>
+      <div class="field">
+        <label data-i18n="qty">Qty (kg)</label>
+        <input type="number" inputmode="decimal" step="any" min="0" id="editQty">
+      </div>
+      <div class="field" id="editSJWrap">
+        <label data-i18n="lblNoSJ">No. surat jalan</label>
+        <input id="editSJ">
+      </div>
+      <div class="field">
+        <label data-i18n="lblCatatan">Catatan (opsional)</label>
+        <textarea id="editCatatan"></textarea>
+      </div>
+      <div class="logedit hide" id="editLog"></div>
+      <div class="btnrow">
+        <button class="btn ghost hide" id="btnEditBatal" onclick="batalkanEntriUI()" data-i18n="batalkanInput">Batalkan input</button>
+        <button class="btn ok" id="btnEditSimpan" onclick="simpanEditUI()" data-i18n="simpanPerubahan">Simpan perubahan</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ ② PEKERJAAN ============ -->
+  <section id="v-job" class="hide">
+    <div class="seg">
+      <button id="segJobList" class="on" onclick="segJob('list')" data-i18n="segBerjalan">Sedang dibuat</button>
+      <button id="segJobNew" onclick="segJob('new')" data-i18n="segMulai">Mulai baru</button>
+      <button id="segJobDone" onclick="segJob('done')" data-i18n="segSelesai">Selesai</button>
+    </div>
+
+    <div id="jobList"><div class="load">…</div></div>
+    <div id="jobDone" class="hide"><div class="load">…</div></div>
+
+    <div id="jobEdit" class="hide">
+      <div class="card">
+        <h2 data-i18n="jobEditT">Ubah pekerjaan</h2>
+        <div class="sub" id="jobEditSub"></div>
+        <div class="field">
+          <label data-i18n="lblProduk">Produk yang dibuat</label>
+          <select id="edProduk"></select>
+        </div>
+        <h3 class="sec" data-i18n="secBahan">Bahan baku masuk <span class="unit">kg</span></h3>
+        <div id="edBahanLines"></div>
+        <button class="btn sec sm" onclick="tambahBaris('edBahan')" data-i18n="btnTambahBahan">+ Tambah bahan</button>
+        <div id="edKeluar">
+          <h3 class="sec" data-i18n="secJadi">Barang jadi <span class="unit">kg</span></h3>
+          <div id="edJadiLines"></div>
+          <button class="btn sec sm" onclick="tambahBaris('edJadi')" data-i18n="btnTambahItem">+ Tambah item</button>
+          <h3 class="sec" data-i18n="secScrap">Scrap / afkir <span class="unit">kg</span></h3>
+          <div class="field">
+            <input type="number" inputmode="decimal" step="any" min="0" id="edScrapKg" placeholder="0" oninput="previewEditJob()">
+          </div>
+          <div id="edSusutPreview" style="margin-top:15px"></div>
+        </div>
+        <div class="field" style="margin-top:14px">
+          <label data-i18n="lblCatatan">Catatan (opsional)</label>
+          <textarea id="edCatatan"></textarea>
+        </div>
+        <div class="logedit hide" id="edLog"></div>
+        <div class="btnrow">
+          <button class="btn sec" onclick="segJob('done')" data-i18n="btnBatal">Batal</button>
+          <button class="btn ok" id="btnEdSimpan" onclick="simpanEditJobUI()" data-i18n="simpanPerubahan">Simpan perubahan</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="jobNew" class="hide">
+      <div class="card">
+        <h2 data-i18n="jobNewT">Mulai pekerjaan</h2>
+        <div class="sub" data-i18n="jobNewS">Pilih produk yang dibuat, lalu catat bahan baku yang masuk proses.</div>
+        <div class="field">
+          <label data-i18n="lblProduk">Produk yang dibuat</label>
+          <select id="jobProduk" onchange="ringkasJobBaru()"></select>
+        </div>
+        <h3 class="sec" data-i18n="secBahan">Bahan baku masuk <span class="unit">kg</span></h3>
+        <div id="jobLines"></div>
+        <button class="btn sec sm" onclick="tambahBaris('job')" data-i18n="btnTambahBahan">+ Tambah bahan</button>
+        <div class="banner ok" id="jobBaruRingkas" style="margin-top:14px"></div>
+        <div class="field">
+          <label data-i18n="lblFotoOpsi">Foto (opsional)</label>
+          <div class="photo" id="jobPhoto" onclick="pilihFoto('job')">
+            <div class="p1">📷 <span data-i18n="fotoAmbil">Ambil foto</span></div>
+          </div>
+          <input type="file" accept="image/*" capture="environment" id="jobFile" class="hide" onchange="fotoTerpilih(event,'job')">
+        </div>
+        <button class="btn" id="btnMulaiJob" onclick="mulaiJobUI()" data-i18n="btnMulaiJob">Mulai pekerjaan</button>
+      </div>
+    </div>
+
+    <div id="jobFinish" class="hide">
+      <div class="card">
+        <h2 data-i18n="jobFinT">Tutup pekerjaan</h2>
+        <div id="jobFinHead"></div>
+
+        <h3 class="sec" data-i18n="secJadi">Barang jadi <span class="unit">kg</span></h3>
+        <div id="finJadiLines"></div>
+        <button class="btn sec sm" onclick="tambahBaris('finJadi')" data-i18n="btnTambahItem">+ Tambah item</button>
+
+        <h3 class="sec" data-i18n="secScrap">Scrap / afkir <span class="unit">kg</span></h3>
+        <div class="field">
+          <input type="number" inputmode="decimal" step="any" min="0" id="finScrapKg" placeholder="0" oninput="hitungPreviewSusut()">
+          <div class="hint" id="finScrapHint"></div>
+        </div>
+
+        <div id="susutPreview" style="margin-top:15px"></div>
+
+        <div class="field">
+          <label data-i18n="lblFotoOpsi">Foto (opsional)</label>
+          <div class="photo" id="finPhoto" onclick="pilihFoto('fin')">
+            <div class="p1">📷 <span data-i18n="fotoAmbil">Ambil foto</span></div>
+          </div>
+          <input type="file" accept="image/*" capture="environment" id="finFile" class="hide" onchange="fotoTerpilih(event,'fin')">
+        </div>
+        <div class="field">
+          <label data-i18n="lblCatatan">Catatan (opsional)</label>
+          <textarea id="finCatatan"></textarea>
+        </div>
+        <div class="btnrow">
+          <button class="btn sec" onclick="segJob('list')" data-i18n="btnBatal">Batal</button>
+          <button class="btn ok" id="btnTutupJob" onclick="tutupJobUI()" data-i18n="btnTutupJob">Tutup &amp; hitung susut</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="jobHasil" class="hide"></div>
+  </section>
+
+  <!-- ============ REVIEW ============ -->
+  <section id="v-review" class="hide">
+    <div class="seg">
+      <button id="segRevMenunggu" class="on" onclick="segRev('MENUNGGU')"><span data-i18n="segMenunggu">Menunggu</span> <span class="cnt" id="cntMenunggu"></span></button>
+      <button id="segRevDitandai" onclick="segRev('DITANDAI')"><span data-i18n="segDitandai">Ditandai</span> <span class="cnt" id="cntDitandai"></span></button>
+    </div>
+    <div class="banner n" id="revHint"></div>
+    <div id="revList"><div class="load">…</div></div>
+  </section>
+
+  <!-- ============ LAPORAN ============ -->
+  <section id="v-report" class="hide">
+    <div class="seg">
+      <button id="segRepSusut" class="on" onclick="segRep('susut')" data-i18n="segSusut">Susut</button>
+      <button id="segRepStok" onclick="segRep('stok')" data-i18n="segStok">Stok</button>
+      <button id="segRepBeli" onclick="segRep('beli')" data-i18n="segBeli">Beli</button>
+      <button id="segRepJual" onclick="segRep('jual')" data-i18n="segJual">Jual</button>
+      <button id="segRepTrf" onclick="segRep('trf')" data-i18n="segRiwayat">Transfer</button>
+      <button id="segRepHpp" class="hide" onclick="segRep('hpp')">HPP</button>
+    </div>
+    <div id="repBody"><div class="load">…</div></div>
+  </section>
+
+  <!-- ============ ADMIN ============ -->
+  <section id="v-admin" class="hide">
+    <div class="seg">
+      <button id="segAdmOpname" class="on" onclick="segAdm('opname')" data-i18n="segOpname">Opname</button>
+      <button id="segAdmSku" onclick="segAdm('sku')">SKU</button>
+      <button id="segAdmAkt" onclick="segAdm('akt')" data-i18n="segAkt">Aktivitas</button>
+      <button id="segAdmUser" class="hide" onclick="segAdm('user')" data-i18n="segUser">Pengguna</button>
+    </div>
+    <div id="admBody"><div class="load">…</div></div>
+  </section>
+
+  <!-- ============ FORM SKU (overlay) ============ -->
+  <div id="skuWrap" class="overlay hide" onclick="if(event.target===this)tutupSku()">
+    <div class="sheet">
+      <div class="sheethead"><b id="skuJudul">SKU</b><button class="x2" onclick="tutupSku()">✕</button></div>
+      <div class="field"><label data-i18n="skuKode">Kode</label><input id="skuKode" placeholder="RM-XXX" style="text-transform:uppercase"></div>
+      <div class="field"><label data-i18n="skuNama">Nama</label><input id="skuNama"></div>
+      <div class="field"><label data-i18n="skuKat">Kategori</label>
+        <select id="skuKat">
+          <option value="BAHAN_BAKU">Bahan baku</option>
+          <option value="BARANG_JADI">Barang jadi</option>
+          <option value="KEDUANYA">Keduanya</option>
+        </select></div>
+      <div class="field" id="skuHargaWrap"><label data-i18n="skuHarga">Harga beli per kg (untuk HPP)</label><input type="number" inputmode="decimal" id="skuHarga" placeholder="0"></div>
+      <div class="row">
+        <div class="field"><label data-i18n="skuAwalGBJ">Stok awal GBJ (kg)</label><input type="number" inputmode="decimal" id="skuAwalGBJ" placeholder="0"></div>
+        <div class="field"><label data-i18n="skuAwalGP">Stok awal GP (kg)</label><input type="number" inputmode="decimal" id="skuAwalGP" placeholder="0"></div>
+      </div>
+      <div class="field"><label><input type="checkbox" id="skuAktif" checked style="width:auto;margin-right:8px"><span data-i18n="skuAktif">Aktif (muncul di dropdown)</span></label></div>
+      <div class="btnrow">
+        <button class="btn ghost hide" id="btnSkuHapus" onclick="hapusSkuUI()" data-i18n="hapus">Hapus</button>
+        <button class="btn ok" id="btnSkuSimpan" onclick="simpanSkuUI()" data-i18n="simpanPerubahan">Simpan perubahan</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ FORM PENGGUNA (overlay) ============ -->
+  <div id="userWrap" class="overlay hide" onclick="if(event.target===this)tutupUser()">
+    <div class="sheet">
+      <div class="sheethead"><b id="userJudul">Pengguna</b><button class="x2" onclick="tutupUser()">✕</button></div>
+      <div class="field"><label data-i18n="identNama">Nama</label><input id="userNama"></div>
+      <div class="field"><label data-i18n="userPeran">Peran</label>
+        <select id="userPeran">
+          <option value="STAF">STAF — input pergerakan</option>
+          <option value="SUPERVISOR">SUPERVISOR — review, HPP, opname, SKU</option>
+          <option value="ADMIN">ADMIN — semua + kelola pengguna</option>
+        </select></div>
+      <div class="field"><label data-i18n="userLokasi">Lokasi (opsional)</label><input id="userLokasi" placeholder="GBJ / GP / HQ"></div>
+      <div class="field"><label data-i18n="userEmail">Email Google (opsional)</label><input id="userEmail" placeholder="hanya kalau pakai Google Workspace"></div>
+      <div class="field"><label data-i18n="userPin">PIN (4–8 angka)</label><input id="userPin" type="tel" inputmode="numeric" placeholder=""><div class="hint" id="userPinHint"></div></div>
+      <div class="field"><label><input type="checkbox" id="userAktif" checked style="width:auto;margin-right:8px"><span data-i18n="userAktif">Aktif (boleh login)</span></label></div>
+      <button class="btn ok" id="btnUserSimpan" onclick="simpanUserUI()" data-i18n="simpanPerubahan">Simpan perubahan</button>
+    </div>
+  </div>
+
+</main>
+
+<nav>
+  <button id="nav-home" class="on" onclick="tampil('home')"><span class="g">🏠</span><span data-i18n="navHome">Beranda</span></button>
+  <button id="nav-job" onclick="tampil('job')"><span class="g">⚙️</span><span data-i18n="navJob">Pekerjaan</span></button>
+  <button id="nav-review" class="hide" onclick="tampil('review')"><span class="g">✅</span><span data-i18n="navReview">Review</span><span class="dot hide" id="navDot"></span></button>
+  <button id="nav-report" onclick="tampil('report')"><span class="g">📊</span><span data-i18n="navReport">Laporan</span></button>
+  <button id="nav-admin" class="hide" onclick="tampil('admin')"><span class="g">🛠️</span><span data-i18n="navAdmin">Admin</span></button>
+</nav>
+
+<script>
+window.API_URL = 'https://script.google.com/macros/s/AKfycbzl2j0_MjScIv31sHfANJXXGTUfczQJy0-hYEz6ePKZSxsBX8xrNW-4vuulTZFUkpYc/exec';
+var BAHASA_AWAL = 'id';
+if ('serviceWorker' in navigator) { window.addEventListener('load', function(){ navigator.serviceWorker.register('sw.js').catch(function(){}); }); }
+</script>
+
+<script>
+/* =================================================================
+   IPC — front-end (mobile web).  Semua qty kilogram.
+   ================================================================= */
+
+var T = {
+  id: {
+    appTitle:'Inventory & Production Control',
+    statMasuk:'kg masuk hari ini', statKeluar:'kg keluar hari ini', statProses:'kg sedang diproses',
+    statQueue:'Menunggu review', statSusut:'Susut tinggi hari ini',
+    secBeli:'Barang dari supplier', secJual:'Barang ke customer',
+    secCatat:'Gudang ↔ produksi', secSup:'Supervisor',
+    a0t:'Barang masuk (pembelian)', a0s:'Supplier → GBJ · foto surat jalan',
+    a5t:'Retur ke supplier', a5s:'GBJ → supplier · mengurangi stok',
+    a6t:'Barang keluar (terjual)', a6s:'GBJ → customer · mengurangi stok',
+    a7t:'Retur dari customer', a7s:'Customer → GBJ · menambah stok',
+    a1t:'Transfer ke Produksi', a1s:'GBJ → GP · qty + foto',
+    a2t:'Pekerjaan', a2s:'Bahan baku → barang jadi · susut otomatis',
+    a3t:'Transfer ke Gudang', a3s:'GP → GBJ · qty + foto',
+    a4t:'Antrian review', a4s:'Foto di sebelah angka · setuju / tandai',
+    lblSupplier:'Supplier', lblCustomer:'Customer', lblFotoSJ:'Foto surat jalan', fotoHintSJ:'Bukti silang untuk angka yang diketik',
+    lblFoto:'Foto bukti', fotoAmbil:'Ambil foto',
+    fotoHint:'Wajib — jadi bukti silang angka yang diketik',
+    btnOcr:'🔍 Baca surat jalan', btnGanti:'Ganti foto',
+    lblNoSJ:'No. surat jalan', secItem:'Item', btnTambahItem:'+ Tambah item',
+    lblCatatan:'Catatan (opsional)', btnSimpan:'Simpan', btnSimpanTrf:'Simpan transfer',
+    hintPost:'Langsung tercatat. Supervisor meninjau setelahnya — produksi tidak menunggu.',
+    segBerjalan:'Sedang dibuat', segMulai:'Mulai baru',
+    jobNewT:'Mulai pekerjaan', jobNewS:'Pilih produk yang dibuat, lalu catat bahan baku yang masuk proses.',
+    lblProduk:'Produk yang dibuat', secBahan:'Bahan baku masuk', btnTambahBahan:'+ Tambah bahan',
+    lblFotoOpsi:'Foto (opsional)', btnMulaiJob:'Mulai pekerjaan',
+    jobFinT:'Tutup pekerjaan', secJadi:'Barang jadi', secScrap:'Scrap / afkir',
+    btnBatal:'Batal', btnTutupJob:'Tutup & hitung susut',
+    revT:'Antrian review', revS:'Foto di sebelah angka yang diketik. Setujui atau tandai.',
+    segSusut:'Susut', segStok:'Stok', segBeli:'Beli', segJual:'Jual', segRiwayat:'Transfer',
+    navHome:'Beranda', navJob:'Pekerjaan', navReview:'Review', navReport:'Laporan',
+
+    beliT:'Barang masuk (pembelian)', beliS:'Dari supplier ke Gudang Barang Jadi',
+    returT:'Retur ke supplier', returS:'Keluar dari GBJ — stok berkurang',
+    jualT:'Barang keluar (terjual)', jualS:'Dari GBJ ke customer — stok berkurang',
+    returCustT:'Retur dari customer', returCustS:'Masuk lagi ke GBJ — stok bertambah',
+    pilihCustomer:'— pilih customer —', wajibCustomer:'Pilih customer dulu.',
+    wajibSJKeluar:'No. surat jalan / DO wajib diisi.',
+    lblNoDO:'No. surat jalan / DO', lblFotoKirim:'Foto barang / surat jalan',
+    fotoHintKirim:'Bukti apa yang benar-benar keluar dari gudang',
+    totalKeluar:'Total keluar', totalReturCust:'Retur dari customer',
+    perCustomer:'Per customer', perItemJual:'Per item', riwayatJual:'Barang keluar & retur 30 hari',
+    thCustomer:'Customer', thKeluar:'Keluar', thReturCust:'Retur cust',
+    keProduksi:'① Transfer ke Produksi', keGudang:'③ Transfer ke Gudang',
+    subKeProduksi:'Gudang Barang Jadi → Gudang Produksi',
+    subKeGudang:'Gudang Produksi → Gudang Barang Jadi',
+    pilihItem:'— pilih item —', pilihSupplier:'— pilih supplier —',
+    qty:'Qty (kg)', hapus:'Hapus', total:'Total',
+    kosongJob:'Tidak ada yang sedang dibuat.', kosongRev:'Antrian bersih. Tidak ada yang perlu ditinjau.',
+    kosongData:'Belum ada data.',
+    wajibFoto:'Foto bukti wajib diisi.', wajibItem:'Isi minimal satu item dengan qty.',
+    wajibSupplier:'Pilih supplier dulu.', wajibSJ:'No. surat jalan wajib diisi.',
+    menyimpan:'Menyimpan…', tersimpan:'Tersimpan', gagal:'Gagal', keluar:'Keluar',
+    ocrJalan:'Membaca surat jalan…', ocrTidakKetemu:'Tidak ada angka yang terbaca. Ketik manual.',
+    ocrSaran:'OCR membaca', ocrPakai:'Pakai', ocrCocok:'Cocok dengan surat jalan', ocrBeda:'Beda dengan surat jalan',
+    setuju:'Setuju', tandai:'Tandai', alasanTandai:'Alasan ditandai?',
+    disetujui:'Disetujui', ditandai:'Ditandai',
+    bahanMasuk:'Bahan baku masuk', barangJadi:'Barang jadi', scrap:'Scrap',
+    susut:'Susut', totalSusut:'Total susut', perkiraanSusut:'Perkiraan susut',
+    batasNormal:'batas normal', susutNormal:'Susut normal', susutTinggi:'SUSUT TINGGI',
+    susutAnomali:'ANOMALI — barang keluar melebihi yang masuk',
+    tutupBerhasil:'Pekerjaan ditutup', susutDari:'Susutnya dari bahan apa',
+    susutDariHint:'Susut tiap job dibagi ke bahan bakunya sesuai porsi kg masuk. Job satu bahan = angka persis.',
+    lihatRincian:'Lihat rincian', tutupRincian:'Tutup rincian',
+    produk:'Produk', jobs:'job', item:'Item', dari:'dari',
+    thTanggal:'Tanggal', thProduk:'Produk', thMasuk:'Masuk', thJadi:'Jadi',
+    thScrap:'Scrap', thSusut:'Susut', thStatus:'Status', thOperator:'Operator',
+    thGBJ:'GBJ', thGP:'GP', thTotal:'Total', thBeli:'Beli', thRetur:'Retur',
+    thKeGP:'→ GP', thKeGBJ:'→ GBJ', thDipakai:'Dipakai', thDihasilkan:'Jadi',
+    thWaktu:'Waktu', thArah:'Arah', thQty:'Qty', thPencatat:'Pencatat', thFoto:'Foto',
+    thSupplier:'Supplier', thJenis:'Jenis', thSJ:'Surat jalan',
+    lihat:'lihat', hariTerakhir:'hari terakhir', perProduk:'Susut per produk',
+    detailJob:'Detail pekerjaan', stokBerjalan:'Stok berjalan', arusStok:'Arus stok per item',
+    ketukRincian:'Ketuk item untuk lihat dari mana angkanya',
+    nrStokAwal:'Stok awal', nrBeli:'Beli dari supplier', nrReturSup:'Retur ke supplier',
+    nrReturCust:'Retur dari customer', nrJual:'Terjual ke customer',
+    nrKeGP:'Kirim ke produksi', nrKeGBJ:'Balik dari produksi',
+    nrDipakai:'Dipakai produksi', nrDihasilkan:'Hasil produksi',
+    nrSisaGBJ:'Sisa di gudang (GBJ)', nrSisaGP:'Sisa di produksi (GP)', nrTotal:'Total stok',
+    nrGudang:'Gudang Barang Jadi', nrProduksi:'Gudang Produksi',
+    nrDariGudang:'Terima dari gudang', nrKeGudang:'Kirim balik ke gudang', nrOpname:'Penyesuaian opname',
+    riwayatTrf:'Transfer 7 hari terakhir', riwayatBeli:'Pembelian & retur 30 hari',
+    perSupplier:'Per supplier', totalMasuk:'Total masuk', totalRetur:'Total retur', bersih:'Bersih',
+    stokGBJ:'Stok GBJ', stokGP:'Stok GP', stokTotal:'Total stok',
+    jobDiflag:'job kena flag', dariJob:'dari', kgMasuk:'kg masuk',
+    geserTabel:'Geser ke samping untuk kolom lain · semua angka kg',
+    ocrMati:'OCR belum aktif (Advanced Drive Service belum dinyalakan).',
+    tutupJob:'Tutup pekerjaan ini', jamJalan:'jam berjalan', bahanLain:'bahan lain',
+    identT:'Siapa yang pakai HP ini?', identS:'Dipakai untuk mencatat siapa yang menginput. Cukup sekali di HP ini.',
+    identNama:'Nama', identLain:'Atau ketik nama', identPin:'PIN supervisor (kosongkan kalau staff)',
+    identSimpan:'Simpan & mulai', identGanti:'Ganti nama / PIN', identWajib:'Isi nama dulu.',
+    identPilihOpsi:'— pilih dari daftar —', selesai:'Selesai',
+    /* kalender */
+    lgMasuk:'masuk', lgKeluar:'keluar', lgJob:'pekerjaan', lgSusut:'susut tinggi',
+    hariKosong:'Tidak ada kejadian di hari ini.', kejadian:'kejadian', hariIni:'hari ini',
+    evMASUK:'Barang masuk', evRETUR_SUPPLIER:'Retur ke supplier', evKELUAR:'Barang keluar',
+    evRETUR_CUSTOMER:'Retur dari customer', evKE_GP:'Transfer ke produksi', evKE_GBJ:'Transfer ke gudang',
+    evJOB_MULAI:'Mulai pekerjaan', evJOB_SELESAI:'Pekerjaan selesai', evOPNAME:'Stock opname',
+    bulan:['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'],
+    hariSingkat:['Min','Sen','Sel','Rab','Kam','Jum','Sab'],
+    /* review */
+    segMenunggu:'Menunggu', segDitandai:'Ditandai',
+    hintMenunggu:'Setuju = final. Tandai = diarsipkan untuk direvisi nanti (tetap dihitung di stok). Batal = dibatalkan, tidak dihitung.',
+    hintDitandai:'Entri yang diarsipkan. Setelah dibetulkan: Setuju untuk menutup, atau Batal kalau memang salah.',
+    batal:'Batal', alasanBatal:'Alasan dibatalkan?', dibatalkan:'Dibatalkan',
+    kosongDitandai:'Tidak ada entri yang ditandai.', catatanTinjau:'Catatan supervisor',
+    /* HPP */
+    hpp:'HPP', hppBahan:'Bahan', hppProses:'Proses', hppTotal:'HPP total', hppPerKg:'HPP per kg jadi',
+    nilaiSusut:'Nilai susut', hppSejauhIni:'HPP sejauh ini', biayaProses:'biaya proses',
+    hppHint:'HPP = harga bahan baku saat job dimulai + biaya proses per kg. Hanya terlihat oleh Supervisor / Admin.',
+    hppPerProduk:'HPP per produk', hppDetail:'HPP per pekerjaan', rentang:'rentang',
+    /* riwayat & edit */
+    riwayatT:'Riwayat input', riwayatSub:'14 hari terakhir · ketuk Ubah untuk memperbaiki',
+    riwayatKosong:'Belum ada input untuk proses ini.', ubah:'Ubah', editT:'Ubah entri',
+    batalkanInput:'Batalkan input', simpanPerubahan:'Simpan perubahan', tersimpanEdit:'Perubahan tersimpan',
+    tanpaPerubahan:'Tidak ada yang berubah', logJudul:'Riwayat perubahan', terkunci:'Terkunci',
+    terkunciHint:'Sudah ditinjau — hanya supervisor yang bisa mengubah',
+    alasanBatalSendiri:'Kenapa dibatalkan?', konfirmBatal:'Batalkan input ini? Stok akan disesuaikan.',
+    segSelesai:'Selesai', jobEditT:'Ubah pekerjaan', kosongSelesai:'Belum ada pekerjaan selesai 14 hari terakhir.',
+    diubah:'diubah', hitungUlang:'Susut & HPP dihitung ulang',
+    identPin:'PIN', identPinHint:'PIN kamu dari admin. Kalau belum punya, kosongkan.',
+    scrapHint:'Dicatat sebagai SKU scrap produk ini, bisa dijual lewat ④.',
+    /* admin */
+    navAdmin:'Admin', segOpname:'Opname', segAkt:'Aktivitas', segUser:'Pengguna',
+    opT:'Stock opname', opS:'Hitung fisik, isi angkanya. Kosongkan yang tidak dihitung. Selisih jadi penyesuaian stok.',
+    opLokasi:'Lokasi', opSistem:'Sistem', opFisik:'Fisik', opItem:'Item',
+    opSimpan:'Simpan opname', opRingkas:'item dihitung', opLebih:'lebih', opKurang:'kurang',
+    opKonfirm:'Simpan opname? Stok sistem akan disamakan dengan angka fisik.',
+    opTersimpan:'Opname tersimpan', opRiwayat:'Riwayat opname', opKosong:'Belum pernah opname.',
+    opCatatan:'Catatan opname (opsional)', opSemua:'Belum ada angka yang diisi.',
+    opCara:'Cara kerja: sistem menghitung stok dari semua transaksi. Kamu hitung barang yang benar-benar ada di rak, isi di kolom Fisik. Selisihnya (fisik − sistem) disimpan sebagai penyesuaian: stok sistem langsung = fisik, dan selisihnya tercatat siapa yang menghitung dan kapan. Selisih minus yang berulang di item yang sama = ada pergerakan yang tidak dicatat.',
+    skuT:'Daftar SKU', skuTambah:'+ Tambah SKU', skuBaru:'SKU baru', skuUbah:'Ubah SKU',
+    skuKode:'Kode', skuNama:'Nama', skuKat:'Kategori', skuHarga:'Harga beli per kg (untuk HPP)',
+    skuAwalGBJ:'Stok awal GBJ (kg)', skuAwalGP:'Stok awal GP (kg)', skuAktif:'Aktif (muncul di dropdown)',
+    skuDipakai:'dipakai', skuScrap:'scrap', skuNonaktif:'nonaktif',
+    skuHapusKonfirm:'Hapus SKU ini? Kalau sudah pernah dipakai di transaksi, SKU hanya dinonaktifkan.',
+    skuDihapus:'SKU dihapus', skuDinonaktifkan:'SKU sudah dipakai — dinonaktifkan saja', skuTersimpan:'SKU tersimpan',
+    skuHint:'Stok awal hanya dipakai kalau belum ada opname. Cara paling akurat mengisi stok sebenarnya: opname.',
+    aktT:'Aktivitas staf', aktS:'30 hari terakhir · siapa input apa', aktSemua:'Semua', aktTerakhir:'terakhir',
+    aktInput:'input', aktKosong:'Belum ada aktivitas.',
+    userT:'Pengguna', userTambah:'+ Tambah pengguna', userBaru:'Pengguna baru', userUbah:'Ubah pengguna',
+    userPeran:'Peran', userLokasi:'Lokasi (opsional)', userEmail:'Email Google (opsional)',
+    userPin:'PIN (4–8 angka)', userPinHintBaru:'Wajib supaya orang lain tidak bisa pakai nama ini.',
+    userPinHintUbah:'Kosongkan = PIN tidak diubah. Ketik HAPUS untuk mengosongkan PIN.',
+    userAktif:'Aktif (boleh login)', userTersimpan:'Pengguna tersimpan', userPunyaPin:'PIN', userTanpaPin:'tanpa PIN',
+    userHint:'Tiap orang login dengan nama + PIN-nya sendiri, jadi riwayat input benar-benar per orang.'
+  },
+  en: {
+    appTitle:'Inventory & Production Control',
+    statMasuk:'kg received today', statKeluar:'kg shipped today', statProses:'kg in process',
+    statQueue:'Awaiting review', statSusut:'High shrinkage today',
+    secBeli:'Goods from suppliers', secJual:'Goods to customers',
+    secCatat:'Warehouse ↔ production', secSup:'Supervisor',
+    a0t:'Goods in (purchase)', a0s:'Supplier → GBJ · delivery-note photo',
+    a5t:'Return to supplier', a5s:'GBJ → supplier · reduces stock',
+    a6t:'Goods out (sold)', a6s:'GBJ → customer · reduces stock',
+    a7t:'Return from customer', a7s:'Customer → GBJ · adds stock',
+    a1t:'Transfer to Production', a1s:'GBJ → GP · qty + photo',
+    a2t:'Job', a2s:'Raw material → finished goods · shrinkage auto',
+    a3t:'Transfer to Warehouse', a3s:'GP → GBJ · qty + photo',
+    a4t:'Review queue', a4s:'Photo next to the typed number · approve / flag',
+    lblSupplier:'Supplier', lblCustomer:'Customer', lblFotoSJ:'Delivery-note photo', fotoHintSJ:'Cross-checks the number you typed',
+    lblFoto:'Proof photo', fotoAmbil:'Take photo',
+    fotoHint:'Required — cross-checks the number you typed',
+    btnOcr:'🔍 Read delivery note', btnGanti:'Replace photo',
+    lblNoSJ:'Delivery note no.', secItem:'Items', btnTambahItem:'+ Add item',
+    lblCatatan:'Note (optional)', btnSimpan:'Save', btnSimpanTrf:'Save transfer',
+    hintPost:'Posts immediately. A supervisor reviews after — production never waits.',
+    segBerjalan:'In process', segMulai:'Start new',
+    jobNewT:'Start a job', jobNewS:'Pick the product being made, then log the raw material going in.',
+    lblProduk:'Product being made', secBahan:'Raw material in', btnTambahBahan:'+ Add material',
+    lblFotoOpsi:'Photo (optional)', btnMulaiJob:'Start job',
+    jobFinT:'Close job', secJadi:'Finished goods', secScrap:'Scrap / reject',
+    btnBatal:'Cancel', btnTutupJob:'Close & compute shrinkage',
+    revT:'Review queue', revS:'Photo next to the typed number. Approve or flag.',
+    segSusut:'Shrinkage', segStok:'Stock', segBeli:'In', segJual:'Out', segRiwayat:'Transfers',
+    navHome:'Home', navJob:'Jobs', navReview:'Review', navReport:'Reports',
+
+    beliT:'Goods in (purchase)', beliS:'From supplier into the finished-goods warehouse',
+    returT:'Return to supplier', returS:'Leaves GBJ — stock goes down',
+    jualT:'Goods out (sold)', jualS:'From GBJ to the customer — stock goes down',
+    returCustT:'Return from customer', returCustS:'Back into GBJ — stock goes up',
+    pilihCustomer:'— select customer —', wajibCustomer:'Select a customer first.',
+    wajibSJKeluar:'Delivery note / DO number is required.',
+    lblNoDO:'Delivery note / DO no.', lblFotoKirim:'Photo of goods / delivery note',
+    fotoHintKirim:'Proof of what actually left the warehouse',
+    totalKeluar:'Total out', totalReturCust:'Returned by customers',
+    perCustomer:'By customer', perItemJual:'By item', riwayatJual:'Goods out & returns, 30 days',
+    thCustomer:'Customer', thKeluar:'Out', thReturCust:'Cust. ret',
+    keProduksi:'① Transfer to Production', keGudang:'③ Transfer to Warehouse',
+    subKeProduksi:'Finished-goods warehouse → Production store',
+    subKeGudang:'Production store → Finished-goods warehouse',
+    pilihItem:'— select item —', pilihSupplier:'— select supplier —',
+    qty:'Qty (kg)', hapus:'Remove', total:'Total',
+    kosongJob:'Nothing in process.', kosongRev:'Queue is clear. Nothing to review.',
+    kosongData:'No data yet.',
+    wajibFoto:'A proof photo is required.', wajibItem:'Add at least one item with a quantity.',
+    wajibSupplier:'Select a supplier first.', wajibSJ:'Delivery note number is required.',
+    menyimpan:'Saving…', tersimpan:'Saved', gagal:'Failed', keluar:'Log out',
+    ocrJalan:'Reading delivery note…', ocrTidakKetemu:'No number recognised. Type it manually.',
+    ocrSaran:'OCR read', ocrPakai:'Use', ocrCocok:'Matches the delivery note', ocrBeda:'Differs from the delivery note',
+    setuju:'Approve', tandai:'Flag', alasanTandai:'Reason for flagging?',
+    disetujui:'Approved', ditandai:'Flagged',
+    bahanMasuk:'Raw material in', barangJadi:'Finished goods', scrap:'Scrap',
+    susut:'Shrinkage', totalSusut:'Total shrinkage', perkiraanSusut:'Estimated shrinkage',
+    batasNormal:'normal limit', susutNormal:'Shrinkage normal', susutTinggi:'HIGH SHRINKAGE',
+    susutAnomali:'ANOMALY — more came out than went in',
+    tutupBerhasil:'Job closed', susutDari:'Which materials the shrinkage came from',
+    susutDariHint:'Each job’s shrinkage is split across its raw materials by share of kg in. A single-material job is exact.',
+    lihatRincian:'Show breakdown', tutupRincian:'Hide breakdown',
+    produk:'Product', jobs:'jobs', item:'Item', dari:'of',
+    thTanggal:'Date', thProduk:'Product', thMasuk:'In', thJadi:'Out',
+    thScrap:'Scrap', thSusut:'Shrink', thStatus:'Status', thOperator:'Operator',
+    thGBJ:'GBJ', thGP:'GP', thTotal:'Total', thBeli:'Bought', thRetur:'Returned',
+    thKeGP:'→ GP', thKeGBJ:'→ GBJ', thDipakai:'Used', thDihasilkan:'Made',
+    thWaktu:'Time', thArah:'Direction', thQty:'Qty', thPencatat:'Logged by', thFoto:'Photo',
+    thSupplier:'Supplier', thJenis:'Type', thSJ:'Delivery note',
+    lihat:'view', hariTerakhir:'days', perProduk:'Shrinkage by product',
+    detailJob:'Job detail', stokBerjalan:'Running stock', arusStok:'Stock flow by item',
+    ketukRincian:'Tap an item to see where the number comes from',
+    nrStokAwal:'Opening stock', nrBeli:'Bought from supplier', nrReturSup:'Returned to supplier',
+    nrReturCust:'Returned by customer', nrJual:'Sold to customer',
+    nrKeGP:'Sent to production', nrKeGBJ:'Back from production',
+    nrDipakai:'Used in production', nrDihasilkan:'Produced',
+    nrSisaGBJ:'Left in warehouse (GBJ)', nrSisaGP:'Left in production (GP)', nrTotal:'Total stock',
+    nrGudang:'Finished-goods warehouse', nrProduksi:'Production store',
+    nrDariGudang:'Received from warehouse', nrKeGudang:'Sent back to warehouse', nrOpname:'Count adjustment',
+    riwayatTrf:'Transfers, last 7 days', riwayatBeli:'Purchases & returns, 30 days',
+    perSupplier:'By supplier', totalMasuk:'Total in', totalRetur:'Total returned', bersih:'Net',
+    stokGBJ:'GBJ stock', stokGP:'GP stock', stokTotal:'Total stock',
+    jobDiflag:'jobs flagged', dariJob:'from', kgMasuk:'kg in',
+    geserTabel:'Swipe sideways for more columns · all figures in kg',
+    ocrMati:'OCR is off (Advanced Drive Service not enabled).',
+    tutupJob:'Close this job', jamJalan:'h running', bahanLain:'more materials',
+    identT:'Who is using this phone?', identS:'Used to record who logged the entry. Once per phone.',
+    identNama:'Name', identLain:'Or type a name', identPin:'Supervisor PIN (leave blank if staff)',
+    identSimpan:'Save & start', identGanti:'Change name / PIN', identWajib:'Enter a name first.',
+    identPilihOpsi:'— pick from list —', selesai:'Done',
+    lgMasuk:'in', lgKeluar:'out', lgJob:'jobs', lgSusut:'high shrinkage',
+    hariKosong:'Nothing happened on this day.', kejadian:'events', hariIni:'today',
+    evMASUK:'Goods in', evRETUR_SUPPLIER:'Return to supplier', evKELUAR:'Goods out',
+    evRETUR_CUSTOMER:'Return from customer', evKE_GP:'Transfer to production', evKE_GBJ:'Transfer to warehouse',
+    evJOB_MULAI:'Job started', evJOB_SELESAI:'Job closed', evOPNAME:'Stock count',
+    bulan:['January','February','March','April','May','June','July','August','September','October','November','December'],
+    hariSingkat:['Sun','Mon','Tue','Wed','Thu','Fri','Sat'],
+    segMenunggu:'Pending', segDitandai:'Flagged',
+    hintMenunggu:'Approve = final. Flag = archived to revise later (still counted in stock). Cancel = voided, not counted.',
+    hintDitandai:'Archived entries. Once fixed: Approve to close, or Cancel if it was wrong.',
+    batal:'Cancel', alasanBatal:'Reason for cancelling?', dibatalkan:'Cancelled',
+    kosongDitandai:'No flagged entries.', catatanTinjau:'Supervisor note',
+    hpp:'COGS', hppBahan:'Material', hppProses:'Process', hppTotal:'Total COGS', hppPerKg:'COGS per kg out',
+    nilaiSusut:'Shrinkage value', hppSejauhIni:'COGS so far', biayaProses:'process cost',
+    hppHint:'COGS = raw-material price at job start + process cost per kg. Visible to Supervisor / Admin only.',
+    hppPerProduk:'COGS by product', hppDetail:'COGS by job', rentang:'range',
+    riwayatT:'Input history', riwayatSub:'Last 14 days · tap Edit to correct',
+    riwayatKosong:'No entries for this process yet.', ubah:'Edit', editT:'Edit entry',
+    batalkanInput:'Cancel this entry', simpanPerubahan:'Save changes', tersimpanEdit:'Changes saved',
+    tanpaPerubahan:'Nothing changed', logJudul:'Change log', terkunci:'Locked',
+    terkunciHint:'Already reviewed — only a supervisor can change it',
+    alasanBatalSendiri:'Why cancel?', konfirmBatal:'Cancel this entry? Stock will be adjusted.',
+    segSelesai:'Done', jobEditT:'Edit job', kosongSelesai:'No jobs closed in the last 14 days.',
+    diubah:'edited', hitungUlang:'Shrinkage & COGS recomputed',
+    identPin:'PIN', identPinHint:'Your PIN from the admin. Leave blank if you have none.',
+    scrapHint:'Recorded as this product’s scrap SKU — can be sold via ④.',
+    navAdmin:'Admin', segOpname:'Count', segAkt:'Activity', segUser:'Users',
+    opT:'Stock count (opname)', opS:'Count what is physically there, type it in. Leave uncounted items blank. The difference becomes a stock adjustment.',
+    opLokasi:'Location', opSistem:'System', opFisik:'Counted', opItem:'Item',
+    opSimpan:'Save count', opRingkas:'items counted', opLebih:'over', opKurang:'short',
+    opKonfirm:'Save this count? System stock will be set to the counted figures.',
+    opTersimpan:'Count saved', opRiwayat:'Count history', opKosong:'No counts yet.',
+    opCatatan:'Count note (optional)', opSemua:'No figures entered yet.',
+    opCara:'How it works: the system computes stock from every transaction. You count what is actually on the shelf and enter it under Counted. The difference (counted − system) is saved as an adjustment: system stock becomes the counted figure, and the difference is recorded with who counted and when. A repeated shortfall on the same item means something moves without being logged.',
+    skuT:'SKU list', skuTambah:'+ Add SKU', skuBaru:'New SKU', skuUbah:'Edit SKU',
+    skuKode:'Code', skuNama:'Name', skuKat:'Category', skuHarga:'Purchase price per kg (for COGS)',
+    skuAwalGBJ:'Opening stock GBJ (kg)', skuAwalGP:'Opening stock GP (kg)', skuAktif:'Active (shown in dropdowns)',
+    skuDipakai:'in use', skuScrap:'scrap', skuNonaktif:'inactive',
+    skuHapusKonfirm:'Delete this SKU? If it has been used in transactions it will only be deactivated.',
+    skuDihapus:'SKU deleted', skuDinonaktifkan:'SKU already used — deactivated instead', skuTersimpan:'SKU saved',
+    skuHint:'Opening stock only matters before the first count. The accurate way to set real stock: a stock count.',
+    aktT:'Staff activity', aktS:'Last 30 days · who logged what', aktSemua:'Everyone', aktTerakhir:'last',
+    aktInput:'entries', aktKosong:'No activity yet.',
+    userT:'Users', userTambah:'+ Add user', userBaru:'New user', userUbah:'Edit user',
+    userPeran:'Role', userLokasi:'Location (optional)', userEmail:'Google email (optional)',
+    userPin:'PIN (4–8 digits)', userPinHintBaru:'Required so nobody else can use this name.',
+    userPinHintUbah:'Blank = PIN unchanged. Type HAPUS to clear the PIN.',
+    userAktif:'Active (can sign in)', userTersimpan:'User saved', userPunyaPin:'PIN', userTanpaPin:'no PIN',
+    userHint:'Everyone signs in with their own name + PIN, so input history is truly per person.'
+  }
+};
+
+var L = 'id';
+function t(k){ return (T[L] && T[L][k]) || T.id[k] || k; }
+
+function gantiBahasa(){
+  L = (L === 'id') ? 'en' : 'id';
+  try{ localStorage.setItem('ipc_lang', L); }catch(e){}
+  terapkanBahasa();
+}
+function terapkanBahasa(){
+  document.getElementById('btnLang').textContent = (L === 'id') ? 'EN' : 'ID';
+  var els = document.querySelectorAll('[data-i18n]');
+  for (var i=0;i<els.length;i++){
+    var k = els[i].getAttribute('data-i18n');
+    if (!T[L][k]) continue;
+    var unit = els[i].querySelector('.unit');
+    els[i].textContent = T[L][k];
+    if (unit) els[i].appendChild(unit);
+  }
+  if (S.view === 'beli') labelMutasi();
+  if (S.view === 'transfer') labelTransfer();
+  if (S.view === 'job') segJob(S.jobTab || 'list');
+  if (S.view === 'review') muatReview();
+  if (S.view === 'report') segRep(S.repTab || 'susut');
+  if (S.cal.data) gambarKalender();
+  gambarSemuaBaris();
+}
+
+/* ---------------- state ---------------- */
+var S = {
+  ctx:null, view:'home', jobTab:'list', repTab:'susut', ident:{ nama:'', pin:'' },
+  foto:{ rcv:null, trf:null, job:null, fin:null },
+  baris:{ rcv:[], trf:[], job:[], finJadi:[], edBahan:[], edJadi:[] },
+  edit:null, edJob:null, admTab:'opname', opname:null, sku:null, userEdit:null,
+  ocr:null, jobAktif:null, arah:'GBJ_KE_GP', modeExt:'BELI_MASUK',
+  cal:{ bulan:null, data:null, hari:null }, revTab:'MENUNGGU'
+};
+
+/* ---------------- helpers ---------------- */
+function $(id){ return document.getElementById(id); }
+function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){
+  return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+function n2(v){ return (Math.round(v*100)/100).toLocaleString('id-ID'); }
+function kg(v){ return n2(v)+' kg'; }
+function rp(v){ var cur = (S.ctx && S.ctx.mataUang) || 'Rp'; return cur+' '+Math.round(v||0).toLocaleString('id-ID'); }
+function lihatHpp(){ return !!(S.ctx && S.ctx.lihatHpp); }
+
+function toast(msg, jenis){
+  var d = document.createElement('div');
+  d.className = 'toast ' + (jenis||'');
+  d.textContent = msg;
+  document.body.appendChild(d);
+  setTimeout(function(){ d.remove(); }, jenis==='bad' ? 4200 : 2600);
+}
+
+/* Transport: kalau API_URL diset (versi GitHub Pages) -> fetch JSON ke Apps Script API.
+   Kalau tidak (versi HtmlService lama) -> google.script.run. Satu sumber kode untuk keduanya. */
+function panggil(fn, args){
+  if (window.API_URL){
+    return fetch(window.API_URL, {
+      method:'POST', redirect:'follow',
+      headers:{'Content-Type':'text/plain;charset=utf-8'},   // text/plain = tanpa preflight CORS
+      body: JSON.stringify({ fn: fn, args: args||[] })
+    }).then(function(r){ return r.json(); }).then(function(j){
+      if (j && j.ok) return j.data;
+      throw new Error(j && j.error ? j.error : 'Gagal menghubungi server');
+    });
+  }
+  return new Promise(function(res, rej){
+    google.script.run.withSuccessHandler(res).withFailureHandler(function(e){
+      rej(new Error(e && e.message ? e.message : String(e)));
+    })[fn].apply(null, args||[]);
+  });
+}
+
+function keluar(){
+  try{ localStorage.removeItem('ipc_nama'); localStorage.removeItem('ipc_pin'); }catch(e){}
+  S.ident = { nama:'', pin:'' }; S.ctx = null;
+  $('hdrUser').textContent = '';
+  ['nav-review','nav-admin'].forEach(function(id){ var el=$(id); if(el) el.classList.add('hide'); });
+  tampil('ident');
+}
+
+function sibuk(btn, on, teksAsli){
+  if(!btn) return;
+  btn.disabled = on;
+  if (on){ btn.dataset.txt = btn.innerHTML; btn.innerHTML = '<span class="spin"></span> ' + t('menyimpan'); }
+  else { btn.innerHTML = teksAsli || btn.dataset.txt || btn.innerHTML; }
+}
+
+/* ---------------- navigasi ---------------- */
+function tampil(v){
+  S.view = v;
+  ['ident','home','beli','transfer','job','review','report','admin'].forEach(function(x){
+    var el = $('v-'+x); if(el) el.classList.toggle('hide', x !== v);
+    var nb = $('nav-'+x); if(nb) nb.classList.toggle('on', x === v);
+  });
+  var bk = $('btnKeluar'); if (bk) bk.classList.toggle('hide', v==='ident');
+  window.scrollTo(0,0);
+  if (v==='ident')  siapkanIdent();
+  if (v==='home')   muatKonteks();
+  if (v==='job')    segJob(S.jobTab);
+  if (v==='review') muatReview();
+  if (v==='report') segRep(S.repTab);
+  if (v==='admin')  segAdm(S.admTab);
+}
+
+/* ---------------- boot ---------------- */
+window.addEventListener('DOMContentLoaded', function(){
+  try{
+    L = localStorage.getItem('ipc_lang') || BAHASA_AWAL || 'id';
+    S.ident.nama = localStorage.getItem('ipc_nama') || '';
+    S.ident.pin  = localStorage.getItem('ipc_pin')  || '';
+  }catch(e){ L = BAHASA_AWAL || 'id'; }
+  if (L !== 'id' && L !== 'en') L = 'id';
+  terapkanBahasa();
+  muatKonteks(true);
+});
+
+function muatKonteks(diam){
+  panggil('getKonteks',[S.ident]).then(function(c){
+    S.ctx = c;
+    $('homeIdent').classList.toggle('hide', !c.identitasManual);
+    if (c.perluNama){ tampil('ident'); return; }
+    $('hdrUser').textContent = c.user.nama + ' · ' + c.user.peran;
+    $('sMasuk').textContent  = n2(c.ringkasan.masukHariIni);
+    $('sKeluar').textContent = n2(c.ringkasan.keluarHariIni);
+    $('sProses').textContent = n2(c.ringkasan.kgSedangDiproses);
+    $('sQueue').textContent  = c.ringkasan.menungguReview;
+    $('sSusut').textContent  = c.ringkasan.susutTinggiHariIni;
+    $('homeRev').classList.toggle('hide', !c.bisaReview);
+    $('nav-review').classList.toggle('hide', !c.bisaReview);
+    $('segRepHpp').classList.toggle('hide', !c.lihatHpp);
+    $('nav-admin').classList.toggle('hide', !c.bisaReview);
+    $('segAdmUser').classList.toggle('hide', !c.bisaAdmin);
+    var cm = $('cntMenunggu'), cd = $('cntDitandai');
+    if (cm) cm.textContent = c.ringkasan.menungguReview || '';
+    if (cd) cd.textContent = c.ringkasan.ditandai || '';
+    muatKalender(S.cal.bulan);
+    var b = $('revBadge'), d = $('navDot');
+    var ada = c.ringkasan.menungguReview > 0;
+    if (b){ b.textContent = c.ringkasan.menungguReview; b.classList.toggle('hide', !ada); }
+    if (d) d.classList.toggle('hide', !(ada && c.bisaReview));
+    isiSelectProduk(); isiSelectPartner(); gambarSemuaBaris();
+  }).catch(function(e){
+    var msg = String(e.message || e);
+    /* login gagal (PIN salah / nonaktif / belum terdaftar) -> buang sesi lama, balik ke layar login */
+    if (/PIN salah|dinonaktifkan|belum terdaftar|belum punya PIN|Akses ditolak/.test(msg)){
+      S.ctx = null; S.ident.pin = '';
+      try{ localStorage.removeItem('ipc_pin'); }catch(x){}
+      $('hdrUser').textContent = '';
+      ['nav-review','nav-admin'].forEach(function(id){ $(id).classList.add('hide'); });
+      tampil('ident');
+      toast(msg,'bad');
+      return;
+    }
+    if(!diam) toast(msg,'bad'); else $('hdrUser').textContent = msg;
+  });
+}
+
+/* ---------------- kalender ---------------- */
+function bulanStr(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'); }
+function geserBulan(n){
+  var b = S.cal.bulan ? new Date(S.cal.bulan+'-01T00:00:00') : new Date();
+  b.setMonth(b.getMonth()+n);
+  S.cal.hari = null;
+  muatKalender(bulanStr(b));
+}
+function muatKalender(bulan){
+  panggil('kalender',[bulan || null, S.ident]).then(function(d){
+    S.cal.bulan = d.bulan; S.cal.data = d;
+    if (!S.cal.hari){
+      S.cal.hari = (d.hariIni.indexOf(d.bulan)===0) ? d.hariIni
+                 : (d.hari.length ? d.hari[d.hari.length-1].tanggal : null);
+    }
+    gambarKalender();
+  }).catch(function(e){ $('calGrid').innerHTML = '<div class="banner bad">'+esc(e.message)+'</div>'; });
+}
+function gambarKalender(){
+  var d = S.cal.data; if (!d) return;
+  var y = parseInt(d.bulan.slice(0,4),10), m = parseInt(d.bulan.slice(5,7),10)-1;
+  $('calTitle').textContent = t('bulan')[m]+' '+y;
+  var peta = {}; d.hari.forEach(function(h){ peta[h.tanggal]=h; });
+
+  var h = t('hariSingkat').map(function(w){ return '<div class="wd">'+esc(w)+'</div>'; }).join('');
+  for (var i=0;i<d.hariPertama;i++) h += '<div></div>';
+  for (var day=1; day<=d.jumlahHari; day++){
+    var tgl = d.bulan+'-'+String(day).padStart(2,'0');
+    var x = peta[tgl];
+    var cls = 'd' + (tgl===d.hariIni?' today':'') + (tgl===S.cal.hari?' on':'') + (!x?' mute':'');
+    var dots = '';
+    if (x){
+      if (x.masuk>0)       dots += '<i style="background:var(--ok)"></i>';
+      if (x.keluar>0)      dots += '<i style="background:var(--warn)"></i>';
+      if (x.job>0)         dots += '<i style="background:#4338ca"></i>';
+      if (x.susutTinggi>0) dots += '<i style="background:var(--danger)"></i>';
+    }
+    var kgTxt = x && x.kg>0 ? Math.round(x.kg) : '';
+    h += '<button class="'+cls+'" onclick="pilihHari(\''+tgl+'\')">' +
+         '<span class="num">'+day+'</span><span class="dots">'+dots+'</span>' +
+         '<span class="kg">'+kgTxt+'</span></button>';
+  }
+  $('calGrid').innerHTML = h;
+  gambarHari();
+}
+function pilihHari(tgl){ S.cal.hari = tgl; gambarKalender(); }
+function warnaEv(j){
+  if (j==='MASUK'||j==='RETUR_CUSTOMER') return 'var(--ok)';
+  if (j==='KELUAR'||j==='RETUR_SUPPLIER') return 'var(--warn)';
+  if (j==='JOB_MULAI'||j==='JOB_SELESAI') return '#4338ca';
+  if (j==='OPNAME') return '#0e7490';
+  return '#9aa3ad';
+}
+function gambarHari(){
+  var d = S.cal.data, el = $('calDay'); if (!d || !el) return;
+  var tgl = S.cal.hari; if (!tgl){ el.innerHTML=''; return; }
+  var x = null; d.hari.forEach(function(h){ if (h.tanggal===tgl) x=h; });
+  var dd = new Date(tgl+'T00:00:00');
+  var judul = dd.getDate()+' '+t('bulan')[dd.getMonth()]+' '+dd.getFullYear()+(tgl===d.hariIni?' · '+t('hariIni'):'');
+  if (!x || !x.kejadian.length){
+    el.innerHTML = '<div class="dayhead"><b>'+esc(judul)+'</b></div><div style="font-size:12.5px;color:var(--muted)">'+esc(t('hariKosong'))+'</div>';
+    return;
+  }
+  var ring = [];
+  if (x.masuk)    ring.push('<span style="color:var(--ok)">+'+n2(x.masuk)+' kg</span>');
+  if (x.keluar)   ring.push('<span style="color:var(--warn)">−'+n2(x.keluar)+' kg</span>');
+  if (x.job)      ring.push(x.job+' '+t('jobs'));
+  if (x.menunggu) ring.push(x.menunggu+' '+t('statQueue').toLowerCase());
+  el.innerHTML = '<div class="dayhead"><b>'+esc(judul)+'</b><span>'+ring.join(' · ')+'</span></div>' +
+    x.kejadian.map(function(e){
+      var st = '';
+      if (e.jenis==='JOB_SELESAI'){
+        st = (e.status && e.status!=='NORMAL') ? ' <span class="pill bad">'+esc(t('susutTinggi'))+'</span>' : '';
+      } else if (e.status==='MENUNGGU') st = ' <span class="pill warn">'+esc(t('segMenunggu'))+'</span>';
+      else if (e.status==='DITANDAI') st = ' <span class="pill n">'+esc(t('segDitandai'))+'</span>';
+      var sub = e.item ? esc(e.item)+' · '+esc(e.label) : esc(e.label);
+      if (e.jenis==='JOB_SELESAI') sub += ' · '+esc(t('susut'))+' '+n2(e.susut)+' kg ('+n2(e.persen)+'%)';
+      return '<div class="ev"><span class="jm">'+esc(e.jam)+'</span><span class="tp" style="background:'+warnaEv(e.jenis)+'"></span>' +
+        '<span class="tx"><b>'+esc(t('ev'+e.jenis))+'</b>'+st+'<small>'+sub+' · '+esc(e.oleh)+'</small></span>' +
+        '<span class="q">'+n2(e.qty)+' kg</span></div>';
+    }).join('');
+}
+
+/* ---------------- identitas ---------------- */
+function siapkanIdent(){
+  var sel = $('identPilih');
+  if (!S.ctx || !S.ctx.daftarNama){
+    panggil('getKonteks',[{}]).then(function(c){ S.ctx = c; siapkanIdent(); }).catch(function(){});
+  }
+  var daftar = (S.ctx && S.ctx.daftarNama) || [];
+  sel.innerHTML = '<option value="">'+esc(t('identPilihOpsi'))+'</option>' +
+    daftar.map(function(n){ return '<option value="'+esc(n)+'"'+(n===S.ident.nama?' selected':'')+'>'+esc(n)+'</option>'; }).join('');
+  $('identNama').value = S.ident.nama || '';
+  $('identPin').value  = S.ident.pin  || '';
+}
+function identPilihNama(v){ if (v) $('identNama').value = v; }
+function simpanIdentitas(){
+  var nama = ($('identNama').value || '').trim();
+  if (!nama){ toast(t('identWajib'),'bad'); return; }
+  S.ident.nama = nama;
+  S.ident.pin  = ($('identPin').value || '').trim();
+  try{ localStorage.setItem('ipc_nama', S.ident.nama); localStorage.setItem('ipc_pin', S.ident.pin); }catch(e){}
+  tampil('home'); muatKonteks();
+}
+
+/* ---------------- master dropdown ---------------- */
+function itemsFilter(mode){
+  if (!S.ctx) return [];
+  return S.ctx.items.filter(function(i){
+    if (mode === 'bahan')  return i.kategori === 'BAHAN_BAKU'  || i.kategori === 'KEDUANYA';
+    if (mode === 'jadi')   return i.kategori === 'BARANG_JADI' || i.kategori === 'KEDUANYA';
+    return true;   // termasuk SCRAP — bisa ditransfer & dijual
+  });
+}
+function isiSelectProduk(){
+  var sel = $('jobProduk'); if(!sel || !S.ctx) return;
+  var v = sel.value;
+  sel.innerHTML = '<option value="">'+esc(t('pilihItem'))+'</option>' +
+    itemsFilter('jadi').map(function(i){ return '<option value="'+esc(i.kode)+'">'+esc(i.nama)+'</option>'; }).join('');
+  if (v) sel.value = v;
+}
+function isiSelectPartner(){
+  var sel = $('rcvPartner'); if(!sel || !S.ctx) return;
+  var jual = S.modeExt.indexOf('JUAL') === 0;
+  var daftar = jual ? (S.ctx.customer||[]) : (S.ctx.supplier||[]);
+  var v = sel.value;
+  sel.innerHTML = '<option value="">'+esc(jual ? t('pilihCustomer') : t('pilihSupplier'))+'</option>' +
+    daftar.map(function(s){ return '<option value="'+esc(s.nama)+'">'+esc(s.nama)+'</option>'; }).join('');
+  if (v) sel.value = v;
+}
+
+/* =================================================================
+   BARIS ITEM
+   ================================================================= */
+var MODE_BARIS = { rcv:'all', trf:'all', job:'bahan', finJadi:'jadi', edBahan:'bahan', edJadi:'jadi' };
+var WADAH = { rcv:'rcvLines', trf:'trfLines', job:'jobLines', finJadi:'finJadiLines',
+              edBahan:'edBahanLines', edJadi:'edJadiLines' };
+
+function tambahBaris(k){ S.baris[k].push({ kode:'', qty:'' }); gambarBaris(k); }
+function hapusBaris(k, i){
+  S.baris[k].splice(i,1);
+  if (!S.baris[k].length) S.baris[k].push({ kode:'', qty:'' });
+  gambarBaris(k);
+}
+function ubahBaris(k, i, field, val){
+  S.baris[k][i][field] = val;
+  if (k === 'finJadi') hitungPreviewSusut();
+  if (k === 'job') ringkasJobBaru();
+  if (k.indexOf('ed') === 0) previewEditJob();
+}
+function gambarSemuaBaris(){ Object.keys(WADAH).forEach(gambarBaris); }
+
+function gambarBaris(k){
+  var el = $(WADAH[k]); if(!el) return;
+  if (!S.baris[k].length) S.baris[k] = [{ kode:'', qty:'' }];
+  var opts = itemsFilter(MODE_BARIS[k]);
+  el.innerHTML = S.baris[k].map(function(b, i){
+    var sel = '<select onchange="ubahBaris(\''+k+'\','+i+',\'kode\',this.value)">' +
+      '<option value="">'+esc(t('pilihItem'))+'</option>' +
+      opts.map(function(o){
+        return '<option value="'+esc(o.kode)+'"'+(o.kode===b.kode?' selected':'')+'>'+esc(o.nama)+'</option>';
+      }).join('') + '</select>';
+    return '<div class="line">' +
+      '<div class="top"><span class="no">#'+(i+1)+'</span>' +
+        (S.baris[k].length>1 ? '<button class="x" onclick="hapusBaris(\''+k+'\','+i+')">✕ '+esc(t('hapus'))+'</button>' : '') +
+      '</div>' + sel +
+      '<div class="row" style="margin-top:8px">' +
+        '<input type="number" inputmode="decimal" step="any" min="0" placeholder="'+esc(t('qty'))+'" value="'+esc(b.qty)+'" oninput="ubahBaris(\''+k+'\','+i+',\'qty\',this.value)">' +
+        '<div class="w90"><input value="kg" readonly style="background:#f3f4f6;text-align:center;font-weight:650"></div>' +
+      '</div></div>';
+  }).join('');
+}
+
+function ambilBaris(k){
+  return S.baris[k].filter(function(b){ return b.kode && parseFloat(b.qty) > 0; })
+                   .map(function(b){ return { kode:b.kode, qty:parseFloat(b.qty) }; });
+}
+function totalBaris(k){
+  return S.baris[k].reduce(function(a,b){ var q = parseFloat(b.qty); return a + (isNaN(q)?0:q); }, 0);
+}
+function namaItem(kode){
+  if (!S.ctx) return kode;
+  for (var i=0;i<S.ctx.items.length;i++) if (S.ctx.items[i].kode===kode) return S.ctx.items[i].nama;
+  return kode;
+}
+
+/* =================================================================
+   FOTO
+   ================================================================= */
+var KOTAK = { rcv:'rcvPhoto', trf:'trfPhoto', job:'jobPhoto', fin:'finPhoto' };
+var FILEIN = { rcv:'rcvFile', trf:'trfFile', job:'jobFile', fin:'finFile' };
+
+function pilihFoto(k){ $(FILEIN[k]).click(); }
+
+function fotoTerpilih(ev, k){
+  var f = ev.target.files && ev.target.files[0];
+  if(!f) return;
+  kecilkanGambar(f, 1400, 0.72).then(function(dataUrl){
+    S.foto[k] = dataUrl;
+    var box = $(KOTAK[k]);
+    box.className = 'photo filled';
+    box.innerHTML = '<img src="'+dataUrl+'">';
+    if (k === 'rcv'){
+      $('rcvOcrRow').classList.remove('hide');
+      $('ocrHasil').innerHTML = ''; S.ocr = null;
+      $('btnOcr').classList.toggle('hide', !(S.ctx && S.ctx.ocrAktif && S.modeExt === 'BELI_MASUK'));
+    }
+    if (k === 'trf') $('trfFotoRow').classList.remove('hide');
+  }).catch(function(){ toast(t('gagal'),'bad'); });
+  ev.target.value = '';
+}
+
+function hapusFoto(k){
+  S.foto[k] = null;
+  var box = $(KOTAK[k]);
+  box.className = 'photo';
+  var hint = (k==='rcv') ? (S.modeExt.indexOf('JUAL')===0 ? t('fotoHintKirim') : t('fotoHintSJ'))
+           : (k==='trf' ? t('fotoHint') : '');
+  box.innerHTML = '<div class="p1">📷 '+esc(t('fotoAmbil'))+'</div>' +
+                  (hint ? '<div class="p2">'+esc(hint)+'</div>' : '');
+  if (k==='rcv'){ $('rcvOcrRow').classList.add('hide'); $('ocrHasil').innerHTML=''; S.ocr=null; }
+  if (k==='trf'){ $('trfFotoRow').classList.add('hide'); }
+}
+
+function kecilkanGambar(file, maxSisi, mutu){
+  return new Promise(function(res, rej){
+    var fr = new FileReader();
+    fr.onload = function(e){
+      var img = new Image();
+      img.onload = function(){
+        var sk = Math.min(1, maxSisi / Math.max(img.width, img.height));
+        var c = document.createElement('canvas');
+        c.width = Math.round(img.width*sk); c.height = Math.round(img.height*sk);
+        c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+        res(c.toDataURL('image/jpeg', mutu));
+      };
+      img.onerror = rej; img.src = e.target.result;
+    };
+    fr.onerror = rej; fr.readAsDataURL(file);
+  });
+}
+
+/* =================================================================
+   ⓪  PEMBELIAN MASUK / RETUR
+   ================================================================= */
+/* mode: BELI_MASUK | BELI_RETUR | JUAL_KELUAR | JUAL_RETUR */
+function bukaMutasi(mode){
+  S.modeExt = mode;
+  S.baris.rcv = [{ kode:'', qty:'' }];
+  S.foto.rcv = null; S.ocr = null;
+  $('rcvNoSJ').value = ''; $('rcvCatatan').value = '';
+  hapusFoto('rcv');
+  labelMutasi();
+  isiSelectPartner();
+  $('rcvPartner').value = '';
+  gambarBaris('rcv');
+  tampil('beli');
+  muatRiwayat('rcv');
+}
+
+function modeInfo(){
+  var m = S.modeExt;
+  return {
+    jual   : m.indexOf('JUAL') === 0,
+    judul  : m==='BELI_MASUK' ? t('beliT')  : m==='BELI_RETUR' ? t('returT')
+           : m==='JUAL_KELUAR'? t('jualT')  : t('returCustT'),
+    sub    : m==='BELI_MASUK' ? t('beliS')  : m==='BELI_RETUR' ? t('returS')
+           : m==='JUAL_KELUAR'? t('jualS')  : t('returCustS'),
+    pakaiSJ: m==='BELI_MASUK' || m==='JUAL_KELUAR',
+    pakaiOcr: m==='BELI_MASUK'
+  };
+}
+
+function labelMutasi(){
+  var i = modeInfo();
+  $('rcvJudul').textContent = i.judul;
+  $('rcvSub').textContent   = i.sub;
+  $('rcvPartnerLabel').textContent = i.jual ? t('lblCustomer') : t('lblSupplier');
+  $('rcvFotoLabel').textContent = i.jual ? t('lblFotoKirim')
+                                : (S.modeExt==='BELI_MASUK' ? t('lblFotoSJ') : t('lblFoto'));
+  $('rcvSJWrap').classList.toggle('hide', !i.pakaiSJ);
+  var lbl = $('rcvSJWrap').querySelector('label');
+  if (lbl) lbl.textContent = i.jual ? t('lblNoDO') : t('lblNoSJ');
+  var ocrBtn = $('btnOcr');
+  if (ocrBtn) ocrBtn.classList.toggle('hide', !(i.pakaiOcr && S.ctx && S.ctx.ocrAktif));
+}
+
+function simpanMutasiUI(){
+  var i = modeInfo();
+  var baris = ambilBaris('rcv');
+  var partner = $('rcvPartner').value;
+  if (!partner){ toast(i.jual ? t('wajibCustomer') : t('wajibSupplier'),'bad'); return; }
+  if (!S.foto.rcv){ toast(t('wajibFoto'),'bad'); return; }
+  if (S.modeExt==='BELI_MASUK' && !$('rcvNoSJ').value.trim()){ toast(t('wajibSJ'),'bad'); return; }
+  if (S.modeExt==='JUAL_KELUAR' && S.ctx && S.ctx.wajibSjKeluar && !$('rcvNoSJ').value.trim()){
+    toast(t('wajibSJKeluar'),'bad'); return;
+  }
+  if (!baris.length){ toast(t('wajibItem'),'bad'); return; }
+
+  var b = $('btnSimpanRcv'); sibuk(b, true);
+  var fn, payload;
+  if (i.jual){
+    fn = 'simpanPengiriman';
+    payload = { jenis: S.modeExt==='JUAL_KELUAR' ? 'KELUAR' : 'RETUR_MASUK', customer: partner };
+  } else {
+    fn = 'simpanPenerimaan';
+    payload = { jenis: S.modeExt==='BELI_MASUK' ? 'MASUK' : 'RETUR', supplier: partner,
+                qtyOcr: (S.ocr && S.ocr.qtySaran) || '' };
+  }
+  payload.noSuratJalan = $('rcvNoSJ').value;
+  payload.baris = baris;
+  payload.catatan = $('rcvCatatan').value;
+  payload.foto = S.foto.rcv;
+  payload.ident = S.ident;
+
+  panggil(fn, [payload]).then(function(r){
+    sibuk(b, false, t('btnSimpan'));
+    toast(t('tersimpan') + ' · ' + kg(r.totalKg), 'ok');
+    bukaMutasi(S.modeExt);
+    tampil('home');
+  }).catch(function(e){ sibuk(b,false,t('btnSimpan')); toast(e.message,'bad'); });
+}
+
+function jalankanOcr(){
+  if (!S.foto.rcv || S.modeExt !== 'BELI_MASUK') return;
+  if (S.ctx && !S.ctx.ocrAktif){ toast(t('ocrMati'),'bad'); return; }
+  var b = $('btnOcr'); var asli = b.innerHTML;
+  b.disabled = true; b.innerHTML = '<span class="spin"></span> ' + t('ocrJalan');
+  panggil('ocrSuratJalan', [S.foto.rcv]).then(function(r){
+    b.disabled = false; b.innerHTML = asli;
+    if (!r.ok){ $('ocrHasil').innerHTML = '<div class="banner warn">'+esc(r.pesan||t('gagal'))+'</div>'; return; }
+    S.ocr = r;
+    if (r.noSuratJalan && !$('rcvNoSJ').value) $('rcvNoSJ').value = r.noSuratJalan;
+    if (!r.kandidatQty || !r.kandidatQty.length){
+      $('ocrHasil').innerHTML = '<div class="banner warn">'+esc(t('ocrTidakKetemu'))+'</div>'; return;
+    }
+    $('ocrHasil').innerHTML = '<div class="banner ok"><b>'+esc(t('ocrSaran'))+':</b>' +
+      r.kandidatQty.slice(0,4).map(function(c){
+        return '<div style="margin-top:6px;display:flex;align-items:center;gap:8px">' +
+          '<b style="font-variant-numeric:tabular-nums">'+n2(c.qty)+' '+esc(c.satuan)+'</b>' +
+          '<span style="font-size:11.5px;opacity:.75;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(c.konteks)+'</span>' +
+          '<button class="btn sm sec" style="padding:5px 10px" onclick="pakaiOcr('+c.qty+')">'+esc(t('ocrPakai'))+'</button></div>';
+      }).join('') + '</div>';
+  }).catch(function(e){
+    b.disabled = false; b.innerHTML = asli;
+    $('ocrHasil').innerHTML = '<div class="banner bad">'+esc(e.message)+'</div>';
+  });
+}
+
+function pakaiOcr(q){
+  if (!S.baris.rcv.length) S.baris.rcv = [{kode:'',qty:''}];
+  S.baris.rcv[0].qty = q;
+  gambarBaris('rcv');
+  toast(t('ocrPakai') + ': ' + kg(q));
+}
+
+/* =================================================================
+   ① / ③  TRANSFER
+   ================================================================= */
+function bukaTransfer(arah){
+  S.arah = arah;
+  S.baris.trf = [{ kode:'', qty:'' }];
+  S.foto.trf = null;
+  $('trfCatatan').value = '';
+  hapusFoto('trf');
+  labelTransfer();
+  gambarBaris('trf');
+  tampil('transfer');
+  muatRiwayat('trf');
+}
+function labelTransfer(){
+  var ke = S.arah === 'GBJ_KE_GP';
+  $('trfJudul').textContent = ke ? t('keProduksi') : t('keGudang');
+  $('trfSub').textContent   = ke ? t('subKeProduksi') : t('subKeGudang');
+}
+
+function simpanTransferUI(){
+  var baris = ambilBaris('trf');
+  if (!S.foto.trf){ toast(t('wajibFoto'),'bad'); return; }
+  if (!baris.length){ toast(t('wajibItem'),'bad'); return; }
+  var b = $('btnSimpanTrf'); sibuk(b, true);
+  panggil('simpanTransfer', [{
+    arah: S.arah, baris: baris, catatan: $('trfCatatan').value,
+    foto: S.foto.trf, ident: S.ident
+  }]).then(function(r){
+    sibuk(b, false, t('btnSimpanTrf'));
+    toast(t('tersimpan') + ' · ' + kg(r.totalKg), 'ok');
+    bukaTransfer(S.arah); tampil('home');
+  }).catch(function(e){ sibuk(b,false,t('btnSimpanTrf')); toast(e.message,'bad'); });
+}
+
+/* =================================================================
+   ②  PEKERJAAN
+   ================================================================= */
+function segJob(tab){
+  S.jobTab = tab;
+  $('segJobList').classList.toggle('on', tab==='list');
+  $('segJobNew').classList.toggle('on', tab==='new');
+  $('segJobDone').classList.toggle('on', tab==='done');
+  $('jobList').classList.toggle('hide', tab!=='list');
+  $('jobNew').classList.toggle('hide', tab!=='new');
+  $('jobDone').classList.toggle('hide', tab!=='done');
+  $('jobFinish').classList.add('hide');
+  $('jobHasil').classList.add('hide');
+  $('jobEdit').classList.add('hide');
+  if (tab==='list') muatJob();
+  if (tab==='done') muatJobSelesai();
+  if (tab==='new'){
+    isiSelectProduk();
+    if(!S.baris.job.length) S.baris.job=[{kode:'',qty:''}];
+    gambarBaris('job'); ringkasJobBaru();
+  }
+}
+
+function ringkasJobBaru(){
+  var el = $('jobBaruRingkas'); if(!el) return;
+  var produk = $('jobProduk');
+  var nama = produk && produk.value ? produk.options[produk.selectedIndex].text : '—';
+  var tot = totalBaris('job');
+  el.innerHTML = '<div class="bigrow"><span class="big">'+n2(tot)+'<span class="u">kg</span></span></div>' +
+    '<div style="font-size:12.5px;margin-top:3px">'+esc(t('bahanMasuk'))+' → <b>'+esc(nama)+'</b></div>';
+}
+
+function muatJob(){
+  $('jobList').innerHTML = '<div class="load">…</div>';
+  panggil('daftarPekerjaanBerjalan',[S.ident]).then(function(rows){
+    if (!rows.length){
+      $('jobList').innerHTML = '<div class="empty"><span class="g">⚙️</span>'+esc(t('kosongJob'))+'</div>';
+      return;
+    }
+    $('jobList').innerHTML = rows.map(function(j){
+      var lain = j.jumlahBahan > 1 ? ' +' + (j.jumlahBahan-1) + ' ' + t('bahanLain') : '';
+      return '<div class="job" onclick="bukaTutupJob(\''+esc(j.id)+'\')">' +
+        '<div style="display:flex;align-items:flex-start;gap:12px">' +
+          '<div style="flex:1;min-width:0">' +
+            '<b style="display:block;font-size:16px;line-height:1.25">'+esc(j.produk)+'</b>' +
+            '<div class="m">'+esc(j.bahanUtama)+esc(lain)+'</div>' +
+          '</div>' +
+          '<div style="text-align:right;flex:0 0 auto">' +
+            '<div class="big" style="font-size:26px">'+n2(j.totalKg)+'<span class="u">kg</span></div>' +
+            '<div class="m" style="margin-top:1px">'+esc(t('bahanMasuk'))+'</div>' +
+          '</div>' +
+        '</div>' +
+        (j.hpp ? '<div class="hpp"><span class="big2">'+rp(j.hpp.total)+'</span> '+esc(t('hppSejauhIni'))+
+                 ' · '+esc(t('hppBahan'))+' '+rp(j.hpp.bahan)+' + '+esc(t('hppProses'))+' '+rp(j.hpp.proses)+'</div>' : '') +
+        '<div class="bb" style="display:flex;align-items:center;gap:8px">' +
+          '<span>'+esc(j.mulai)+' · '+n2(j.jamJalan)+' '+esc(t('jamJalan'))+' · '+esc(j.operator)+'</span>' +
+          '<span style="margin-left:auto" class="pill n">'+esc(t('tutupJob'))+' →</span>' +
+        '</div>' +
+      '</div>';
+    }).join('');
+  }).catch(function(e){ $('jobList').innerHTML = '<div class="banner bad">'+esc(e.message)+'</div>'; });
+}
+
+function mulaiJobUI(){
+  var bahan = ambilBaris('job');
+  if (!$('jobProduk').value){ toast(t('lblProduk'),'bad'); return; }
+  if (!bahan.length){ toast(t('wajibItem'),'bad'); return; }
+  var b = $('btnMulaiJob'); sibuk(b, true);
+  panggil('mulaiPekerjaan', [{
+    kodeProduk: $('jobProduk').value, bahanBaku: bahan,
+    foto: S.foto.job, ident: S.ident
+  }]).then(function(r){
+    sibuk(b,false,t('btnMulaiJob'));
+    toast(t('tersimpan')+' · '+esc(r.produk)+' '+kg(r.totalKg),'ok');
+    S.baris.job = [{kode:'',qty:''}]; S.foto.job = null; hapusFoto('job');
+    $('jobProduk').value='';
+    segJob('list'); muatKonteks(true);
+  }).catch(function(e){ sibuk(b,false,t('btnMulaiJob')); toast(e.message,'bad'); });
+}
+
+function bukaTutupJob(id){
+  panggil('daftarPekerjaanBerjalan',[S.ident]).then(function(rows){
+    var j = null;
+    rows.forEach(function(r){ if (r.id === id) j = r; });
+    if (!j) return;
+    S.jobAktif = j;
+    S.baris.finJadi  = [{ kode:j.kodeProduk, qty:'' }];
+    $('finScrapKg').value = '';
+    $('finScrapHint').textContent = t('scrapHint');
+    S.foto.fin = null; hapusFoto('fin');
+    $('finCatatan').value = '';
+    $('jobFinHead').innerHTML =
+      '<div class="jobhead">' +
+        '<div class="p">'+esc(j.produk)+'</div>' +
+        '<div class="bigrow" style="margin-top:5px"><span class="big">'+n2(j.totalKg)+'<span class="u">kg</span></span>' +
+          '<span style="font-size:12.5px;color:#3f6f6a">'+esc(t('bahanMasuk'))+'</span></div>' +
+        '<div class="k">' + j.bahan.map(function(b){ return esc(b.nama)+' '+n2(b.qty)+' kg'; }).join(' · ') + '</div>' +
+      '</div>';
+    gambarBaris('finJadi');
+    hitungPreviewSusut();
+    $('jobList').classList.add('hide'); $('jobNew').classList.add('hide');
+    $('jobHasil').classList.add('hide');
+    $('jobFinish').classList.remove('hide');
+    window.scrollTo(0,0);
+  });
+}
+
+function hitungPreviewSusut(){
+  if (!S.jobAktif) return;
+  var masuk = S.jobAktif.totalKg;
+  var jadi = totalBaris('finJadi'), scrap = parseFloat($('finScrapKg').value) || 0;
+  var susut = masuk - jadi - scrap;
+  var persen = masuk > 0 ? (susut/masuk)*100 : 0;
+  var batas = S.jobAktif.batas || 4.5;
+  var kelas = 'banner ok', label = t('susutNormal');
+  if (persen < 0){ kelas = 'banner bad'; label = t('susutAnomali'); }
+  else if (persen > batas){ kelas = 'banner warn'; label = t('susutTinggi'); }
+
+  /* susutnya dari bahan apa — proporsional terhadap kg masuk */
+  var rincian = '';
+  if (susut > 0 && S.jobAktif.bahan.length > 1){
+    rincian = '<div style="margin-top:8px;padding-top:8px;border-top:1px dashed rgba(0,0,0,.15);font-size:12px">' +
+      S.jobAktif.bahan.map(function(b){
+        return esc(b.nama)+' <b>'+n2(susut * (b.qty/masuk))+' kg</b>';
+      }).join(' · ') + '</div>';
+  }
+
+  $('susutPreview').className = kelas;
+  $('susutPreview').innerHTML =
+    '<div class="bigrow"><span class="big" style="font-size:26px">'+n2(susut)+'<span class="u">kg</span></span>' +
+    '<span style="font-size:15px;font-weight:700">'+n2(persen)+'%</span>' +
+    '<span style="margin-left:auto;font-size:11.5px;font-weight:700">'+esc(label)+'</span></div>' +
+    '<div style="font-size:12px;margin-top:4px;opacity:.85">' +
+      n2(masuk)+' − '+n2(jadi)+' − '+n2(scrap)+' = '+n2(susut)+' kg · '+esc(t('batasNormal'))+' '+n2(batas)+'%</div>' +
+    rincian;
+}
+
+function tutupJobUI(){
+  var jadi = ambilBaris('finJadi');
+  if (!jadi.length){ toast(t('wajibItem'),'bad'); return; }
+  var b = $('btnTutupJob'); sibuk(b, true);
+  panggil('selesaikanPekerjaan', [{
+    id: S.jobAktif.id, barangJadi: jadi, scrapKg: parseFloat($('finScrapKg').value) || 0,
+    catatan: $('finCatatan').value, foto: S.foto.fin, ident: S.ident
+  }]).then(function(r){
+    sibuk(b,false,t('btnTutupJob'));
+    tampilHasilJob(r);
+    S.jobAktif = null; muatKonteks(true);
+  }).catch(function(e){ sibuk(b,false,t('btnTutupJob')); toast(e.message,'bad'); });
+}
+
+function tampilHasilJob(r){
+  var norm = r.status === 'NORMAL';
+  var warna = norm ? 'var(--ok)' : 'var(--danger)';
+  var rincian = (r.rincian && r.rincian.length) ?
+    '<h3 class="sec" style="margin-top:16px">'+esc(t('susutDari'))+'</h3>' +
+    r.rincian.map(function(x){
+      var lebar = r.susut > 0 ? Math.max(2, (x.susut / r.susut) * 100) : 0;
+      return '<div class="listrow"><div style="display:flex;align-items:baseline;gap:9px">' +
+        '<b style="flex:1;font-size:13.5px">'+esc(x.nama)+'</b>' +
+        '<span style="font-weight:700;font-variant-numeric:tabular-nums;color:'+warna+'">'+n2(x.susut)+' kg</span></div>' +
+        '<div class="bar"><i style="width:'+lebar+'%;background:'+warna+'"></i></div>' +
+        '<div style="font-size:11.5px;color:var(--muted)">'+n2(x.masuk)+' kg '+esc(t('dari'))+' '+n2(r.masuk)+' kg ('+n2(x.porsi)+'%)</div>' +
+      '</div>';
+    }).join('') : '';
+
+  $('jobHasil').innerHTML = '<div class="card">' +
+    '<h2>'+esc(t('tutupBerhasil'))+'</h2><div class="sub">'+esc(r.produk)+'</div>' +
+    '<div class="bigrow"><span class="big" style="color:'+warna+'">'+n2(r.susut)+'<span class="u">kg</span></span>' +
+      '<span style="font-size:17px;font-weight:700;color:'+warna+'">'+n2(r.persen)+'%</span>' +
+      '<span style="margin-left:auto">'+pillSusut(r.status)+'</span></div>' +
+    '<div class="bar"><i style="width:'+Math.max(2,Math.min(100,(r.persen/Math.max(r.batas*2,.1))*100))+'%;background:'+warna+'"></i><u style="left:50%"></u></div>' +
+    '<div style="font-size:12px;color:var(--muted)">'+
+      esc(t('bahanMasuk'))+' '+n2(r.masuk)+' − '+esc(t('barangJadi'))+' '+n2(r.jadi)+' − '+esc(t('scrap'))+' '+n2(r.scrap)+
+      ' = '+n2(r.susut)+' kg · '+esc(t('batasNormal'))+' '+n2(r.batas)+'%</div>' +
+    rincian +
+    (r.hpp ? '<h3 class="sec" style="margin-top:16px">'+esc(t('hpp'))+'</h3>' +
+      '<div class="tot" style="margin-bottom:0">' +
+        '<div class="wide"><div class="n" style="font-size:24px">'+rp(r.hpp.perKg)+'<span style="font-size:12px;color:var(--muted)"> / kg</span></div><div class="l">'+esc(t('hppPerKg'))+'</div></div>' +
+        '<div><div class="n" style="font-size:16px">'+rp(r.hpp.total)+'</div><div class="l">'+esc(t('hppTotal'))+'</div></div>' +
+        '<div><div class="n" style="font-size:16px;color:var(--danger)">'+rp(r.hpp.nilaiSusut)+'</div><div class="l">'+esc(t('nilaiSusut'))+'</div></div>' +
+      '</div>' : '') +
+    '<button class="btn" style="margin-top:16px" onclick="segJob(\'list\')">'+esc(t('selesai'))+'</button>' +
+  '</div>';
+  $('jobFinish').classList.add('hide');
+  $('jobList').classList.add('hide');
+  $('jobHasil').classList.remove('hide');
+  window.scrollTo(0,0);
+}
+
+
+/* =================================================================
+   RIWAYAT INPUT & EDIT ENTRI
+   ================================================================= */
+function jenisRiwayat(k){
+  if (k === 'trf') return S.arah === 'GBJ_KE_GP' ? 'TRF_KE_GP' : 'TRF_KE_GBJ';
+  return S.modeExt;   // BELI_MASUK | BELI_RETUR | JUAL_KELUAR | JUAL_RETUR
+}
+function muatRiwayat(k){
+  var el = $(k+'Riwayat'), sub = $(k+'RiwayatSub'); if (!el) return;
+  if (sub) sub.textContent = t('riwayatSub');
+  el.innerHTML = '<div class="load">…</div>';
+  panggil('riwayatInput',[jenisRiwayat(k), 14, S.ident]).then(function(rows){
+    if (!rows.length){ el.innerHTML = '<div style="font-size:12.5px;color:var(--muted);padding:6px 0">'+esc(t('riwayatKosong'))+'</div>'; return; }
+    el.innerHTML = rows.map(function(r){
+      var sub2 = [r.partner, r.noSuratJalan, r.waktu, r.pencatat].filter(Boolean).map(esc).join(' · ');
+      var tombol = r.bolehEdit
+        ? '<button class="btn sec xs" onclick="bukaEdit(\''+esc(r.id)+'\')">✎ '+esc(t('ubah'))+'</button>'
+        : '<span class="pill n" title="'+esc(t('terkunciHint'))+'">🔒 '+esc(t('terkunci'))+'</span>';
+      return '<div class="hist">' +
+        '<span class="hq">'+n2(r.qty)+' kg</span>' +
+        '<span class="hx"><b>'+esc(r.item)+'</b><small>'+sub2+(r.logEdit?' · <i>'+esc(t('diubah'))+'</i>':'')+'</small></span>' +
+        '<span class="hb">'+pillStatus(r.status)+tombol+'</span>' +
+      '</div>';
+    }).join('');
+  }).catch(function(e){ el.innerHTML = '<div class="banner bad">'+esc(e.message)+'</div>'; });
+}
+
+function bukaEdit(id){
+  panggil('ambilEntri',[id, S.ident]).then(function(r){
+    S.edit = r;
+    var beli = r.sheet === 'Penerimaan', jual = r.sheet === 'Pengiriman', trf = r.sheet === 'Transfer';
+    $('editSub').textContent = r.waktu + ' · ' + r.pencatat + ' · ' + r.status;
+    // partner
+    $('editPartnerWrap').classList.toggle('hide', trf);
+    if (!trf){
+      $('editPartnerLabel').textContent = jual ? t('lblCustomer') : t('lblSupplier');
+      var daftar = jual ? (S.ctx.customer||[]) : (S.ctx.supplier||[]);
+      $('editPartner').innerHTML = daftar.map(function(p){
+        return '<option value="'+esc(p.nama)+'"'+(p.nama===r.partner?' selected':'')+'>'+esc(p.nama)+'</option>';
+      }).join('');
+      if (r.partner && !daftar.some(function(p){ return p.nama===r.partner; })){
+        $('editPartner').innerHTML += '<option value="'+esc(r.partner)+'" selected>'+esc(r.partner)+'</option>';
+      }
+    }
+    // item
+    $('editKode').innerHTML = S.ctx.items.map(function(i){
+      return '<option value="'+esc(i.kode)+'"'+(i.kode===r.kode?' selected':'')+'>'+esc(i.nama)+'</option>';
+    }).join('');
+    $('editQty').value = r.qty;
+    $('editSJWrap').classList.toggle('hide', trf);
+    $('editSJ').value = r.noSuratJalan || '';
+    $('editCatatan').value = r.catatan || '';
+    var lg = $('editLog');
+    lg.classList.toggle('hide', !r.logEdit);
+    lg.setAttribute('data-judul', t('logJudul'));
+    lg.textContent = r.logEdit || '';
+    $('btnEditBatal').classList.toggle('hide', !r.bolehBatal);
+    $('editWrap').classList.remove('hide');
+  }).catch(function(e){ toast(e.message,'bad'); });
+}
+function tutupEdit(){ $('editWrap').classList.add('hide'); S.edit = null; }
+
+function simpanEditUI(){
+  if (!S.edit) return;
+  var b = $('btnEditSimpan'); sibuk(b, true);
+  var perubahan = { kode: $('editKode').value, qty: parseFloat($('editQty').value), catatan: $('editCatatan').value };
+  if (S.edit.sheet !== 'Transfer'){ perubahan.partner = $('editPartner').value; perubahan.noSuratJalan = $('editSJ').value; }
+  panggil('simpanEditEntri',[S.edit.id, perubahan, S.ident]).then(function(r){
+    sibuk(b,false,t('simpanPerubahan'));
+    toast(r.berubah ? t('tersimpanEdit') : t('tanpaPerubahan'), r.berubah ? 'ok' : '');
+    tutupEdit();
+    if (S.view==='beli') muatRiwayat('rcv');
+    if (S.view==='transfer') muatRiwayat('trf');
+    if (S.view==='review') muatReview();
+    muatKonteks(true);
+  }).catch(function(e){ sibuk(b,false,t('simpanPerubahan')); toast(e.message,'bad'); });
+}
+
+function batalkanEntriUI(){
+  if (!S.edit) return;
+  if (!window.confirm(t('konfirmBatal'))) return;
+  var alasan = window.prompt(t('alasanBatalSendiri')); if (alasan === null) return;
+  panggil('batalkanEntriSendiri',[S.edit.id, alasan || '', S.ident]).then(function(){
+    toast(t('dibatalkan'));
+    tutupEdit();
+    if (S.view==='beli') muatRiwayat('rcv');
+    if (S.view==='transfer') muatRiwayat('trf');
+    if (S.view==='review') muatReview();
+    muatKonteks(true);
+  }).catch(function(e){ toast(e.message,'bad'); });
+}
+
+/* ---------- pekerjaan selesai: daftar & edit ---------- */
+function muatJobSelesai(){
+  $('jobDone').innerHTML = '<div class="load">…</div>';
+  panggil('daftarPekerjaanSelesai',[14, S.ident]).then(function(rows){
+    if (!rows.length){ $('jobDone').innerHTML = '<div class="empty"><span class="g">✅</span>'+esc(t('kosongSelesai'))+'</div>'; return; }
+    $('jobDone').innerHTML = rows.map(function(j){
+      var warna = j.status==='NORMAL' ? 'var(--ok)' : 'var(--danger)';
+      return '<div class="jobdone">' +
+        '<div style="display:flex;align-items:flex-start;gap:10px">' +
+          '<div style="flex:1;min-width:0"><b style="font-size:14.5px">'+esc(j.produk)+'</b>' +
+            '<div class="m" style="font-size:11.5px;color:var(--muted)">'+esc(j.selesai)+' · '+esc(j.operator)+(j.logEdit?' · <i>'+esc(t('diubah'))+'</i>':'')+'</div>' +
+            '<div style="font-size:12px;margin-top:4px;font-variant-numeric:tabular-nums">'+n2(j.masuk)+' → '+n2(j.jadi)+' kg · '+esc(t('scrap'))+' '+n2(j.scrap)+
+              (j.hpp ? ' · <span style="color:#78350f">'+esc(t('hpp'))+' '+rp(j.hpp.perKg)+'/kg</span>' : '')+'</div></div>' +
+          '<div style="text-align:right"><div style="font-size:18px;font-weight:700;color:'+warna+';font-variant-numeric:tabular-nums">'+n2(j.persen)+'%</div>' +
+            pillSusut(j.status)+'</div>' +
+        '</div>' +
+        '<div style="margin-top:8px;display:flex;justify-content:flex-end">' +
+          (j.bolehEdit ? '<button class="btn sec xs" onclick="bukaEditJob(\''+esc(j.id)+'\')">✎ '+esc(t('ubah'))+'</button>'
+                       : '<span class="pill n">🔒 '+esc(t('terkunci'))+'</span>') +
+        '</div></div>';
+    }).join('');
+  }).catch(function(e){ $('jobDone').innerHTML = '<div class="banner bad">'+esc(e.message)+'</div>'; });
+}
+
+function bukaEditJob(id){
+  panggil('ambilPekerjaan',[id, S.ident]).then(function(j){
+    S.edJob = j;
+    $('jobEditSub').textContent = j.produk + ' · ' + j.status;
+    var sel = $('edProduk');
+    sel.innerHTML = itemsFilter('jadi').map(function(i){
+      return '<option value="'+esc(i.kode)+'"'+(i.kode===j.kodeProduk?' selected':'')+'>'+esc(i.nama)+'</option>'; }).join('');
+    S.baris.edBahan = j.bahanBaku.length ? j.bahanBaku.map(function(b){ return {kode:b.kode, qty:b.qty}; }) : [{kode:'',qty:''}];
+    S.baris.edJadi  = j.barangJadi.length ? j.barangJadi.map(function(b){ return {kode:b.kode, qty:b.qty}; }) : [{kode:j.kodeProduk,qty:''}];
+    $('edScrapKg').value = j.scrapKg || '';
+    $('edKeluar').classList.toggle('hide', j.status !== 'SELESAI');
+    $('edCatatan').value = j.catatan || '';
+    var lg = $('edLog'); lg.classList.toggle('hide', !j.logEdit); lg.setAttribute('data-judul', t('logJudul')); lg.textContent = j.logEdit || '';
+    gambarBaris('edBahan'); gambarBaris('edJadi');
+    previewEditJob();
+    $('jobList').classList.add('hide'); $('jobNew').classList.add('hide'); $('jobDone').classList.add('hide');
+    $('jobFinish').classList.add('hide'); $('jobHasil').classList.add('hide');
+    $('jobEdit').classList.remove('hide');
+    window.scrollTo(0,0);
+  }).catch(function(e){ toast(e.message,'bad'); });
+}
+
+function previewEditJob(){
+  var el = $('edSusutPreview'); if (!el || !S.edJob || S.edJob.status !== 'SELESAI') return;
+  var masuk = totalBaris('edBahan'), jadi = totalBaris('edJadi'), scrap = parseFloat($('edScrapKg').value) || 0;
+  var susut = masuk - jadi - scrap, persen = masuk > 0 ? susut/masuk*100 : 0;
+  var kelas = persen < 0 ? 'banner bad' : 'banner ok';
+  el.className = kelas;
+  el.innerHTML = '<b>'+esc(t('perkiraanSusut'))+': '+n2(susut)+' kg ('+n2(persen)+'%)</b>' +
+    '<div style="font-size:12px;margin-top:3px;opacity:.85">'+n2(masuk)+' − '+n2(jadi)+' − '+n2(scrap)+' = '+n2(susut)+' kg</div>';
+}
+
+function simpanEditJobUI(){
+  if (!S.edJob) return;
+  var bahan = ambilBaris('edBahan');
+  if (!bahan.length){ toast(t('wajibItem'),'bad'); return; }
+  var b = $('btnEdSimpan'); sibuk(b, true);
+  panggil('simpanEditPekerjaan',[S.edJob.id, {
+    kodeProduk: $('edProduk').value, bahanBaku: bahan,
+    barangJadi: ambilBaris('edJadi'), scrapKg: parseFloat($('edScrapKg').value) || 0,
+    catatan: $('edCatatan').value
+  }, S.ident]).then(function(r){
+    sibuk(b,false,t('simpanPerubahan'));
+    toast(t('hitungUlang') + (r.persen!==undefined ? ' · '+n2(r.persen)+'%' : ''), r.status && r.status!=='NORMAL' ? 'bad' : 'ok');
+    S.edJob = null;
+    segJob('done'); muatKonteks(true);
+  }).catch(function(e){ sibuk(b,false,t('simpanPerubahan')); toast(e.message,'bad'); });
+}
+
+
+/* =================================================================
+   ADMIN
+   ================================================================= */
+function segAdm(tab){
+  S.admTab = tab;
+  ['opname','sku','akt','user'].forEach(function(x){
+    var id = 'segAdm' + x.charAt(0).toUpperCase() + x.slice(1);
+    var el = $(id); if (el) el.classList.toggle('on', x===tab);
+  });
+  $('admBody').innerHTML = '<div class="load">…</div>';
+  if (tab==='opname') admOpname();
+  if (tab==='sku')    admSku();
+  if (tab==='akt')    admAkt();
+  if (tab==='user')   admUser();
+}
+
+/* ---------- opname ---------- */
+function admOpname(lokasi){
+  lokasi = lokasi || (S.opname && S.opname.lokasi) || 'GBJ';
+  panggil('siapkanOpname',[lokasi, S.ident]).then(function(d){
+    S.opname = { lokasi:d.lokasi, items:d.items, fisik:{} };
+    var h = '<div class="card">' +
+      '<h2>'+esc(t('opT'))+'</h2><div class="sub">'+esc(t('opS'))+'</div>' +
+      '<div class="seg" style="margin-bottom:10px">' +
+        '<button class="'+(d.lokasi==='GBJ'?'on':'')+'" onclick="admOpname(\'GBJ\')">GBJ</button>' +
+        '<button class="'+(d.lokasi==='GP'?'on':'')+'" onclick="admOpname(\'GP\')">GP</button></div>' +
+      '<div class="ophead"><span>'+esc(t('opItem'))+'</span><span>'+esc(t('opSistem'))+'</span><span>'+esc(t('opFisik'))+'</span></div>' +
+      d.items.map(function(i, idx){
+        return '<div class="oprow" id="opr-'+idx+'">' +
+          '<div class="nm">'+esc(i.nama)+(i.kategori==='SCRAP'?'<span class="chip scr">scrap</span>':'')+'<small>'+esc(i.kode)+'</small></div>' +
+          '<div class="sys">'+n2(i.sistem)+'</div>' +
+          '<input type="number" inputmode="decimal" step="any" min="0" placeholder="—" oninput="opIsi('+idx+',this.value)"></div>';
+      }).join('') +
+      '<div class="field" style="margin-top:12px"><label>'+esc(t('opCatatan'))+'</label><input id="opCatatan"></div>' +
+      '<div class="banner n" id="opRingkas">'+esc(t('opSemua'))+'</div>' +
+      '<button class="btn ok" id="btnOpSimpan" onclick="simpanOpnameUI()">'+esc(t('opSimpan'))+'</button>' +
+      '<div class="hint" style="margin-top:10px">'+esc(t('opCara'))+'</div>' +
+    '</div>' +
+    '<div class="card"><h2>'+esc(t('opRiwayat'))+'</h2><div id="opRiwayat"><div class="load">…</div></div></div>';
+    $('admBody').innerHTML = h;
+    muatRiwayatOpname();
+  }).catch(function(e){ $('admBody').innerHTML = '<div class="banner bad">'+esc(e.message)+'</div>'; });
+}
+function opIsi(idx, v){
+  var it = S.opname.items[idx];
+  S.opname.fisik[it.kode] = v;
+  var row = $('opr-'+idx);
+  var f = parseFloat(v);
+  row.classList.toggle('diff', !isNaN(f) && Math.abs(f - it.sistem) > 0.001);
+  var n=0, lebih=0, kurang=0;
+  S.opname.items.forEach(function(i){
+    var x = parseFloat(S.opname.fisik[i.kode]); if (isNaN(x)) return;
+    n++; var d = x - i.sistem; if (d>0) lebih+=d; else kurang+=-d;
+  });
+  $('opRingkas').innerHTML = n ? '<b>'+n+'</b> '+esc(t('opRingkas'))+' · <span style="color:var(--ok)">+'+n2(lebih)+' kg '+esc(t('opLebih'))+'</span> · <span style="color:var(--danger)">−'+n2(kurang)+' kg '+esc(t('opKurang'))+'</span>'
+                           : esc(t('opSemua'));
+}
+function simpanOpnameUI(){
+  var baris = S.opname.items.map(function(i){ return { kode:i.kode, fisik: S.opname.fisik[i.kode]===undefined ? '' : S.opname.fisik[i.kode] }; })
+                            .filter(function(b){ return b.fisik !== '' && b.fisik !== null; });
+  if (!baris.length){ toast(t('opSemua'),'bad'); return; }
+  if (!window.confirm(t('opKonfirm'))) return;
+  var b = $('btnOpSimpan'); sibuk(b, true);
+  panggil('simpanOpname',[{ lokasi:S.opname.lokasi, baris:baris, catatan:$('opCatatan').value }, S.ident]).then(function(r){
+    sibuk(b,false,t('opSimpan'));
+    toast(t('opTersimpan')+' · '+r.jumlahItem+' item · +'+n2(r.lebih)+' / −'+n2(r.kurang)+' kg','ok');
+    S.opname = { lokasi:S.opname.lokasi };
+    admOpname(S.opname.lokasi); muatKonteks(true);
+  }).catch(function(e){ sibuk(b,false,t('opSimpan')); toast(e.message,'bad'); });
+}
+function muatRiwayatOpname(){
+  panggil('riwayatOpname',[90, S.ident]).then(function(rows){
+    var el = $('opRiwayat'); if (!el) return;
+    if (!rows.length){ el.innerHTML = '<div style="font-size:12.5px;color:var(--muted)">'+esc(t('opKosong'))+'</div>'; return; }
+    el.innerHTML = rows.map(function(s, i){
+      return '<div class="listrow"><button class="stokrow" onclick="var d=$(\'opd-'+i+'\');d.classList.toggle(\'hide\')">' +
+        '<span class="nm">'+esc(s.waktu)+' · '+esc(s.lokasi)+' · '+esc(s.oleh)+'</span>' +
+        '<span class="vl" style="font-size:13px"><span style="color:var(--ok)">+'+n2(s.lebih)+'</span> / <span style="color:var(--danger)">−'+n2(s.kurang)+'</span></span><span class="cv">▾</span></button>' +
+        '<div class="sub2">'+s.jumlahItem+' '+esc(t('opRingkas'))+'</div>' +
+        '<div class="neraca hide" id="opd-'+i+'"><div class="nblok">' +
+          s.item.map(function(it){
+            var w = it.selisih>0?'var(--ok)':it.selisih<0?'var(--danger)':'var(--muted)';
+            return '<div class="nrow"><span>'+esc(it.nama)+(it.catatan?' <i style="opacity:.7">· '+esc(it.catatan)+'</i>':'')+'</span>' +
+              '<b style="color:'+w+'">'+n2(it.sistem)+' → '+n2(it.fisik)+' ('+(it.selisih>0?'+':'')+n2(it.selisih)+')</b></div>';
+          }).join('') + '</div></div></div>';
+    }).join('');
+  }).catch(function(){});
+}
+
+/* ---------- SKU ---------- */
+function admSku(){
+  panggil('daftarSku',[S.ident]).then(function(rows){
+    S.sku = rows;
+    var h = '<div class="card"><div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">' +
+      '<h2 style="flex:1">'+esc(t('skuT'))+' <span class="chip">'+rows.length+'</span></h2>' +
+      '<button class="btn sec xs" onclick="bukaSku(null)">'+esc(t('skuTambah'))+'</button></div>' +
+      '<div class="sub">'+esc(t('skuHint'))+'</div>' +
+      rows.map(function(r, i){
+        var chips = (r.kategori==='SCRAP'?'<span class="chip scr">'+esc(t('skuScrap'))+'</span>':'') +
+                    (!r.aktif?'<span class="chip off">'+esc(t('skuNonaktif'))+'</span>':'') +
+                    (r.dipakai?'<span class="chip">'+esc(t('skuDipakai'))+'</span>':'');
+        return '<div class="hist"><span class="hx"><b>'+esc(r.nama)+chips+'</b>' +
+          '<small>'+esc(r.kode)+' · '+esc(r.kategori)+(r.harga!==undefined&&r.harga?' · '+rp(r.harga)+'/kg':'')+
+          ((r.awalGBJ||r.awalGP)?' · awal GBJ '+n2(r.awalGBJ)+' / GP '+n2(r.awalGP):'')+'</small></span>' +
+          '<span class="hb"><button class="btn sec xs" onclick="bukaSku('+i+')">✎ '+esc(t('ubah'))+'</button></span></div>';
+      }).join('') + '</div>';
+    $('admBody').innerHTML = h;
+  }).catch(function(e){ $('admBody').innerHTML = '<div class="banner bad">'+esc(e.message)+'</div>'; });
+}
+function bukaSku(i){
+  var r = i===null ? null : S.sku[i];
+  S.skuEdit = r;
+  $('skuJudul').textContent = r ? t('skuUbah') : t('skuBaru');
+  $('skuKode').value = r ? r.kode : ''; $('skuKode').readOnly = !!(r && r.dipakai);
+  $('skuNama').value = r ? r.nama : '';
+  $('skuKat').value = r ? (r.kategori==='SCRAP'?'KEDUANYA':r.kategori) : 'BAHAN_BAKU';
+  $('skuKat').disabled = !!(r && r.kategori==='SCRAP');
+  $('skuHargaWrap').classList.toggle('hide', !lihatHpp());
+  $('skuHarga').value = r && r.harga ? r.harga : '';
+  $('skuAwalGBJ').value = r ? r.awalGBJ : ''; $('skuAwalGP').value = r ? r.awalGP : '';
+  $('skuAktif').checked = r ? r.aktif : true;
+  $('btnSkuHapus').classList.toggle('hide', !r);
+  $('skuWrap').classList.remove('hide');
+}
+function tutupSku(){ $('skuWrap').classList.add('hide'); S.skuEdit = null; }
+function simpanSkuUI(){
+  var r = S.skuEdit;
+  var b = $('btnSkuSimpan'); sibuk(b, true);
+  panggil('simpanSku',[{
+    baris: r ? r.baris : undefined, kode: $('skuKode').value, nama: $('skuNama').value,
+    kategori: (r && r.kategori==='SCRAP') ? 'SCRAP' : $('skuKat').value,
+    harga: lihatHpp() ? $('skuHarga').value : undefined,
+    awalGBJ: $('skuAwalGBJ').value, awalGP: $('skuAwalGP').value, aktif: $('skuAktif').checked
+  }, S.ident]).then(function(){
+    sibuk(b,false,t('simpanPerubahan')); toast(t('skuTersimpan'),'ok'); tutupSku(); admSku(); muatKonteks(true);
+  }).catch(function(e){ sibuk(b,false,t('simpanPerubahan')); toast(e.message,'bad'); });
+}
+function hapusSkuUI(){
+  var r = S.skuEdit; if (!r) return;
+  if (!window.confirm(t('skuHapusKonfirm'))) return;
+  panggil('hapusSku',[r.kode, S.ident]).then(function(res){
+    toast(res.dihapus ? t('skuDihapus') : t('skuDinonaktifkan'), res.dihapus ? 'ok' : '');
+    tutupSku(); admSku(); muatKonteks(true);
+  }).catch(function(e){ toast(e.message,'bad'); });
+}
+
+/* ---------- aktivitas ---------- */
+function admAkt(nama){
+  panggil('aktivitasStaf',[nama || '', 30, S.ident]).then(function(r){
+    var h = '<div class="card"><h2>'+esc(t('aktT'))+'</h2><div class="sub">'+esc(t('aktS'))+'</div>';
+    if (!r.daftar.length){ h += '<div style="font-size:12.5px;color:var(--muted)">'+esc(t('aktKosong'))+'</div></div>'; $('admBody').innerHTML = h; return; }
+    h += r.daftar.map(function(x, i){
+      var jenis = Object.keys(x.jenis).map(function(k){ return esc(t('ev'+k)||k)+' '+x.jenis[k]; }).join(' · ');
+      return '<div class="listrow"><button class="stokrow" onclick="var d=$(\'akt-'+i+'\');d.classList.toggle(\'hide\')">' +
+        '<span class="nm">'+esc(x.nama)+'</span><span class="vl" style="font-size:15px">'+x.total+' '+esc(t('aktInput'))+'</span><span class="cv">▾</span></button>' +
+        '<div class="sub2">'+jenis+' · '+n2(x.kg)+' kg · '+esc(t('aktTerakhir'))+' '+esc(x.terakhirTxt)+'</div>' +
+        '<div class="neraca hide" id="akt-'+i+'">' + x.kejadian.map(function(e){
+          return '<div class="ev"><span class="jm">'+esc(e.waktu)+'</span><span class="tp" style="background:'+warnaEv(e.jenis==='JOB'?'JOB_MULAI':e.jenis)+'"></span>' +
+            '<span class="tx"><b>'+esc(t('ev'+(e.jenis==='JOB'?'JOB_MULAI':e.jenis))||e.jenis)+'</b><small>'+esc(e.label)+'</small></span><span class="q">'+n2(e.kg)+' kg</span></div>';
+        }).join('') + '</div></div>';
+    }).join('') + '</div>';
+    $('admBody').innerHTML = h;
+  }).catch(function(e){ $('admBody').innerHTML = '<div class="banner bad">'+esc(e.message)+'</div>'; });
+}
+
+/* ---------- pengguna (ADMIN) ---------- */
+function admUser(){
+  panggil('daftarPengguna',[S.ident]).then(function(rows){
+    S.users = rows;
+    var h = '<div class="card"><div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">' +
+      '<h2 style="flex:1">'+esc(t('userT'))+' <span class="chip">'+rows.length+'</span></h2>' +
+      '<button class="btn sec xs" onclick="bukaUser(null)">'+esc(t('userTambah'))+'</button></div>' +
+      '<div class="sub">'+esc(t('userHint'))+'</div>' +
+      rows.map(function(r, i){
+        var pr = r.peran==='ADMIN' ? '<span class="pill adm">ADMIN</span>' : r.peran==='SUPERVISOR' ? '<span class="pill spv">SUPERVISOR</span>' : '<span class="pill n">STAF</span>';
+        return '<div class="userrow"><div class="av">'+esc(r.nama.slice(0,2).toUpperCase())+'</div>' +
+          '<div class="nm"><b>'+esc(r.nama)+(!r.aktif?' <span class="chip off">'+esc(t('skuNonaktif'))+'</span>':'')+'</b>' +
+          '<small>'+(r.lokasi?esc(r.lokasi)+' · ':'')+(r.punyaPin?'🔑 '+esc(t('userPunyaPin')):'<span style="color:var(--danger)">'+esc(t('userTanpaPin'))+'</span>')+(r.email?' · '+esc(r.email):'')+'</small></div>' +
+          pr + '<button class="btn sec xs" onclick="bukaUser('+i+')">✎</button></div>';
+      }).join('') + '</div>';
+    $('admBody').innerHTML = h;
+  }).catch(function(e){ $('admBody').innerHTML = '<div class="banner bad">'+esc(e.message)+'</div>'; });
+}
+function bukaUser(i){
+  var r = i===null ? null : S.users[i];
+  S.userEdit = r;
+  $('userJudul').textContent = r ? t('userUbah') : t('userBaru');
+  $('userNama').value = r ? r.nama : ''; $('userPeran').value = r ? r.peran : 'STAF';
+  $('userLokasi').value = r ? r.lokasi : ''; $('userEmail').value = r ? r.email : '';
+  $('userPin').value = ''; $('userPinHint').textContent = r ? t('userPinHintUbah') : t('userPinHintBaru');
+  $('userAktif').checked = r ? r.aktif : true;
+  $('userWrap').classList.remove('hide');
+}
+function tutupUser(){ $('userWrap').classList.add('hide'); S.userEdit = null; }
+function simpanUserUI(){
+  var r = S.userEdit;
+  var pin = $('userPin').value.trim();
+  if (!r && !pin){ toast(t('userPinHintBaru'),'bad'); return; }
+  var b = $('btnUserSimpan'); sibuk(b, true);
+  panggil('simpanPengguna',[{
+    baris: r ? r.baris : undefined, nama: $('userNama').value, peran: $('userPeran').value,
+    lokasi: $('userLokasi').value, email: $('userEmail').value,
+    pin: pin || undefined, aktif: $('userAktif').checked
+  }, S.ident]).then(function(){
+    sibuk(b,false,t('simpanPerubahan')); toast(t('userTersimpan'),'ok'); tutupUser(); admUser();
+  }).catch(function(e){ sibuk(b,false,t('simpanPerubahan')); toast(e.message,'bad'); });
+}
+
+/* =================================================================
+   ANTRIAN REVIEW
+   ================================================================= */
+function segRev(tab){
+  S.revTab = tab;
+  $('segRevMenunggu').classList.toggle('on', tab==='MENUNGGU');
+  $('segRevDitandai').classList.toggle('on', tab==='DITANDAI');
+  muatReview();
+}
+function muatReview(){
+  var arsip = S.revTab === 'DITANDAI';
+  $('revHint').textContent = arsip ? t('hintDitandai') : t('hintMenunggu');
+  $('revList').innerHTML = '<div class="load">…</div>';
+  panggil('antrianReview',[S.ident, S.revTab]).then(function(rows){
+    if (!rows.length){
+      $('revList').innerHTML = '<div class="empty"><span class="g">'+(arsip?'🗂️':'✅')+'</span>'+esc(arsip?t('kosongDitandai'):t('kosongRev'))+'</div>';
+      return;
+    }
+    $('revList').innerHTML = rows.map(function(r){
+      var src = (r.foto && r.foto.indexOf('data:') === 0) ? r.foto
+              : (r.fotoId ? 'https://drive.google.com/thumbnail?id='+r.fotoId+'&sz=w1000' : '');
+      var img = src ? '<img class="ph" src="'+esc(src)+'" onerror="this.style.display=\'none\'">' : '';
+      var ocr = '';
+      if (r.qtyOcr != null){
+        var cocok = Math.abs(r.selisih == null ? 0 : r.selisih) < 0.001;
+        ocr = '<div class="kv"><span>OCR</span><b>'+n2(r.qtyOcr)+' kg</b></div>' +
+              '<div class="kv"><span>'+esc(cocok ? t('ocrCocok') : t('ocrBeda'))+'</span>' +
+              '<b style="color:'+(cocok?'var(--ok)':'var(--danger)')+'">' +
+              (cocok ? '✓' : (r.selisih>0?'+':'')+n2(r.selisih)+' kg') + '</b></div>';
+      }
+      var tag = r.jenis === 'RETUR' ? '<span class="pill bad">RETUR</span>'
+              : r.jenis === 'RETUR_MASUK' ? '<span class="pill warn">RETUR CUST</span>'
+              : r.jenis === 'KELUAR' ? '<span class="pill warn">KELUAR</span>'
+              : r.sumber === 'PENERIMAAN' ? '<span class="pill ok">MASUK</span>'
+              : '<span class="pill n">'+esc(r.label)+'</span>';
+      return '<div class="rev" id="rev-'+esc(r.id)+'">' + img +
+        '<div class="body">' +
+          '<div style="display:flex;align-items:flex-start;gap:10px">' +
+            '<div style="flex:1">' +
+              '<div class="qty">'+n2(r.qty)+' <span style="font-size:14px;font-weight:600;color:var(--muted)">kg</span></div>' +
+              '<div style="font-weight:600;font-size:13.5px;margin-top:2px">'+esc(r.item)+'</div>' +
+              '<div class="meta">'+(r.sumber!=='TRANSFER' ? esc(r.label)+' · ' : '')+esc(r.waktu)+' · '+esc(r.pencatat)+'</div>' +
+            '</div>' + tag +
+          '</div>' + ocr +
+          (r.noSuratJalan ? '<div class="kv"><span>'+esc(t('thSJ'))+'</span><b>'+esc(r.noSuratJalan)+'</b></div>' : '') +
+          (r.catatan ? '<div class="kv"><span>'+esc(t('lblCatatan'))+'</span><b>'+esc(r.catatan)+'</b></div>' : '') +
+          (r.catatanTinjau ? '<div class="kv"><span>'+esc(t('catatanTinjau'))+'</span><b>'+esc(r.catatanTinjau)+'</b></div>' : '') +
+          '<div style="margin-top:9px;display:flex;justify-content:flex-end"><button class="btn sec xs" onclick="bukaEdit(\''+esc(r.id)+'\')">✎ '+esc(t('ubah'))+'</button></div>' +
+          '<div class="btnrow" style="margin-top:8px">' +
+            '<button class="btn ghost" onclick="tinjau(\''+esc(r.id)+'\',\'batal\')">✕ '+esc(t('batal'))+'</button>' +
+            (arsip ? '' : '<button class="btn warn" onclick="tinjau(\''+esc(r.id)+'\',\'tandai\')">⚑ '+esc(t('tandai'))+'</button>') +
+            '<button class="btn ok" onclick="tinjau(\''+esc(r.id)+'\',\'setuju\')">✓ '+esc(t('setuju'))+'</button>' +
+          '</div>' +
+        '</div></div>';
+    }).join('');
+  }).catch(function(e){ $('revList').innerHTML = '<div class="banner bad">'+esc(e.message)+'</div>'; });
+}
+
+function tinjau(id, aksi){
+  var catatan = '';
+  if (aksi === 'tandai'){ catatan = window.prompt(t('alasanTandai')); if (catatan === null) return; }
+  if (aksi === 'batal'){  catatan = window.prompt(t('alasanBatal'));  if (catatan === null) return; }
+  var card = $('rev-'+id);
+  if (card) card.style.opacity = .45;
+  panggil('tinjauTransfer', [id, aksi, catatan || '', S.ident]).then(function(){
+    if (card) card.remove();
+    toast(aksi==='setuju' ? t('disetujui') : aksi==='batal' ? t('dibatalkan') : t('ditandai'),
+          aksi==='setuju' ? 'ok' : '');
+    muatKonteks(true);
+    if (!document.querySelectorAll('.rev').length) muatReview();
+  }).catch(function(e){
+    if (card) card.style.opacity = 1;
+    toast(e.message,'bad');
+  });
+}
+
+/* =================================================================
+   LAPORAN
+   ================================================================= */
+function segRep(tab){
+  S.repTab = tab;
+  ['susut','stok','beli','jual','trf','hpp'].forEach(function(x){
+    var id = 'segRep' + x.charAt(0).toUpperCase() + x.slice(1);
+    var el = $(id); if (el) el.classList.toggle('on', x===tab);
+  });
+  $('repBody').innerHTML = '<div class="load">…</div>';
+  if (tab==='susut') repSusut();
+  if (tab==='stok')  repStok();
+  if (tab==='beli')  repBeli();
+  if (tab==='jual')  repJual();
+  if (tab==='hpp')   repHpp();
+  if (tab==='trf')   repTrf();
+}
+
+function pillSusut(st){
+  if (st==='NORMAL')  return '<span class="pill ok">NORMAL</span>';
+  if (st==='TINGGI')  return '<span class="pill bad">'+esc(t('susutTinggi'))+'</span>';
+  if (st==='ANOMALI') return '<span class="pill bad">ANOMALI</span>';
+  return '<span class="pill n">'+esc(st||'—')+'</span>';
+}
+
+function repSusut(){
+  panggil('laporanSusut',[30, S.ident]).then(function(r){
+    if (!r.total.jobs){
+      $('repBody').innerHTML = '<div class="empty"><span class="g">📊</span>'+esc(t('kosongData'))+'</div>'; return;
+    }
+    var tot = r.total;
+    var h = '<div class="tot">' +
+      '<div class="wide"><div class="n" style="font-size:32px;color:var(--danger)">'+n2(tot.susut)+' <span style="font-size:15px;color:var(--muted)">kg</span></div>' +
+        '<div class="l">'+esc(t('totalSusut'))+' · 30 '+esc(t('hariTerakhir'))+' · '+n2(tot.persen)+'% '+esc(t('dari'))+' '+n2(tot.masuk)+' kg</div></div>' +
+      '<div><div class="n">'+n2(tot.jadi)+'</div><div class="l">'+esc(t('barangJadi'))+' (kg)</div></div>' +
+      '<div><div class="n">'+n2(tot.scrap)+'</div><div class="l">'+esc(t('scrap'))+' (kg)</div></div>' +
+      '<div><div class="n">'+tot.jobs+'</div><div class="l">'+esc(t('jobs'))+'</div></div>' +
+      '<div><div class="n" style="color:'+(tot.jobTinggi?'var(--danger)':'inherit')+'">'+tot.jobTinggi+'</div><div class="l">'+esc(t('jobDiflag'))+'</div></div>' +
+    '</div>';
+
+    /* --- susutnya dari bahan apa --- */
+    h += '<div class="card"><h2>'+esc(t('susutDari'))+'</h2><div class="sub">'+esc(t('susutDariHint'))+'</div>' +
+      r.perBahan.map(function(b){
+        var lebar = Math.max(2, b.porsiDariTotal);
+        return '<div class="listrow">' +
+          '<div style="display:flex;align-items:baseline;gap:9px">' +
+            '<b style="flex:1;font-size:14px">'+esc(b.nama)+'</b>' +
+            '<span style="font-size:18px;font-weight:700;font-variant-numeric:tabular-nums">'+n2(b.susut)+' kg</span></div>' +
+          '<div class="bar"><i style="width:'+lebar+'%;background:var(--primary)"></i></div>' +
+          '<div style="font-size:11.5px;color:var(--muted);font-variant-numeric:tabular-nums">' +
+            n2(b.porsiDariTotal)+'% '+esc(t('dari'))+' '+esc(t('totalSusut')).toLowerCase()+' · '+
+            n2(b.susut)+' kg '+esc(t('dari'))+' '+n2(b.masuk)+' '+esc(t('kgMasuk'))+' ('+n2(b.persen)+'%) · '+
+            b.jobs+' '+esc(t('jobs'))+'</div>' +
+        '</div>';
+      }).join('') + '</div>';
+
+    /* --- per produk --- */
+    h += '<div class="card"><h2>'+esc(t('perProduk'))+'</h2>' +
+      r.perProduk.map(function(p){
+        var over = p.persen > p.batas;
+        var warna = over ? 'var(--danger)' : 'var(--ok)';
+        var lebar = Math.max(2, Math.min(100, (p.persen / Math.max(p.batas*2, .1)) * 100));
+        return '<div class="listrow">' +
+          '<div style="display:flex;align-items:baseline;gap:9px">' +
+            '<b style="flex:1;font-size:14px">'+esc(p.nama)+'</b>' +
+            '<span style="font-size:19px;font-weight:700;font-variant-numeric:tabular-nums;color:'+warna+'">'+n2(p.persen)+'%</span>' +
+            (over ? '<span class="pill bad">'+esc(t('susutTinggi'))+'</span>' : '') +
+          '</div>' +
+          '<div class="bar"><i style="width:'+lebar+'%;background:'+warna+'"></i><u style="left:50%"></u></div>' +
+          '<div style="font-size:11.5px;color:var(--muted);font-variant-numeric:tabular-nums">' +
+            p.jobs+' '+esc(t('jobs'))+' · '+n2(p.masuk)+' kg '+esc(t('thMasuk'))+' · '+n2(p.susut)+' kg '+esc(t('susut'))+
+            ' · '+esc(t('batasNormal'))+' '+n2(p.batas)+'%</div>' +
+        '</div>';
+      }).join('') + '</div>';
+
+    /* --- detail --- */
+    h += '<div class="card"><h2>'+esc(t('detailJob'))+'</h2><div class="sub">'+esc(t('geserTabel'))+'</div>' +
+      '<div class="tblwrap"><table><tr><th>'+esc(t('thTanggal'))+'</th><th class="num">'+esc(t('thSusut'))+'</th><th class="num">%</th>' +
+      '<th>'+esc(t('thStatus'))+'</th><th>'+esc(t('thProduk'))+'</th><th class="num">'+esc(t('thMasuk'))+'</th>' +
+      '<th class="num">'+esc(t('thJadi'))+'</th><th class="num">'+esc(t('thScrap'))+'</th><th>'+esc(t('thOperator'))+'</th></tr>' +
+      r.detail.map(function(d){
+        var over = d.status !== 'NORMAL';
+        return '<tr><td>'+esc(d.tanggal)+'</td>' +
+          '<td class="num" style="font-weight:700">'+n2(d.susut)+'</td>' +
+          '<td class="num" style="font-weight:700;color:'+(over?'var(--danger)':'var(--ok)')+'">'+n2(d.persen)+'%</td>' +
+          '<td>'+pillSusut(d.status)+'</td><td>'+esc(d.produk)+'</td>' +
+          '<td class="num">'+n2(d.masuk)+'</td><td class="num">'+n2(d.jadi)+'</td><td class="num">'+n2(d.scrap)+'</td>' +
+          '<td>'+esc(d.operator)+'</td></tr>';
+      }).join('') + '</table></div></div>';
+
+    $('repBody').innerHTML = h;
+  }).catch(function(e){ $('repBody').innerHTML = '<div class="banner bad">'+esc(e.message)+'</div>'; });
+}
+
+function repStok(){
+  panggil('laporanStok',[S.ident]).then(function(r){
+    if (!r.daftar.length){
+      $('repBody').innerHTML = '<div class="empty"><span class="g">📦</span>'+esc(t('kosongData'))+'</div>'; return;
+    }
+    STOK_CACHE = {};
+    r.daftar.forEach(function(s){ STOK_CACHE[s.kode] = s; });
+
+    var h = '<div class="tot">' +
+      '<div class="wide"><div class="n" style="font-size:32px">'+n2(r.total.total)+' <span style="font-size:15px;color:var(--muted)">kg</span></div>' +
+        '<div class="l">'+esc(t('nrTotal'))+'</div></div>' +
+      '<div><div class="n">'+n2(r.total.gbj)+'</div><div class="l">'+esc(t('stokGBJ'))+' (kg)</div></div>' +
+      '<div><div class="n">'+n2(r.total.gp)+'</div><div class="l">'+esc(t('stokGP'))+' (kg)</div></div>' +
+      '<div><div class="n" style="color:var(--ok)">'+n2(r.total.beli)+'</div><div class="l">'+esc(t('totalMasuk'))+' (kg)</div></div>' +
+      '<div><div class="n" style="color:var(--warn)">'+n2(r.total.jual)+'</div><div class="l">'+esc(t('totalKeluar'))+' (kg)</div></div>' +
+      '<div><div class="n" style="color:'+(r.total.retur?'var(--danger)':'inherit')+'">'+n2(r.total.retur)+'</div><div class="l">'+esc(t('totalRetur'))+' (kg)</div></div>' +
+      '<div><div class="n" style="color:'+(r.total.returCust?'var(--danger)':'inherit')+'">'+n2(r.total.returCust)+'</div><div class="l">'+esc(t('totalReturCust'))+' (kg)</div></div>' +
+    '</div>';
+
+    h += '<div class="card"><h2>'+esc(t('stokBerjalan'))+'</h2>' +
+      '<div class="sub">'+esc(t('ketukRincian'))+'</div>' +
+      r.daftar.map(function(s){
+        return '<div class="listrow">' +
+          '<button class="stokrow" onclick="toggleNeraca(\''+esc(s.kode)+'\')">' +
+            '<span class="nm">'+esc(s.nama)+'</span>' +
+            '<span class="vl"'+(s.total<0?' style="color:var(--danger)"':'')+'>'+n2(s.total)+' kg</span>' +
+            '<span class="cv" id="cv-'+esc(s.kode)+'">▾</span>' +
+          '</button>' +
+          '<div class="sub2">GBJ '+n2(s.gbj)+' · GP '+(s.gp<0?'<span style="color:var(--danger)">'+n2(s.gp)+'</span>':n2(s.gp))+'</div>' +
+          '<div class="neraca hide" id="nr-'+esc(s.kode)+'"></div>' +
+        '</div>';
+      }).join('') + '</div>';
+
+    $('repBody').innerHTML = h;
+  }).catch(function(e){ $('repBody').innerHTML = '<div class="banner bad">'+esc(e.message)+'</div>'; });
+}
+
+var STOK_CACHE = {};
+
+function toggleNeraca(kode){
+  var el = $('nr-'+kode), cv = $('cv-'+kode);
+  if (!el) return;
+  if (!el.classList.contains('hide')){
+    el.classList.add('hide'); if (cv) cv.textContent = '▾'; return;
+  }
+  el.innerHTML = gambarNeraca(STOK_CACHE[kode]);
+  el.classList.remove('hide');
+  if (cv) cv.textContent = '▴';
+}
+
+/** Satu baris neraca: label, tanda (+/−), nilai. */
+function brs(label, nilai, tanda){
+  if (!nilai) return '';
+  var warna = tanda === '+' ? 'var(--ok)' : 'var(--danger)';
+  return '<div class="nrow"><span>'+esc(label)+'</span>' +
+         '<b style="color:'+warna+'">'+tanda+n2(Math.abs(nilai))+'</b></div>';
+}
+function brsAwal(label, nilai){
+  return '<div class="nrow"><span>'+esc(label)+'</span><b>'+n2(nilai)+'</b></div>';
+}
+function brsTotal(label, nilai){
+  return '<div class="nrow tot2"><span>'+esc(label)+'</span>' +
+         '<b'+(nilai<0?' style="color:var(--danger)"':'')+'>'+n2(nilai)+' kg</b></div>';
+}
+
+/**
+ * Neraca per item — dibaca dari atas ke bawah seperti buku kas.
+ * GBJ = awal + beli − retur supplier + retur customer − terjual − kirim ke GP + balik dari GP
+ * GP  = awal + kirim ke GP − balik ke GBJ − dipakai + dihasilkan
+ */
+function gambarNeraca(s){
+  if (!s) return '';
+  var gbj =
+    '<div class="nblok"><div class="nhead">'+esc(t('nrGudang'))+' · GBJ</div>' +
+      brsAwal(t('nrStokAwal'), s.awalGBJ) +
+      brs(t('nrBeli'),      s.beli,      '+') +
+      brs(t('nrReturCust'), s.returCust, '+') +
+      brs(t('nrKeGBJ'),     s.keGBJ,     '+') +
+      brs(t('nrReturSup'),  s.retur,     '−') +
+      brs(t('nrJual'),      s.jual,      '−') +
+      brs(t('nrKeGP'),      s.keGP,      '−') +
+      brs(t('nrOpname'),    s.opnameGBJ, s.opnameGBJ >= 0 ? '+' : '−') +
+      brsTotal(t('nrSisaGBJ'), s.gbj) +
+    '</div>';
+
+  var adaGP = s.awalGP || s.keGP || s.keGBJ || s.dipakai || s.dihasilkan || s.opnameGP;
+  var gp = !adaGP ? '' :
+    '<div class="nblok"><div class="nhead">'+esc(t('nrProduksi'))+' · GP</div>' +
+      brsAwal(t('nrStokAwal'), s.awalGP) +
+      brs(t('nrDariGudang'), s.keGP,       '+') +
+      brs(t('nrDihasilkan'), s.dihasilkan, '+') +
+      brs(t('nrKeGudang'),   s.keGBJ,      '−') +
+      brs(t('nrDipakai'),    s.dipakai,    '−') +
+      brs(t('nrOpname'),     s.opnameGP,   s.opnameGP >= 0 ? '+' : '−') +
+      brsTotal(t('nrSisaGP'), s.gp) +
+    '</div>';
+
+  return gbj + gp +
+    '<div class="nrow grand"><span>'+esc(t('nrTotal'))+'</span>' +
+    '<b'+(s.total<0?' style="color:var(--danger)"':'')+'>'+n2(s.total)+' kg</b></div>';
+}
+
+function repBeli(){
+  panggil('riwayatPenerimaan',[30, S.ident]).then(function(r){
+    if (!r.detail.length){
+      $('repBody').innerHTML = '<div class="empty"><span class="g">🚚</span>'+esc(t('kosongData'))+'</div>'; return;
+    }
+    var h = '<div class="tot">' +
+      '<div class="wide"><div class="n" style="font-size:32px;color:var(--ok)">'+n2(r.total.masuk)+' <span style="font-size:15px;color:var(--muted)">kg</span></div>' +
+        '<div class="l">'+esc(t('totalMasuk'))+' · 30 '+esc(t('hariTerakhir'))+'</div></div>' +
+      '<div><div class="n" style="color:'+(r.total.retur?'var(--danger)':'inherit')+'">'+n2(r.total.retur)+'</div><div class="l">'+esc(t('totalRetur'))+' (kg)</div></div>' +
+      '<div><div class="n">'+n2(r.total.bersih)+'</div><div class="l">'+esc(t('bersih'))+' (kg)</div></div>' +
+    '</div>';
+
+    h += '<div class="card"><h2>'+esc(t('perSupplier'))+'</h2>' +
+      r.perSupplier.map(function(s){
+        return '<div class="listrow"><div style="display:flex;align-items:baseline;gap:9px">' +
+          '<b style="flex:1;font-size:14px">'+esc(s.supplier)+'</b>' +
+          '<span style="font-size:18px;font-weight:700;font-variant-numeric:tabular-nums">'+n2(s.bersih)+' kg</span></div>' +
+          '<div style="font-size:11.5px;color:var(--muted);font-variant-numeric:tabular-nums">' +
+            esc(t('totalMasuk'))+' '+n2(s.masuk)+' kg' +
+            (s.retur ? ' · <span style="color:var(--danger)">'+esc(t('totalRetur'))+' '+n2(s.retur)+' kg</span>' : '') +
+          '</div></div>';
+      }).join('') + '</div>';
+
+    h += '<div class="card"><h2>'+esc(t('riwayatBeli'))+'</h2><div class="sub">'+esc(t('geserTabel'))+'</div>' +
+      '<div class="tblwrap"><table><tr><th>'+esc(t('thWaktu'))+'</th><th>'+esc(t('thJenis'))+'</th>' +
+      '<th>'+esc(t('thSupplier'))+'</th><th>'+esc(t('item'))+'</th><th class="num">'+esc(t('thQty'))+'</th>' +
+      '<th>'+esc(t('thSJ'))+'</th><th>'+esc(t('thStatus'))+'</th><th>'+esc(t('thFoto'))+'</th></tr>' +
+      r.detail.map(function(d){
+        var jn = d.jenis === 'RETUR' ? '<span class="pill bad">RETUR</span>' : '<span class="pill ok">MASUK</span>';
+        return '<tr><td>'+esc(d.waktu)+'</td><td>'+jn+'</td><td>'+esc(d.supplier)+'</td>' +
+          '<td>'+esc(d.item)+'</td><td class="num">'+n2(d.qty)+'</td><td>'+esc(d.noSuratJalan||'—')+'</td>' +
+          '<td>'+pillStatus(d.status)+'</td>' +
+          '<td>'+(d.foto?'<a href="'+esc(d.foto)+'" target="_blank">'+esc(t('lihat'))+'</a>':'—')+'</td></tr>';
+      }).join('') + '</table></div></div>';
+
+    $('repBody').innerHTML = h;
+  }).catch(function(e){ $('repBody').innerHTML = '<div class="banner bad">'+esc(e.message)+'</div>'; });
+}
+
+function repJual(){
+  panggil('laporanPenjualan',[30, S.ident]).then(function(r){
+    if (!r.detail.length){
+      $('repBody').innerHTML = '<div class="empty"><span class="g">🧺</span>'+esc(t('kosongData'))+'</div>'; return;
+    }
+    var h = '<div class="tot">' +
+      '<div class="wide"><div class="n" style="font-size:32px;color:var(--warn)">'+n2(r.total.keluar)+' <span style="font-size:15px;color:var(--muted)">kg</span></div>' +
+        '<div class="l">'+esc(t('totalKeluar'))+' · 30 '+esc(t('hariTerakhir'))+'</div></div>' +
+      '<div><div class="n" style="color:'+(r.total.retur?'var(--danger)':'inherit')+'">'+n2(r.total.retur)+'</div><div class="l">'+esc(t('totalReturCust'))+' (kg)</div></div>' +
+      '<div><div class="n">'+n2(r.total.bersih)+'</div><div class="l">'+esc(t('bersih'))+' (kg)</div></div>' +
+    '</div>';
+
+    h += '<div class="card"><h2>'+esc(t('perCustomer'))+'</h2>' +
+      r.perCustomer.map(function(c){
+        return '<div class="listrow"><div style="display:flex;align-items:baseline;gap:9px">' +
+          '<b style="flex:1;font-size:14px">'+esc(c.customer)+'</b>' +
+          '<span style="font-size:18px;font-weight:700;font-variant-numeric:tabular-nums">'+n2(c.bersih)+' kg</span></div>' +
+          '<div style="font-size:11.5px;color:var(--muted);font-variant-numeric:tabular-nums">' +
+            esc(t('totalKeluar'))+' '+n2(c.keluar)+' kg' +
+            (c.retur ? ' · <span style="color:var(--danger)">'+esc(t('totalReturCust'))+' '+n2(c.retur)+' kg</span>' : '') +
+          '</div></div>';
+      }).join('') + '</div>';
+
+    h += '<div class="card"><h2>'+esc(t('perItemJual'))+'</h2>' +
+      r.perItem.map(function(x){
+        var lebar = r.total.keluar > 0 ? Math.max(2, (x.keluar / r.total.keluar) * 100) : 0;
+        return '<div class="listrow"><div style="display:flex;align-items:baseline;gap:9px">' +
+          '<b style="flex:1;font-size:14px">'+esc(x.nama)+'</b>' +
+          '<span style="font-size:18px;font-weight:700;font-variant-numeric:tabular-nums">'+n2(x.bersih)+' kg</span></div>' +
+          '<div class="bar"><i style="width:'+lebar+'%;background:var(--primary)"></i></div>' +
+          '<div style="font-size:11.5px;color:var(--muted);font-variant-numeric:tabular-nums">' +
+            esc(t('totalKeluar'))+' '+n2(x.keluar)+' kg' +
+            (x.retur ? ' · <span style="color:var(--danger)">'+esc(t('totalReturCust'))+' '+n2(x.retur)+' kg</span>' : '') +
+          '</div></div>';
+      }).join('') + '</div>';
+
+    h += '<div class="card"><h2>'+esc(t('riwayatJual'))+'</h2><div class="sub">'+esc(t('geserTabel'))+'</div>' +
+      '<div class="tblwrap"><table><tr><th>'+esc(t('thWaktu'))+'</th><th>'+esc(t('thJenis'))+'</th>' +
+      '<th>'+esc(t('thCustomer'))+'</th><th>'+esc(t('item'))+'</th><th class="num">'+esc(t('thQty'))+'</th>' +
+      '<th>'+esc(t('thSJ'))+'</th><th>'+esc(t('thStatus'))+'</th><th>'+esc(t('thFoto'))+'</th></tr>' +
+      r.detail.map(function(d){
+        var jn = d.jenis === 'RETUR_MASUK' ? '<span class="pill bad">RETUR</span>'
+                                           : '<span class="pill warn">KELUAR</span>';
+        return '<tr><td>'+esc(d.waktu)+'</td><td>'+jn+'</td><td>'+esc(d.customer)+'</td>' +
+          '<td>'+esc(d.item)+'</td><td class="num">'+n2(d.qty)+'</td><td>'+esc(d.noSuratJalan||'—')+'</td>' +
+          '<td>'+pillStatus(d.status)+'</td>' +
+          '<td>'+(d.foto?'<a href="'+esc(d.foto)+'" target="_blank">'+esc(t('lihat'))+'</a>':'—')+'</td></tr>';
+      }).join('') + '</table></div></div>';
+
+    $('repBody').innerHTML = h;
+  }).catch(function(e){ $('repBody').innerHTML = '<div class="banner bad">'+esc(e.message)+'</div>'; });
+}
+
+function repHpp(){
+  panggil('laporanHpp',[30, S.ident]).then(function(r){
+    if (!r.total.jobs){
+      $('repBody').innerHTML = '<div class="empty"><span class="g">💰</span>'+esc(t('kosongData'))+'</div>'; return;
+    }
+    var h = '<div class="banner n" style="font-size:12px">'+esc(t('hppHint'))+' '+esc(t('biayaProses'))+': '+rp(r.biayaProsesPerKg)+'/kg.</div>';
+    h += '<div class="tot">' +
+      '<div class="wide"><div class="n" style="font-size:30px">'+rp(r.total.perKg)+' <span style="font-size:13px;color:var(--muted)">/ kg</span></div>' +
+        '<div class="l">'+esc(t('hppPerKg'))+' · 30 '+esc(t('hariTerakhir'))+' · '+r.total.jobs+' '+esc(t('jobs'))+' · '+n2(r.total.jadi)+' kg</div></div>' +
+      '<div><div class="n" style="font-size:17px">'+rp(r.total.hppBahan)+'</div><div class="l">'+esc(t('hppBahan'))+'</div></div>' +
+      '<div><div class="n" style="font-size:17px">'+rp(r.total.hppProses)+'</div><div class="l">'+esc(t('hppProses'))+'</div></div>' +
+      '<div><div class="n" style="font-size:17px">'+rp(r.total.hppTotal)+'</div><div class="l">'+esc(t('hppTotal'))+'</div></div>' +
+      '<div><div class="n" style="font-size:17px;color:var(--danger)">'+rp(r.total.nilaiSusut)+'</div><div class="l">'+esc(t('nilaiSusut'))+'</div></div>' +
+    '</div>';
+
+    h += '<div class="card"><h2>'+esc(t('hppPerProduk'))+'</h2>' +
+      r.perProduk.map(function(p){
+        return '<div class="listrow"><div style="display:flex;align-items:baseline;gap:9px">' +
+          '<b style="flex:1;font-size:14px">'+esc(p.nama)+'</b>' +
+          '<span style="font-size:17px;font-weight:700;font-variant-numeric:tabular-nums">'+rp(p.perKg)+'<span style="font-size:11px;color:var(--muted)">/kg</span></span></div>' +
+          '<div style="font-size:11.5px;color:var(--muted);font-variant-numeric:tabular-nums">' +
+            p.jobs+' '+esc(t('jobs'))+' · '+n2(p.jadi)+' kg · '+esc(t('hppTotal'))+' '+rp(p.hppTotal) +
+            (p.minPerKg && p.maxPerKg && p.minPerKg!==p.maxPerKg ? ' · '+esc(t('rentang'))+' '+rp(p.minPerKg)+'–'+rp(p.maxPerKg) : '') +
+            (p.nilaiSusut ? ' · <span style="color:var(--danger)">'+esc(t('nilaiSusut'))+' '+rp(p.nilaiSusut)+'</span>' : '') +
+          '</div></div>';
+      }).join('') + '</div>';
+
+    h += '<div class="card"><h2>'+esc(t('hppDetail'))+'</h2><div class="sub">'+esc(t('geserTabel'))+'</div>' +
+      '<div class="tblwrap"><table><tr><th>'+esc(t('thTanggal'))+'</th><th>'+esc(t('thProduk'))+'</th>' +
+      '<th class="num">'+esc(t('hppPerKg'))+'</th><th class="num">'+esc(t('thJadi'))+'</th>' +
+      '<th class="num">'+esc(t('hppBahan'))+'</th><th class="num">'+esc(t('hppProses'))+'</th>' +
+      '<th class="num">'+esc(t('hppTotal'))+'</th><th class="num">'+esc(t('nilaiSusut'))+'</th><th>'+esc(t('thStatus'))+'</th></tr>' +
+      r.detail.map(function(d){
+        return '<tr><td>'+esc(d.tanggal)+'</td><td>'+esc(d.produk)+'</td>' +
+          '<td class="num" style="font-weight:700">'+rp(d.perKg)+'</td><td class="num">'+n2(d.jadi)+'</td>' +
+          '<td class="num">'+rp(d.hppBahan)+'</td><td class="num">'+rp(d.hppProses)+'</td>' +
+          '<td class="num">'+rp(d.hppTotal)+'</td><td class="num" style="color:var(--danger)">'+rp(d.nilaiSusut)+'</td>' +
+          '<td>'+pillSusut(d.status)+'</td></tr>';
+      }).join('') + '</table></div></div>';
+    $('repBody').innerHTML = h;
+  }).catch(function(e){ $('repBody').innerHTML = '<div class="banner bad">'+esc(e.message)+'</div>'; });
+}
+
+function pillStatus(st){
+  if (st==='DISETUJUI') return '<span class="pill ok">'+esc(t('disetujui'))+'</span>';
+  if (st==='DITANDAI')   return '<span class="pill n">'+esc(t('ditandai'))+'</span>';
+  if (st==='DIBATALKAN') return '<span class="pill bad">'+esc(t('dibatalkan'))+'</span>';
+  return '<span class="pill warn">'+esc(st)+'</span>';
+}
+
+function repTrf(){
+  panggil('riwayatTransfer',[7, S.ident]).then(function(rows){
+    if (!rows.length){
+      $('repBody').innerHTML = '<div class="empty"><span class="g">🧾</span>'+esc(t('kosongData'))+'</div>'; return;
+    }
+    $('repBody').innerHTML = '<div class="card"><h2>'+esc(t('riwayatTrf'))+'</h2><div class="sub">'+esc(t('geserTabel'))+'</div><div class="tblwrap"><table>' +
+      '<tr><th>'+esc(t('thWaktu'))+'</th><th>'+esc(t('thArah'))+'</th><th>'+esc(t('item'))+'</th>' +
+      '<th class="num">'+esc(t('thQty'))+'</th><th>'+esc(t('thStatus'))+'</th><th>'+esc(t('thPencatat'))+'</th><th>'+esc(t('thFoto'))+'</th></tr>' +
+      rows.map(function(r){
+        return '<tr><td>'+esc(r.waktu)+'</td><td>'+(r.arah==='GBJ_KE_GP'?'GBJ→GP':'GP→GBJ')+'</td>' +
+          '<td>'+esc(r.item)+'</td><td class="num">'+n2(r.qty)+'</td>' +
+          '<td>'+pillStatus(r.status)+'</td><td>'+esc(r.pencatat)+'</td>' +
+          '<td>'+(r.foto?'<a href="'+esc(r.foto)+'" target="_blank">'+esc(t('lihat'))+'</a>':'—')+'</td></tr>';
+      }).join('') + '</table></div></div>';
+  }).catch(function(e){ $('repBody').innerHTML = '<div class="banner bad">'+esc(e.message)+'</div>'; });
+}
+</script>
+
+</body>
+</html>
