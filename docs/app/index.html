@@ -291,7 +291,11 @@ nav button .dot{position:absolute;top:5px;right:50%;margin-right:-19px;width:8px
   background:#111827;color:#fff;padding:12px 17px;border-radius:11px;font-size:13.5px;
   max-width:88%;box-shadow:0 8px 24px rgba(0,0,0,.22);text-align:center;
 }
-.toast.ok{background:var(--ok)} .toast.bad{background:var(--danger)}
+.toast.ok{background:var(--ok)} .toast.bad{background:var(--danger)} .toast.warn{background:var(--warn)}
+.stokhint{display:inline-block;margin-top:6px;font-size:12px;color:var(--muted);background:var(--surface-2);border:1px solid var(--line);border-radius:6px;padding:2px 8px}
+.stokhint.warn{color:var(--warn);background:var(--warn-soft)} .stokhint.bad{color:var(--danger);background:var(--danger-soft);font-weight:600}
+.tbl{width:100%;border-collapse:collapse;font-size:12.5px} .tbl th,.tbl td{padding:5px 6px;text-align:left;border-bottom:1px solid var(--line)} .tbl th{color:var(--muted);font-weight:600;font-size:11px;text-transform:uppercase}
+input[type=date]{font-family:inherit}
 .empty{text-align:center;padding:34px 16px;color:var(--muted);font-size:13.5px}
 .empty .g{font-size:34px;display:block;margin-bottom:8px;opacity:.4}
 .load{text-align:center;padding:30px;color:var(--muted);font-size:13px}
@@ -450,6 +454,12 @@ nav button .dot{position:absolute;top:5px;right:50%;margin-right:-19px;width:8px
         <div id="ocrHasil"></div>
       </div>
 
+      <div class="field">
+        <label data-i18n="lblTanggal">Tanggal transaksi</label>
+        <input type="date" id="rcvTanggal">
+        <div class="hint" data-i18n="hintTanggal">Default hari ini. Ganti kalau barangnya masuk/keluar kemarin tapi baru dicatat sekarang.</div>
+      </div>
+
       <div class="field" id="rcvSJWrap">
         <label data-i18n="lblNoSJ">No. surat jalan</label>
         <input id="rcvNoSJ" placeholder="SJ/2026/09/0184">
@@ -493,6 +503,12 @@ nav button .dot{position:absolute;top:5px;right:50%;margin-right:-19px;width:8px
         </div>
       </div>
 
+      <div class="field">
+        <label data-i18n="lblTanggal">Tanggal transaksi</label>
+        <input type="date" id="trfTanggal">
+        <div class="hint" data-i18n="hintTanggal">Default hari ini. Ganti kalau barangnya masuk/keluar kemarin tapi baru dicatat sekarang.</div>
+      </div>
+
       <h3 class="sec" data-i18n="secItem">Item <span class="unit">kg</span></h3>
       <div id="trfLines"></div>
       <button class="btn sec sm" onclick="tambahBaris('trf')" data-i18n="btnTambahItem">+ Tambah item</button>
@@ -533,6 +549,10 @@ nav button .dot{position:absolute;top:5px;right:50%;margin-right:-19px;width:8px
         <label data-i18n="qty">Qty (kg)</label>
         <input type="number" inputmode="decimal" step="any" min="0" id="editQty">
       </div>
+      <div class="field">
+        <label data-i18n="lblTanggal">Tanggal transaksi</label>
+        <input type="date" id="editTanggal">
+      </div>
       <div class="field" id="editSJWrap">
         <label data-i18n="lblNoSJ">No. surat jalan</label>
         <input id="editSJ">
@@ -541,6 +561,11 @@ nav button .dot{position:absolute;top:5px;right:50%;margin-right:-19px;width:8px
         <label data-i18n="lblCatatan">Catatan (opsional)</label>
         <textarea id="editCatatan"></textarea>
       </div>
+      <div class="field hide" id="editAlasanWrap">
+        <label data-i18n="lblAlasan">Alasan perubahan</label>
+        <input id="editAlasan" placeholder="mis. salah timbang / salah pilih item">
+      </div>
+      <div class="banner warn hide" id="editUsulanInfo"></div>
       <div class="logedit hide" id="editLog"></div>
       <div class="btnrow">
         <button class="btn ghost hide" id="btnEditBatal" onclick="batalkanEntriUI()" data-i18n="batalkanInput">Batalkan input</button>
@@ -585,6 +610,11 @@ nav button .dot{position:absolute;top:5px;right:50%;margin-right:-19px;width:8px
           <label data-i18n="lblCatatan">Catatan (opsional)</label>
           <textarea id="edCatatan"></textarea>
         </div>
+        <div class="field hide" id="edAlasanWrap">
+          <label data-i18n="lblAlasan">Alasan perubahan</label>
+          <input id="edAlasan" placeholder="mis. salah catat hasil timbang">
+        </div>
+        <div class="banner warn hide" id="edUsulanInfo"></div>
         <div class="logedit hide" id="edLog"></div>
         <div class="btnrow">
           <button class="btn sec" onclick="segJob('done')" data-i18n="btnBatal">Batal</button>
@@ -600,6 +630,10 @@ nav button .dot{position:absolute;top:5px;right:50%;margin-right:-19px;width:8px
         <div class="field">
           <label data-i18n="lblProduk">Produk yang dibuat</label>
           <select id="jobProduk" onchange="ringkasJobBaru()"></select>
+        </div>
+        <div class="field">
+          <label data-i18n="lblTanggal">Tanggal transaksi</label>
+          <input type="date" id="jobTanggal">
         </div>
         <h3 class="sec" data-i18n="secBahan">Bahan baku masuk <span class="unit">kg</span></h3>
         <div id="jobLines"></div>
@@ -659,6 +693,7 @@ nav button .dot{position:absolute;top:5px;right:50%;margin-right:-19px;width:8px
     <div class="seg">
       <button id="segRevMenunggu" class="on" onclick="segRev('MENUNGGU')"><span data-i18n="segMenunggu">Menunggu</span> <span class="cnt" id="cntMenunggu"></span></button>
       <button id="segRevDitandai" onclick="segRev('DITANDAI')"><span data-i18n="segDitandai">Ditandai</span> <span class="cnt" id="cntDitandai"></span></button>
+      <button id="segRevUsulan" onclick="segRev('USULAN')"><span data-i18n="segUsulan">Usulan</span> <span class="cnt" id="cntUsulan"></span></button>
     </div>
     <div class="banner n" id="revHint"></div>
     <div id="revList"><div class="load">…</div></div>
@@ -806,6 +841,15 @@ var T = {
     wajibFoto:'Foto bukti wajib diisi.', wajibItem:'Isi minimal satu item dengan qty.',
     wajibSupplier:'Pilih supplier dulu.', wajibSJ:'No. surat jalan wajib diisi.',
     menyimpan:'Menyimpan…', tersimpan:'Tersimpan', gagal:'Gagal', keluar:'Keluar',
+    lblTanggal:'Tanggal transaksi', hintTanggal:'Default hari ini. Ganti kalau barangnya masuk/keluar kemarin tapi baru dicatat sekarang.',
+    lblAlasan:'Alasan perubahan', tersedia:'Tersedia di', melebihi:'melebihi stok', stokKosong:'stok 0',
+    ajukanPerubahan:'Ajukan perubahan', ajukanBatal:'Ajukan pembatalan', usulanDiajukan:'Usulan dikirim — menunggu persetujuan supervisor',
+    usulanInfo:'Kamu staf: perubahan tidak langsung berlaku. Setelah dikirim, supervisor/manager yang menyetujui.',
+    usulanMenunggu:'Usulan menunggu', segUsulan:'Usulan', kosongUsulan:'Tidak ada usulan perubahan dari staf',
+    hintUsulan:'Usulan edit / pembatalan dari staf. Setujui = diterapkan ke entri, Tolak = entri tetap.',
+    sekarang:'Sekarang', diusulkan:'Diusulkan', alasan:'Alasan', tolak:'Tolak', setujui:'Setujui', alasanTolak:'Alasan penolakan (opsional)',
+    usulanDisetujui:'Usulan disetujui & diterapkan', usulanDitolak:'Usulan ditolak',
+    uEdit:'UBAH ENTRI', uBatal:'BATALKAN ENTRI', uEditJob:'UBAH PEKERJAAN',
     ocrJalan:'Membaca surat jalan…', ocrTidakKetemu:'Tidak ada angka yang terbaca. Ketik manual.',
     ocrSaran:'OCR membaca', ocrPakai:'Pakai', ocrCocok:'Cocok dengan surat jalan', ocrBeda:'Beda dengan surat jalan',
     setuju:'Setuju', tandai:'Tandai', alasanTandai:'Alasan ditandai?',
@@ -952,6 +996,15 @@ var T = {
     wajibFoto:'A proof photo is required.', wajibItem:'Add at least one item with a quantity.',
     wajibSupplier:'Select a supplier first.', wajibSJ:'Delivery note number is required.',
     menyimpan:'Saving…', tersimpan:'Saved', gagal:'Failed', keluar:'Log out',
+    lblTanggal:'Transaction date', hintTanggal:'Defaults to today. Change it if the goods moved yesterday but are only being logged now.',
+    lblAlasan:'Reason for change', tersedia:'Available in', melebihi:'exceeds stock', stokKosong:'stock 0',
+    ajukanPerubahan:'Request change', ajukanBatal:'Request cancellation', usulanDiajukan:'Request sent — waiting for supervisor approval',
+    usulanInfo:'You are staff: changes are not applied directly. A supervisor/manager approves them after you submit.',
+    usulanMenunggu:'Request pending', segUsulan:'Requests', kosongUsulan:'No change requests from staff',
+    hintUsulan:'Edit / cancellation requests from staff. Approve = applied to the entry, Reject = entry unchanged.',
+    sekarang:'Current', diusulkan:'Proposed', alasan:'Reason', tolak:'Reject', setujui:'Approve', alasanTolak:'Rejection reason (optional)',
+    usulanDisetujui:'Request approved & applied', usulanDitolak:'Request rejected',
+    uEdit:'EDIT ENTRY', uBatal:'CANCEL ENTRY', uEditJob:'EDIT JOB',
     ocrJalan:'Reading delivery note…', ocrTidakKetemu:'No number recognised. Type it manually.',
     ocrSaran:'OCR read', ocrPakai:'Use', ocrCocok:'Matches the delivery note', ocrBeda:'Differs from the delivery note',
     setuju:'Approve', tandai:'Flag', alasanTandai:'Reason for flagging?',
@@ -1117,6 +1170,18 @@ function panggil(fn, args){
   });
 }
 
+function hariIniStr(){
+  if (S.ctx && S.ctx.hariIni) return S.ctx.hariIni;
+  var d = new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+function setTanggal(id){
+  var el = $(id); if (!el) return;
+  el.value = hariIniStr(); el.max = hariIniStr();
+  var d = new Date(); d.setDate(d.getDate() - ((S.ctx && S.ctx.maksMundurHari) || 60));
+  el.min = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+function ambilTanggal(id){ var el = $(id); return el && el.value ? el.value : ''; }
+
 function keluar(){
   try{ localStorage.removeItem('ipc_nama'); localStorage.removeItem('ipc_pin'); }catch(e){}
   S.ident = { nama:'', pin:'' }; S.ctx = null;
@@ -1177,12 +1242,13 @@ function muatKonteks(diam){
     $('segRepHpp').classList.toggle('hide', !c.lihatHpp);
     $('nav-admin').classList.toggle('hide', !c.bisaReview);
     $('segAdmUser').classList.toggle('hide', !c.bisaAdmin);
-    var cm = $('cntMenunggu'), cd = $('cntDitandai');
+    var cm = $('cntMenunggu'), cd = $('cntDitandai'), cu = $('cntUsulan');
     if (cm) cm.textContent = c.ringkasan.menungguReview || '';
     if (cd) cd.textContent = c.ringkasan.ditandai || '';
+    if (cu) cu.textContent = c.ringkasan.permintaanMenunggu || '';
     muatKalender(S.cal.bulan);
     var b = $('revBadge'), d = $('navDot');
-    var ada = c.ringkasan.menungguReview > 0;
+    var ada = (c.ringkasan.menungguReview + (c.ringkasan.permintaanMenunggu||0)) > 0;
     if (b){ b.textContent = c.ringkasan.menungguReview; b.classList.toggle('hide', !ada); }
     if (d) d.classList.toggle('hide', !(ada && c.bisaReview));
     isiSelectProduk(); isiSelectPartner(); gambarSemuaBaris();
@@ -1346,8 +1412,29 @@ function hapusBaris(k, i){
   if (!S.baris[k].length) S.baris[k].push({ kode:'', qty:'' });
   gambarBaris(k);
 }
+/* lokasi sumber stok untuk petunjuk "tersedia": transfer & pekerjaan/edit bahan dari GP, sisanya GBJ */
+function lokasiSumber(k){
+  if (k === 'trf') return S.arah === 'GBJ_KE_GP' ? 'GBJ' : 'GP';
+  if (k === 'job' || k === 'edBahan') return 'GP';
+  if (k === 'rcv') return 'GBJ';
+  return null;
+}
+function hintStok(k, i){
+  var b = S.baris[k][i], lok = lokasiSumber(k), el = $('hs-'+k+'-'+i);
+  if (!el) return;
+  if (!b.kode || !lok || !S.ctx || !S.ctx.stok){ el.innerHTML = ''; return; }
+  var st = S.ctx.stok[b.kode] || { gbj:0, gp:0 };
+  var ada = lok === 'GBJ' ? st.gbj : st.gp;
+  var q = parseFloat(b.qty) || 0;
+  var lebih = q > ada + 0.0001;
+  var masuk = (k === 'rcv' && (S.modeExt === 'BELI_MASUK' || S.modeExt === 'JUAL_RETUR'));   // barang MASUK ke GBJ: info saja
+  el.innerHTML = '<span class="'+(lebih && !masuk ? 'stokhint bad' : ada <= 0 && !masuk ? 'stokhint warn' : 'stokhint')+'">' +
+    esc(t('tersedia'))+' '+lok+': <b>'+n2(ada)+' kg</b>' +
+    (lebih && !masuk ? ' · '+esc(t('melebihi')) : '') + '</span>';
+}
 function ubahBaris(k, i, field, val){
   S.baris[k][i][field] = val;
+  hintStok(k, i);
   if (k === 'finJadi') hitungPreviewSusut();
   if (k === 'job') ringkasJobBaru();
   if (k.indexOf('ed') === 0) previewEditJob();
@@ -1368,11 +1455,13 @@ function gambarBaris(k){
       '<div class="top"><span class="no">#'+(i+1)+'</span>' +
         (S.baris[k].length>1 ? '<button class="x" onclick="hapusBaris(\''+k+'\','+i+')">✕ '+esc(t('hapus'))+'</button>' : '') +
       '</div>' + sel +
+      '<div id="hs-'+k+'-'+i+'"></div>' +
       '<div class="row" style="margin-top:8px">' +
         '<input type="number" inputmode="decimal" step="any" min="0" placeholder="'+esc(t('qty'))+'" value="'+esc(b.qty)+'" oninput="ubahBaris(\''+k+'\','+i+',\'qty\',this.value)">' +
         '<div class="w90"><input value="kg" readonly style="background:#f3f4f6;text-align:center;font-weight:650"></div>' +
       '</div></div>';
   }).join('');
+  S.baris[k].forEach(function(b, i){ hintStok(k, i); });
 }
 
 function ambilBaris(k){
@@ -1453,6 +1542,7 @@ function bukaMutasi(mode){
   S.baris.rcv = [{ kode:'', qty:'' }];
   S.foto.rcv = null; S.ocr = null;
   $('rcvNoSJ').value = ''; $('rcvCatatan').value = '';
+  setTanggal('rcvTanggal');
   hapusFoto('rcv');
   labelMutasi();
   isiSelectPartner();
@@ -1512,6 +1602,7 @@ function simpanMutasiUI(){
                 qtyOcr: (S.ocr && S.ocr.qtySaran) || '' };
   }
   payload.noSuratJalan = $('rcvNoSJ').value;
+  payload.tanggal = ambilTanggal('rcvTanggal');
   payload.baris = baris;
   payload.catatan = $('rcvCatatan').value;
   payload.foto = S.foto.rcv;
@@ -1566,6 +1657,7 @@ function bukaTransfer(arah){
   S.baris.trf = [{ kode:'', qty:'' }];
   S.foto.trf = null;
   $('trfCatatan').value = '';
+  setTanggal('trfTanggal');
   hapusFoto('trf');
   labelTransfer();
   gambarBaris('trf');
@@ -1585,6 +1677,7 @@ function simpanTransferUI(){
   var b = $('btnSimpanTrf'); sibuk(b, true);
   panggil('simpanTransfer', [{
     arah: S.arah, baris: baris, catatan: $('trfCatatan').value,
+    tanggal: ambilTanggal('trfTanggal'),
     foto: S.foto.trf, ident: S.ident
   }]).then(function(r){
     sibuk(b, false, t('btnSimpanTrf'));
@@ -1610,7 +1703,7 @@ function segJob(tab){
   if (tab==='list') muatJob();
   if (tab==='done') muatJobSelesai();
   if (tab==='new'){
-    isiSelectProduk();
+    isiSelectProduk(); setTanggal('jobTanggal');
     if(!S.baris.job.length) S.baris.job=[{kode:'',qty:''}];
     gambarBaris('job'); ringkasJobBaru();
   }
@@ -1663,6 +1756,7 @@ function mulaiJobUI(){
   var b = $('btnMulaiJob'); sibuk(b, true);
   panggil('mulaiPekerjaan', [{
     kodeProduk: $('jobProduk').value, bahanBaku: bahan,
+    tanggal: ambilTanggal('jobTanggal'),
     foto: S.foto.job, ident: S.ident
   }]).then(function(r){
     sibuk(b,false,t('btnMulaiJob'));
@@ -1799,7 +1893,9 @@ function muatRiwayat(k){
     if (!rows.length){ el.innerHTML = '<div style="font-size:12.5px;color:var(--muted);padding:6px 0">'+esc(t('riwayatKosong'))+'</div>'; return; }
     el.innerHTML = rows.map(function(r){
       var sub2 = [r.partner, r.noSuratJalan, r.waktu, r.pencatat].filter(Boolean).map(esc).join(' · ');
-      var tombol = r.bolehEdit
+      var tombol = r.usulan
+        ? '<span class="pill warn" title="'+esc(r.usulan.ringkasan||'')+'">⏳ '+esc(t('usulanMenunggu'))+'</span>'
+        : r.bolehEdit
         ? '<button class="btn sec xs" onclick="bukaEdit(\''+esc(r.id)+'\')">✎ '+esc(t('ubah'))+'</button>'
         : '<span class="pill n" title="'+esc(t('terkunciHint'))+'">🔒 '+esc(t('terkunci'))+'</span>';
       return '<div class="hist">' +
@@ -1833,6 +1929,12 @@ function bukaEdit(id){
       return '<option value="'+esc(i.kode)+'"'+(i.kode===r.kode?' selected':'')+'>'+esc(i.nama)+'</option>';
     }).join('');
     $('editQty').value = r.qty;
+    setTanggal('editTanggal'); if (r.tanggal) $('editTanggal').value = r.tanggal;
+    var usul = !!r.perluPersetujuan;
+    $('editAlasanWrap').classList.toggle('hide', !usul); $('editAlasan').value = '';
+    var info = $('editUsulanInfo'); info.classList.toggle('hide', !usul); info.textContent = t('usulanInfo');
+    $('btnEditSimpan').textContent = usul ? t('ajukanPerubahan') : t('simpanPerubahan');
+    $('btnEditBatal').textContent  = usul ? t('ajukanBatal') : t('batalkanInput');
     $('editSJWrap').classList.toggle('hide', trf);
     $('editSJ').value = r.noSuratJalan || '';
     $('editCatatan').value = r.catatan || '';
@@ -1849,11 +1951,13 @@ function tutupEdit(){ $('editWrap').classList.add('hide'); S.edit = null; }
 function simpanEditUI(){
   if (!S.edit) return;
   var b = $('btnEditSimpan'); sibuk(b, true);
-  var perubahan = { kode: $('editKode').value, qty: parseFloat($('editQty').value), catatan: $('editCatatan').value };
+  var perubahan = { kode: $('editKode').value, qty: parseFloat($('editQty').value), catatan: $('editCatatan').value,
+                    tanggal: ambilTanggal('editTanggal') };
   if (S.edit.sheet !== 'Transfer'){ perubahan.partner = $('editPartner').value; perubahan.noSuratJalan = $('editSJ').value; }
-  panggil('simpanEditEntri',[S.edit.id, perubahan, S.ident]).then(function(r){
-    sibuk(b,false,t('simpanPerubahan'));
-    toast(r.berubah ? t('tersimpanEdit') : t('tanpaPerubahan'), r.berubah ? 'ok' : '');
+  var teksBtn = S.edit.perluPersetujuan ? t('ajukanPerubahan') : t('simpanPerubahan');
+  panggil('simpanEditEntri',[S.edit.id, perubahan, S.ident, $('editAlasan').value]).then(function(r){
+    sibuk(b,false,teksBtn);
+    toast(r.diajukan ? t('usulanDiajukan') : r.berubah ? t('tersimpanEdit') : t('tanpaPerubahan'), r.berubah ? 'ok' : r.diajukan ? 'warn' : '');
     tutupEdit();
     if (S.view==='beli') muatRiwayat('rcv');
     if (S.view==='transfer') muatRiwayat('trf');
@@ -1866,8 +1970,8 @@ function batalkanEntriUI(){
   if (!S.edit) return;
   if (!window.confirm(t('konfirmBatal'))) return;
   var alasan = window.prompt(t('alasanBatalSendiri')); if (alasan === null) return;
-  panggil('batalkanEntriSendiri',[S.edit.id, alasan || '', S.ident]).then(function(){
-    toast(t('dibatalkan'));
+  panggil('batalkanEntriSendiri',[S.edit.id, alasan || '', S.ident]).then(function(r){
+    toast(r && r.diajukan ? t('usulanDiajukan') : t('dibatalkan'), r && r.diajukan ? 'warn' : '');
     tutupEdit();
     if (S.view==='beli') muatRiwayat('rcv');
     if (S.view==='transfer') muatRiwayat('trf');
@@ -1893,7 +1997,8 @@ function muatJobSelesai(){
             pillSusut(j.status)+'</div>' +
         '</div>' +
         '<div style="margin-top:8px;display:flex;justify-content:flex-end">' +
-          (j.bolehEdit ? '<button class="btn sec xs" onclick="bukaEditJob(\''+esc(j.id)+'\')">✎ '+esc(t('ubah'))+'</button>'
+          (j.usulan ? '<span class="pill warn">⏳ '+esc(t('usulanMenunggu'))+'</span>'
+           : j.bolehEdit ? '<button class="btn sec xs" onclick="bukaEditJob(\''+esc(j.id)+'\')">✎ '+esc(t('ubah'))+'</button>'
                        : '<span class="pill n">🔒 '+esc(t('terkunci'))+'</span>') +
         '</div></div>';
     }).join('');
@@ -1912,6 +2017,10 @@ function bukaEditJob(id){
     $('edScrapKg').value = j.scrapKg || '';
     $('edKeluar').classList.toggle('hide', j.status !== 'SELESAI');
     $('edCatatan').value = j.catatan || '';
+    var usulJ = !!j.perluPersetujuan;
+    $('edAlasanWrap').classList.toggle('hide', !usulJ); $('edAlasan').value = '';
+    var infoJ = $('edUsulanInfo'); infoJ.classList.toggle('hide', !usulJ); infoJ.textContent = t('usulanInfo');
+    $('btnEdSimpan').textContent = usulJ ? t('ajukanPerubahan') : t('simpanPerubahan');
     var lg = $('edLog'); lg.classList.toggle('hide', !j.logEdit); lg.setAttribute('data-judul', t('logJudul')); lg.textContent = j.logEdit || '';
     gambarBaris('edBahan'); gambarBaris('edJadi');
     previewEditJob();
@@ -1940,10 +2049,11 @@ function simpanEditJobUI(){
   panggil('simpanEditPekerjaan',[S.edJob.id, {
     kodeProduk: $('edProduk').value, bahanBaku: bahan,
     barangJadi: ambilBaris('edJadi'), scrapKg: parseFloat($('edScrapKg').value) || 0,
-    catatan: $('edCatatan').value
+    catatan: $('edCatatan').value, alasan: $('edAlasan').value
   }, S.ident]).then(function(r){
-    sibuk(b,false,t('simpanPerubahan'));
-    toast(t('hitungUlang') + (r.persen!==undefined ? ' · '+n2(r.persen)+'%' : ''), r.status && r.status!=='NORMAL' ? 'bad' : 'ok');
+    sibuk(b,false,S.edJob && S.edJob.perluPersetujuan ? t('ajukanPerubahan') : t('simpanPerubahan'));
+    if (r.diajukan) toast(t('usulanDiajukan'),'warn');
+    else toast(t('hitungUlang') + (r.persen!==undefined ? ' · '+n2(r.persen)+'%' : ''), r.status && r.status!=='NORMAL' ? 'bad' : 'ok');
     S.edJob = null;
     segJob('done'); muatKonteks(true);
   }).catch(function(e){ sibuk(b,false,t('simpanPerubahan')); toast(e.message,'bad'); });
@@ -2165,9 +2275,62 @@ function segRev(tab){
   S.revTab = tab;
   $('segRevMenunggu').classList.toggle('on', tab==='MENUNGGU');
   $('segRevDitandai').classList.toggle('on', tab==='DITANDAI');
+  $('segRevUsulan').classList.toggle('on', tab==='USULAN');
   muatReview();
 }
+function labelUsulan(j){ return j==='EDIT' ? t('uEdit') : j==='BATAL' ? t('uBatal') : t('uEditJob'); }
+function muatUsulan(){
+  $('revHint').textContent = t('hintUsulan');
+  $('revList').innerHTML = '<div class="load">…</div>';
+  panggil('daftarPermintaan',[S.ident,'MENUNGGU']).then(function(rows){
+    if (!rows.length){ $('revList').innerHTML = '<div class="empty"><span class="g">📝</span>'+esc(t('kosongUsulan'))+'</div>'; return; }
+    $('revList').innerHTML = rows.map(function(p){
+      var e = p.entri || {}, u = p.usulan || {};
+      var diff = '';
+      if (p.jenis === 'EDIT'){
+        var rows2 = [];
+        if (u.qty !== undefined && u.qty !== e.qty) rows2.push([t('qty'), n2(e.qty)+' kg', n2(u.qty)+' kg']);
+        if (u.kode && u.kode !== e.kode) rows2.push([t('item'), e.item, p.usulanNamaItem || u.kode]);
+        if (u.tanggal && u.tanggal !== e.tanggal) rows2.push([t('lblTanggal'), e.tanggal, u.tanggal]);
+        if (u.partner !== undefined && u.partner !== e.partner) rows2.push(['Partner', e.partner, u.partner]);
+        if (u.noSuratJalan !== undefined && u.noSuratJalan !== e.noSuratJalan) rows2.push([t('thSJ'), e.noSuratJalan||'—', u.noSuratJalan||'—']);
+        if (u.catatan !== undefined && u.catatan !== e.catatan) rows2.push([t('lblCatatan'), e.catatan||'—', u.catatan||'—']);
+        diff = '<table class="tbl" style="margin-top:8px"><thead><tr><th></th><th>'+esc(t('sekarang'))+'</th><th>'+esc(t('diusulkan'))+'</th></tr></thead><tbody>' +
+          rows2.map(function(r){ return '<tr><td>'+esc(r[0])+'</td><td>'+esc(String(r[1]))+'</td><td><b>'+esc(String(r[2]))+'</b></td></tr>'; }).join('') + '</tbody></table>';
+      } else if (p.jenis === 'EDIT_JOB'){
+        var bb = (u.bahanBaku||[]).map(function(b){ return namaItem(b.kode)+' '+n2(b.qty)+' kg'; }).join(', ');
+        var bj = (u.barangJadi||[]).map(function(b){ return namaItem(b.kode)+' '+n2(b.qty)+' kg'; }).join(', ');
+        diff = '<div class="kv"><span>'+esc(t('sekarang'))+'</span><b>'+n2(e.masuk)+' → '+n2(e.jadi)+' kg · scrap '+n2(e.scrap)+'</b></div>' +
+               '<div class="kv"><span>'+esc(t('diusulkan'))+'</span><b>'+esc(bb)+' → '+esc(bj)+' · scrap '+n2(u.scrapKg||0)+'</b></div>';
+      }
+      var judul = p.sheet === 'Pekerjaan' ? (e.produk||'') : (n2(e.qty)+' kg · '+(e.item||''));
+      return '<div class="rev" id="req-'+esc(p.id)+'"><div class="body">' +
+        '<div style="display:flex;align-items:flex-start;gap:10px"><div style="flex:1">' +
+          '<div style="font-weight:700;font-size:15px">'+esc(judul)+'</div>' +
+          '<div class="meta">'+esc(e.jenis||'')+(e.tanggal?' · '+esc(e.tanggal):'')+' · '+esc(p.pengaju)+' · '+esc(p.waktu)+'</div>' +
+        '</div><span class="pill '+(p.jenis==='BATAL'?'bad':'warn')+'">'+esc(labelUsulan(p.jenis))+'</span></div>' +
+        diff +
+        (p.alasan ? '<div class="kv"><span>'+esc(t('alasan'))+'</span><b>'+esc(p.alasan)+'</b></div>' : '') +
+        '<div class="btnrow" style="margin-top:10px">' +
+          '<button class="btn ghost" onclick="tinjauUsulan(\''+esc(p.id)+'\',\'tolak\')">✕ '+esc(t('tolak'))+'</button>' +
+          '<button class="btn ok" onclick="tinjauUsulan(\''+esc(p.id)+'\',\'setuju\')">✓ '+esc(t('setujui'))+'</button>' +
+        '</div></div></div>';
+    }).join('');
+  }).catch(function(e){ $('revList').innerHTML = '<div class="banner bad">'+esc(e.message)+'</div>'; });
+}
+function tinjauUsulan(id, aksi){
+  var catatan = '';
+  if (aksi === 'tolak'){ catatan = window.prompt(t('alasanTolak')); if (catatan === null) return; }
+  var card = $('req-'+id); if (card) card.style.opacity = .45;
+  panggil('tinjauPermintaan',[id, aksi, catatan || '', S.ident]).then(function(){
+    if (card) card.remove();
+    toast(aksi==='setuju' ? t('usulanDisetujui') : t('usulanDitolak'), aksi==='setuju' ? 'ok' : '');
+    muatKonteks(true);
+    if (!document.querySelectorAll('.rev').length) muatUsulan();
+  }).catch(function(e){ if (card) card.style.opacity = 1; toast(e.message,'bad'); });
+}
 function muatReview(){
+  if (S.revTab === 'USULAN') return muatUsulan();
   var arsip = S.revTab === 'DITANDAI';
   $('revHint').textContent = arsip ? t('hintDitandai') : t('hintMenunggu');
   $('revList').innerHTML = '<div class="load">…</div>';
