@@ -148,6 +148,12 @@
         <div id="ocrHasil"></div>
       </div>
 
+      <div class="field">
+        <label data-i18n="lblTanggal">Tanggal transaksi</label>
+        <input type="date" id="rcvTanggal">
+        <div class="hint" data-i18n="hintTanggal">Default hari ini. Ganti kalau barangnya masuk/keluar kemarin tapi baru dicatat sekarang.</div>
+      </div>
+
       <div class="field" id="rcvSJWrap">
         <label data-i18n="lblNoSJ">No. surat jalan</label>
         <input id="rcvNoSJ" placeholder="SJ/2026/09/0184">
@@ -191,6 +197,12 @@
         </div>
       </div>
 
+      <div class="field">
+        <label data-i18n="lblTanggal">Tanggal transaksi</label>
+        <input type="date" id="trfTanggal">
+        <div class="hint" data-i18n="hintTanggal">Default hari ini. Ganti kalau barangnya masuk/keluar kemarin tapi baru dicatat sekarang.</div>
+      </div>
+
       <h3 class="sec" data-i18n="secItem">Item <span class="unit">kg</span></h3>
       <div id="trfLines"></div>
       <button class="btn sec sm" onclick="tambahBaris('trf')" data-i18n="btnTambahItem">+ Tambah item</button>
@@ -231,6 +243,10 @@
         <label data-i18n="qty">Qty (kg)</label>
         <input type="number" inputmode="decimal" step="any" min="0" id="editQty">
       </div>
+      <div class="field">
+        <label data-i18n="lblTanggal">Tanggal transaksi</label>
+        <input type="date" id="editTanggal">
+      </div>
       <div class="field" id="editSJWrap">
         <label data-i18n="lblNoSJ">No. surat jalan</label>
         <input id="editSJ">
@@ -239,6 +255,11 @@
         <label data-i18n="lblCatatan">Catatan (opsional)</label>
         <textarea id="editCatatan"></textarea>
       </div>
+      <div class="field hide" id="editAlasanWrap">
+        <label data-i18n="lblAlasan">Alasan perubahan</label>
+        <input id="editAlasan" placeholder="mis. salah timbang / salah pilih item">
+      </div>
+      <div class="banner warn hide" id="editUsulanInfo"></div>
       <div class="logedit hide" id="editLog"></div>
       <div class="btnrow">
         <button class="btn ghost hide" id="btnEditBatal" onclick="batalkanEntriUI()" data-i18n="batalkanInput">Batalkan input</button>
@@ -283,6 +304,11 @@
           <label data-i18n="lblCatatan">Catatan (opsional)</label>
           <textarea id="edCatatan"></textarea>
         </div>
+        <div class="field hide" id="edAlasanWrap">
+          <label data-i18n="lblAlasan">Alasan perubahan</label>
+          <input id="edAlasan" placeholder="mis. salah catat hasil timbang">
+        </div>
+        <div class="banner warn hide" id="edUsulanInfo"></div>
         <div class="logedit hide" id="edLog"></div>
         <div class="btnrow">
           <button class="btn sec" onclick="segJob('done')" data-i18n="btnBatal">Batal</button>
@@ -298,6 +324,10 @@
         <div class="field">
           <label data-i18n="lblProduk">Produk yang dibuat</label>
           <select id="jobProduk" onchange="ringkasJobBaru()"></select>
+        </div>
+        <div class="field">
+          <label data-i18n="lblTanggal">Tanggal transaksi</label>
+          <input type="date" id="jobTanggal">
         </div>
         <h3 class="sec" data-i18n="secBahan">Bahan baku masuk <span class="unit">kg</span></h3>
         <div id="jobLines"></div>
@@ -357,6 +387,7 @@
     <div class="seg">
       <button id="segRevMenunggu" class="on" onclick="segRev('MENUNGGU')"><span data-i18n="segMenunggu">Menunggu</span> <span class="cnt" id="cntMenunggu"></span></button>
       <button id="segRevDitandai" onclick="segRev('DITANDAI')"><span data-i18n="segDitandai">Ditandai</span> <span class="cnt" id="cntDitandai"></span></button>
+      <button id="segRevUsulan" onclick="segRev('USULAN')"><span data-i18n="segUsulan">Usulan</span> <span class="cnt" id="cntUsulan"></span></button>
     </div>
     <div class="banner n" id="revHint"></div>
     <div id="revList"><div class="load">…</div></div>

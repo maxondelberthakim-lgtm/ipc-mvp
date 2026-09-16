@@ -277,7 +277,11 @@ nav button .dot{position:absolute;top:5px;right:50%;margin-right:-19px;width:8px
   background:#111827;color:#fff;padding:12px 17px;border-radius:11px;font-size:13.5px;
   max-width:88%;box-shadow:0 8px 24px rgba(0,0,0,.22);text-align:center;
 }
-.toast.ok{background:var(--ok)} .toast.bad{background:var(--danger)}
+.toast.ok{background:var(--ok)} .toast.bad{background:var(--danger)} .toast.warn{background:var(--warn)}
+.stokhint{display:inline-block;margin-top:6px;font-size:12px;color:var(--muted);background:var(--surface-2);border:1px solid var(--line);border-radius:6px;padding:2px 8px}
+.stokhint.warn{color:var(--warn);background:var(--warn-soft)} .stokhint.bad{color:var(--danger);background:var(--danger-soft);font-weight:600}
+.tbl{width:100%;border-collapse:collapse;font-size:12.5px} .tbl th,.tbl td{padding:5px 6px;text-align:left;border-bottom:1px solid var(--line)} .tbl th{color:var(--muted);font-weight:600;font-size:11px;text-transform:uppercase}
+input[type=date]{font-family:inherit}
 .empty{text-align:center;padding:34px 16px;color:var(--muted);font-size:13.5px}
 .empty .g{font-size:34px;display:block;margin-bottom:8px;opacity:.4}
 .load{text-align:center;padding:30px;color:var(--muted);font-size:13px}

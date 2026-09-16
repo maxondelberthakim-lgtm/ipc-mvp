@@ -10,7 +10,7 @@
 
 var APP = {
   nama: 'IPC — Inventory & Production Control',
-  versi: '6.3.0',
+  versi: '6.4.0',
   zona: 'Asia/Jakarta',
   satuan: 'kg',
   folderFoto: 'IPC Foto Bukti'
@@ -31,6 +31,7 @@ var SHEET = {
   PEKERJAAN  : 'Pekerjaan',         // ②
   DETAIL     : 'Pekerjaan_Detail',
   OPNAME     : 'Stock_Opname',      // hitung fisik → penyesuaian stok
+  PERMINTAAN : 'Permintaan_Ubah',   // usulan edit/batal dari staf → butuh persetujuan supervisor
   LOG        : 'Log_Audit',
   SETTING    : 'Pengaturan'
 };
@@ -99,6 +100,13 @@ HEADER[SHEET.OPNAME] = [
   'Stok_Sistem','Stok_Fisik','Selisih','Catatan','Dicatat_Oleh','Nama_Pencatat'
 ];
 
+/* Usulan perubahan dari STAF (edit / batal entri, edit pekerjaan). Entri aslinya TIDAK berubah
+   sampai supervisor menyetujui. Usulan = JSON payload yang sama dengan fungsi edit. */
+HEADER[SHEET.PERMINTAAN] = [
+  'ID','Waktu','Jenis','ID_Entri','Sheet_Entri','Ringkasan','Usulan','Alasan',
+  'Diajukan_Oleh','Nama_Pengaju','Status','Ditinjau_Oleh','Waktu_Tinjau','Catatan_Tinjau'
+];
+
 HEADER[SHEET.LOG] = [
   'Waktu','Email','Aksi','Referensi','Detail'
 ];
@@ -133,6 +141,10 @@ var STATUS_TRANSFER = {
 };
 
 var STATUS_PEKERJAAN = { BERJALAN: 'BERJALAN', SELESAI: 'SELESAI' };
+
+var JENIS_PERMINTAAN  = { EDIT: 'EDIT', BATAL: 'BATAL', EDIT_JOB: 'EDIT_JOB' };
+var STATUS_PERMINTAAN = { MENUNGGU: 'MENUNGGU', DISETUJUI: 'DISETUJUI', DITOLAK: 'DITOLAK' };
+var MAKS_MUNDUR_HARI  = 60;   // tanggal transaksi boleh dimundurkan maksimal sekian hari
 
 var JENIS_DETAIL = {
   BAHAN_BAKU  : 'BAHAN_BAKU',
