@@ -15,11 +15,12 @@ srv    = rd(os.path.join(A, 'Server.gs'))
 med    = rd(os.path.join(A, 'Media.gs'))
 shim   = rd(os.path.join(root, 'tools', 'shim.js'))
 seed   = rd(os.path.join(root, 'tools', 'seed.js'))
+fixture= rd(os.path.join(root, 'tools', 'fixture-master.js'))  # master contoh (kacang) khusus demo
 
 html = idx.replace("<?!= include('Styles'); ?>", styles).replace("<?!= include('Script'); ?>", "__S__")
 html = html.replace("<script>var BAHASA_AWAL = '<?= bahasaAwal ?>';</script>", "<script>var BAHASA_AWAL = 'id';</script>")
 backend = ("<script>\n" + shim + "\n</script>\n<script>\n" + cfg + "\n" + srv + "\n" + med +
-           "\n</script>\n<script>\n" + seed + "\n</script>\n")
+           "\n</script>\n<script>\n" + fixture + "\n" + seed + "\n</script>\n")
 html = html.replace("__S__", backend + script)
 
 banner = '''

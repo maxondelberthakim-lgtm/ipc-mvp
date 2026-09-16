@@ -11,6 +11,7 @@
       deleteColumns(){}, setFrozenRows(){}, autoResizeColumns(){},
       appendRow(r){ this.rows.push(r.slice()); },
     deleteRow(n){ this.rows.splice(n-1,1); },
+      deleteRows(n,k){ this.rows.splice(n-1,k||1); },
       getRange(r,c,nr,nc){
         var sh=this; nr=nr||1; nc=nc||1;
         return {
