@@ -283,6 +283,21 @@ function seedUlangMaster() {
   catatLog_('SEED_ULANG_MASTER', '', DUMMY_ITEM.length + ' item, ' + DUMMY_SUPPLIER.length + ' supplier, ' + DUMMY_CUSTOMER.length + ' customer, ' + DUMMY_STANDAR.length + ' standar susut');
 }
 
+/**
+ * Reset untuk go-live: HAPUS SEMUA transaksi uji coba (penerimaan, pengiriman, transfer,
+ * pekerjaan, detail, opname), lalu isi ulang master dari DUMMY_*. Log_Audit & pengguna tetap.
+ * Jalankan manual dari editor SEKALI sebelum sistem dipakai sungguhan. Tidak bisa dipanggil dari app.
+ */
+function resetUntukGoLive() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  [SHEET.PENERIMAAN, SHEET.PENGIRIMAN, SHEET.TRANSFER, SHEET.PEKERJAAN, SHEET.DETAIL, SHEET.OPNAME].forEach(function (n) {
+    var sh = ss.getSheetByName(n);
+    if (sh && sh.getLastRow() >= 2) sh.deleteRows(2, sh.getLastRow() - 1);
+  });
+  catatLog_('RESET_GO_LIVE', '', 'Semua transaksi uji coba dihapus');
+  seedUlangMaster();
+}
+
 function ambilAtauBuatFolder_() {
   var id = getSetting_('FOLDER_FOTO_ID');
   if (id) { try { return DriveApp.getFolderById(id); } catch (e) {} }
