@@ -7,7 +7,9 @@ typed quantity, a photo and a timestamp — then reviewed after the fact by a su
 **Backend is a Google Sheet.** No server, no hosting, no app to install. The plant already
 runs on spreadsheets, so the data lands in the format the team already knows.
 
-> **[▶ Try the live demo](https://maxondelberthakim-lgtm.github.io/ipc-mvp/)** — real backend
+> **[▶ App (GitHub Pages PWA)](https://maxondelberthakim-lgtm.github.io/ipc-mvp/app/)** — static frontend on GitHub Pages, calls Apps Script as a JSON API (`doPost {fn,args}`), Google Sheet as database. Installable, no Google sign-in; name + PIN only.
+>
+> **[▶ Offline demo](https://maxondelberthakim-lgtm.github.io/ipc-mvp/)** — real backend
 > logic running in the browser on sample data. Nothing you do there is saved (refresh = reset).
 >
 > Demo sign-in (name · PIN): **Admin** 1234 · **Direktur** 2468 · **Manager** 1357 · **Staff Gudang** 1111
@@ -60,6 +62,7 @@ apps-script/     the app — paste these into a Google Sheet's Apps Script edito
   Script.html    front-end logic + i18n
   appsscript.json
 docs/index.html  offline demo (served by GitHub Pages)
+docs/app/        the real app: PWA frontend (built by tools/build-app.py from apps-script/)
 tests/           Node test suite — runs the real .gs files against an in-memory sheet
 tools/           demo shim, seed data, build script
 PANDUAN-SETUP.md deployment guide (Indonesian) — start here
@@ -74,14 +77,15 @@ Full steps in **[PANDUAN-SETUP.md](PANDUAN-SETUP.md)**. Short version:
 3. **Services → + Drive API (v2)** — enables OCR
 4. Run `setupSistem()` once, grant permissions
 5. Change the four default PINs (Admin → Pengguna). Everyone — the sheet owner included — logs in with name + PIN (`PAKSA_LOGIN_MANUAL=YA`); unregistered names are refused (`AKSES_TERBUKA=TIDAK`)
-6. **Deploy → Web app** — execute as *Me*, access *Anyone with a Google account*
-7. Send the URL to staff; they add it to their home screen
+6. **Deploy → Web app** — execute as *Me*, access **Anyone** (this is the JSON API endpoint)
+7. Put the `/exec` URL in `tools/api-url.txt`, run `python3 tools/build-app.py`, commit `docs/app/` — staff open `https://<owner>.github.io/<repo>/app/` and add it to their home screen. Master data: run `resetUntukGoLive()` once from the editor to clear test rows and load the SKU list in `DUMMY_ITEM`.
 
 ## Development
 
 ```bash
 cd tests && npm test          # 248 checks: stock math, shrinkage, permissions, OCR parser
 python3 tools/build-demo.py   # rebuild docs/index.html after editing apps-script/
+python3 tools/build-app.py    # rebuild docs/app/ (PWA); API URL comes from tools/api-url.txt
 ```
 
 The tests run the actual Apps Script code under Node with `SpreadsheetApp`, `DriveApp`

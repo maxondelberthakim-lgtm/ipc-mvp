@@ -130,7 +130,7 @@ Baris pertama `Master_Pengguna` (email Google-mu) hanya dipakai kalau `PAKSA_LOG
 | Field | Isi |
 |---|---|
 | Execute as | **Me (email kamu)** |
-| Who has access | **Anyone with a Google account** |
+| Who has access | **Anyone** (tanpa login Google — URL ini dipakai sebagai API JSON oleh aplikasi di GitHub Pages) |
 
 **Deploy** → copy **Web app URL**.
 
@@ -405,3 +405,20 @@ Version: **New version** → Deploy. Link di HP staff tidak berubah.
 | "Entri ini sudah final" | Setuju / Batal tidak bisa diubah statusnya lagi — tapi supervisor masih bisa mengubah angkanya lewat Ubah |
 | Tombol Ubah tidak ada, cuma 🔒 | Bukan entri kamu, atau sudah ditinjau — minta supervisor |
 | Stok GP minus | Pekerjaan memakai lebih banyak dari yang ditransfer — cek transfer yang belum dicatat |
+
+
+### 8. Aplikasi di GitHub Pages (yang dipakai staf)
+Tampilan aplikasi TIDAK dibuka dari URL Apps Script (lambat, minta login Google). Ia di-hosting statis di
+GitHub Pages dan memanggil URL `/exec` di atas sebagai API JSON.
+
+1. Tulis URL `/exec` ke `tools/api-url.txt`
+2. `python3 tools/build-app.py` → menghasilkan `docs/app/` (index.html, manifest, service worker, ikon)
+3. Commit & push; GitHub Pages sudah menyajikan `/docs` → aplikasi ada di `https://<owner>.github.io/<repo>/app/`
+4. Staf buka link itu di Chrome → ⋮ → *Add to Home screen*. Login Nama + PIN. Tombol **Keluar** untuk ganti akun.
+
+Kalau URL `/exec` berubah (mis. setelah transfer ownership), ulangi langkah 1–3; link aplikasi staf tetap sama.
+
+### 9. Data master untuk go-live
+Daftar SKU sebenarnya ada di `DUMMY_ITEM` (Config.gs). Jalankan **`resetUntukGoLive()`** sekali dari editor:
+menghapus semua transaksi uji coba dan mengisi ulang Master_Item / Supplier / Customer / Standar_Susut.
+Setelah itu ubah SKU lewat menu Admin → SKU, jangan seed ulang.
