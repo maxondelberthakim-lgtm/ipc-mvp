@@ -13,6 +13,7 @@ function makeSheet(name){
     setFrozenRows(){}, autoResizeColumns(){},
     appendRow(r){ this.rows.push(r.slice()); },
     deleteRow(n){ this.rows.splice(n-1,1); },
+    deleteRows(n,k){ this.rows.splice(n-1,k||1); },
     getRange(r,c,nr,nc){
       const sh=this;
       nr = nr||1; nc = nc||1;
@@ -82,5 +83,7 @@ vm.createContext(ctx);
 ['Config.gs','Server.gs','Media.gs'].forEach(f=>{
   vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'apps-script', f), 'utf8'), ctx, {filename:f});
 });
+// tes memakai master data contoh (kacang) — deploy sungguhan memakai DUMMY_ITEM di Config.gs
+vm.runInContext(fs.readFileSync(path.join(__dirname, 'fixture-master.js'), 'utf8'), ctx, {filename:'fixture-master.js'});
 
 module.exports = { ctx, SS };
