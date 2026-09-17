@@ -1,6 +1,6 @@
-# IPC — Inventory & Production Control (MVP)
+# IPC — Inventory & Production Control (v7.1)
 
-Mobile web app for a food-production plant: every kilogram that moves between
+Mobile web app for a small factory (polybag plant): every kilogram that moves between
 **supplier → warehouse (GBJ) → production (GP) → warehouse → customer** is logged with a
 typed quantity, a photo and a timestamp — then reviewed after the fact by a supervisor.
 
@@ -18,8 +18,11 @@ runs on spreadsheets, so the data lands in the format the team already knows.
 
 | # | Movement | Photo | Delivery note | Stock effect |
 |---|---|---|---|---|
-| ⓪ | Purchase in (supplier → GBJ) | required | required + OCR | GBJ + |
-| ↩ | Return to supplier | required | — | GBJ − |
+| PO | Purchase order (manager: item, kg, price, spec, ETA) | — | — | — |
+| ⓪ | Goods receipt against a PO (supplier → GBJ), QC note | required | required + OCR | GBJ + |
+| 🧾 | Supplier invoice upload → compare with Σ(received × PO price) → validate, correct price | required | — | prices only |
+| ↩ | Return to supplier — only from a recorded receipt ("returnable X kg") | required | — | GBJ − |
+| ⚠ | Damaged goods — reported by staff, approved by manager | optional | — | GBJ/GP − after approval |
 | ① | Transfer to production (GBJ → GP) | required | — | GBJ −, GP + |
 | ② | Job: raw material → finished goods + scrap | optional | — | GP |
 | ③ | Transfer back (GP → GBJ) | required | — | GP −, GBJ + |
@@ -37,8 +40,15 @@ runs on spreadsheets, so the data lands in the format the team already knows.
 - **Activity calendar** on the home screen — colour dots per day, tap a date for the full log.
 - **Review = Approve / Flag / Cancel.** Flag archives an entry to revise later (still counted);
   Cancel voids it (not counted).
-- **COGS (HPP)** per job and per kg of output, plus the rupiah value of shrinkage — visible to
-  supervisors only; the server never sends prices to warehouse staff.
+- **COGS (HPP) is FIFO**: every receipt is a batch priced from its PO/invoice; transfers, jobs, sales and
+  damage consume the oldest batch first; finished goods become a batch at the job's COGS/kg. Reports: COGS per
+  job / per kg, stock value per batch, rupiah value of shrinkage and of approved damage. Visible to supervisors
+  only; the server never sends prices to warehouse staff. `METODE_HPP=MASTER` falls back to master prices.
+- **Shrinkage standard per product** from real data (mean, median, min–max, σ, weighted) with a one-tap
+  "set as standard" that writes to `Master_Standar_Susut`.
+- **Staff edits/cancels become requests** that a supervisor approves (Review → Usulan); transaction date
+  defaults to today but can be back-dated (max `MAKS_MUNDUR_HARI`). Available stock at the source location
+  is shown while picking an item.
 - **Per-user PIN sign-in** — every entry is attributable to one person. Roles: STAF / SUPERVISOR / ADMIN.
 - **Admin menu**: stock count (opname) that writes adjustments instead of overwriting; SKU add / edit / delete
   from the phone; per-staff activity; user management (admin only).
@@ -55,7 +65,8 @@ runs on spreadsheets, so the data lands in the format the team already knows.
 ```
 apps-script/     the app — paste these into a Google Sheet's Apps Script editor
   Config.gs      sheet schema, enums, dummy master data, setupSistem()
-  Server.gs      purchases, sales, returns, transfers, jobs, shrinkage, reports
+  Server.gs      purchases, sales, returns, transfers, jobs, shrinkage, reports, JSON API (doPost)
+  Pembelian.gs   v7: schema migration, purchase orders, invoices, FIFO engine, damage, shrinkage standards
   Media.gs       photo upload to Drive + delivery-note OCR
   Index.html     screens
   Styles.html    CSS
@@ -92,12 +103,12 @@ The tests run the actual Apps Script code under Node with `SpreadsheetApp`, `Dri
 etc. stubbed by an in-memory sheet (`tests/harness.js`), so backend logic is verified
 before anything is pasted into Google.
 
-## Not in the MVP
+## Not yet
 
-Offline mode · prices / invoicing · barcode scanning · blocking stock validation ·
-warehouses beyond GBJ/GP · push notifications.
+Offline mode · barcode scanning · warehouses beyond GBJ/GP · push notifications · sales orders / receivables.
 
 ## Status
 
-MVP — built for a 2–3 week pilot on one warehouse pair. Shrinkage thresholds in
+v7.1 live (Apps Script deployment version 9; GitHub Pages app). 368 automated checks (`cd tests && node test.js …`).
+Built for a pilot on one warehouse pair. Shrinkage thresholds in
 `Master_Standar_Susut` should be set from real pilot data, not guessed.

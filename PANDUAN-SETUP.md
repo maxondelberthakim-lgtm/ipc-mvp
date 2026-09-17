@@ -1,4 +1,4 @@
-# IPC — Inventory & Production Control (MVP v6)
+# IPC — Inventory & Production Control (v7.1)
 
 Backend Google Sheets, frontend web app yang dibuka lewat browser HP.
 Tidak ada server, tidak ada hosting, tidak ada aplikasi yang perlu di-install.
@@ -61,12 +61,13 @@ Selisih antara angka ini dan hitungan fisik = barang yang bergerak tanpa dicatat
 | File | Jenis di Apps Script |
 |---|---|
 | `Config.gs` | Script — skema sheet, dummy data, `setupSistem()` |
-| `Server.gs` | Script — pembelian, penjualan, retur, transfer, pekerjaan, susut, laporan |
+| `Server.gs` | Script — pembelian, penjualan, retur, transfer, pekerjaan, susut, laporan, API JSON |
+| `Pembelian.gs` | Script — migrasi skema, pesanan pembelian (PO), invoice, HPP FIFO, barang rusak, standar susut |
 | `Media.gs` | Script — foto ke Drive + OCR surat jalan |
 | `Index.html` | HTML — struktur layar |
 | `Styles.html` | HTML — CSS |
 | `Script.html` | HTML — logika front-end + i18n (ID/EN) |
-| `appsscript.json` | Manifest — opsional |
+| `appsscript.json` | Manifest — layanan Drive v2 + Sheets v4 (wajib untuk baca cepat) |
 | `app-demo.html` | Demo offline — buka langsung di browser, tanpa deploy |
 
 ---
@@ -85,14 +86,16 @@ Panel kiri (Files):
 - `Code.gs` bawaan → rename jadi **Config**, hapus isinya, paste `Config.gs`
 - **+ → Script** → **Server** → paste `Server.gs`
 - **+ → Script** → **Media** → paste `Media.gs`
+- **+ → Script** → **Pembelian** → paste `Pembelian.gs`
 - **+ → HTML** → **Index** → hapus isi bawaan, paste `Index.html`
 - **+ → HTML** → **Styles** → paste `Styles.html`
 - **+ → HTML** → **Script** → paste `Script.html`
 
 > Nama harus persis: `Index`, `Styles`, `Script` (tanpa `.html`).
 
-### 4. Aktifkan Drive API (untuk OCR surat jalan)
+### 4. Aktifkan Drive API (foto & OCR) dan Sheets API (baca cepat)
 **Services → + → Drive API → Version: v2 →** Identifier biarkan `Drive` **→ Add**.
+**Services → + → Google Sheets API → Version: v4 →** Identifier `Sheets` **→ Add**. Dengan ini semua tab dibaca dalam satu panggilan (±0,3 detik, bukan 2–3 detik). Kalau dilewat, aplikasi tetap jalan tapi lebih lambat.
 
 Kalau dilewat, aplikasi tetap jalan — hanya tombol "Baca surat jalan" yang mati.
 
@@ -372,15 +375,24 @@ Version: **New version** → Deploy. Link di HP staff tidak berubah.
 
 ---
 
-## Yang belum ada di MVP
+## Yang belum ada
 
 - Offline mode (harus ada sinyal saat submit)
-- Harga / nilai rupiah — sistem ini murni kuantitas kg
-- Invoice, piutang, dan pemenuhan pesanan (PO/SO)
+- Sales order & piutang (PO pembelian + invoice supplier sudah ada sejak v7)
 - Barcode / QR (sesuai proposal: kamera saja)
-- Validasi stok yang memblokir input
 - Multi-gudang di luar GBJ / GP
 - Notifikasi push ke supervisor
+
+## Versi 7 (PO → penerimaan → invoice → HPP FIFO)
+
+- **Pesanan pembelian** dibuat Manager (Beranda → Pesanan pembelian): item, kg, harga beli/kg, spesifikasi, perkiraan datang. Status TERBUKA → SEBAGIAN → SELESAI / DIBATALKAN.
+- **Penerimaan barang** (nama baru "Barang masuk"): staf memilih PO yang datang; item & spesifikasi terisi, sisa PO tampil, ada Catatan QC. Tanpa PO tetap boleh (`WAJIB_PO = TIDAK`).
+- **Retur ke supplier** hanya dari penerimaan yang sudah tercatat ("bisa diretur X kg").
+- **Invoice**: Manager mengunggah invoice per PO → dibandingkan dengan Σ(kg diterima × harga PO) → Tandai VALID, harga bisa dikoreksi per item → batch & HPP ikut.
+- **HPP FIFO** (`METODE_HPP = FIFO`): batch per penerimaan; transfer, pekerjaan, penjualan, rusak memakai batch tertua. Laporan → Nilai stok. Tombol *Hitung ulang HPP* di tab Invoice.
+- **Barang rusak**: staf lapor (lokasi, item, kg, penyebab, foto) → Manager setujui di Review → Rusak → stok berkurang, kerugian dihitung FIFO.
+- **Standar susut per produk**: Laporan → Std susut → *Jadikan standar*.
+- Skema sheet diperbarui otomatis (`migrasiSkema`) saat versi baru pertama dipanggil; `resetUntukGoLive` juga membersihkan tab v7.
 
 ---
 
