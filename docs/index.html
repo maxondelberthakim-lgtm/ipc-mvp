@@ -948,7 +948,7 @@ details summary::-webkit-details-marker{display:none}
 
 var APP = {
   nama: 'IPC — Inventory & Production Control',
-  versi: '7.0.0',
+  versi: '7.1.0',
   zona: 'Asia/Jakarta',
   satuan: 'kg',
   folderFoto: 'IPC Foto Bukti'
@@ -1194,6 +1194,7 @@ var DEFAULT_SETTING = [
  * SETUP — jalankan sekali
  * ------------------------------------------------------------------ */
 function setupSistem() {
+  lupakanMemo_();
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   if (!ss) throw new Error('Script harus terikat ke Google Sheet (Extensions > Apps Script dari dalam Sheet).');
 
@@ -1221,6 +1222,7 @@ function setupSistem() {
   if (shU.getLastRow() < 2) {
     if (email) shU.appendRow([email, email.split('@')[0], PERAN.ADMIN, 'HQ', '', 'YA']);
     DUMMY_PENGGUNA.forEach(function (r) { shU.appendRow(r); });
+    lupakanMemo_(SHEET.PENGGUNA);
   }
 
   var folder = ambilAtauBuatFolder_();
@@ -1237,10 +1239,12 @@ function setupSistem() {
 }
 
 function seedJika(ss, nama, rows) {
+  lupakanMemo_();
   var sh = ss.getSheetByName(nama);
   if (sh.getLastRow() >= 2) return;
   if (!rows.length) return;
   sh.getRange(2, 1, rows.length, rows[0].length).setValues(rows);
+  lupakanMemo_(nama);
 }
 
 /**
@@ -1248,8 +1252,9 @@ function seedJika(ss, nama, rows) {
  * Hanya boleh saat belum ada transaksi (aman untuk setup awal / ganti daftar SKU sebelum go-live).
  */
 function seedUlangMaster() {
+  lupakanMemo_();
   var ss = SpreadsheetApp.getActiveSpreadsheet();
-  [SHEET.PENERIMAAN, SHEET.PENGIRIMAN, SHEET.TRANSFER, SHEET.PEKERJAAN, SHEET.OPNAME].forEach(function (n) {
+  [SHEET.PENERIMAAN, SHEET.PENGIRIMAN, SHEET.TRANSFER, SHEET.PEKERJAAN, SHEET.OPNAME, SHEET.PO, SHEET.KERUSAKAN].forEach(function (n) {
     var sh = ss.getSheetByName(n);
     if (sh && sh.getLastRow() >= 2) throw new Error('Sudah ada transaksi di ' + n + '. Ubah SKU lewat menu Admin > SKU, jangan seed ulang.');
   });
@@ -1259,6 +1264,7 @@ function seedUlangMaster() {
     if (sh.getLastRow() >= 2) sh.deleteRows(2, sh.getLastRow() - 1);
     sh.getRange(2, 1, pair[1].length, pair[1][0].length).setValues(pair[1]);
   });
+  lupakanMemo_();
   catatLog_('SEED_ULANG_MASTER', '', DUMMY_ITEM.length + ' item, ' + DUMMY_SUPPLIER.length + ' supplier, ' + DUMMY_CUSTOMER.length + ' customer, ' + DUMMY_STANDAR.length + ' standar susut');
 }
 
@@ -1268,11 +1274,14 @@ function seedUlangMaster() {
  * Jalankan manual dari editor SEKALI sebelum sistem dipakai sungguhan. Tidak bisa dipanggil dari app.
  */
 function resetUntukGoLive() {
+  lupakanMemo_();
   var ss = SpreadsheetApp.getActiveSpreadsheet();
-  [SHEET.PENERIMAAN, SHEET.PENGIRIMAN, SHEET.TRANSFER, SHEET.PEKERJAAN, SHEET.DETAIL, SHEET.OPNAME].forEach(function (n) {
+  [SHEET.PENERIMAAN, SHEET.PENGIRIMAN, SHEET.TRANSFER, SHEET.PEKERJAAN, SHEET.DETAIL, SHEET.OPNAME,
+   SHEET.PERMINTAAN, SHEET.PO, SHEET.INVOICE, SHEET.KERUSAKAN].forEach(function (n) {
     var sh = ss.getSheetByName(n);
     if (sh && sh.getLastRow() >= 2) sh.deleteRows(2, sh.getLastRow() - 1);
   });
+  lupakanMemo_();
   catatLog_('RESET_GO_LIVE', '', 'Semua transaksi uji coba dihapus');
   seedUlangMaster();
 }
@@ -1326,26 +1335,35 @@ var RPC_WL = {
   ringkasanPo:1, simpanInvoice:1, validasiInvoice:1, daftarInvoice:1,
   laporanNilaiStok:1, hitungUlangHpp:1,
   simpanKerusakan:1, daftarKerusakan:1, tinjauKerusakan:1,
-  laporanStandarSusut:1, terapkanStandarSusut:1
+  laporanStandarSusut:1, terapkanStandarSusut:1, diagnosa:1
 };
 
 function doPost(e) {
-  var out = { ok:false };
+  var out = { ok:false }, idKlien = '', cache = null;
   try {
     var body = JSON.parse((e && e.postData && e.postData.contents) || '{}');
     var fn = String(body.fn || '');
     if (!RPC_WL[fn]) throw new Error('Fungsi tidak dikenal: ' + fn);
     var f = globalThis[fn];
     if (typeof f !== 'function') throw new Error('Fungsi tidak tersedia: ' + fn);
+    /* Idempotensi: frontend mengirim idKlien unik per aksi. Kalau balasan hilang di jalan
+       (jaringan putus / redirect nyasar) dan frontend mengulang, permintaan yang sama TIDAK
+       dijalankan dua kali — hasil pertama dikembalikan dari cache (10 menit). */
+    idKlien = String(body.idKlien || '').replace(/[^A-Za-z0-9_-]/g, '').slice(0, 64);
+    if (idKlien) {
+      try { cache = CacheService.getScriptCache(); var ada = cache.get('rq:' + idKlien); if (ada) return jsonOut_(ada); } catch (x) { cache = null; }
+    }
     out.ok = true;
     out.data = f.apply(null, body.args || []);
   } catch (err) {
     out.ok = false;
     out.error = (err && err.message) ? err.message : String(err);
   }
-  return ContentService.createTextOutput(JSON.stringify(out))
-    .setMimeType(ContentService.MimeType.JSON);
+  var teks = JSON.stringify(out);
+  if (idKlien && cache && out.ok && teks.length < 90000) { try { cache.put('rq:' + idKlien, teks, 600); } catch (x) {} }
+  return jsonOut_(teks);
 }
+function jsonOut_(teks) { return ContentService.createTextOutput(teks).setMimeType(ContentService.MimeType.JSON); }
 
 /* ================= UTIL SHEET ================= */
 
@@ -1364,7 +1382,70 @@ function sheet_(nama) {
 }
 
 var KOLOM_TANGGAL_ = /^(Tanggal|Tanggal_Invoice|Perkiraan_Datang)$/;
+/* Memo per eksekusi: satu sheet dibaca dari Spreadsheet sekali saja per request
+   (getKonteks dulu membaca sheet yang sama berulang kali -> 6-10 detik). Dibuang setiap ada tulis. */
+var MEMO_BACA_ = {};
+function lupakanMemo_(nama) { if (nama) delete MEMO_BACA_[nama]; else { MEMO_BACA_ = {}; BATCH_DICOBA_ = false; } }
+function salinBaris_(r) { var o = {}; for (var k in r) o[k] = r[k]; return o; }
+var BATCH_DICOBA_ = false;
 function baca_(nama) {
+  if (MEMO_BACA_[nama]) return MEMO_BACA_[nama].map(salinBaris_);
+  if (!BATCH_DICOBA_) {                     // sekali per request: tarik semua sheet dalam 1 panggilan API
+    BATCH_DICOBA_ = true;
+    try { bacaSemuaBatch_(); } catch (e) { /* jatuh ke getValues per sheet */ }
+    if (MEMO_BACA_[nama]) return MEMO_BACA_[nama].map(salinBaris_);
+  }
+  var out = bacaSheet_(nama);
+  MEMO_BACA_[nama] = out;
+  return out.map(salinBaris_);
+}
+
+/* Sheets API (advanced service "Sheets" v4): semua sheet sekaligus lewat batchGet.
+   ~0,3 dtk untuk 18 sheet, dibanding ~0,15 dtk x 18 kalau getValues satu-satu. */
+var KOLOM_WAKTU_ = /^Waktu/;
+var SERIAL_EPOCH_ = 25569;                  // 1970-01-01 dalam hari serial Sheets (basis 1899-12-30)
+function offsetZonaMs_(ms) {
+  var z = Utilities.formatDate(new Date(ms), APP.zona, 'Z');   // '+0700'
+  var m = /^([+-])(\d\d)(\d\d)$/.exec(z); if (!m) return 0;
+  return (m[1] === '-' ? -1 : 1) * (parseInt(m[2], 10) * 60 + parseInt(m[3], 10)) * 60000;
+}
+function serialKeDate_(serial) {
+  var ms = Math.round((serial - SERIAL_EPOCH_) * 86400000);   // seolah-olah UTC
+  return new Date(ms - offsetZonaMs_(ms));                    // geser ke zona spreadsheet
+}
+function bacaSemuaBatch_() {
+  if (typeof Sheets === 'undefined' || !Sheets.Spreadsheets || !Sheets.Spreadsheets.Values) return false;
+  var ss = ss_(), ada = {};
+  ss.getSheets().forEach(function (sh) { ada[sh.getName()] = true; });
+  var daftar = Object.keys(SHEET).map(function (k) { return SHEET[k]; }).filter(function (n) { return ada[n] && HEADER[n]; });
+  if (!daftar.length) return false;
+  var res = Sheets.Spreadsheets.Values.batchGet(ss.getId(), {
+    ranges: daftar.map(function (n) { return "'" + n + "'"; }),
+    valueRenderOption: 'UNFORMATTED_VALUE', dateTimeRenderOption: 'SERIAL_NUMBER'
+  });
+  var vrs = (res && res.valueRanges) || [];
+  if (vrs.length !== daftar.length) return false;
+  daftar.forEach(function (nama, idx) {
+    var head = HEADER[nama], vals = vrs[idx].values || [], out = [];
+    for (var i = 1; i < vals.length; i++) {                   // baris 0 = header
+      var row = vals[i] || [];
+      if (row.join('') === '') continue;
+      var o = { _baris: i + 1 };
+      for (var c = 0; c < head.length; c++) {
+        var v = row[c]; if (v === undefined || v === null) v = '';
+        if (typeof v === 'number') {
+          if (KOLOM_WAKTU_.test(head[c])) v = serialKeDate_(v);
+          else if (KOLOM_TANGGAL_.test(head[c])) v = tglStr_(serialKeDate_(v));
+        } else if (KOLOM_TANGGAL_.test(head[c]) && Object.prototype.toString.call(v) === '[object Date]') v = tglStr_(v);
+        o[head[c]] = v;
+      }
+      out.push(o);
+    }
+    MEMO_BACA_[nama] = out;
+  });
+  return true;
+}
+function bacaSheet_(nama) {
   var sh = sheet_(nama);
   var lastRow = sh.getLastRow();
   var head = HEADER[nama];
@@ -1389,6 +1470,7 @@ function tambah_(nama, obj) {
   var head = HEADER[nama];
   var row = head.map(function (h) { return (obj[h] === undefined || obj[h] === null) ? '' : obj[h]; });
   sheet_(nama).appendRow(row);
+  lupakanMemo_(nama);
   return row;
 }
 
@@ -1399,6 +1481,7 @@ function ubahBaris_(nama, baris, obj) {
     var idx = head.indexOf(k);
     if (idx >= 0) sh.getRange(baris, idx + 1).setValue(obj[k]);
   });
+  lupakanMemo_(nama);
 }
 
 function getSetting_(kunci) {
@@ -1412,6 +1495,7 @@ function getSetting_(kunci) {
 function setSetting_(kunci, nilai) {
   var sh = sheet_(SHEET.SETTING);
   var rows = baca_(SHEET.SETTING);
+  lupakanMemo_(SHEET.SETTING);
   for (var i = 0; i < rows.length; i++) {
     if (rows[i].Kunci === kunci) { sh.getRange(rows[i]._baris, 2).setValue(nilai); return; }
   }
@@ -1691,6 +1775,7 @@ function simpanPenerimaan(p) {
 
   var lock = LockService.getScriptLock();
   lock.waitLock(20000);
+  lupakanMemo_();   // di dalam lock: baca ulang dari sheet, jangan pakai memo sebelum lock
   try {
     var now = new Date();
     var tanggal = tglValid_(p.tanggal);
@@ -1783,6 +1868,7 @@ function simpanPengiriman(p) {
 
   var lock = LockService.getScriptLock();
   lock.waitLock(20000);
+  lupakanMemo_();   // di dalam lock: baca ulang dari sheet, jangan pakai memo sebelum lock
   try {
     var now = new Date();
     var tanggal = tglValid_(p.tanggal);
@@ -1834,6 +1920,7 @@ function simpanTransfer(p) {
 
   var lock = LockService.getScriptLock();
   lock.waitLock(20000);
+  lupakanMemo_();   // di dalam lock: baca ulang dari sheet, jangan pakai memo sebelum lock
   try {
     var now = new Date();
     var tanggal = tglValid_(p.tanggal);
@@ -1884,6 +1971,7 @@ function mulaiPekerjaan(p) {
 
   var lock = LockService.getScriptLock();
   lock.waitLock(20000);
+  lupakanMemo_();   // di dalam lock: baca ulang dari sheet, jangan pakai memo sebelum lock
   try {
     var now = new Date();
     var tanggal = tglValid_(p.tanggal);
@@ -1942,6 +2030,7 @@ function selesaikanPekerjaan(p) {
 
   var lock = LockService.getScriptLock();
   lock.waitLock(20000);
+  lupakanMemo_();   // di dalam lock: baca ulang dari sheet, jangan pakai memo sebelum lock
   try {
     var jobs = baca_(SHEET.PEKERJAAN);
     var job = null;
@@ -2095,10 +2184,15 @@ function antrianReview(ident, status) {
 
   var out = [];
 
+  var noPoDariId = {};
+  baca_(SHEET.PO).forEach(function (p) { noPoDariId[p.ID] = { noPo: p.No_PO, spesifikasi: p.Spesifikasi || '' }; });
   baca_(SHEET.PENERIMAAN).forEach(function (r) {
     if (r.Status !== target) return;
+    var po = r.ID_PO ? noPoDariId[r.ID_PO] : null;
     out.push({
-      id: r.ID, sumber: 'PENERIMAAN', jenis: r.Jenis,
+      id: r.ID, sumber: 'PENERIMAAN', jenis: r.Jenis, tanggal: r.Tanggal,
+      idPo: r.ID_PO || '', noPo: po ? po.noPo : '', spesifikasi: po ? po.spesifikasi : '', catatanQc: r.Catatan_QC || '',
+      tanpaPo: r.Jenis === JENIS_PENERIMAAN.MASUK && !r.ID_PO,
       label: r.Jenis === JENIS_PENERIMAAN.RETUR ? 'GBJ → ' + r.Supplier : r.Supplier + ' → GBJ',
       waktuRaw: new Date(r.Waktu).getTime(), waktu: jam_(r.Waktu),
       item: r.Nama_Item, kode: r.Kode_Item, qty: angka_(r.Qty_Kg),
@@ -2156,6 +2250,7 @@ function tinjauTransfer(id, aksi, catatan, ident) {
 
   var lock = LockService.getScriptLock();
   lock.waitLock(20000);
+  lupakanMemo_();   // di dalam lock: baca ulang dari sheet, jangan pakai memo sebelum lock
   try {
     var rows = baca_(nama);
     for (var i = 0; i < rows.length; i++) {
@@ -2619,6 +2714,7 @@ function simpanEditEntri(id, perubahan, ident, alasan) {
   if (nama === SHEET.PEKERJAAN) throw new Error('Pakai simpanEditPekerjaan untuk job.');
   var lock = LockService.getScriptLock();
   lock.waitLock(20000);
+  lupakanMemo_();   // di dalam lock: baca ulang dari sheet, jangan pakai memo sebelum lock
   try {
     if (bolehReview_(u)) return terapkanEdit_(nama, id, perubahan, u.nama, '');
 
@@ -2640,6 +2736,7 @@ function batalkanEntriSendiri(id, alasan, ident) {
   var nama = sheetDariId_(id);
   var lock = LockService.getScriptLock();
   lock.waitLock(20000);
+  lupakanMemo_();   // di dalam lock: baca ulang dari sheet, jangan pakai memo sebelum lock
   try {
     var r = cariEntri_(nama, id);
     if (r.Dicatat_Oleh !== penandaPencatat_(u)) throw new Error('Hanya entri sendiri yang bisa diajukan untuk dibatalkan.');
@@ -2713,6 +2810,7 @@ function tinjauPermintaan(id, aksi, catatan, ident) {
   if (!bolehReview_(u)) throw new Error('Hanya Supervisor / Admin yang bisa meninjau usulan.');
   var lock = LockService.getScriptLock();
   lock.waitLock(20000);
+  lupakanMemo_();   // di dalam lock: baca ulang dari sheet, jangan pakai memo sebelum lock
   try {
     var p = cariEntri_(SHEET.PERMINTAAN, id);
     if (p.Status !== STATUS_PERMINTAAN.MENUNGGU) throw new Error('Usulan sudah ditinjau (' + p.Status + ').');
@@ -2799,6 +2897,7 @@ function simpanEditPekerjaan(id, p, ident, awalanLog) {
   p = p || {};
   var lock = LockService.getScriptLock();
   lock.waitLock(20000);
+  lupakanMemo_();   // di dalam lock: baca ulang dari sheet, jangan pakai memo sebelum lock
   try {
     var rows = baca_(SHEET.PEKERJAAN), r = null;
     for (var i = 0; i < rows.length; i++) if (rows[i].ID === id) r = rows[i];
@@ -2824,6 +2923,7 @@ function simpanEditPekerjaan(id, p, ident, awalanLog) {
       .map(function (d) { return d._baris; })
       .sort(function (a, b) { return b - a; })
       .forEach(function (baris) { sh.deleteRow(baris); });
+    lupakanMemo_(SHEET.DETAIL);
 
     var now = new Date();
     var total = 0, hppBahan = 0, totalJadi = 0, totalScrap = 0;
@@ -2924,6 +3024,7 @@ function simpanPengguna(p, ident) {
 
   var lock = LockService.getScriptLock();
   lock.waitLock(20000);
+  lupakanMemo_();   // di dalam lock: baca ulang dari sheet, jangan pakai memo sebelum lock
   try {
     var rows = baca_(SHEET.PENGGUNA);
     // nama harus unik
@@ -3063,6 +3164,7 @@ function simpanSku(p, ident) {
 
   var lock = LockService.getScriptLock();
   lock.waitLock(20000);
+  lupakanMemo_();   // di dalam lock: baca ulang dari sheet, jangan pakai memo sebelum lock
   try {
     var rows = baca_(SHEET.ITEM), target = null;
     for (var i = 0; i < rows.length; i++) {
@@ -3096,6 +3198,7 @@ function hapusSku(kode, ident) {
   if (!bolehReview_(u)) throw new Error('Hanya Supervisor / Admin.');
   var lock = LockService.getScriptLock();
   lock.waitLock(20000);
+  lupakanMemo_();   // di dalam lock: baca ulang dari sheet, jangan pakai memo sebelum lock
   try {
     var rows = baca_(SHEET.ITEM), target = null;
     for (var i = 0; i < rows.length; i++) if (rows[i].Kode_Item === kode) target = rows[i];
@@ -3106,6 +3209,7 @@ function hapusSku(kode, ident) {
       return { ok: true, dihapus: false, dinonaktifkan: true };
     }
     sheet_(SHEET.ITEM).deleteRow(target._baris);
+    lupakanMemo_(SHEET.ITEM);
     catatLog_('ADMIN_SKU', kode, 'hapus');
     return { ok: true, dihapus: true, dinonaktifkan: false };
   } finally {
@@ -3146,6 +3250,7 @@ function simpanOpname(p, ident) {
 
   var lock = LockService.getScriptLock();
   lock.waitLock(20000);
+  lupakanMemo_();   // di dalam lock: baca ulang dari sheet, jangan pakai memo sebelum lock
   try {
     var peta = petaItem_();
     var stok = {};
@@ -3599,6 +3704,7 @@ function tesParserSuratJalan() {
 
 /** Tambah sheet/kolom/setting yang belum ada. Aman dijalankan berulang. */
 function migrasiSkema() {
+  lupakanMemo_();
   var ss = ss_();
   Object.keys(SHEET).forEach(function (k) {
     var nama = SHEET[k], head = HEADER[nama];
@@ -3623,6 +3729,7 @@ function migrasiSkema() {
   rows.forEach(function (r) { adaKunci[r.Kunci] = true; });
   var shS = sheet_(SHEET.SETTING);
   DEFAULT_SETTING.forEach(function (d) { if (!adaKunci[d[0]]) shS.appendRow(d); });
+  lupakanMemo_();
   try { PropertiesService.getScriptProperties().setProperty('SKEMA_VERSI', APP.versi); } catch (e) {}
   return 'Skema v' + APP.versi + ' siap.';
 }
@@ -3676,6 +3783,7 @@ function simpanPo(p, ident) {
   var peta = petaItem_();
   var lock = LockService.getScriptLock();
   lock.waitLock(20000);
+  lupakanMemo_();   // di dalam lock: baca ulang dari sheet, jangan pakai memo sebelum lock
   try {
     var now = new Date(), tanggal = tglValid_(p.tanggal);
     var datang = String(p.perkiraanDatang || '').trim();
@@ -3707,6 +3815,7 @@ function ubahPo(id, perubahan, ident) {
   perubahan = perubahan || {};
   var lock = LockService.getScriptLock();
   lock.waitLock(20000);
+  lupakanMemo_();   // di dalam lock: baca ulang dari sheet, jangan pakai memo sebelum lock
   try {
     var r = cariEntri_(SHEET.PO, id);
     if (r.Status === STATUS_PO.DIBATALKAN) throw new Error('PO sudah dibatalkan.');
@@ -3740,6 +3849,7 @@ function batalkanPo(id, alasan, ident) {
   if (!bolehPo_(u)) throw new Error('Hanya Manager / Admin yang bisa membatalkan PO.');
   var lock = LockService.getScriptLock();
   lock.waitLock(20000);
+  lupakanMemo_();   // di dalam lock: baca ulang dari sheet, jangan pakai memo sebelum lock
   try {
     var r = cariEntri_(SHEET.PO, id);
     if (angka_(r.Qty_Diterima_Kg) > 0) throw new Error('PO sudah ada penerimaan (' + angka_(r.Qty_Diterima_Kg) + ' kg) — tidak bisa dibatalkan, ubah qty-nya saja.');
@@ -3893,6 +4003,7 @@ function validasiInvoice(id, aksi, hargaBaru, catatan, ident) {
   if (!bolehPo_(u)) throw new Error('Hanya Manager / Admin yang bisa memvalidasi invoice.');
   var lock = LockService.getScriptLock();
   lock.waitLock(20000);
+  lupakanMemo_();   // di dalam lock: baca ulang dari sheet, jangan pakai memo sebelum lock
   try {
     var inv = cariEntri_(SHEET.INVOICE, id);
     if (inv.Status !== STATUS_INVOICE.MENUNGGU) throw new Error('Invoice sudah ' + inv.Status + '.');
@@ -4106,6 +4217,7 @@ function hitungUlangHpp(ident) {
   if (metodeHpp_() !== 'FIFO') throw new Error('METODE_HPP bukan FIFO.');
   var lock = LockService.getScriptLock();
   lock.waitLock(20000);
+  lupakanMemo_();   // di dalam lock: baca ulang dari sheet, jangan pakai memo sebelum lock
   try {
     var f = hitungFifo_(), detail = baca_(SHEET.DETAIL), jobs = baca_(SHEET.PEKERJAAN), diubah = 0;
     var peta = petaItem_();
@@ -4149,6 +4261,7 @@ function simpanKerusakan(p) {
   var foto = p.foto ? unggahFoto_(p.foto, 'RUSAK') : { url: '', id: '' };
   var lock = LockService.getScriptLock();
   lock.waitLock(20000);
+  lupakanMemo_();   // di dalam lock: baca ulang dari sheet, jangan pakai memo sebelum lock
   try {
     var id = buatId_('DMG');
     tambah_(SHEET.KERUSAKAN, {
@@ -4190,6 +4303,7 @@ function tinjauKerusakan(id, aksi, catatan, ident) {
   if (!bolehReview_(u)) throw new Error('Hanya Supervisor / Admin yang bisa meninjau laporan rusak.');
   var lock = LockService.getScriptLock();
   lock.waitLock(20000);
+  lupakanMemo_();   // di dalam lock: baca ulang dari sheet, jangan pakai memo sebelum lock
   try {
     var r = cariEntri_(SHEET.KERUSAKAN, id);
     if (r.Status !== STATUS_TRANSFER.MENUNGGU) throw new Error('Laporan sudah ' + r.Status + '.');
@@ -4254,6 +4368,23 @@ function terapkanStandarSusut(kode, normal, toleransi, catatan, ident) {
   else tambah_(SHEET.STANDAR, { Kode_Produk: kode, Nama_Produk: it.nama, Susut_Normal_Persen: n, Toleransi_Persen: t, Catatan: ket });
   catatLog_('STANDAR_SUSUT', kode, n + '% ± ' + t + '%');
   return { ok: true, kode: kode, normal: n, toleransi: t };
+}
+
+/* ================= DIAGNOSA KECEPATAN (admin) ================= */
+/** Mengukur berapa lama tiap langkah getKonteks di server — untuk mencari bagian yang lambat. */
+function diagnosa(ident) {
+  var t0 = Date.now(), hasil = [], sebelum = t0;
+  function catat(label) { var kini = Date.now(); hasil.push([label, kini - sebelum]); sebelum = kini; }
+  var u = penggunaSaatIni_(ident);
+  if (!bolehReview_(u)) throw new Error('Hanya Supervisor / Admin.');
+  catat('penggunaSaatIni_');
+  lupakanMemo_();
+  Object.keys(SHEET).forEach(function (k) { var n = baca_(SHEET[k]).length; catat('baca ' + SHEET[k] + ' (' + n + ' baris)'); });
+  hitungStokSemua_(); catat('hitungStokSemua_ (memo)');
+  lupakanMemo_(); hitungStokSemua_(); catat('hitungStokSemua_ (dingin)');
+  lupakanMemo_(); getKonteks(ident); catat('getKonteks (dingin)');
+  getKonteks(ident); catat('getKonteks (memo)');
+  return { totalMs: Date.now() - t0, langkah: hasil };
 }
 
 </script>
@@ -4541,6 +4672,7 @@ var T = {
     sekarang:'Sekarang', diusulkan:'Diusulkan', alasan:'Alasan', tolak:'Tolak', setujui:'Setujui', alasanTolak:'Alasan penolakan (opsional)',
     usulanDisetujui:'Usulan disetujui & diterapkan', usulanDitolak:'Usulan ditolak',
     uEdit:'UBAH ENTRI', uBatal:'BATALKAN ENTRI', uEditJob:'UBAH PEKERJAAN', sebagian:'SEBAGIAN', baru:'Baru',
+    serverSibuk:'Server sedang sibuk — coba lagi sebentar.', jaringanPutus:'Jaringan putus. Cek sinyal lalu coba lagi.',
     a8t:'Pesanan pembelian (PO)', a8s:'Apa yang akan datang · qty · harga · spesifikasi · invoice',
     a9t:'Barang rusak', a9s:'Lapor kerusakan · stok berkurang setelah disetujui manager',
     lblDariPo:'Dari pesanan pembelian (PO)', hintDariPo:'Pilih PO yang barangnya datang — item & spesifikasi terisi otomatis. Bisa pilih lebih dari satu.',
@@ -4720,6 +4852,7 @@ var T = {
     sekarang:'Current', diusulkan:'Proposed', alasan:'Reason', tolak:'Reject', setujui:'Approve', alasanTolak:'Rejection reason (optional)',
     usulanDisetujui:'Request approved & applied', usulanDitolak:'Request rejected',
     uEdit:'EDIT ENTRY', uBatal:'CANCEL ENTRY', uEditJob:'EDIT JOB', sebagian:'PARTIAL', baru:'New',
+    serverSibuk:'Server is busy — try again in a moment.', jaringanPutus:'No connection. Check your signal and try again.',
     a8t:'Purchase orders (PO)', a8s:'What is coming · qty · price · spec · invoice',
     a9t:'Damaged goods', a9s:'Report damage · stock reduced after manager approval',
     lblDariPo:'From purchase order (PO)', hintDariPo:'Pick the PO that arrived — item & spec are filled in. You can pick several.',
@@ -4892,21 +5025,27 @@ function toast(msg, jenis){
 
 /* Transport: kalau API_URL diset (versi GitHub Pages) -> fetch JSON ke Apps Script API.
    Kalau tidak (versi HtmlService lama) -> google.script.run. Satu sumber kode untuk keduanya. */
-var BACA_SAJA_ = /^(getKonteks|daftar|laporan|riwayat|antrian|kalender|poTerbuka|returTersedia|ringkasanPo|ambil|siapkan|aktivitas)/;
-function panggil(fn, args, ulang){
+function idKlienBaru_(){ return Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 10); }
+/* Transport ke API Apps Script. Setiap aksi punya idKlien unik -> server tidak akan menjalankan
+   aksi yang sama dua kali, jadi aman diulang otomatis kalau jaringan putus / balasan bukan JSON. */
+function panggil(fn, args, ulang, idKlien){
   if (window.API_URL){
+    idKlien = idKlien || idKlienBaru_();
     return fetch(window.API_URL, {
       method:'POST', redirect:'follow',
       headers:{'Content-Type':'text/plain;charset=utf-8'},   // text/plain = tanpa preflight CORS
-      body: JSON.stringify({ fn: fn, args: args||[] })
-    }).then(function(r){ return r.json(); }).then(function(j){
+      body: JSON.stringify({ fn: fn, args: args||[], idKlien: idKlien })
+    }).then(function(r){ return r.text(); }).then(function(teks){
+      var j = null;
+      try { j = JSON.parse(teks); } catch(e){ var er = new Error(t('serverSibuk')); er.ulangi = true; throw er; }
       if (j && j.ok) return j.data;
       throw new Error(j && j.error ? j.error : 'Gagal menghubungi server');
     }).catch(function(e){
-      /* jaringan putus sesaat (Failed to fetch): ulangi otomatis 1x, hanya untuk panggilan baca (aman diulang) */
-      if (!ulang && BACA_SAJA_.test(fn) && /fetch|network|NetworkError|Load failed/i.test(String(e && e.message))){
-        return new Promise(function(res){ setTimeout(res, 900); }).then(function(){ return panggil(fn, args, true); });
+      var jaringan = /fetch|network|NetworkError|Load failed/i.test(String(e && e.message));
+      if (!ulang && (jaringan || e.ulangi)){
+        return new Promise(function(res){ setTimeout(res, 1200); }).then(function(){ return panggil(fn, args, true, idKlien); });
       }
+      if (jaringan) throw new Error(t('jaringanPutus'));
       throw e;
     });
   }
@@ -6129,6 +6268,7 @@ function muatUsulan(){
   $('revHint').textContent = t('hintUsulan');
   $('revList').innerHTML = '<div class="load">…</div>';
   panggil('daftarPermintaan',[S.ident,'MENUNGGU']).then(function(rows){
+    if (S.view !== 'review' || S.revTab !== 'USULAN') return;
     if (!rows.length){ $('revList').innerHTML = '<div class="empty"><span class="g">📝</span>'+esc(t('kosongUsulan'))+'</div>'; return; }
     $('revList').innerHTML = rows.map(function(p){
       var e = p.entri || {}, u = p.usulan || {};
@@ -6182,6 +6322,7 @@ function muatReview(){
   $('revHint').textContent = arsip ? t('hintDitandai') : t('hintMenunggu');
   $('revList').innerHTML = '<div class="load">…</div>';
   panggil('antrianReview',[S.ident, S.revTab]).then(function(rows){
+    if (S.view !== 'review' || (S.revTab !== 'MENUNGGU' && S.revTab !== 'DITANDAI') || arsip !== (S.revTab === 'DITANDAI')) return;
     if (!rows.length){
       $('revList').innerHTML = '<div class="empty"><span class="g">'+(arsip?'🗂️':'✅')+'</span>'+esc(arsip?t('kosongDitandai'):t('kosongRev'))+'</div>';
       return;
@@ -6213,6 +6354,9 @@ function muatReview(){
             '</div>' + tag +
           '</div>' + ocr +
           (r.noSuratJalan ? '<div class="kv"><span>'+esc(t('thSJ'))+'</span><b>'+esc(r.noSuratJalan)+'</b></div>' : '') +
+          (r.noPo ? '<div class="kv"><span>PO</span><b>'+esc(r.noPo)+'</b></div>' : (r.tanpaPo ? '<div class="kv"><span>PO</span><b style="color:var(--warn)">'+esc(t('tanpaPo'))+'</b></div>' : '')) +
+          (r.spesifikasi ? '<div class="kv"><span>'+esc(t('spesifikasi'))+'</span><b style="text-align:right;max-width:65%">'+esc(r.spesifikasi)+'</b></div>' : '') +
+          (r.catatanQc ? '<div class="kv"><span>QC</span><b style="text-align:right;max-width:65%">'+esc(r.catatanQc)+'</b></div>' : '') +
           (r.catatan ? '<div class="kv"><span>'+esc(t('lblCatatan'))+'</span><b>'+esc(r.catatan)+'</b></div>' : '') +
           (r.catatanTinjau ? '<div class="kv"><span>'+esc(t('catatanTinjau'))+'</span><b>'+esc(r.catatanTinjau)+'</b></div>' : '') +
           '<div style="margin-top:9px;display:flex;justify-content:flex-end"><button class="btn sec xs" onclick="bukaEdit(\''+esc(r.id)+'\')">✎ '+esc(t('ubah'))+'</button></div>' +
@@ -6273,6 +6417,7 @@ function pillSusut(st){
 
 function repSusut(){
   panggil('laporanSusut',[30, S.ident]).then(function(r){
+    if (S.repTab !== 'susut') return;   /* balasan tab lama: abaikan */
     if (!r.total.jobs){
       $('repBody').innerHTML = '<div class="empty"><span class="g">📊</span>'+esc(t('kosongData'))+'</div>'; return;
     }
@@ -6342,6 +6487,7 @@ function repSusut(){
 
 function repStok(){
   panggil('laporanStok',[S.ident]).then(function(r){
+    if (S.repTab !== 'stok') return;   /* balasan tab lama: abaikan */
     if (!r.daftar.length){
       $('repBody').innerHTML = '<div class="empty"><span class="g">📦</span>'+esc(t('kosongData'))+'</div>'; return;
     }
@@ -6444,6 +6590,7 @@ function gambarNeraca(s){
 
 function repBeli(){
   panggil('riwayatPenerimaan',[30, S.ident]).then(function(r){
+    if (S.repTab !== 'beli') return;   /* balasan tab lama: abaikan */
     if (!r.detail.length){
       $('repBody').innerHTML = '<div class="empty"><span class="g">🚚</span>'+esc(t('kosongData'))+'</div>'; return;
     }
@@ -6483,6 +6630,7 @@ function repBeli(){
 
 function repJual(){
   panggil('laporanPenjualan',[30, S.ident]).then(function(r){
+    if (S.repTab !== 'jual') return;   /* balasan tab lama: abaikan */
     if (!r.detail.length){
       $('repBody').innerHTML = '<div class="empty"><span class="g">🧺</span>'+esc(t('kosongData'))+'</div>'; return;
     }
@@ -6536,6 +6684,7 @@ function repJual(){
 
 function repHpp(){
   panggil('laporanHpp',[30, S.ident]).then(function(r){
+    if (S.repTab !== 'hpp') return;   /* balasan tab lama: abaikan */
     if (!r.total.jobs){
       $('repBody').innerHTML = '<div class="empty"><span class="g">💰</span>'+esc(t('kosongData'))+'</div>'; return;
     }
@@ -6586,6 +6735,7 @@ function pillStatus(st){
 
 function repTrf(){
   panggil('riwayatTransfer',[7, S.ident]).then(function(rows){
+    if (S.repTab !== 'trf') return;   /* balasan tab lama: abaikan */
     if (!rows.length){
       $('repBody').innerHTML = '<div class="empty"><span class="g">🧾</span>'+esc(t('kosongData'))+'</div>'; return;
     }
@@ -6630,6 +6780,7 @@ function segPo(tab){
 }
 function poDaftar(tab){
   panggil('daftarPo',[S.ident, tab==='selesai' ? 'SEMUA' : '', 120]).then(function(rows){
+    if (S.view !== 'po' || S.poTab !== tab) return;
     if (tab==='selesai') rows = rows.filter(function(r){ return r.status==='SELESAI' || r.status==='DIBATALKAN'; });
     var grup = {}, urut = [];
     rows.forEach(function(r){ if (!grup[r.noPo]){ grup[r.noPo] = []; urut.push(r.noPo); } grup[r.noPo].push(r); });
@@ -6740,6 +6891,7 @@ function poKeInvoice(noPo){ S.invPo = noPo; segPo('inv'); }
 function poInvoice(){
   S.foto.inv = null;
   Promise.all([ panggil('daftarInvoice',[S.ident,'']), panggil('daftarPo',[S.ident,'SEMUA',180]) ]).then(function(res){
+    if (S.view !== 'po' || S.poTab !== 'inv') return;
     var inv = res[0], po = res[1];
     var grup = {}, urut = [];
     po.forEach(function(r){ if (r.status==='DIBATALKAN' || !(r.diterima > 0)) return; if (!grup[r.noPo]){ grup[r.noPo] = r; urut.push(r.noPo); } });
@@ -6895,6 +7047,7 @@ function muatRusakReview(){
   $('revHint').textContent = t('hintRusak');
   $('revList').innerHTML = '<div class="load">…</div>';
   panggil('daftarKerusakan',[S.ident,'MENUNGGU',90]).then(function(rows){
+    if (S.view !== 'review' || S.revTab !== 'RUSAK') return;
     if (!rows.length){ $('revList').innerHTML = '<div class="empty"><span class="g">🧯</span>'+esc(t('kosongRusak'))+'</div>'; return; }
     $('revList').innerHTML = rows.map(function(r){
       var src = r.foto && r.foto.indexOf('data:')===0 ? r.foto : (r.fotoId ? 'https://drive.google.com/thumbnail?id='+r.fotoId+'&sz=w1000' : '');
@@ -6933,6 +7086,7 @@ function tinjauRusak(id, aksi){
    ================================================================= */
 function repNilai(){
   panggil('laporanNilaiStok',[S.ident]).then(function(r){
+    if (S.repTab !== 'nilai') return;   /* balasan tab lama: abaikan */
     if (!r.daftar.length){ $('repBody').innerHTML = '<div class="empty"><span class="g">💎</span>'+esc(t('kosongData'))+'</div>'; return; }
     var h = '<div class="banner n" style="font-size:12px">'+esc(t('nilaiS'))+' · '+esc(r.metode)+'</div>' +
       '<div class="tot"><div class="wide"><div class="n" style="font-size:28px">'+rp(r.total.nilai)+'</div><div class="l">'+esc(t('totalNilai'))+' · '+n2(r.total.gbj + r.total.gp)+' kg</div></div>' +
@@ -6953,6 +7107,7 @@ function repNilai(){
 }
 function repStd(){
   panggil('laporanStandarSusut',[90, S.ident]).then(function(r){
+    if (S.repTab !== 'std') return;   /* balasan tab lama: abaikan */
     if (!r.daftar.length){ $('repBody').innerHTML = '<div class="empty"><span class="g">📐</span>'+esc(t('kosongStd'))+'</div>'; return; }
     var h = '<div class="banner n" style="font-size:12px">'+esc(t('stdS'))+' · '+r.hari+' '+esc(t('hariTerakhir'))+'</div>';
     h += '<div class="card"><h2>'+esc(t('stdT'))+'</h2>' + r.daftar.map(function(p){
