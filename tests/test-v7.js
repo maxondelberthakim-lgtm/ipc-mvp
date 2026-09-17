@@ -153,6 +153,21 @@ console.log('\n— FIFO: pekerjaan lewat tengah malam —');
   ok('biaya job terhitung', (f.biaya[jm.id]||0) > 0, f.biaya[jm.id]);
 }
 
+console.log('\n— Kolom tanggal jadi Date di Sheets → dinormalkan ke YYYY-MM-DD —');
+{
+  const rowPo = ctx.baca_(ctx.SHEET.PO)[0];
+  const tglAsli = rowPo.Tanggal;
+  ctx.ubahBaris_(ctx.SHEET.PO, rowPo._baris, { Tanggal: new Date(tglAsli+'T00:00:00'), Perkiraan_Datang: new Date('2026-09-20T00:00:00') });
+  const d = ctx.daftarPo(SPV,'SEMUA',365).find(x=>x.id===rowPo.ID);
+  ok('daftarPo.tanggal tetap string YYYY-MM-DD', d.tanggal===tglAsli, d.tanggal);
+  ok('perkiraanDatang string YYYY-MM-DD', d.perkiraanDatang==='2026-09-20', d.perkiraanDatang);
+  const rowRc = ctx.baca_(ctx.SHEET.PENERIMAAN)[0];
+  ctx.ubahBaris_(ctx.SHEET.PENERIMAAN, rowRc._baris, { Tanggal: new Date(rowRc.Tanggal+'T00:00:00') });
+  const f = ctx.hitungFifo_();
+  ok('FIFO tetap jalan dengan Tanggal Date (lapisan W240 ada)', !!(f.lapisan['RM-CSW-W240']), Object.keys(f.lapisan));
+  ok('kunci event pakai YYYY-MM-DD', ctx.baca_(ctx.SHEET.PENERIMAAN)[0].Tanggal===rowRc.Tanggal);
+}
+
 fs.unlinkSync(__dirname + '/.h7.js');
 console.log('\n================ '+pass+' lulus, '+fail+' gagal ================');
 process.exit(fail?1:0);
