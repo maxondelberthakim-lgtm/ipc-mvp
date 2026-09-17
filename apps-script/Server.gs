@@ -44,22 +44,31 @@ var RPC_WL = {
 };
 
 function doPost(e) {
-  var out = { ok:false };
+  var out = { ok:false }, idKlien = '', cache = null;
   try {
     var body = JSON.parse((e && e.postData && e.postData.contents) || '{}');
     var fn = String(body.fn || '');
     if (!RPC_WL[fn]) throw new Error('Fungsi tidak dikenal: ' + fn);
     var f = globalThis[fn];
     if (typeof f !== 'function') throw new Error('Fungsi tidak tersedia: ' + fn);
+    /* Idempotensi: frontend mengirim idKlien unik per aksi. Kalau balasan hilang di jalan
+       (jaringan putus / redirect nyasar) dan frontend mengulang, permintaan yang sama TIDAK
+       dijalankan dua kali — hasil pertama dikembalikan dari cache (10 menit). */
+    idKlien = String(body.idKlien || '').replace(/[^A-Za-z0-9_-]/g, '').slice(0, 64);
+    if (idKlien) {
+      try { cache = CacheService.getScriptCache(); var ada = cache.get('rq:' + idKlien); if (ada) return jsonOut_(ada); } catch (x) { cache = null; }
+    }
     out.ok = true;
     out.data = f.apply(null, body.args || []);
   } catch (err) {
     out.ok = false;
     out.error = (err && err.message) ? err.message : String(err);
   }
-  return ContentService.createTextOutput(JSON.stringify(out))
-    .setMimeType(ContentService.MimeType.JSON);
+  var teks = JSON.stringify(out);
+  if (idKlien && cache && out.ok && teks.length < 90000) { try { cache.put('rq:' + idKlien, teks, 600); } catch (x) {} }
+  return jsonOut_(teks);
 }
+function jsonOut_(teks) { return ContentService.createTextOutput(teks).setMimeType(ContentService.MimeType.JSON); }
 
 /* ================= UTIL SHEET ================= */
 
@@ -880,10 +889,15 @@ function antrianReview(ident, status) {
 
   var out = [];
 
+  var noPoDariId = {};
+  baca_(SHEET.PO).forEach(function (p) { noPoDariId[p.ID] = { noPo: p.No_PO, spesifikasi: p.Spesifikasi || '' }; });
   baca_(SHEET.PENERIMAAN).forEach(function (r) {
     if (r.Status !== target) return;
+    var po = r.ID_PO ? noPoDariId[r.ID_PO] : null;
     out.push({
-      id: r.ID, sumber: 'PENERIMAAN', jenis: r.Jenis,
+      id: r.ID, sumber: 'PENERIMAAN', jenis: r.Jenis, tanggal: r.Tanggal,
+      idPo: r.ID_PO || '', noPo: po ? po.noPo : '', spesifikasi: po ? po.spesifikasi : '', catatanQc: r.Catatan_QC || '',
+      tanpaPo: r.Jenis === JENIS_PENERIMAAN.MASUK && !r.ID_PO,
       label: r.Jenis === JENIS_PENERIMAAN.RETUR ? 'GBJ → ' + r.Supplier : r.Supplier + ' → GBJ',
       waktuRaw: new Date(r.Waktu).getTime(), waktu: jam_(r.Waktu),
       item: r.Nama_Item, kode: r.Kode_Item, qty: angka_(r.Qty_Kg),

@@ -65,6 +65,7 @@ var T = {
     sekarang:'Sekarang', diusulkan:'Diusulkan', alasan:'Alasan', tolak:'Tolak', setujui:'Setujui', alasanTolak:'Alasan penolakan (opsional)',
     usulanDisetujui:'Usulan disetujui & diterapkan', usulanDitolak:'Usulan ditolak',
     uEdit:'UBAH ENTRI', uBatal:'BATALKAN ENTRI', uEditJob:'UBAH PEKERJAAN', sebagian:'SEBAGIAN', baru:'Baru',
+    serverSibuk:'Server sedang sibuk — coba lagi sebentar.', jaringanPutus:'Jaringan putus. Cek sinyal lalu coba lagi.',
     a8t:'Pesanan pembelian (PO)', a8s:'Apa yang akan datang · qty · harga · spesifikasi · invoice',
     a9t:'Barang rusak', a9s:'Lapor kerusakan · stok berkurang setelah disetujui manager',
     lblDariPo:'Dari pesanan pembelian (PO)', hintDariPo:'Pilih PO yang barangnya datang — item & spesifikasi terisi otomatis. Bisa pilih lebih dari satu.',
@@ -244,6 +245,7 @@ var T = {
     sekarang:'Current', diusulkan:'Proposed', alasan:'Reason', tolak:'Reject', setujui:'Approve', alasanTolak:'Rejection reason (optional)',
     usulanDisetujui:'Request approved & applied', usulanDitolak:'Request rejected',
     uEdit:'EDIT ENTRY', uBatal:'CANCEL ENTRY', uEditJob:'EDIT JOB', sebagian:'PARTIAL', baru:'New',
+    serverSibuk:'Server is busy — try again in a moment.', jaringanPutus:'No connection. Check your signal and try again.',
     a8t:'Purchase orders (PO)', a8s:'What is coming · qty · price · spec · invoice',
     a9t:'Damaged goods', a9s:'Report damage · stock reduced after manager approval',
     lblDariPo:'From purchase order (PO)', hintDariPo:'Pick the PO that arrived — item & spec are filled in. You can pick several.',
@@ -416,21 +418,27 @@ function toast(msg, jenis){
 
 /* Transport: kalau API_URL diset (versi GitHub Pages) -> fetch JSON ke Apps Script API.
    Kalau tidak (versi HtmlService lama) -> google.script.run. Satu sumber kode untuk keduanya. */
-var BACA_SAJA_ = /^(getKonteks|daftar|laporan|riwayat|antrian|kalender|poTerbuka|returTersedia|ringkasanPo|ambil|siapkan|aktivitas)/;
-function panggil(fn, args, ulang){
+function idKlienBaru_(){ return Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 10); }
+/* Transport ke API Apps Script. Setiap aksi punya idKlien unik -> server tidak akan menjalankan
+   aksi yang sama dua kali, jadi aman diulang otomatis kalau jaringan putus / balasan bukan JSON. */
+function panggil(fn, args, ulang, idKlien){
   if (window.API_URL){
+    idKlien = idKlien || idKlienBaru_();
     return fetch(window.API_URL, {
       method:'POST', redirect:'follow',
       headers:{'Content-Type':'text/plain;charset=utf-8'},   // text/plain = tanpa preflight CORS
-      body: JSON.stringify({ fn: fn, args: args||[] })
-    }).then(function(r){ return r.json(); }).then(function(j){
+      body: JSON.stringify({ fn: fn, args: args||[], idKlien: idKlien })
+    }).then(function(r){ return r.text(); }).then(function(teks){
+      var j = null;
+      try { j = JSON.parse(teks); } catch(e){ var er = new Error(t('serverSibuk')); er.ulangi = true; throw er; }
       if (j && j.ok) return j.data;
       throw new Error(j && j.error ? j.error : 'Gagal menghubungi server');
     }).catch(function(e){
-      /* jaringan putus sesaat (Failed to fetch): ulangi otomatis 1x, hanya untuk panggilan baca (aman diulang) */
-      if (!ulang && BACA_SAJA_.test(fn) && /fetch|network|NetworkError|Load failed/i.test(String(e && e.message))){
-        return new Promise(function(res){ setTimeout(res, 900); }).then(function(){ return panggil(fn, args, true); });
+      var jaringan = /fetch|network|NetworkError|Load failed/i.test(String(e && e.message));
+      if (!ulang && (jaringan || e.ulangi)){
+        return new Promise(function(res){ setTimeout(res, 1200); }).then(function(){ return panggil(fn, args, true, idKlien); });
       }
+      if (jaringan) throw new Error(t('jaringanPutus'));
       throw e;
     });
   }
@@ -1653,6 +1661,7 @@ function muatUsulan(){
   $('revHint').textContent = t('hintUsulan');
   $('revList').innerHTML = '<div class="load">…</div>';
   panggil('daftarPermintaan',[S.ident,'MENUNGGU']).then(function(rows){
+    if (S.view !== 'review' || S.revTab !== 'USULAN') return;
     if (!rows.length){ $('revList').innerHTML = '<div class="empty"><span class="g">📝</span>'+esc(t('kosongUsulan'))+'</div>'; return; }
     $('revList').innerHTML = rows.map(function(p){
       var e = p.entri || {}, u = p.usulan || {};
@@ -1706,6 +1715,7 @@ function muatReview(){
   $('revHint').textContent = arsip ? t('hintDitandai') : t('hintMenunggu');
   $('revList').innerHTML = '<div class="load">…</div>';
   panggil('antrianReview',[S.ident, S.revTab]).then(function(rows){
+    if (S.view !== 'review' || (S.revTab !== 'MENUNGGU' && S.revTab !== 'DITANDAI') || arsip !== (S.revTab === 'DITANDAI')) return;
     if (!rows.length){
       $('revList').innerHTML = '<div class="empty"><span class="g">'+(arsip?'🗂️':'✅')+'</span>'+esc(arsip?t('kosongDitandai'):t('kosongRev'))+'</div>';
       return;
@@ -1737,6 +1747,9 @@ function muatReview(){
             '</div>' + tag +
           '</div>' + ocr +
           (r.noSuratJalan ? '<div class="kv"><span>'+esc(t('thSJ'))+'</span><b>'+esc(r.noSuratJalan)+'</b></div>' : '') +
+          (r.noPo ? '<div class="kv"><span>PO</span><b>'+esc(r.noPo)+'</b></div>' : (r.tanpaPo ? '<div class="kv"><span>PO</span><b style="color:var(--warn)">'+esc(t('tanpaPo'))+'</b></div>' : '')) +
+          (r.spesifikasi ? '<div class="kv"><span>'+esc(t('spesifikasi'))+'</span><b style="text-align:right;max-width:65%">'+esc(r.spesifikasi)+'</b></div>' : '') +
+          (r.catatanQc ? '<div class="kv"><span>QC</span><b style="text-align:right;max-width:65%">'+esc(r.catatanQc)+'</b></div>' : '') +
           (r.catatan ? '<div class="kv"><span>'+esc(t('lblCatatan'))+'</span><b>'+esc(r.catatan)+'</b></div>' : '') +
           (r.catatanTinjau ? '<div class="kv"><span>'+esc(t('catatanTinjau'))+'</span><b>'+esc(r.catatanTinjau)+'</b></div>' : '') +
           '<div style="margin-top:9px;display:flex;justify-content:flex-end"><button class="btn sec xs" onclick="bukaEdit(\''+esc(r.id)+'\')">✎ '+esc(t('ubah'))+'</button></div>' +
@@ -1797,6 +1810,7 @@ function pillSusut(st){
 
 function repSusut(){
   panggil('laporanSusut',[30, S.ident]).then(function(r){
+    if (S.repTab !== 'susut') return;   /* balasan tab lama: abaikan */
     if (!r.total.jobs){
       $('repBody').innerHTML = '<div class="empty"><span class="g">📊</span>'+esc(t('kosongData'))+'</div>'; return;
     }
@@ -1866,6 +1880,7 @@ function repSusut(){
 
 function repStok(){
   panggil('laporanStok',[S.ident]).then(function(r){
+    if (S.repTab !== 'stok') return;   /* balasan tab lama: abaikan */
     if (!r.daftar.length){
       $('repBody').innerHTML = '<div class="empty"><span class="g">📦</span>'+esc(t('kosongData'))+'</div>'; return;
     }
@@ -1968,6 +1983,7 @@ function gambarNeraca(s){
 
 function repBeli(){
   panggil('riwayatPenerimaan',[30, S.ident]).then(function(r){
+    if (S.repTab !== 'beli') return;   /* balasan tab lama: abaikan */
     if (!r.detail.length){
       $('repBody').innerHTML = '<div class="empty"><span class="g">🚚</span>'+esc(t('kosongData'))+'</div>'; return;
     }
@@ -2007,6 +2023,7 @@ function repBeli(){
 
 function repJual(){
   panggil('laporanPenjualan',[30, S.ident]).then(function(r){
+    if (S.repTab !== 'jual') return;   /* balasan tab lama: abaikan */
     if (!r.detail.length){
       $('repBody').innerHTML = '<div class="empty"><span class="g">🧺</span>'+esc(t('kosongData'))+'</div>'; return;
     }
@@ -2060,6 +2077,7 @@ function repJual(){
 
 function repHpp(){
   panggil('laporanHpp',[30, S.ident]).then(function(r){
+    if (S.repTab !== 'hpp') return;   /* balasan tab lama: abaikan */
     if (!r.total.jobs){
       $('repBody').innerHTML = '<div class="empty"><span class="g">💰</span>'+esc(t('kosongData'))+'</div>'; return;
     }
@@ -2110,6 +2128,7 @@ function pillStatus(st){
 
 function repTrf(){
   panggil('riwayatTransfer',[7, S.ident]).then(function(rows){
+    if (S.repTab !== 'trf') return;   /* balasan tab lama: abaikan */
     if (!rows.length){
       $('repBody').innerHTML = '<div class="empty"><span class="g">🧾</span>'+esc(t('kosongData'))+'</div>'; return;
     }
@@ -2154,6 +2173,7 @@ function segPo(tab){
 }
 function poDaftar(tab){
   panggil('daftarPo',[S.ident, tab==='selesai' ? 'SEMUA' : '', 120]).then(function(rows){
+    if (S.view !== 'po' || S.poTab !== tab) return;
     if (tab==='selesai') rows = rows.filter(function(r){ return r.status==='SELESAI' || r.status==='DIBATALKAN'; });
     var grup = {}, urut = [];
     rows.forEach(function(r){ if (!grup[r.noPo]){ grup[r.noPo] = []; urut.push(r.noPo); } grup[r.noPo].push(r); });
@@ -2264,6 +2284,7 @@ function poKeInvoice(noPo){ S.invPo = noPo; segPo('inv'); }
 function poInvoice(){
   S.foto.inv = null;
   Promise.all([ panggil('daftarInvoice',[S.ident,'']), panggil('daftarPo',[S.ident,'SEMUA',180]) ]).then(function(res){
+    if (S.view !== 'po' || S.poTab !== 'inv') return;
     var inv = res[0], po = res[1];
     var grup = {}, urut = [];
     po.forEach(function(r){ if (r.status==='DIBATALKAN' || !(r.diterima > 0)) return; if (!grup[r.noPo]){ grup[r.noPo] = r; urut.push(r.noPo); } });
@@ -2419,6 +2440,7 @@ function muatRusakReview(){
   $('revHint').textContent = t('hintRusak');
   $('revList').innerHTML = '<div class="load">…</div>';
   panggil('daftarKerusakan',[S.ident,'MENUNGGU',90]).then(function(rows){
+    if (S.view !== 'review' || S.revTab !== 'RUSAK') return;
     if (!rows.length){ $('revList').innerHTML = '<div class="empty"><span class="g">🧯</span>'+esc(t('kosongRusak'))+'</div>'; return; }
     $('revList').innerHTML = rows.map(function(r){
       var src = r.foto && r.foto.indexOf('data:')===0 ? r.foto : (r.fotoId ? 'https://drive.google.com/thumbnail?id='+r.fotoId+'&sz=w1000' : '');
@@ -2457,6 +2479,7 @@ function tinjauRusak(id, aksi){
    ================================================================= */
 function repNilai(){
   panggil('laporanNilaiStok',[S.ident]).then(function(r){
+    if (S.repTab !== 'nilai') return;   /* balasan tab lama: abaikan */
     if (!r.daftar.length){ $('repBody').innerHTML = '<div class="empty"><span class="g">💎</span>'+esc(t('kosongData'))+'</div>'; return; }
     var h = '<div class="banner n" style="font-size:12px">'+esc(t('nilaiS'))+' · '+esc(r.metode)+'</div>' +
       '<div class="tot"><div class="wide"><div class="n" style="font-size:28px">'+rp(r.total.nilai)+'</div><div class="l">'+esc(t('totalNilai'))+' · '+n2(r.total.gbj + r.total.gp)+' kg</div></div>' +
@@ -2477,6 +2500,7 @@ function repNilai(){
 }
 function repStd(){
   panggil('laporanStandarSusut',[90, S.ident]).then(function(r){
+    if (S.repTab !== 'std') return;   /* balasan tab lama: abaikan */
     if (!r.daftar.length){ $('repBody').innerHTML = '<div class="empty"><span class="g">📐</span>'+esc(t('kosongStd'))+'</div>'; return; }
     var h = '<div class="banner n" style="font-size:12px">'+esc(t('stdS'))+' · '+r.hari+' '+esc(t('hariTerakhir'))+'</div>';
     h += '<div class="card"><h2>'+esc(t('stdT'))+'</h2>' + r.daftar.map(function(p){
