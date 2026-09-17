@@ -40,7 +40,8 @@ var RPC_WL = {
   ringkasanPo:1, simpanInvoice:1, validasiInvoice:1, daftarInvoice:1,
   laporanNilaiStok:1, hitungUlangHpp:1,
   simpanKerusakan:1, daftarKerusakan:1, tinjauKerusakan:1,
-  laporanStandarSusut:1, terapkanStandarSusut:1, diagnosa:1
+  laporanStandarSusut:1, terapkanStandarSusut:1, diagnosa:1, prediksiBeli:1,
+  simpanSo:1, ubahSo:1, batalkanSo:1, daftarSo:1, soTerbuka:1, eksporBulanan:1, statusBackup:1
 };
 
 function doPost(e) {
@@ -333,7 +334,7 @@ function petaItem_() {
     if (!r.Kode_Item) return;
     peta[r.Kode_Item] = {
       kode: r.Kode_Item, nama: r.Nama_Item, kategori: r.Kategori,
-      harga: angka_(r.Harga_Per_Kg),
+      harga: angka_(r.Harga_Per_Kg), aktif: r.Aktif,
       awalGBJ: angka_(r.Stok_Awal_GBJ), awalGP: angka_(r.Stok_Awal_GP)
     };
   });
@@ -408,7 +409,8 @@ function getKonteks(ident) {
 
   /* stok per item untuk petunjuk di form ("tersedia di GBJ: … kg") */
   var stokSemua = hitungStokSemua_(), stok = {};
-  Object.keys(stokSemua).forEach(function (k) { stok[k] = { gbj: bulat_(stokSemua[k].gbj, 2), gp: bulat_(stokSemua[k].gp, 2) }; });
+  var dipesan = soDipesan_();
+  Object.keys(stokSemua).forEach(function (k) { stok[k] = { gbj: bulat_(stokSemua[k].gbj, 2), gp: bulat_(stokSemua[k].gp, 2), dipesan: bulat_(dipesan[k] || 0, 2) }; });
   var permintaanMenunggu = bolehReview_(u)
     ? baca_(SHEET.PERMINTAAN).filter(function (r) { return r.Status === STATUS_PERMINTAAN.MENUNGGU; }).length : 0;
   var kerusakanMenunggu = bolehReview_(u)
@@ -416,12 +418,20 @@ function getKonteks(ident) {
   var poTerbukaN = baca_(SHEET.PO).filter(function (r) { return r.Status === STATUS_PO.TERBUKA || r.Status === STATUS_PO.SEBAGIAN; }).length;
   var invoiceMenunggu = bolehReview_(u)
     ? baca_(SHEET.INVOICE).filter(function (r) { return r.Status === STATUS_INVOICE.MENUNGGU; }).length : 0;
+  /* barang yang akan datang (PO terbuka) — untuk semua peran, TANPA harga */
+  var poDatang = baca_(SHEET.PO).filter(function (r) { return r.Status === STATUS_PO.TERBUKA || r.Status === STATUS_PO.SEBAGIAN; })
+    .map(function (r) { var o = ringkasPo_(r, false); return { noPo: o.noPo, supplier: o.supplier, item: o.item, kode: o.kode, sisa: o.sisa, datang: o.perkiraanDatang, spesifikasi: o.spesifikasi }; })
+    .sort(function (a, b) { return String(a.datang || '9999').localeCompare(String(b.datang || '9999')); });
+  var perluBeli = bolehReview_(u) ? prediksiBeli(ident).filter(function (x) { return x.status === 'PERLU_BELI'; }).length : 0;
+  var soHariIni = (typeof soKirimHariIni_ === 'function') ? soKirimHariIni_(hariIni) : [];
+  var soTerbukaN = baca_(SHEET.SO).filter(function (r) { return r.Status === STATUS_SO.TERBUKA || r.Status === STATUS_SO.SEBAGIAN; }).length;
 
   return {
     app: { nama: APP.nama, versi: APP.versi, satuan: APP.satuan },
     user: u,
     hariIni: hariIni,
     maksMundurHari: MAKS_MUNDUR_HARI,
+    maksEditHari: maksEditHari_(),
     stok: stok,
     bisaReview: bolehReview_(u),
     bisaAdmin: bolehAdmin_(u),
@@ -441,7 +451,11 @@ function getKonteks(ident) {
     supplier: supplier,
     customer: customer,
     wajibSjKeluar: (getSetting_('WAJIB_SJ_KELUAR') || 'YA').toUpperCase() === 'YA',
+    poDatang: poDatang,
+    soHariIni: soHariIni,
+    leadTimeHari: leadTimeHari_(),
     ringkasan: {
+      perluBeli: perluBeli,
       menungguReview   : menunggu(trf) + menunggu(rcv) + menunggu(snd),
       ditandai         : ditandai(trf) + ditandai(rcv) + ditandai(snd),
       pekerjaanBerjalan: berjalan.length,
@@ -452,7 +466,8 @@ function getKonteks(ident) {
       permintaanMenunggu: permintaanMenunggu,
       kerusakanMenunggu: kerusakanMenunggu,
       invoiceMenunggu: invoiceMenunggu,
-      poTerbuka: poTerbukaN
+      poTerbuka: poTerbukaN,
+      soTerbuka: soTerbukaN
     }
   };
 }
@@ -579,9 +594,23 @@ function simpanPengiriman(p) {
     var tanggal = tglValid_(p.tanggal);
     var fifoJual = (jenis === JENIS_PENGIRIMAN.KELUAR && metodeHpp_() === 'FIFO') ? hitungFifo_() : null;
     var ids = [], total = 0;
+    /* v8: sales order — baris pengiriman boleh merujuk baris SO (item ikut SO, customer harus sama, tidak melebihi sisa) */
+    var soRows = {}, soDisentuh = {};
+    if (jenis === JENIS_PENGIRIMAN.KELUAR && p.baris.some(function (b) { return b.idSo; })) {
+      baca_(SHEET.SO).forEach(function (r) { soRows[r.ID] = r; });
+    }
 
     p.baris.forEach(function (b) {
-      var it = peta[b.kode];
+      var it = peta[b.kode], idSo = '';
+      if (jenis === JENIS_PENGIRIMAN.KELUAR && b.idSo) {
+        var so = soRows[b.idSo];
+        if (!so) throw new Error('Sales order tidak ditemukan: ' + b.idSo);
+        if (so.Status === STATUS_SO.DIBATALKAN || so.Status === STATUS_SO.SELESAI) throw new Error('SO ' + so.No_SO + ' sudah ' + so.Status + '.');
+        if (String(so.Customer) !== String(p.customer)) throw new Error('Customer tidak sama dengan SO ' + so.No_SO + ' (' + so.Customer + ').');
+        var sisaSo = angka_(so.Qty_Kg) - angka_(so.Qty_Dikirim_Kg) - (soDisentuh[so.ID] || 0);
+        if (angka_(b.qty) > sisaSo + 0.0001) throw new Error('Qty ' + so.Nama_Item + ' melebihi sisa SO ' + so.No_SO + ' (' + bulat_(sisaSo, 2) + ' kg).');
+        it = peta[so.Kode_Item]; idSo = so.ID; soDisentuh[so.ID] = (soDisentuh[so.ID] || 0) + angka_(b.qty);
+      }
       if (!it) throw new Error('Item tidak dikenal: ' + b.kode);
       var qty = angka_(b.qty);
       if (qty <= 0) throw new Error('Qty harus lebih dari 0 untuk ' + it.nama);
@@ -598,9 +627,11 @@ function simpanPengiriman(p) {
         Status: STATUS_TRANSFER.MENUNGGU,
         Ditinjau_Oleh: '', Waktu_Tinjau: '', Catatan_Tinjau: '',
         Catatan: p.catatan || '', Log_Edit: '',
-        HPP_Per_Kg: fifoJual ? hargaKeluarGbjFifo_(fifoJual, it.kode, qty, peta) : ''
+        HPP_Per_Kg: fifoJual ? hargaKeluarGbjFifo_(fifoJual, it.kode, qty, peta) : '',
+        ID_SO: idSo
       });
     });
+    Object.keys(soDisentuh).forEach(function (idSo) { sinkronSo_(idSo); });
 
     catatLog_(jenis === JENIS_PENGIRIMAN.RETUR_MASUK ? 'RETUR_CUSTOMER' : 'PENJUALAN',
               ids.join(','), p.customer + ' • ' + bulat_(total, 2) + ' kg');
@@ -973,6 +1004,7 @@ function tinjauTransfer(id, aksi, catatan, ident) {
           Catatan_Tinjau: catatanBaru
         });
         if (nama === SHEET.PENERIMAAN && rows[i].ID_PO) sinkronPo_(rows[i].ID_PO);
+        if (nama === SHEET.PENGIRIMAN && rows[i].ID_SO) sinkronSo_(rows[i].ID_SO);
         catatLog_('REVIEW', id, status);
         return { ok: true, status: status };
       }
@@ -1283,10 +1315,28 @@ var JENIS_RIWAYAT = {
 
 function penandaPencatat_(u) { return u.email || ('manual:' + u.nama); }
 
-function bolehEditEntri_(u, r) {
-  if (bolehReview_(u)) return true;
-  return r.Status === STATUS_TRANSFER.MENUNGGU && r.Dicatat_Oleh === penandaPencatat_(u);
+/* Batas edit: entri lebih tua dari MAKS_EDIT_HARI (bawaan 30 hari, dihitung dari tanggal transaksi)
+   dikunci untuk SEMUA peran — periode lama dianggap sudah ditutup. */
+function maksEditHari_() { var n = parseInt(getSetting_('MAKS_EDIT_HARI'), 10); return isNaN(n) || n <= 0 ? 30 : n; }
+function umurHari_(tanggal, waktu) {
+  var d = tanggal ? new Date(String(tanggal) + 'T00:00:00') : new Date(waktu);
+  if (isNaN(d.getTime())) d = new Date(waktu);
+  return Math.floor((Date.now() - d.getTime()) / 86400000);
 }
+function dalamBatasEdit_(r) { return umurHari_(r.Tanggal, r.Waktu) <= maksEditHari_(); }
+/* Aturan v8:
+   - STAF: entri sendiri, hanya selama masih MENUNGGU → ubah/batalkan langsung (tanpa usulan). Setelah disetujui: lihat saja.
+   - SUPERVISOR/ADMIN: ubah kapan saja (termasuk yang sudah disetujui).
+   - Semua: tidak bisa lagi setelah MAKS_EDIT_HARI. */
+function alasanKunci_(u, r) {
+  if (r.Status === STATUS_TRANSFER.DIBATALKAN) return 'DIBATALKAN';
+  if (!dalamBatasEdit_(r)) return 'LEWAT_BATAS';
+  if (bolehReview_(u)) return '';
+  if (r.Dicatat_Oleh !== penandaPencatat_(u)) return 'BUKAN_MILIK';
+  if (r.Status !== STATUS_TRANSFER.MENUNGGU) return 'SUDAH_DITINJAU';
+  return '';
+}
+function bolehEditEntri_(u, r) { return alasanKunci_(u, r) === ''; }
 
 function sheetDariId_(id) {
   var pre = String(id).slice(0, 4);
@@ -1304,13 +1354,13 @@ function ringkasEntri_(r, nama, u, tertunda) {
     noSuratJalan: r.No_Surat_Jalan || '',
     foto: r.Foto_URL, fotoId: r.Foto_ID,
     catatanTinjau: r.Catatan_Tinjau || '', logEdit: r.Log_Edit || '',
-    idPo: r.ID_PO || '', idAsal: r.ID_Penerimaan_Asal || '', catatanQc: r.Catatan_QC || '',
-    /* staf: boleh MENGAJUKAN perubahan/pembatalan entri sendiri (butuh persetujuan); supervisor: langsung */
-    bolehEdit: bolehReview_(u) || (r.Dicatat_Oleh === penandaPencatat_(u) && r.Status !== STATUS_TRANSFER.DIBATALKAN),
-    bolehBatal: bolehReview_(u) ? (r.Status === STATUS_TRANSFER.MENUNGGU || r.Status === STATUS_TRANSFER.DITANDAI)
-                                : (r.Dicatat_Oleh === penandaPencatat_(u) && r.Status !== STATUS_TRANSFER.DIBATALKAN),
-    perluPersetujuan: !bolehReview_(u),
-    usulan: (tertunda && tertunda[r.ID]) || null
+    idPo: r.ID_PO || '', idAsal: r.ID_Penerimaan_Asal || '', catatanQc: r.Catatan_QC || '', idSo: r.ID_SO || '',
+    bolehEdit: bolehEditEntri_(u, r),
+    bolehBatal: bolehEditEntri_(u, r) && (bolehReview_(u) ? (r.Status === STATUS_TRANSFER.MENUNGGU || r.Status === STATUS_TRANSFER.DITANDAI) : true),
+    kunci: alasanKunci_(u, r),            // '' | SUDAH_DITINJAU | LEWAT_BATAS | BUKAN_MILIK | DIBATALKAN
+    perluPersetujuan: false,
+    usulan: (tertunda && tertunda[r.ID]) || null,
+    ditinjauOleh: r.Ditinjau_Oleh || '', lokasi: r.Lokasi || ''
   };
   if (nama === SHEET.PENERIMAAN) { o.partner = r.Supplier; o.jenis = r.Jenis; }
   if (nama === SHEET.PENGIRIMAN) { o.partner = r.Customer; o.jenis = r.Jenis; }
@@ -1400,19 +1450,20 @@ function terapkanEdit_(nama, id, perubahan, olehNama, awalan) {
   var r = cariEntri_(nama, id);
   var hasil = susunEdit_(nama, r, perubahan);
   if (!hasil.log.length) return { ok: true, berubah: false };
-  if (hasil.ubah.Kode_Item && (r.ID_PO || r.ID_Penerimaan_Asal)) throw new Error('Item tidak bisa diganti karena entri ini merujuk PO / penerimaan asal. Batalkan lalu buat baru.');
+  if (hasil.ubah.Kode_Item && (r.ID_PO || r.ID_Penerimaan_Asal || r.ID_SO)) throw new Error('Item tidak bisa diganti karena entri ini merujuk PO / SO / penerimaan asal. Batalkan lalu buat baru.');
   var stempel = Utilities.formatDate(new Date(), APP.zona, 'dd/MM HH:mm') + ' ' + olehNama + ': ' + (awalan || '') + hasil.log.join('; ');
   hasil.ubah.Log_Edit = [r.Log_Edit, stempel].filter(String).join('\n');
   ubahBaris_(nama, r._baris, hasil.ubah);
   if (nama === SHEET.PENERIMAAN && r.ID_PO && hasil.ubah.Qty_Kg !== undefined) sinkronPo_(r.ID_PO);
+  if (nama === SHEET.PENGIRIMAN && r.ID_SO && hasil.ubah.Qty_Kg !== undefined) sinkronSo_(r.ID_SO);
   catatLog_('EDIT', id, hasil.log.join('; '));
   return { ok: true, berubah: true, log: hasil.log };
 }
 
 /**
  * perubahan = { kode, qty, tanggal, partner, noSuratJalan, catatan }  (yang tidak dikirim = tidak diubah)
- * SUPERVISOR/ADMIN: langsung diterapkan. STAF: menjadi USULAN (Permintaan_Ubah) yang menunggu persetujuan;
- * entri aslinya tidak berubah sampai disetujui.
+ * v8: STAF mengubah langsung entri sendiri yang masih MENUNGGU; setelah ditinjau hanya SUPERVISOR/ADMIN.
+ * Semua peran terkunci setelah MAKS_EDIT_HARI. (Mekanisme usulan Permintaan_Ubah tetap ada untuk data lama.)
  */
 function simpanEditEntri(id, perubahan, ident, alasan) {
   var u = penggunaSaatIni_(ident);
@@ -1422,34 +1473,43 @@ function simpanEditEntri(id, perubahan, ident, alasan) {
   lock.waitLock(20000);
   lupakanMemo_();   // di dalam lock: baca ulang dari sheet, jangan pakai memo sebelum lock
   try {
-    if (bolehReview_(u)) return terapkanEdit_(nama, id, perubahan, u.nama, '');
-
     var r = cariEntri_(nama, id);
-    if (r.Dicatat_Oleh !== penandaPencatat_(u)) throw new Error('Hanya bisa mengajukan perubahan untuk entri yang kamu catat sendiri.');
-    if (r.Status === STATUS_TRANSFER.DIBATALKAN) throw new Error('Entri sudah dibatalkan.');
-    var hasil = susunEdit_(nama, r, perubahan);          // validasi dulu, supaya usulan yang salah tidak masuk antrian
-    if (!hasil.log.length) return { ok: true, berubah: false };
-    return ajukanPermintaan_(u, JENIS_PERMINTAAN.EDIT, nama, r, perubahan, alasan, hasil.log.join('; '));
+    var kunci = alasanKunci_(u, r);
+    if (kunci) throw new Error(pesanKunci_(kunci));
+    return terapkanEdit_(nama, id, perubahan, u.nama, bolehReview_(u) ? '' : 'staf');
   } finally {
     lock.releaseLock();
   }
 }
 
-/** Batal: supervisor langsung (lewat tinjauTransfer); staf → usulan BATAL untuk entrinya sendiri. */
+function pesanKunci_(kunci) {
+  return kunci === 'SUDAH_DITINJAU' ? 'Entri sudah ditinjau supervisor — hanya supervisor/manager yang bisa mengubahnya.'
+       : kunci === 'LEWAT_BATAS' ? 'Entri lebih tua dari ' + maksEditHari_() + ' hari — periode sudah ditutup, tidak bisa diubah.'
+       : kunci === 'BUKAN_MILIK' ? 'Hanya entri yang kamu catat sendiri yang bisa diubah.'
+       : kunci === 'DIBATALKAN' ? 'Entri sudah dibatalkan.' : 'Entri terkunci.';
+}
+/** Batal: supervisor lewat tinjauTransfer; staf → entri sendiri yang masih MENUNGGU langsung dibatalkan. */
 function batalkanEntriSendiri(id, alasan, ident) {
   var u = penggunaSaatIni_(ident);
-  if (bolehReview_(u)) return tinjauTransfer(id, 'batal', alasan, ident);
   var nama = sheetDariId_(id);
   var lock = LockService.getScriptLock();
   lock.waitLock(20000);
   lupakanMemo_();   // di dalam lock: baca ulang dari sheet, jangan pakai memo sebelum lock
   try {
     var r = cariEntri_(nama, id);
-    if (r.Dicatat_Oleh !== penandaPencatat_(u)) throw new Error('Hanya entri sendiri yang bisa diajukan untuk dibatalkan.');
-    if (r.Status === STATUS_TRANSFER.DIBATALKAN) throw new Error('Entri sudah dibatalkan.');
-    return ajukanPermintaan_(u, JENIS_PERMINTAAN.BATAL, nama, r, {}, alasan, 'batalkan ' + r.Nama_Item + ' ' + angka_(r.Qty_Kg) + ' kg');
+    var kunci = alasanKunci_(u, r);
+    if (kunci) throw new Error(pesanKunci_(kunci));
+    if (bolehReview_(u)) { lock.releaseLock(); lock = null; return tinjauTransfer(id, 'batal', alasan, ident); }
+    ubahBaris_(nama, r._baris, {
+      Status: STATUS_TRANSFER.DIBATALKAN, Ditinjau_Oleh: u.nama + ' (sendiri)', Waktu_Tinjau: new Date(),
+      Catatan_Tinjau: [r.Catatan_Tinjau, 'dibatalkan sendiri' + (alasan ? ': ' + alasan : '')].filter(String).join(' | ')
+    });
+    if (nama === SHEET.PENERIMAAN && r.ID_PO) sinkronPo_(r.ID_PO);
+    if (nama === SHEET.PENGIRIMAN && r.ID_SO) sinkronSo_(r.ID_SO);
+    catatLog_('BATAL_SENDIRI', id, r.Nama_Item + ' ' + angka_(r.Qty_Kg) + ' kg' + (alasan ? ' | ' + alasan : ''));
+    return { ok: true, status: STATUS_TRANSFER.DIBATALKAN };
   } finally {
-    lock.releaseLock();
+    if (lock) lock.releaseLock();
   }
 }
 
@@ -1546,10 +1606,17 @@ function tinjauPermintaan(id, aksi, catatan, ident) {
 
 /* ---------- pekerjaan: riwayat & edit ---------- */
 
-function bolehEditJob_(u, r) {
-  if (bolehReview_(u)) return true;
-  return r.Operator === penandaPencatat_(u);   // staf: hanya sebagai usulan (butuh persetujuan)
+function alasanKunciJob_(u, r) {
+  var tglRef = r.Waktu_Selesai ? tglStr_(new Date(r.Waktu_Selesai)) : r.Tanggal;
+  if (umurHari_(tglRef, r.Waktu_Selesai || r.Waktu_Mulai) > maksEditHari_()) return 'LEWAT_BATAS';
+  if (bolehReview_(u)) return '';
+  if (r.Operator !== penandaPencatat_(u)) return 'BUKAN_MILIK';
+  /* staf: pekerjaan sendiri, hanya dalam 24 jam setelah dimulai/ditutup */
+  var acuan = new Date(r.Waktu_Selesai || r.Waktu_Mulai).getTime();
+  if (Date.now() - acuan > 24 * 3600000) return 'SUDAH_DITINJAU';
+  return '';
 }
+function bolehEditJob_(u, r) { return alasanKunciJob_(u, r) === ''; }
 
 function daftarPekerjaanSelesai(hari, ident) {
   var u = penggunaSaatIni_(ident);
@@ -1560,7 +1627,7 @@ function daftarPekerjaanSelesai(hari, ident) {
   return baca_(SHEET.PEKERJAAN)
     .filter(function (r) { return r.Status === STATUS_PEKERJAAN.SELESAI && new Date(r.Waktu_Selesai) >= batas; })
     .map(function (r) {
-      var o = { usulan: tertunda[r.ID] || null, perluPersetujuan: !bolehReview_(u),
+      var o = { usulan: tertunda[r.ID] || null, perluPersetujuan: false, kunci: alasanKunciJob_(u, r),
         id: r.ID, produk: r.Nama_Produk, kodeProduk: r.Kode_Produk,
         selesai: jam_(r.Waktu_Selesai), masuk: angka_(r.Total_Bahan_Baku_Kg),
         jadi: angka_(r.Total_Barang_Jadi_Kg), scrap: angka_(r.Total_Scrap_Kg),
@@ -1589,7 +1656,7 @@ function ambilPekerjaan(id, ident) {
     bahanBaku: ambil(JENIS_DETAIL.BAHAN_BAKU), barangJadi: ambil(JENIS_DETAIL.BARANG_JADI),
     scrap: ambil(JENIS_DETAIL.SCRAP),
     scrapKg: ambil(JENIS_DETAIL.SCRAP).reduce(function (a, b) { return a + b.qty; }, 0),
-    bolehEdit: bolehEditJob_(u, r), perluPersetujuan: !bolehReview_(u), tanggal: r.Tanggal,
+    bolehEdit: bolehEditJob_(u, r), kunci: alasanKunciJob_(u, r), perluPersetujuan: false, tanggal: r.Tanggal,
     usulan: permintaanTertunda_()[r.ID] || null
   };
 }
@@ -1608,13 +1675,8 @@ function simpanEditPekerjaan(id, p, ident, awalanLog) {
     var rows = baca_(SHEET.PEKERJAAN), r = null;
     for (var i = 0; i < rows.length; i++) if (rows[i].ID === id) r = rows[i];
     if (!r) throw new Error('Pekerjaan tidak ditemukan.');
-    if (!bolehReview_(u)) {
-      /* STAF: hanya pekerjaannya sendiri, dan hanya sebagai USULAN yang menunggu persetujuan */
-      if (r.Operator !== penandaPencatat_(u)) throw new Error('Hanya operator pekerjaan ini yang bisa mengajukan perubahan.');
-      if (!p.bahanBaku || !p.bahanBaku.length) throw new Error('Bahan baku tidak boleh kosong.');
-      var ringkas = 'ubah pekerjaan ' + r.Nama_Produk + ' (' + angka_(r.Total_Bahan_Baku_Kg) + ' kg bahan)';
-      return ajukanPermintaan_(u, JENIS_PERMINTAAN.EDIT_JOB, SHEET.PEKERJAAN, r, p, p.alasan, ringkas);
-    }
+    var kunciJob = alasanKunciJob_(u, r);
+    if (kunciJob) throw new Error(kunciJob === 'SUDAH_DITINJAU' ? 'Pekerjaan hanya bisa diubah operatornya dalam 24 jam — setelah itu minta supervisor.' : pesanKunci_(kunciJob));
     if (!p.bahanBaku || !p.bahanBaku.length) throw new Error('Bahan baku tidak boleh kosong.');
     var selesai = r.Status === STATUS_PEKERJAAN.SELESAI;
     if (selesai && (!p.barangJadi || !p.barangJadi.length)) throw new Error('Barang jadi tidak boleh kosong.');
@@ -2053,7 +2115,7 @@ function kalender(bulan, ident) {
     if (r.Status === STATUS_TRANSFER.DITANDAI) x.ditandai++;
     pushK(d, { t: d.getTime(), jam: Utilities.formatDate(d, APP.zona, 'HH:mm'),
       jenis: retur ? 'RETUR_SUPPLIER' : 'MASUK', label: (retur ? 'GBJ → ' : '') + r.Supplier + (retur ? '' : ' → GBJ'),
-      item: r.Nama_Item, qty: q, status: r.Status, oleh: r.Nama_Pencatat });
+      item: r.Nama_Item, qty: q, status: r.Status, oleh: r.Nama_Pencatat, id: r.ID, sheet: 'entri' });
   });
 
   baca_(SHEET.PENGIRIMAN).forEach(function (r) {
@@ -2065,7 +2127,7 @@ function kalender(bulan, ident) {
     if (r.Status === STATUS_TRANSFER.DITANDAI) x.ditandai++;
     pushK(d, { t: d.getTime(), jam: Utilities.formatDate(d, APP.zona, 'HH:mm'),
       jenis: retur ? 'RETUR_CUSTOMER' : 'KELUAR', label: retur ? r.Customer + ' → GBJ' : 'GBJ → ' + r.Customer,
-      item: r.Nama_Item, qty: q, status: r.Status, oleh: r.Nama_Pencatat });
+      item: r.Nama_Item, qty: q, status: r.Status, oleh: r.Nama_Pencatat, id: r.ID, sheet: 'entri' });
   });
 
   baca_(SHEET.TRANSFER).forEach(function (r) {
@@ -2077,7 +2139,7 @@ function kalender(bulan, ident) {
     pushK(d, { t: d.getTime(), jam: Utilities.formatDate(d, APP.zona, 'HH:mm'),
       jenis: r.Arah === ARAH.KE_PRODUKSI ? 'KE_GP' : 'KE_GBJ',
       label: r.Arah === ARAH.KE_PRODUKSI ? 'GBJ → GP' : 'GP → GBJ',
-      item: r.Nama_Item, qty: q, status: r.Status, oleh: r.Nama_Pencatat });
+      item: r.Nama_Item, qty: q, status: r.Status, oleh: r.Nama_Pencatat, id: r.ID, sheet: 'entri' });
   });
 
   baca_(SHEET.PEKERJAAN).forEach(function (r) {
@@ -2086,7 +2148,7 @@ function kalender(bulan, ident) {
       var x = h(dm); x.job++;
       pushK(dm, { t: dm.getTime(), jam: Utilities.formatDate(dm, APP.zona, 'HH:mm'),
         jenis: 'JOB_MULAI', label: r.Nama_Produk, item: '', qty: angka_(r.Total_Bahan_Baku_Kg),
-        status: r.Status, oleh: r.Nama_Operator });
+        status: r.Status, oleh: r.Nama_Operator, id: r.ID, sheet: 'job' });
     }
     if (r.Status === STATUS_PEKERJAAN.SELESAI && r.Waktu_Selesai) {
       var ds = new Date(r.Waktu_Selesai);
@@ -2096,7 +2158,7 @@ function kalender(bulan, ident) {
         pushK(ds, { t: ds.getTime(), jam: Utilities.formatDate(ds, APP.zona, 'HH:mm'),
           jenis: 'JOB_SELESAI', label: r.Nama_Produk, item: '', qty: angka_(r.Total_Barang_Jadi_Kg),
           status: r.Status_Susut, susut: angka_(r.Susut_Kg), persen: angka_(r.Susut_Persen),
-          oleh: r.Nama_Operator });
+          oleh: r.Nama_Operator, id: r.ID, sheet: 'job' });
       }
     }
   });

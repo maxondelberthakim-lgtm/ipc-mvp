@@ -13,6 +13,7 @@
     <div class="s" id="hdrUser">…</div>
   </div>
   <div class="sp"></div>
+  <button class="langbtn" id="btnSegar" onclick="segarkan()" title="Refresh" style="margin-right:8px">↻</button>
   <button class="langbtn" id="btnKeluar" onclick="keluar()" data-i18n="keluar" style="margin-right:8px">Keluar</button>
   <button class="langbtn" id="btnLang" onclick="gantiBahasa()">ID</button>
 </header>
@@ -44,11 +45,22 @@
   <!-- ============ BERANDA ============ -->
   <section id="v-home">
     <div class="stats">
-      <div class="stat"><div class="n" id="sMasuk">–</div><div class="l" data-i18n="statMasuk">kg masuk hari ini</div></div>
-      <div class="stat"><div class="n" id="sKeluar">–</div><div class="l" data-i18n="statKeluar">kg keluar hari ini</div></div>
-      <div class="stat"><div class="n" id="sProses">–</div><div class="l" data-i18n="statProses">kg sedang diproses</div></div>
-      <div class="stat warn"><div class="n" id="sQueue">–</div><div class="l" data-i18n="statQueue">Menunggu review</div></div>
-      <div class="stat alert wide"><div class="n" id="sSusut">–</div><div class="l" data-i18n="statSusut">Susut tinggi hari ini</div></div>
+      <button class="stat tap" onclick="tileHome('masuk')"><div class="n" id="sMasuk">–</div><div class="l" data-i18n="statMasuk">kg masuk hari ini</div></button>
+      <button class="stat tap" onclick="tileHome('keluar')"><div class="n" id="sKeluar">–</div><div class="l" data-i18n="statKeluar">kg keluar hari ini</div></button>
+      <button class="stat tap" onclick="tileHome('proses')"><div class="n" id="sProses">–</div><div class="l" data-i18n="statProses">kg sedang diproses</div></button>
+      <button class="stat warn tap" onclick="tileHome('menunggu')"><div class="n" id="sQueue">–</div><div class="l" data-i18n="statQueue">Menunggu review</div></button>
+      <button class="stat alert tap" onclick="tileHome('susut')"><div class="n" id="sSusut">–</div><div class="l" data-i18n="statSusut">Susut tinggi hari ini</div></button>
+      <button class="stat alert tap hide" id="tileBeli" onclick="tileHome('beli')"><div class="n" id="sBeli">–</div><div class="l" data-i18n="statBeli">Bahan perlu dibeli</div></button>
+    </div>
+    <div class="card hide" id="kirimHariIniCard">
+      <h2 data-i18n="kirimT">Kirim hari ini</h2>
+      <div class="sub" data-i18n="kirimS">Sales order yang jatuh tempo hari ini / terlambat</div>
+      <div id="kirimHariIni"></div>
+    </div>
+    <div class="card hide" id="poDatangCard">
+      <h2 data-i18n="datangT">Barang akan datang</h2>
+      <div class="sub" data-i18n="datangS">PO yang belum lengkap diterima</div>
+      <div id="poDatang"></div>
     </div>
 
     <div class="card cal">
@@ -97,6 +109,11 @@
       <button class="action" onclick="bukaMutasi('JUAL_RETUR')">
         <div class="ico e">↩</div>
         <div class="tx"><b data-i18n="a7t">Retur dari customer</b><span data-i18n="a7s">Customer → GBJ · menambah stok</span></div>
+      </button>
+      <button class="action hide" id="tileSo" onclick="tampil('so')">
+        <div class="ico f">🧾</div>
+        <div class="tx"><b data-i18n="a10t">Sales order (SO)</b><span data-i18n="a10s">Pesanan customer · apa yang harus dikirim &amp; kapan</span></div>
+        <span class="badge hide" id="soBadge">0</span>
       </button>
     </div>
 
@@ -172,6 +189,11 @@
         <label data-i18n="lblDariPo">Dari pesanan pembelian (PO)</label>
         <select id="rcvPoPilih" onchange="pilihPoBaris(this.value)"></select>
         <div class="hint" data-i18n="hintDariPo">Pilih PO yang barangnya datang — item &amp; spesifikasi terisi otomatis. Bisa pilih lebih dari satu.</div>
+      </div>
+      <div class="field" id="rcvSoWrap">
+        <label data-i18n="lblDariSo">Dari sales order (SO)</label>
+        <select id="rcvSoPilih" onchange="pilihSoBaris(this.value)"></select>
+        <div class="hint" data-i18n="hintDariSo">Pilih pesanan customer yang dikirim — item terisi otomatis, qty tidak boleh melebihi sisa SO. Bisa pilih lebih dari satu.</div>
       </div>
       <div class="field" id="rcvReturWrap">
         <label data-i18n="lblDariPenerimaan">Barang yang diretur (dari penerimaan)</label>
@@ -251,10 +273,13 @@
   <div id="editWrap" class="overlay hide" onclick="if(event.target===this)tutupEdit()">
     <div class="sheet">
       <div class="sheethead">
-        <b data-i18n="editT">Ubah entri</b>
+        <b data-i18n="editT" id="editTitle">Ubah entri</b>
         <button class="x2" onclick="tutupEdit()">✕</button>
       </div>
       <div class="sub" id="editSub"></div>
+      <div class="banner warn hide" id="editUsulanInfo"></div>
+      <div class="field"><label data-i18n="fotoBukti">Foto bukti</label><div class="photo" id="editFoto"></div></div>
+      <div class="sub hide" id="editEkstra"></div>
       <div class="field" id="editPartnerWrap">
         <label id="editPartnerLabel">Supplier</label>
         <select id="editPartner"></select>
@@ -283,7 +308,6 @@
         <label data-i18n="lblAlasan">Alasan perubahan</label>
         <input id="editAlasan" placeholder="mis. salah timbang / salah pilih item">
       </div>
-      <div class="banner warn hide" id="editUsulanInfo"></div>
       <div class="logedit hide" id="editLog"></div>
       <div class="btnrow">
         <button class="btn ghost hide" id="btnEditBatal" onclick="batalkanEntriUI()" data-i18n="batalkanInput">Batalkan input</button>
@@ -417,6 +441,16 @@
     <div id="poBody"><div class="load">…</div></div>
   </section>
 
+  <!-- ============ SALES ORDER (manager) ============ -->
+  <section id="v-so" class="hide">
+    <div class="seg">
+      <button id="segSoAktif" class="on" onclick="segSo('aktif')" data-i18n="segSoAktif">Terbuka</button>
+      <button id="segSoSelesai" onclick="segSo('selesai')" data-i18n="segSoSelesai">Selesai</button>
+      <button id="segSoBaru" onclick="segSo('baru')" data-i18n="segSoBaru">+ Buat SO</button>
+    </div>
+    <div id="soBody"><div class="load">…</div></div>
+  </section>
+
   <!-- ============ BARANG RUSAK (staf) ============ -->
   <section id="v-rusak" class="hide">
     <div class="card">
@@ -482,6 +516,8 @@
       <button id="segRepHpp" class="hide" onclick="segRep('hpp')">HPP</button>
       <button id="segRepNilai" class="hide" onclick="segRep('nilai')" data-i18n="segNilai">Nilai stok</button>
       <button id="segRepStd" class="hide" onclick="segRep('std')" data-i18n="segStd">Std susut</button>
+      <button id="segRepPrediksi" class="hide" onclick="segRep('prediksi')" data-i18n="segPrediksi">Perlu beli</button>
+      <button id="segRepEkspor" class="hide" onclick="segRep('ekspor')" data-i18n="segEkspor">Ekspor</button>
     </div>
     <div id="repBody"><div class="load">…</div></div>
   </section>
@@ -493,6 +529,7 @@
       <button id="segAdmSku" onclick="segAdm('sku')">SKU</button>
       <button id="segAdmAkt" onclick="segAdm('akt')" data-i18n="segAkt">Aktivitas</button>
       <button id="segAdmUser" class="hide" onclick="segAdm('user')" data-i18n="segUser">Pengguna</button>
+      <button id="segAdmBackup" onclick="segAdm('backup')" data-i18n="segBackup">Backup</button>
     </div>
     <div id="admBody"><div class="load">…</div></div>
   </section>

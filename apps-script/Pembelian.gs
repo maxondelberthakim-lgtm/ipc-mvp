@@ -358,8 +358,9 @@ function daftarInvoice(ident, status) {
  * Pemakaian mengambil lapisan tertua dulu. Transfer memindahkan lapisan apa adanya.
  * Hasil: { lapisan: {kode:{GBJ:[...],GP:[...]}}, biaya: {idKejadian: nilai}, hargaJob: {idJob:{kode:hargaRata}} }
  */
-function hitungFifo_() {
+function hitungFifo_(sampaiTanggal) {
   var peta = petaItem_();
+  var batasK = sampaiTanggal ? String(sampaiTanggal) + 'T23:59:59.999' : null;   // opsional: posisi per akhir tanggal tertentu
   var L = {};   // kode -> { GBJ:[{qty,harga,asal}], GP:[...] }
   function lap(kode, lok) { if (!L[kode]) L[kode] = { GBJ: [], GP: [] }; return L[kode][lok]; }
   function hargaCadangan(kode) {
@@ -424,6 +425,7 @@ function hitungFifo_() {
   baca_(SHEET.KERUSAKAN).forEach(function (r) {
     if (r.Status === STATUS_TRANSFER.DISETUJUI) ev.push({ k: kunciWaktu_(r.Tanggal, r.Waktu), t: 'RUSAK', r: r });
   });
+  if (batasK) ev = ev.filter(function (e) { return e.k <= batasK; });
   ev.sort(function (a, b) {
     if (a.k !== b.k) return a.k < b.k ? -1 : 1;
     /* satu pekerjaan yang mulai & selesai di milidetik yang sama: MULAI tetap lebih dulu */
@@ -675,6 +677,59 @@ function terapkanStandarSusut(kode, normal, toleransi, catatan, ident) {
   else tambah_(SHEET.STANDAR, { Kode_Produk: kode, Nama_Produk: it.nama, Susut_Normal_Persen: n, Toleransi_Persen: t, Catatan: ket });
   catatLog_('STANDAR_SUSUT', kode, n + '% ± ' + t + '%');
   return { ok: true, kode: kode, normal: n, toleransi: t };
+}
+
+/* ================= PREDIKSI KAPAN PERLU BELI (manager) ================= */
+function leadTimeHari_() { var n = parseInt(getSetting_('LEAD_TIME_HARI'), 10); return isNaN(n) || n < 0 ? 7 : n; }
+/**
+ * Per bahan baku: pemakaian rata-rata per hari (dari bahan yang masuk ke pekerjaan, N hari terakhir),
+ * stok sekarang, sisa hari sampai habis, PO yang masih terbuka, dan saran beli.
+ * status: PERLU_BELI (habis sebelum lead time & belum ada PO cukup) | PO_JALAN | AMAN | TIDAK_DIPAKAI
+ */
+function prediksiBeli(ident, hari) {
+  var u = penggunaSaatIni_(ident);
+  if (!bolehReview_(u)) throw new Error('Hanya Supervisor / Admin.');
+  hari = hari || 30;
+  var lead = leadTimeHari_(), buffer = 14;
+  var batas = new Date(); batas.setDate(batas.getDate() - hari);
+  var peta = petaItem_(), stok = hitungStokSemua_();
+  var pakai = {}, jobBaru = {};
+  baca_(SHEET.PEKERJAAN).forEach(function (r) { if (new Date(r.Waktu_Mulai) >= batas) jobBaru[r.ID] = true; });
+  baca_(SHEET.DETAIL).forEach(function (d) {
+    if (d.Jenis !== JENIS_DETAIL.BAHAN_BAKU || !jobBaru[d.ID_Pekerjaan]) return;
+    pakai[d.Kode_Item] = (pakai[d.Kode_Item] || 0) + angka_(d.Qty_Kg);
+  });
+  var poSisa = {}, poEta = {};
+  baca_(SHEET.PO).forEach(function (r) {
+    if (r.Status !== STATUS_PO.TERBUKA && r.Status !== STATUS_PO.SEBAGIAN) return;
+    var sisa = Math.max(0, angka_(r.Qty_Kg) - angka_(r.Qty_Diterima_Kg));
+    poSisa[r.Kode_Item] = (poSisa[r.Kode_Item] || 0) + sisa;
+    if (r.Perkiraan_Datang && (!poEta[r.Kode_Item] || String(r.Perkiraan_Datang) < poEta[r.Kode_Item])) poEta[r.Kode_Item] = String(r.Perkiraan_Datang);
+  });
+  var out = [];
+  Object.keys(peta).forEach(function (k) {
+    var it = peta[k];
+    if (it.kategori !== KATEGORI_ITEM.BAHAN_BAKU && it.kategori !== KATEGORI_ITEM.KEDUANYA) return;
+    if (String(it.aktif || 'YA').toUpperCase() === 'TIDAK') return;
+    var st = stok[k] || { gbj: 0, gp: 0 }, total = st.gbj + st.gp;
+    var rata = (pakai[k] || 0) / hari;
+    var sisaHari = rata > 0 ? total / rata : null;
+    var sisaPo = poSisa[k] || 0;
+    var kebutuhan = rata * (lead + buffer);
+    var saran = Math.max(0, kebutuhan - total - sisaPo);
+    var status = rata <= 0 ? 'TIDAK_DIPAKAI'
+               : (sisaHari <= lead && sisaPo <= 0) ? 'PERLU_BELI'
+               : (sisaHari <= lead && sisaPo > 0) ? 'PO_JALAN'
+               : 'AMAN';
+    out.push({ kode: k, nama: it.nama, stok: bulat_(total, 2), gbj: bulat_(st.gbj, 2), gp: bulat_(st.gp, 2),
+               rataHari: bulat_(rata, 2), sisaHari: sisaHari === null ? null : bulat_(sisaHari, 1),
+               poSisa: bulat_(sisaPo, 2), poEta: poEta[k] || '', saranBeli: bulat_(saran, 0),
+               leadTime: lead, status: status });
+  });
+  out.sort(function (a, b) {
+    var ua = a.sisaHari === null ? 1e9 : a.sisaHari, ub = b.sisaHari === null ? 1e9 : b.sisaHari; return ua - ub;
+  });
+  return out;
 }
 
 /* ================= DIAGNOSA KECEPATAN (admin) ================= */

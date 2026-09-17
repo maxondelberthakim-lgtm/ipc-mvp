@@ -10,7 +10,7 @@
 
 var APP = {
   nama: 'IPC — Inventory & Production Control',
-  versi: '7.1.1',
+  versi: '8.0.0',
   zona: 'Asia/Jakarta',
   satuan: 'kg',
   folderFoto: 'IPC Foto Bukti'
@@ -35,6 +35,7 @@ var SHEET = {
   PO         : 'Pesanan_Pembelian', // PO dari manager: apa yang akan datang, qty, harga, spesifikasi
   INVOICE    : 'Invoice',           // invoice supplier per PO, divalidasi manager (dasar harga FIFO)
   KERUSAKAN  : 'Kerusakan',         // laporan barang rusak dari staf → disetujui manager → stok berkurang
+  SO         : 'Sales_Order',       // v8: pesanan dari customer (manager) → gudang tahu harus kirim apa, stok dicadangkan
   LOG        : 'Log_Audit',
   SETTING    : 'Pengaturan'
 };
@@ -76,7 +77,8 @@ HEADER[SHEET.PENGIRIMAN] = [
   'Kode_Item','Nama_Item','Qty_Kg',
   'Foto_URL','Foto_ID','Dicatat_Oleh','Nama_Pencatat',
   'Status','Ditinjau_Oleh','Waktu_Tinjau','Catatan_Tinjau','Catatan','Log_Edit',
-  'HPP_Per_Kg'   // v7: harga pokok FIFO barang yang keluar (untuk margin)
+  'HPP_Per_Kg',  // v7: harga pokok FIFO barang yang keluar (untuk margin)
+  'ID_SO'        // v8: baris sales order yang dipenuhi pengiriman ini
 ];
 
 /* ① ③ Transfer internal — TANPA surat jalan, cukup foto + timestamp */
@@ -130,6 +132,10 @@ HEADER[SHEET.KERUSAKAN] = [
   'Foto_URL','Foto_ID','Dicatat_Oleh','Nama_Pencatat',
   'Status','Ditinjau_Oleh','Waktu_Tinjau','Catatan_Tinjau','Nilai_Kerugian','Catatan','Log_Edit'
 ];
+HEADER[SHEET.SO] = [
+  'ID','No_SO','Waktu','Tanggal','Customer','Kode_Item','Nama_Item','Qty_Kg','Harga_Per_Kg',
+  'Tanggal_Kirim','Qty_Dikirim_Kg','Status','Dibuat_Oleh','Nama_Pembuat','Catatan','Log_Edit'
+];
 
 HEADER[SHEET.LOG] = [
   'Waktu','Email','Aksi','Referensi','Detail'
@@ -172,6 +178,7 @@ var MAKS_MUNDUR_HARI  = 60;   // tanggal transaksi boleh dimundurkan maksimal se
 
 var STATUS_PO      = { TERBUKA: 'TERBUKA', SEBAGIAN: 'SEBAGIAN', SELESAI: 'SELESAI', DIBATALKAN: 'DIBATALKAN' };
 var STATUS_INVOICE = { MENUNGGU: 'MENUNGGU', VALID: 'VALID', DITOLAK: 'DITOLAK' };
+var STATUS_SO      = STATUS_PO;   // TERBUKA / SEBAGIAN / SELESAI / DIBATALKAN
 
 var JENIS_DETAIL = {
   BAHAN_BAKU  : 'BAHAN_BAKU',
@@ -249,7 +256,9 @@ var DEFAULT_SETTING = [
   ['BIAYA_PROSES_PER_KG','2500','Biaya proses (tenaga, listrik, gas, dll) per kg bahan baku masuk. Dipakai untuk HPP.'],
   ['MATA_UANG','Rp','Simbol mata uang di tampilan HPP'],
   ['METODE_HPP','FIFO','FIFO = harga bahan dari batch penerimaan tertua yang terpakai (butuh harga di PO/penerimaan). MASTER = harga tetap dari Master_Item.'],
-  ['WAJIB_PO','TIDAK','YA = penerimaan barang harus merujuk PO. TIDAK = boleh tanpa PO (ditandai TANPA PO).']
+  ['WAJIB_PO','TIDAK','YA = penerimaan barang harus merujuk PO. TIDAK = boleh tanpa PO (ditandai TANPA PO).'],
+  ['MAKS_EDIT_HARI','30','Entri lebih tua dari sekian hari (dari tanggal transaksi) tidak bisa diubah/dibatalkan siapa pun — periode dianggap ditutup.'],
+  ['LEAD_TIME_HARI','7','Lama pesan sampai barang datang (hari). Dipakai untuk peringatan "perlu beli": stok habis sebelum lead time.']
 ];
 
 /* ------------------------------------------------------------------ *
@@ -339,7 +348,7 @@ function resetUntukGoLive() {
   lupakanMemo_();
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   [SHEET.PENERIMAAN, SHEET.PENGIRIMAN, SHEET.TRANSFER, SHEET.PEKERJAAN, SHEET.DETAIL, SHEET.OPNAME,
-   SHEET.PERMINTAAN, SHEET.PO, SHEET.INVOICE, SHEET.KERUSAKAN].forEach(function (n) {
+   SHEET.PERMINTAAN, SHEET.PO, SHEET.INVOICE, SHEET.KERUSAKAN, SHEET.SO].forEach(function (n) {
     var sh = ss.getSheetByName(n);
     if (sh && sh.getLastRow() >= 2) sh.deleteRows(2, sh.getLastRow() - 1);
   });
