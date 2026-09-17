@@ -95,7 +95,7 @@ const ctx = {
 };
 vm.createContext(ctx);
 
-['Config.gs','Server.gs','Media.gs','Pembelian.gs'].forEach(f=>{
+['Config.gs','Server.gs','Media.gs','Pembelian.gs','Penjualan.gs'].forEach(f=>{
   vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'apps-script', f), 'utf8'), ctx, {filename:f});
 });
 // tes memakai master data contoh (kacang) — deploy sungguhan memakai DUMMY_ITEM di Config.gs
