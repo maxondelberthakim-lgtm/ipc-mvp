@@ -1,4 +1,4 @@
-# IPC — Inventory & Production Control (v7.1)
+# IPC — Inventory & Production Control (v8)
 
 Mobile web app for a small factory (polybag plant): every kilogram that moves between
 **supplier → warehouse (GBJ) → production (GP) → warehouse → customer** is logged with a
@@ -26,7 +26,8 @@ runs on spreadsheets, so the data lands in the format the team already knows.
 | ① | Transfer to production (GBJ → GP) | required | — | GBJ −, GP + |
 | ② | Job: raw material → finished goods + scrap | optional | — | GP |
 | ③ | Transfer back (GP → GBJ) | required | — | GP −, GBJ + |
-| ④ | Goods out, sold (GBJ → customer) | required | required | GBJ − |
+| SO | Sales order (manager/sales: customer, item, kg, selling price, ship date) | — | — | reserves stock |
+| ④ | Goods out, sold (GBJ → customer), picked from an SO | required | required | GBJ − |
 | ↩ | Return from customer | required | — | GBJ + |
 
 - **Shrinkage (susut)** is computed per job: `in − out − scrap`, in kg, flagged when it
@@ -54,9 +55,25 @@ runs on spreadsheets, so the data lands in the format the team already knows.
   from the phone; per-staff activity; user management (admin only).
 - **Scrap is a real SKU** — `SCR-<product>` created automatically per product, so scrap stock is visible
   per product and can be sold like any other item.
-- **Input history + edit** under every form. Staff can fix their own entries until a supervisor
-  reviews them; supervisors can edit anything. Every change is logged (`Log_Edit`), status is
+- **Input history + edit** under every form; tap any row (or any calendar event) to open it full-screen.
+  Staff edit or cancel their own entries directly while they are pending; once a supervisor has reviewed
+  an entry it is view-only for staff. Supervisors can edit anything. Nobody can edit entries older than
+  `MAKS_EDIT_HARI` (30 days — the period is closed). Every change is logged (`Log_Edit`), status is
   untouched, and editing a closed job recomputes shrinkage and COGS.
+- **Home screen that answers "what today?"** — the stat tiles are buttons (tap "kg out today" to see
+  the entries behind it), *Ship today* lists sales orders due today or overdue (staff tap → shipping
+  form pre-filled from the SO), *Incoming* lists open POs with ETA, and a ↻ button / return-to-tab
+  auto-refresh keeps every phone in sync.
+- **When to buy** (Reports → Perlu beli): average daily usage over the last 30 days vs stock on hand and
+  open POs; `LEAD_TIME_HARI` decides how early "buy now" fires, with a suggested quantity and a one-tap PO.
+- **Sales orders**: status TERBUKA → SEBAGIAN → SELESAI, reserved quantity shown next to available stock,
+  shipping quantity cannot exceed the SO balance. Selling prices are visible to Manager/Admin only —
+  the server never sends SO prices or COGS to warehouse staff.
+- **Monthly finance export** (Reports → Ekspor, Manager/Admin): six CSV files for one month — summary,
+  purchases (with PO/invoice numbers), sales (with SO price, COGS, gross profit), production, damage,
+  month-end FIFO stock value.
+- **Automatic backup**: a time trigger copies the Sheet to a Drive folder "IPC Backup" every night
+  (last 30 kept); status visible under Admin → Backup.
 - UI in **Bahasa Indonesia / English** (toggle); sheet & column names in Indonesian.
 - All quantities in **kilograms**.
 
@@ -84,9 +101,9 @@ PANDUAN-SETUP.md deployment guide (Indonesian) — start here
 Full steps in **[PANDUAN-SETUP.md](PANDUAN-SETUP.md)**. Short version:
 
 1. New Google Sheet → **Extensions → Apps Script**
-2. Paste the six files from `apps-script/` (names must match: `Config`, `Server`, `Media`, `Index`, `Styles`, `Script`)
+2. Paste the eight files from `apps-script/` (names must match: `Config`, `Server`, `Media`, `Pembelian`, `Penjualan`, `Index`, `Styles`, `Script`)
 3. **Services → + Drive API (v2)** — enables OCR
-4. Run `setupSistem()` once, grant permissions
+4. Run `setupSistem()` once, grant permissions; run `pasangBackupHarian()` once to install the nightly backup
 5. Change the four default PINs (Admin → Pengguna). Everyone — the sheet owner included — logs in with name + PIN (`PAKSA_LOGIN_MANUAL=YA`); unregistered names are refused (`AKSES_TERBUKA=TIDAK`)
 6. **Deploy → Web app** — execute as *Me*, access **Anyone** (this is the JSON API endpoint)
 7. Put the `/exec` URL in `tools/api-url.txt`, run `python3 tools/build-app.py`, commit `docs/app/` — staff open `https://<owner>.github.io/<repo>/app/` and add it to their home screen. Master data: run `resetUntukGoLive()` once from the editor to clear test rows and load the SKU list in `DUMMY_ITEM`.
@@ -94,7 +111,7 @@ Full steps in **[PANDUAN-SETUP.md](PANDUAN-SETUP.md)**. Short version:
 ## Development
 
 ```bash
-cd tests && npm test          # 248 checks: stock math, shrinkage, permissions, OCR parser
+cd tests && npm test          # 416 checks: stock math, shrinkage, permissions, FIFO, SO, export, backup
 python3 tools/build-demo.py   # rebuild docs/index.html after editing apps-script/
 python3 tools/build-app.py    # rebuild docs/app/ (PWA); API URL comes from tools/api-url.txt
 ```
@@ -105,10 +122,10 @@ before anything is pasted into Google.
 
 ## Not yet
 
-Offline mode · barcode scanning · warehouses beyond GBJ/GP · push notifications · sales orders / receivables.
+Offline mode · barcode scanning · warehouses beyond GBJ/GP · push notifications · receivables / payment tracking.
 
 ## Status
 
-v7.1 live (Apps Script deployment version 9; GitHub Pages app). 368 automated checks (`cd tests && node test.js …`).
+v8 live (Apps Script deployment version 11; GitHub Pages app). 416 automated checks (`cd tests && node test.js …`).
 Built for a pilot on one warehouse pair. Shrinkage thresholds in
 `Master_Standar_Susut` should be set from real pilot data, not guessed.

@@ -1,4 +1,4 @@
-# IPC — Inventory & Production Control (v7.1)
+# IPC — Inventory & Production Control (v8)
 
 Backend Google Sheets, frontend web app yang dibuka lewat browser HP.
 Tidak ada server, tidak ada hosting, tidak ada aplikasi yang perlu di-install.
@@ -87,6 +87,7 @@ Panel kiri (Files):
 - **+ → Script** → **Server** → paste `Server.gs`
 - **+ → Script** → **Media** → paste `Media.gs`
 - **+ → Script** → **Pembelian** → paste `Pembelian.gs`
+- **+ → Script** → **Penjualan** → paste `Penjualan.gs`
 - **+ → HTML** → **Index** → hapus isi bawaan, paste `Index.html`
 - **+ → HTML** → **Styles** → paste `Styles.html`
 - **+ → HTML** → **Script** → paste `Script.html`
@@ -276,13 +277,16 @@ Di bawah setiap form (barang masuk, retur supplier, barang keluar, retur custome
 ada **Riwayat input** — 14 hari terakhir untuk proses itu. Tab **Pekerjaan → Selesai** melakukan
 hal yang sama untuk job yang sudah ditutup.
 
+Tekan baris mana pun (atau kejadian di kalender beranda) → detailnya terbuka di layar besar.
+
 | Siapa | Boleh mengubah |
 |---|---|
-| Staf | hanya entri yang **dia catat sendiri** dan masih **MENUNGGU** — belum disentuh supervisor |
+| Staf | entri yang **dia catat sendiri** dan masih **MENUNGGU** — langsung tersimpan, tanpa usulan. Setelah disetujui/ditandai supervisor: hanya bisa dilihat 🔒 |
 | Staf | job yang dia jalankan, dalam **24 jam** setelah ditutup |
-| Supervisor / Admin | semua entri, status apa pun (termasuk dari tab Review → Ditandai) |
+| Supervisor / Admin | semua entri, status apa pun (termasuk yang sudah disetujui) |
+| Siapa pun | **tidak** bisa mengubah entri lebih tua dari `MAKS_EDIT_HARI` (30 hari) — periode sudah ditutup |
 
-Aturan itu ditegakkan di server, bukan cuma di layar. Entri yang tidak boleh diubah tampil 🔒 *Terkunci*.
+Aturan itu ditegakkan di server, bukan cuma di layar. Entri yang tidak boleh diubah tampil 🔒 dengan alasannya.
 
 Setiap perubahan dicatat di kolom `Log_Edit` (siapa, kapan, apa yang berubah — misal
 `14/09 05:41 Yanto: qty: 500 → 510 kg`) dan tampil di form edit sebagai *Riwayat perubahan*.
@@ -290,7 +294,7 @@ Status **tidak** berubah karena edit: entri MENUNGGU yang diedit staf tetap MENU
 lewat review. Angka lama tidak ditimpa diam-diam.
 
 Staf juga bisa **Batalkan input** untuk entrinya sendiri yang masih MENUNGGU (salah klik, dobel
-input). Itu jadi DIBATALKAN — tercatat, tidak dihitung di stok.
+input). Itu jadi DIBATALKAN — tercatat (`Ditinjau_Oleh: nama (sendiri)`), tidak dihitung di stok.
 
 Mengubah pekerjaan yang sudah selesai → susut, HPP, dan nilai susut **dihitung ulang** dengan
 harga bahan saat ini; baris `Pekerjaan_Detail` lama diganti.
@@ -378,10 +382,21 @@ Version: **New version** → Deploy. Link di HP staff tidak berubah.
 ## Yang belum ada
 
 - Offline mode (harus ada sinyal saat submit)
-- Sales order & piutang (PO pembelian + invoice supplier sudah ada sejak v7)
+- Piutang / pelunasan customer (sales order sudah ada sejak v8)
 - Barcode / QR (sesuai proposal: kamera saja)
 - Multi-gudang di luar GBJ / GP
 - Notifikasi push ke supervisor
+
+## Versi 8 (sales order · ekspor keuangan · backup · beranda yang bisa ditekan)
+
+- **Beranda**: kotak angka (kg masuk/keluar hari ini, sedang diproses, menunggu review, susut tinggi) bisa **ditekan** → kalender langsung memfilter kejadian hari ini. Tombol **↻** menyegarkan data; buka app lagi setelah > 30 detik juga menyegarkan otomatis — jadi HP staf dan manager melihat angka yang sama tanpa login ulang.
+- **Kirim hari ini** (semua peran): sales order yang jatuh tempo hari ini / terlambat. Tekan → form Barang keluar sudah terisi dari SO itu.
+- **Barang akan datang** (semua peran): PO yang belum lengkap diterima, dengan perkiraan tanggal datang & spesifikasi — tanpa harga.
+- **Perlu beli** (Manager; kotak *Bahan perlu dibeli* di beranda + Laporan → Perlu beli): pemakaian rata-rata 30 hari terakhir vs stok sekarang & PO yang jalan. `LEAD_TIME_HARI` (Pengaturan, default 7) = berapa hari barang pesanan biasanya datang. Status PERLU BELI / PO JALAN / AMAN, saran jumlah beli, tombol *Buat PO*.
+- **Sales order** (Beranda → Sales order, Manager/Admin): customer, item, kg, harga jual/kg, tanggal kirim. Status TERBUKA → SEBAGIAN → SELESAI / DIBATALKAN. Stok yang sudah dipesan tampil sebagai *dipesan* di form barang keluar. Staf memilih SO saat mengirim; qty tidak boleh melebihi sisa SO; customer harus sama. **Harga jual & HPP hanya terlihat oleh Manager/Admin — server tidak pernah mengirimnya ke staf.**
+- **Ekspor bulanan** (Laporan → Ekspor, Manager/Admin): pilih bulan → 6 file CSV (ringkasan, pembelian, penjualan, produksi, rusak, nilai stok) — buka di Excel, pisah kolom `;`. Laba kotor hanya dihitung untuk pengiriman yang merujuk SO (ada harga jual).
+- **Backup otomatis**: jalankan `pasangBackupHarian()` sekali dari editor Apps Script (pemilik Sheet) → tiap jam 02:00 Sheet disalin ke folder Drive **IPC Backup**, 30 salinan terakhir disimpan. Status di Admin → Backup. Kalau ada data yang terhapus/rusak: buka salinan di folder itu, salin tab yang rusak kembali ke Sheet utama (klik kanan nama tab → *Salin ke → Spreadsheet yang ada*), lalu hapus tab lama & ganti namanya.
+- Pengaturan baru: `MAKS_EDIT_HARI` (30), `LEAD_TIME_HARI` (7). Tab baru: `Sales_Order`; kolom baru `Pengiriman.ID_SO`. Semua dibuat otomatis oleh `migrasiSkema` saat versi baru pertama dipanggil.
 
 ## Versi 7 (PO → penerimaan → invoice → HPP FIFO)
 
