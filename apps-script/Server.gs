@@ -1162,10 +1162,11 @@ function laporanStok(ident) {
            s.keGP || s.keGBJ || s.dipakai || s.dihasilkan || s.opnameGBJ || s.opnameGP || s.rusakGBJ || s.rusakGP;
   }).sort(function (a, b) { return b.total - a.total; });
 
-  var tot = { beli: 0, retur: 0, jual: 0, returCust: 0, gbj: 0, gp: 0, total: 0 };
+  var tot = { beli: 0, retur: 0, jual: 0, returCust: 0, rusak: 0, gbj: 0, gp: 0, total: 0 };
   daftar.forEach(function (s) {
     tot.beli += s.beli; tot.retur += s.retur;
     tot.jual += s.jual; tot.returCust += s.returCust;
+    tot.rusak += (s.rusakGBJ || 0) + (s.rusakGP || 0);
     tot.gbj += s.gbj; tot.gp += s.gp; tot.total += s.total;
   });
   Object.keys(tot).forEach(function (k) { tot[k] = bulat_(tot[k], 2); });
