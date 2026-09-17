@@ -207,6 +207,21 @@ console.log('\n— doPost: idKlien idempoten (ulang kirim tidak dobel) —');
   ok('error tidak di-cache (ulang tetap error, bukan hasil lama)', !r5.ok && /Item PO/.test(r5.error) && cacheMap['rq:x']===undefined);
 }
 
+console.log('\n— Laporan stok: rincian neraca = saldo (termasuk barang rusak) —');
+{
+  const ls = ctx.laporanStok(SPV);
+  let cocok = true, adaRusak = false;
+  ls.daftar.forEach(s => {
+    const gbj = s.awalGBJ + s.beli + s.returCust + s.keGBJ - s.retur - s.jual - s.keGP - s.rusakGBJ + s.opnameGBJ;
+    const gp  = s.awalGP + s.keGP + s.dihasilkan - s.keGBJ - s.dipakai - s.rusakGP + s.opnameGP;
+    if (Math.abs(gbj - s.gbj) > 0.01 || Math.abs(gp - s.gp) > 0.01) { cocok = false; console.log('   beda:', s.kode, gbj, s.gbj, gp, s.gp); }
+    if (s.rusakGBJ || s.rusakGP) adaRusak = true;
+  });
+  ok('setiap baris neraca menjumlah tepat ke saldo GBJ & GP', cocok);
+  ok('ada item dengan barang rusak disetujui di laporan', adaRusak);
+  ok('total rusak ikut di ringkasan', ls.total.rusak > 0, ls.total);
+}
+
 fs.unlinkSync(__dirname + '/.h7.js');
 console.log('\n================ '+pass+' lulus, '+fail+' gagal ================');
 process.exit(fail?1:0);
