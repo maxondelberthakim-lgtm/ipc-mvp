@@ -78,7 +78,18 @@ function sheet_(nama) {
 }
 
 var KOLOM_TANGGAL_ = /^(Tanggal|Tanggal_Invoice|Perkiraan_Datang)$/;
+/* Memo per eksekusi: satu sheet dibaca dari Spreadsheet sekali saja per request
+   (getKonteks dulu membaca sheet yang sama berulang kali -> 6-10 detik). Dibuang setiap ada tulis. */
+var MEMO_BACA_ = {};
+function lupakanMemo_(nama) { if (nama) delete MEMO_BACA_[nama]; else MEMO_BACA_ = {}; }
+function salinBaris_(r) { var o = {}; for (var k in r) o[k] = r[k]; return o; }
 function baca_(nama) {
+  if (MEMO_BACA_[nama]) return MEMO_BACA_[nama].map(salinBaris_);
+  var out = bacaSheet_(nama);
+  MEMO_BACA_[nama] = out;
+  return out.map(salinBaris_);
+}
+function bacaSheet_(nama) {
   var sh = sheet_(nama);
   var lastRow = sh.getLastRow();
   var head = HEADER[nama];
@@ -103,6 +114,7 @@ function tambah_(nama, obj) {
   var head = HEADER[nama];
   var row = head.map(function (h) { return (obj[h] === undefined || obj[h] === null) ? '' : obj[h]; });
   sheet_(nama).appendRow(row);
+  lupakanMemo_(nama);
   return row;
 }
 
@@ -113,6 +125,7 @@ function ubahBaris_(nama, baris, obj) {
     var idx = head.indexOf(k);
     if (idx >= 0) sh.getRange(baris, idx + 1).setValue(obj[k]);
   });
+  lupakanMemo_(nama);
 }
 
 function getSetting_(kunci) {
@@ -126,6 +139,7 @@ function getSetting_(kunci) {
 function setSetting_(kunci, nilai) {
   var sh = sheet_(SHEET.SETTING);
   var rows = baca_(SHEET.SETTING);
+  lupakanMemo_(SHEET.SETTING);
   for (var i = 0; i < rows.length; i++) {
     if (rows[i].Kunci === kunci) { sh.getRange(rows[i]._baris, 2).setValue(nilai); return; }
   }
@@ -405,6 +419,7 @@ function simpanPenerimaan(p) {
 
   var lock = LockService.getScriptLock();
   lock.waitLock(20000);
+  lupakanMemo_();   // di dalam lock: baca ulang dari sheet, jangan pakai memo sebelum lock
   try {
     var now = new Date();
     var tanggal = tglValid_(p.tanggal);
@@ -497,6 +512,7 @@ function simpanPengiriman(p) {
 
   var lock = LockService.getScriptLock();
   lock.waitLock(20000);
+  lupakanMemo_();   // di dalam lock: baca ulang dari sheet, jangan pakai memo sebelum lock
   try {
     var now = new Date();
     var tanggal = tglValid_(p.tanggal);
@@ -548,6 +564,7 @@ function simpanTransfer(p) {
 
   var lock = LockService.getScriptLock();
   lock.waitLock(20000);
+  lupakanMemo_();   // di dalam lock: baca ulang dari sheet, jangan pakai memo sebelum lock
   try {
     var now = new Date();
     var tanggal = tglValid_(p.tanggal);
@@ -598,6 +615,7 @@ function mulaiPekerjaan(p) {
 
   var lock = LockService.getScriptLock();
   lock.waitLock(20000);
+  lupakanMemo_();   // di dalam lock: baca ulang dari sheet, jangan pakai memo sebelum lock
   try {
     var now = new Date();
     var tanggal = tglValid_(p.tanggal);
@@ -656,6 +674,7 @@ function selesaikanPekerjaan(p) {
 
   var lock = LockService.getScriptLock();
   lock.waitLock(20000);
+  lupakanMemo_();   // di dalam lock: baca ulang dari sheet, jangan pakai memo sebelum lock
   try {
     var jobs = baca_(SHEET.PEKERJAAN);
     var job = null;
@@ -870,6 +889,7 @@ function tinjauTransfer(id, aksi, catatan, ident) {
 
   var lock = LockService.getScriptLock();
   lock.waitLock(20000);
+  lupakanMemo_();   // di dalam lock: baca ulang dari sheet, jangan pakai memo sebelum lock
   try {
     var rows = baca_(nama);
     for (var i = 0; i < rows.length; i++) {
@@ -1333,6 +1353,7 @@ function simpanEditEntri(id, perubahan, ident, alasan) {
   if (nama === SHEET.PEKERJAAN) throw new Error('Pakai simpanEditPekerjaan untuk job.');
   var lock = LockService.getScriptLock();
   lock.waitLock(20000);
+  lupakanMemo_();   // di dalam lock: baca ulang dari sheet, jangan pakai memo sebelum lock
   try {
     if (bolehReview_(u)) return terapkanEdit_(nama, id, perubahan, u.nama, '');
 
@@ -1354,6 +1375,7 @@ function batalkanEntriSendiri(id, alasan, ident) {
   var nama = sheetDariId_(id);
   var lock = LockService.getScriptLock();
   lock.waitLock(20000);
+  lupakanMemo_();   // di dalam lock: baca ulang dari sheet, jangan pakai memo sebelum lock
   try {
     var r = cariEntri_(nama, id);
     if (r.Dicatat_Oleh !== penandaPencatat_(u)) throw new Error('Hanya entri sendiri yang bisa diajukan untuk dibatalkan.');
@@ -1427,6 +1449,7 @@ function tinjauPermintaan(id, aksi, catatan, ident) {
   if (!bolehReview_(u)) throw new Error('Hanya Supervisor / Admin yang bisa meninjau usulan.');
   var lock = LockService.getScriptLock();
   lock.waitLock(20000);
+  lupakanMemo_();   // di dalam lock: baca ulang dari sheet, jangan pakai memo sebelum lock
   try {
     var p = cariEntri_(SHEET.PERMINTAAN, id);
     if (p.Status !== STATUS_PERMINTAAN.MENUNGGU) throw new Error('Usulan sudah ditinjau (' + p.Status + ').');
@@ -1513,6 +1536,7 @@ function simpanEditPekerjaan(id, p, ident, awalanLog) {
   p = p || {};
   var lock = LockService.getScriptLock();
   lock.waitLock(20000);
+  lupakanMemo_();   // di dalam lock: baca ulang dari sheet, jangan pakai memo sebelum lock
   try {
     var rows = baca_(SHEET.PEKERJAAN), r = null;
     for (var i = 0; i < rows.length; i++) if (rows[i].ID === id) r = rows[i];
@@ -1538,6 +1562,7 @@ function simpanEditPekerjaan(id, p, ident, awalanLog) {
       .map(function (d) { return d._baris; })
       .sort(function (a, b) { return b - a; })
       .forEach(function (baris) { sh.deleteRow(baris); });
+    lupakanMemo_(SHEET.DETAIL);
 
     var now = new Date();
     var total = 0, hppBahan = 0, totalJadi = 0, totalScrap = 0;
@@ -1638,6 +1663,7 @@ function simpanPengguna(p, ident) {
 
   var lock = LockService.getScriptLock();
   lock.waitLock(20000);
+  lupakanMemo_();   // di dalam lock: baca ulang dari sheet, jangan pakai memo sebelum lock
   try {
     var rows = baca_(SHEET.PENGGUNA);
     // nama harus unik
@@ -1777,6 +1803,7 @@ function simpanSku(p, ident) {
 
   var lock = LockService.getScriptLock();
   lock.waitLock(20000);
+  lupakanMemo_();   // di dalam lock: baca ulang dari sheet, jangan pakai memo sebelum lock
   try {
     var rows = baca_(SHEET.ITEM), target = null;
     for (var i = 0; i < rows.length; i++) {
@@ -1810,6 +1837,7 @@ function hapusSku(kode, ident) {
   if (!bolehReview_(u)) throw new Error('Hanya Supervisor / Admin.');
   var lock = LockService.getScriptLock();
   lock.waitLock(20000);
+  lupakanMemo_();   // di dalam lock: baca ulang dari sheet, jangan pakai memo sebelum lock
   try {
     var rows = baca_(SHEET.ITEM), target = null;
     for (var i = 0; i < rows.length; i++) if (rows[i].Kode_Item === kode) target = rows[i];
@@ -1820,6 +1848,7 @@ function hapusSku(kode, ident) {
       return { ok: true, dihapus: false, dinonaktifkan: true };
     }
     sheet_(SHEET.ITEM).deleteRow(target._baris);
+    lupakanMemo_(SHEET.ITEM);
     catatLog_('ADMIN_SKU', kode, 'hapus');
     return { ok: true, dihapus: true, dinonaktifkan: false };
   } finally {
@@ -1860,6 +1889,7 @@ function simpanOpname(p, ident) {
 
   var lock = LockService.getScriptLock();
   lock.waitLock(20000);
+  lupakanMemo_();   // di dalam lock: baca ulang dari sheet, jangan pakai memo sebelum lock
   try {
     var peta = petaItem_();
     var stok = {};

@@ -256,6 +256,7 @@ var DEFAULT_SETTING = [
  * SETUP — jalankan sekali
  * ------------------------------------------------------------------ */
 function setupSistem() {
+  lupakanMemo_();
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   if (!ss) throw new Error('Script harus terikat ke Google Sheet (Extensions > Apps Script dari dalam Sheet).');
 
@@ -283,6 +284,7 @@ function setupSistem() {
   if (shU.getLastRow() < 2) {
     if (email) shU.appendRow([email, email.split('@')[0], PERAN.ADMIN, 'HQ', '', 'YA']);
     DUMMY_PENGGUNA.forEach(function (r) { shU.appendRow(r); });
+    lupakanMemo_(SHEET.PENGGUNA);
   }
 
   var folder = ambilAtauBuatFolder_();
@@ -299,10 +301,12 @@ function setupSistem() {
 }
 
 function seedJika(ss, nama, rows) {
+  lupakanMemo_();
   var sh = ss.getSheetByName(nama);
   if (sh.getLastRow() >= 2) return;
   if (!rows.length) return;
   sh.getRange(2, 1, rows.length, rows[0].length).setValues(rows);
+  lupakanMemo_(nama);
 }
 
 /**
@@ -310,8 +314,9 @@ function seedJika(ss, nama, rows) {
  * Hanya boleh saat belum ada transaksi (aman untuk setup awal / ganti daftar SKU sebelum go-live).
  */
 function seedUlangMaster() {
+  lupakanMemo_();
   var ss = SpreadsheetApp.getActiveSpreadsheet();
-  [SHEET.PENERIMAAN, SHEET.PENGIRIMAN, SHEET.TRANSFER, SHEET.PEKERJAAN, SHEET.OPNAME].forEach(function (n) {
+  [SHEET.PENERIMAAN, SHEET.PENGIRIMAN, SHEET.TRANSFER, SHEET.PEKERJAAN, SHEET.OPNAME, SHEET.PO, SHEET.KERUSAKAN].forEach(function (n) {
     var sh = ss.getSheetByName(n);
     if (sh && sh.getLastRow() >= 2) throw new Error('Sudah ada transaksi di ' + n + '. Ubah SKU lewat menu Admin > SKU, jangan seed ulang.');
   });
@@ -321,6 +326,7 @@ function seedUlangMaster() {
     if (sh.getLastRow() >= 2) sh.deleteRows(2, sh.getLastRow() - 1);
     sh.getRange(2, 1, pair[1].length, pair[1][0].length).setValues(pair[1]);
   });
+  lupakanMemo_();
   catatLog_('SEED_ULANG_MASTER', '', DUMMY_ITEM.length + ' item, ' + DUMMY_SUPPLIER.length + ' supplier, ' + DUMMY_CUSTOMER.length + ' customer, ' + DUMMY_STANDAR.length + ' standar susut');
 }
 
@@ -330,11 +336,14 @@ function seedUlangMaster() {
  * Jalankan manual dari editor SEKALI sebelum sistem dipakai sungguhan. Tidak bisa dipanggil dari app.
  */
 function resetUntukGoLive() {
+  lupakanMemo_();
   var ss = SpreadsheetApp.getActiveSpreadsheet();
-  [SHEET.PENERIMAAN, SHEET.PENGIRIMAN, SHEET.TRANSFER, SHEET.PEKERJAAN, SHEET.DETAIL, SHEET.OPNAME].forEach(function (n) {
+  [SHEET.PENERIMAAN, SHEET.PENGIRIMAN, SHEET.TRANSFER, SHEET.PEKERJAAN, SHEET.DETAIL, SHEET.OPNAME,
+   SHEET.PERMINTAAN, SHEET.PO, SHEET.INVOICE, SHEET.KERUSAKAN].forEach(function (n) {
     var sh = ss.getSheetByName(n);
     if (sh && sh.getLastRow() >= 2) sh.deleteRows(2, sh.getLastRow() - 1);
   });
+  lupakanMemo_();
   catatLog_('RESET_GO_LIVE', '', 'Semua transaksi uji coba dihapus');
   seedUlangMaster();
 }

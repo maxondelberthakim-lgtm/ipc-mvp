@@ -11,6 +11,7 @@
 
 /** Tambah sheet/kolom/setting yang belum ada. Aman dijalankan berulang. */
 function migrasiSkema() {
+  lupakanMemo_();
   var ss = ss_();
   Object.keys(SHEET).forEach(function (k) {
     var nama = SHEET[k], head = HEADER[nama];
@@ -35,6 +36,7 @@ function migrasiSkema() {
   rows.forEach(function (r) { adaKunci[r.Kunci] = true; });
   var shS = sheet_(SHEET.SETTING);
   DEFAULT_SETTING.forEach(function (d) { if (!adaKunci[d[0]]) shS.appendRow(d); });
+  lupakanMemo_();
   try { PropertiesService.getScriptProperties().setProperty('SKEMA_VERSI', APP.versi); } catch (e) {}
   return 'Skema v' + APP.versi + ' siap.';
 }
@@ -88,6 +90,7 @@ function simpanPo(p, ident) {
   var peta = petaItem_();
   var lock = LockService.getScriptLock();
   lock.waitLock(20000);
+  lupakanMemo_();   // di dalam lock: baca ulang dari sheet, jangan pakai memo sebelum lock
   try {
     var now = new Date(), tanggal = tglValid_(p.tanggal);
     var datang = String(p.perkiraanDatang || '').trim();
@@ -119,6 +122,7 @@ function ubahPo(id, perubahan, ident) {
   perubahan = perubahan || {};
   var lock = LockService.getScriptLock();
   lock.waitLock(20000);
+  lupakanMemo_();   // di dalam lock: baca ulang dari sheet, jangan pakai memo sebelum lock
   try {
     var r = cariEntri_(SHEET.PO, id);
     if (r.Status === STATUS_PO.DIBATALKAN) throw new Error('PO sudah dibatalkan.');
@@ -152,6 +156,7 @@ function batalkanPo(id, alasan, ident) {
   if (!bolehPo_(u)) throw new Error('Hanya Manager / Admin yang bisa membatalkan PO.');
   var lock = LockService.getScriptLock();
   lock.waitLock(20000);
+  lupakanMemo_();   // di dalam lock: baca ulang dari sheet, jangan pakai memo sebelum lock
   try {
     var r = cariEntri_(SHEET.PO, id);
     if (angka_(r.Qty_Diterima_Kg) > 0) throw new Error('PO sudah ada penerimaan (' + angka_(r.Qty_Diterima_Kg) + ' kg) — tidak bisa dibatalkan, ubah qty-nya saja.');
@@ -305,6 +310,7 @@ function validasiInvoice(id, aksi, hargaBaru, catatan, ident) {
   if (!bolehPo_(u)) throw new Error('Hanya Manager / Admin yang bisa memvalidasi invoice.');
   var lock = LockService.getScriptLock();
   lock.waitLock(20000);
+  lupakanMemo_();   // di dalam lock: baca ulang dari sheet, jangan pakai memo sebelum lock
   try {
     var inv = cariEntri_(SHEET.INVOICE, id);
     if (inv.Status !== STATUS_INVOICE.MENUNGGU) throw new Error('Invoice sudah ' + inv.Status + '.');
@@ -518,6 +524,7 @@ function hitungUlangHpp(ident) {
   if (metodeHpp_() !== 'FIFO') throw new Error('METODE_HPP bukan FIFO.');
   var lock = LockService.getScriptLock();
   lock.waitLock(20000);
+  lupakanMemo_();   // di dalam lock: baca ulang dari sheet, jangan pakai memo sebelum lock
   try {
     var f = hitungFifo_(), detail = baca_(SHEET.DETAIL), jobs = baca_(SHEET.PEKERJAAN), diubah = 0;
     var peta = petaItem_();
@@ -561,6 +568,7 @@ function simpanKerusakan(p) {
   var foto = p.foto ? unggahFoto_(p.foto, 'RUSAK') : { url: '', id: '' };
   var lock = LockService.getScriptLock();
   lock.waitLock(20000);
+  lupakanMemo_();   // di dalam lock: baca ulang dari sheet, jangan pakai memo sebelum lock
   try {
     var id = buatId_('DMG');
     tambah_(SHEET.KERUSAKAN, {
@@ -602,6 +610,7 @@ function tinjauKerusakan(id, aksi, catatan, ident) {
   if (!bolehReview_(u)) throw new Error('Hanya Supervisor / Admin yang bisa meninjau laporan rusak.');
   var lock = LockService.getScriptLock();
   lock.waitLock(20000);
+  lupakanMemo_();   // di dalam lock: baca ulang dari sheet, jangan pakai memo sebelum lock
   try {
     var r = cariEntri_(SHEET.KERUSAKAN, id);
     if (r.Status !== STATUS_TRANSFER.MENUNGGU) throw new Error('Laporan sudah ' + r.Status + '.');
