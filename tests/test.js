@@ -40,8 +40,16 @@ ok('kolom beli = 800', mete.beli===800);
 ok('total stok 1000 kg', st.total.total===1000, st.total);
 
 console.log('\n— 4. Retur mengurangi stok —');
+tolak('retur tanpa rujukan penerimaan ditolak', ()=>ctx.simpanPenerimaan({ jenis:'RETUR', supplier:'CV Mitra Mete Sulawesi',
+  baris:[{kode:'RM-CSW-W240', qty:50}], ident:{nama:'Yanto'} }), /merujuk penerimaan/);
+const bisaRetur = ctx.returTersedia({nama:'Yanto'});
+ok('returTersedia: 2 penerimaan (800 & 200)', bisaRetur.length===2 && bisaRetur.some(x=>x.sisa===800), bisaRetur);
+const asalMete = bisaRetur.find(x=>x.kode==='RM-CSW-W240');
+tolak('retur melebihi yang diterima ditolak', ()=>ctx.simpanPenerimaan({ jenis:'RETUR', supplier:'CV Mitra Mete Sulawesi',
+  baris:[{kode:'RM-CSW-W240', qty:801, idAsal:asalMete.id}], ident:{nama:'Yanto'} }), /melebihi/);
 ctx.simpanPenerimaan({ jenis:'RETUR', supplier:'CV Mitra Mete Sulawesi',
-  baris:[{kode:'RM-CSW-W240', qty:50}], catatan:'kadar air tinggi', ident:{nama:'Yanto'} });
+  baris:[{kode:'RM-CSW-W240', qty:50, idAsal:asalMete.id}], catatan:'kadar air tinggi', ident:{nama:'Yanto'} });
+ok('sisa bisa diretur turun jadi 750', ctx.returTersedia({nama:'Yanto'}).find(x=>x.kode==='RM-CSW-W240').sisa===750);
 st = ctx.laporanStok({});
 mete = st.daftar.find(s=>s.kode==='RM-CSW-W240');
 ok('GBJ mete turun jadi 750', mete.gbj===750, mete);

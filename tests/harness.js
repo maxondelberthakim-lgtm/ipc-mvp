@@ -9,7 +9,7 @@ function makeSheet(name){
     name, rows: [],   // rows[0] = header
     getLastRow(){ return this.rows.length; },
     getMaxColumns(){ return this.rows[0] ? this.rows[0].length : 26; },
-    deleteColumns(){},
+    deleteColumns(){}, insertColumnsAfter(){},
     setFrozenRows(){}, autoResizeColumns(){},
     appendRow(r){ this.rows.push(r.slice()); },
     deleteRow(n){ this.rows.splice(n-1,1); },
@@ -70,7 +70,7 @@ const ctx = {
       return fmt.replace('yyyy',d.getFullYear()).replace('yy',String(d.getFullYear()).slice(2))
         .replace('MMM',['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][d.getMonth()])
         .replace('MM',p(d.getMonth()+1)).replace('dd',p(d.getDate()))
-        .replace('HH',p(d.getHours())).replace('mm',p(d.getMinutes())).replace('ss',p(d.getSeconds()));
+        .replace('HH',p(d.getHours())).replace('mm',p(d.getMinutes())).replace('ss',p(d.getSeconds())).replace('SSS',p(d.getMilliseconds(),3));
     },
     getUuid(){ return 'uuid'; },
     base64Decode(){ return []; },
@@ -80,7 +80,7 @@ const ctx = {
 };
 vm.createContext(ctx);
 
-['Config.gs','Server.gs','Media.gs'].forEach(f=>{
+['Config.gs','Server.gs','Media.gs','Pembelian.gs'].forEach(f=>{
   vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'apps-script', f), 'utf8'), ctx, {filename:f});
 });
 // tes memakai master data contoh (kacang) — deploy sungguhan memakai DUMMY_ITEM di Config.gs
