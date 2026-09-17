@@ -676,3 +676,20 @@ function terapkanStandarSusut(kode, normal, toleransi, catatan, ident) {
   catatLog_('STANDAR_SUSUT', kode, n + '% ± ' + t + '%');
   return { ok: true, kode: kode, normal: n, toleransi: t };
 }
+
+/* ================= DIAGNOSA KECEPATAN (admin) ================= */
+/** Mengukur berapa lama tiap langkah getKonteks di server — untuk mencari bagian yang lambat. */
+function diagnosa(ident) {
+  var t0 = Date.now(), hasil = [], sebelum = t0;
+  function catat(label) { var kini = Date.now(); hasil.push([label, kini - sebelum]); sebelum = kini; }
+  var u = penggunaSaatIni_(ident);
+  if (!bolehReview_(u)) throw new Error('Hanya Supervisor / Admin.');
+  catat('penggunaSaatIni_');
+  lupakanMemo_();
+  Object.keys(SHEET).forEach(function (k) { var n = baca_(SHEET[k]).length; catat('baca ' + SHEET[k] + ' (' + n + ' baris)'); });
+  hitungStokSemua_(); catat('hitungStokSemua_ (memo)');
+  lupakanMemo_(); hitungStokSemua_(); catat('hitungStokSemua_ (dingin)');
+  lupakanMemo_(); getKonteks(ident); catat('getKonteks (dingin)');
+  getKonteks(ident); catat('getKonteks (memo)');
+  return { totalMs: Date.now() - t0, langkah: hasil };
+}

@@ -40,7 +40,7 @@ var RPC_WL = {
   ringkasanPo:1, simpanInvoice:1, validasiInvoice:1, daftarInvoice:1,
   laporanNilaiStok:1, hitungUlangHpp:1,
   simpanKerusakan:1, daftarKerusakan:1, tinjauKerusakan:1,
-  laporanStandarSusut:1, terapkanStandarSusut:1
+  laporanStandarSusut:1, terapkanStandarSusut:1, diagnosa:1
 };
 
 function doPost(e) {
@@ -81,13 +81,65 @@ var KOLOM_TANGGAL_ = /^(Tanggal|Tanggal_Invoice|Perkiraan_Datang)$/;
 /* Memo per eksekusi: satu sheet dibaca dari Spreadsheet sekali saja per request
    (getKonteks dulu membaca sheet yang sama berulang kali -> 6-10 detik). Dibuang setiap ada tulis. */
 var MEMO_BACA_ = {};
-function lupakanMemo_(nama) { if (nama) delete MEMO_BACA_[nama]; else MEMO_BACA_ = {}; }
+function lupakanMemo_(nama) { if (nama) delete MEMO_BACA_[nama]; else { MEMO_BACA_ = {}; BATCH_DICOBA_ = false; } }
 function salinBaris_(r) { var o = {}; for (var k in r) o[k] = r[k]; return o; }
+var BATCH_DICOBA_ = false;
 function baca_(nama) {
   if (MEMO_BACA_[nama]) return MEMO_BACA_[nama].map(salinBaris_);
+  if (!BATCH_DICOBA_) {                     // sekali per request: tarik semua sheet dalam 1 panggilan API
+    BATCH_DICOBA_ = true;
+    try { bacaSemuaBatch_(); } catch (e) { /* jatuh ke getValues per sheet */ }
+    if (MEMO_BACA_[nama]) return MEMO_BACA_[nama].map(salinBaris_);
+  }
   var out = bacaSheet_(nama);
   MEMO_BACA_[nama] = out;
   return out.map(salinBaris_);
+}
+
+/* Sheets API (advanced service "Sheets" v4): semua sheet sekaligus lewat batchGet.
+   ~0,3 dtk untuk 18 sheet, dibanding ~0,15 dtk x 18 kalau getValues satu-satu. */
+var KOLOM_WAKTU_ = /^Waktu/;
+var SERIAL_EPOCH_ = 25569;                  // 1970-01-01 dalam hari serial Sheets (basis 1899-12-30)
+function offsetZonaMs_(ms) {
+  var z = Utilities.formatDate(new Date(ms), APP.zona, 'Z');   // '+0700'
+  var m = /^([+-])(\d\d)(\d\d)$/.exec(z); if (!m) return 0;
+  return (m[1] === '-' ? -1 : 1) * (parseInt(m[2], 10) * 60 + parseInt(m[3], 10)) * 60000;
+}
+function serialKeDate_(serial) {
+  var ms = Math.round((serial - SERIAL_EPOCH_) * 86400000);   // seolah-olah UTC
+  return new Date(ms - offsetZonaMs_(ms));                    // geser ke zona spreadsheet
+}
+function bacaSemuaBatch_() {
+  if (typeof Sheets === 'undefined' || !Sheets.Spreadsheets || !Sheets.Spreadsheets.Values) return false;
+  var ss = ss_(), ada = {};
+  ss.getSheets().forEach(function (sh) { ada[sh.getName()] = true; });
+  var daftar = Object.keys(SHEET).map(function (k) { return SHEET[k]; }).filter(function (n) { return ada[n] && HEADER[n]; });
+  if (!daftar.length) return false;
+  var res = Sheets.Spreadsheets.Values.batchGet(ss.getId(), {
+    ranges: daftar.map(function (n) { return "'" + n + "'"; }),
+    valueRenderOption: 'UNFORMATTED_VALUE', dateTimeRenderOption: 'SERIAL_NUMBER'
+  });
+  var vrs = (res && res.valueRanges) || [];
+  if (vrs.length !== daftar.length) return false;
+  daftar.forEach(function (nama, idx) {
+    var head = HEADER[nama], vals = vrs[idx].values || [], out = [];
+    for (var i = 1; i < vals.length; i++) {                   // baris 0 = header
+      var row = vals[i] || [];
+      if (row.join('') === '') continue;
+      var o = { _baris: i + 1 };
+      for (var c = 0; c < head.length; c++) {
+        var v = row[c]; if (v === undefined || v === null) v = '';
+        if (typeof v === 'number') {
+          if (KOLOM_WAKTU_.test(head[c])) v = serialKeDate_(v);
+          else if (KOLOM_TANGGAL_.test(head[c])) v = tglStr_(serialKeDate_(v));
+        } else if (KOLOM_TANGGAL_.test(head[c]) && Object.prototype.toString.call(v) === '[object Date]') v = tglStr_(v);
+        o[head[c]] = v;
+      }
+      out.push(o);
+    }
+    MEMO_BACA_[nama] = out;
+  });
+  return true;
 }
 function bacaSheet_(nama) {
   var sh = sheet_(nama);
