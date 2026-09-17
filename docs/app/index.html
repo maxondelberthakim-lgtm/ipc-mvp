@@ -988,7 +988,7 @@ var T = {
     nrDipakai:'Dipakai produksi', nrDihasilkan:'Hasil produksi',
     nrSisaGBJ:'Sisa di gudang (GBJ)', nrSisaGP:'Sisa di produksi (GP)', nrTotal:'Total stok',
     nrGudang:'Gudang Barang Jadi', nrProduksi:'Gudang Produksi',
-    nrDariGudang:'Terima dari gudang', nrKeGudang:'Kirim balik ke gudang', nrOpname:'Penyesuaian opname',
+    nrDariGudang:'Terima dari gudang', nrKeGudang:'Kirim balik ke gudang', nrOpname:'Penyesuaian opname', nrRusak:'Barang rusak (disetujui)',
     riwayatTrf:'Transfer 7 hari terakhir', riwayatBeli:'Pembelian & retur 30 hari',
     perSupplier:'Per supplier', totalMasuk:'Total masuk', totalRetur:'Total retur', bersih:'Bersih',
     stokGBJ:'Stok GBJ', stokGP:'Stok GP', stokTotal:'Total stok',
@@ -1168,7 +1168,7 @@ var T = {
     nrDipakai:'Used in production', nrDihasilkan:'Produced',
     nrSisaGBJ:'Left in warehouse (GBJ)', nrSisaGP:'Left in production (GP)', nrTotal:'Total stock',
     nrGudang:'Finished-goods warehouse', nrProduksi:'Production store',
-    nrDariGudang:'Received from warehouse', nrKeGudang:'Sent back to warehouse', nrOpname:'Count adjustment',
+    nrDariGudang:'Received from warehouse', nrKeGudang:'Sent back to warehouse', nrOpname:'Count adjustment', nrRusak:'Damaged (approved)',
     riwayatTrf:'Transfers, last 7 days', riwayatBeli:'Purchases & returns, 30 days',
     perSupplier:'By supplier', totalMasuk:'Total in', totalRetur:'Total returned', bersih:'Net',
     stokGBJ:'GBJ stock', stokGP:'GP stock', stokTotal:'Total stock',
@@ -2767,6 +2767,7 @@ function repStok(){
       '<div><div class="n" style="color:var(--warn)">'+n2(r.total.jual)+'</div><div class="l">'+esc(t('totalKeluar'))+' (kg)</div></div>' +
       '<div><div class="n" style="color:'+(r.total.retur?'var(--danger)':'inherit')+'">'+n2(r.total.retur)+'</div><div class="l">'+esc(t('totalRetur'))+' (kg)</div></div>' +
       '<div><div class="n" style="color:'+(r.total.returCust?'var(--danger)':'inherit')+'">'+n2(r.total.returCust)+'</div><div class="l">'+esc(t('totalReturCust'))+' (kg)</div></div>' +
+      (r.total.rusak ? '<div class="wide"><div class="n" style="color:var(--danger)">'+n2(r.total.rusak)+'</div><div class="l">'+esc(t('nrRusak'))+' (kg)</div></div>' : '') +
     '</div>';
 
     h += '<div class="card"><h2>'+esc(t('stokBerjalan'))+'</h2>' +
@@ -2831,11 +2832,12 @@ function gambarNeraca(s){
       brs(t('nrReturSup'),  s.retur,     '−') +
       brs(t('nrJual'),      s.jual,      '−') +
       brs(t('nrKeGP'),      s.keGP,      '−') +
+      brs(t('nrRusak'),     s.rusakGBJ,  '−') +
       brs(t('nrOpname'),    s.opnameGBJ, s.opnameGBJ >= 0 ? '+' : '−') +
       brsTotal(t('nrSisaGBJ'), s.gbj) +
     '</div>';
 
-  var adaGP = s.awalGP || s.keGP || s.keGBJ || s.dipakai || s.dihasilkan || s.opnameGP;
+  var adaGP = s.awalGP || s.keGP || s.keGBJ || s.dipakai || s.dihasilkan || s.opnameGP || s.rusakGP;
   var gp = !adaGP ? '' :
     '<div class="nblok"><div class="nhead">'+esc(t('nrProduksi'))+' · GP</div>' +
       brsAwal(t('nrStokAwal'), s.awalGP) +
@@ -2843,6 +2845,7 @@ function gambarNeraca(s){
       brs(t('nrDihasilkan'), s.dihasilkan, '+') +
       brs(t('nrKeGudang'),   s.keGBJ,      '−') +
       brs(t('nrDipakai'),    s.dipakai,    '−') +
+      brs(t('nrRusak'),      s.rusakGP,    '−') +
       brs(t('nrOpname'),     s.opnameGP,   s.opnameGP >= 0 ? '+' : '−') +
       brsTotal(t('nrSisaGP'), s.gp) +
     '</div>';
