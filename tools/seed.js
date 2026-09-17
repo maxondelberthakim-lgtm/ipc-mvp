@@ -110,7 +110,7 @@
   trf('GBJ_KE_GP', [{kode:'RM-PG-KW', qty:60},{kode:'RM-AF', qty:30}], 60*24, 'Yanto');
   trf('GBJ_KE_GP', [{kode:'RM-BS-SUP', qty:200}], 60*6, 'Rina');
   trf('GP_KE_GBJ', [{kode:'FG-PB-HP', qty:900}], 60*20, 'Sri');
-  trf('GP_KE_GBJ', [{kode:'FG-PB-HP', qty:280}], 60*9, 'Rina');
+  trf('GP_KE_GBJ', [{kode:'FG-PB-HP', qty:580}], 60*9, 'Rina');
   trf('GBJ_KE_GP', [{kode:'RM-BP-KW', qty:150}], 0, 'Sri');   // menunggu review
 
   /* --- ② pekerjaan yang sudah selesai --- */
@@ -161,6 +161,31 @@
     geser(SHEET.KERUSAKAN, 60*2, 0, 1);
   } catch(e) {}
 
+  /* --- sales order (v8): satu jatuh tempo hari ini (muncul di "Kirim hari ini"), satu 3 hari lagi, satu sudah terkirim sebagian --- */
+  try {
+    function tglMaju(hari){ var d = new Date(); d.setDate(d.getDate() + hari); return Utilities.formatDate(d, APP.zona, 'yyyy-MM-dd'); }
+    simpanSo({ customer:'PT Nursery Hijau Lestari', tanggal:tglMundur(60*30), tanggalKirim:tglMaju(0),
+               baris:[{kode:'FG-PB-HP', qty:300, harga:21500}], catatan:'kirim pagi, truk sendiri' }, MGR);
+    var so2 = simpanSo({ customer:'Koperasi Perkebunan Sawit', tanggal:tglMundur(60*50), tanggalKirim:tglMundur(60*24),
+               baris:[{kode:'FG-PB-HP', qty:500, harga:21000}], catatan:'' }, MGR);
+    simpanPengiriman({ jenis:'KELUAR', customer:'Koperasi Perkebunan Sawit', noSuratJalan:'DO/2026/09/0045',
+      baris:[{kode:'FG-PB-HP', qty:100, idSo:so2.ids[0]}], catatan:'', ident:id('Rina') });
+    geser(SHEET.PENGIRIMAN, 60*23, 0, 1);
+    simpanSo({ customer:'Toko Tani Sejahtera', tanggal:tglMundur(60*3), tanggalKirim:tglMaju(3),
+               baris:[{kode:'FG-PB-HP', qty:150, harga:22000}], catatan:'' }, MGR);
+  } catch(e) { console.warn('seed SO', e); }
+
+  /* --- backup (v8): di demo pura-pura sudah terpasang --- */
+  window.ScriptApp = { getProjectTriggers:function(){ return [{ getHandlerFunction:function(){ return 'backupHarian'; } }]; } };
+  DriveApp.getFoldersByName = function(nama){
+    if (nama !== 'IPC Backup') return { hasNext:function(){ return false; } };
+    var n = 0, hariIni = Utilities.formatDate(new Date(), APP.zona, 'yyyy-MM-dd');
+    return { hasNext:function(){ return true; }, next:function(){ return { getFiles:function(){ return {
+      hasNext:function(){ return n < 12; },
+      next:function(){ n++; var d = new Date(); d.setDate(d.getDate() - n + 1); return { getName:function(){ return 'IPC Backup ' + Utilities.formatDate(d, APP.zona, 'yyyy-MM-dd') + ' 02.00'; } }; }
+    }; } }; } };
+  };
+
   /* --- contoh opname oleh Manager --- */
   simpanOpname({ lokasi:'GBJ', baris:[{kode:'RM-BP-KW', fisik:620, catatan:'2 karung sobek'}, {kode:'RM-BS-SUP', fisik:98}], catatan:'opname mingguan' }, MGR);
   geser(SHEET.OPNAME, 60*15, 0, 2);
@@ -181,7 +206,8 @@
                'siapkanOpname','simpanOpname','riwayatOpname','daftarPermintaan','tinjauPermintaan',
                'simpanPo','ubahPo','batalkanPo','daftarPo','poTerbuka','returTersedia','ringkasanPo',
                'simpanInvoice','validasiInvoice','daftarInvoice','laporanNilaiStok','hitungUlangHpp',
-               'simpanKerusakan','daftarKerusakan','tinjauKerusakan','laporanStandarSusut','terapkanStandarSusut'];
+               'simpanKerusakan','daftarKerusakan','tinjauKerusakan','laporanStandarSusut','terapkanStandarSusut',
+               'diagnosa','prediksiBeli','simpanSo','ubahSo','batalkanSo','daftarSo','soTerbuka','eksporBulanan','statusBackup'];
     function buat(sukses, gagal){
       var o = { withSuccessHandler:function(f){ return buat(f, gagal); },
                 withFailureHandler:function(f){ return buat(sukses, f); } };
