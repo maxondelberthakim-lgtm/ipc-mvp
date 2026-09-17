@@ -168,6 +168,45 @@ console.log('\n— Kolom tanggal jadi Date di Sheets → dinormalkan ke YYYY-MM-
   ok('kunci event pakai YYYY-MM-DD', ctx.baca_(ctx.SHEET.PENERIMAAN)[0].Tanggal===rowRc.Tanggal);
 }
 
+console.log('\n— Baca semua sheet sekaligus (Sheets API batchGet) —');
+{
+  const rawRow = ctx.SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Penerimaan').rows[1];
+  const rawWaktu = rawRow[ctx.HEADER['Penerimaan'].indexOf('Waktu')];
+  ctx.lupakanMemo_(); ctx.__batchCalls = 0;
+  const r1 = ctx.baca_(ctx.SHEET.PENERIMAAN)[0];
+  ok('1 panggilan batchGet mengisi memo', ctx.__batchCalls===1, ctx.__batchCalls);
+  ok('Waktu kembali sebagai Date dengan milidetik sama', Object.prototype.toString.call(r1.Waktu)==='[object Date]' && r1.Waktu.getTime()===rawWaktu.getTime(), [r1.Waktu, rawWaktu]);
+  ok('Tanggal string YYYY-MM-DD', /^\d{4}-\d{2}-\d{2}$/.test(r1.Tanggal), r1.Tanggal);
+  ok('Qty tetap angka', typeof r1.Qty_Kg==='number');
+  ctx.baca_(ctx.SHEET.PO); ctx.baca_(ctx.SHEET.ITEM); ctx.baca_(ctx.SHEET.SETTING);
+  ok('sheet lain dari memo, tanpa panggilan tambahan', ctx.__batchCalls===1, ctx.__batchCalls);
+  ok('_baris sesuai nomor baris sheet', r1._baris===2, r1._baris);
+  const n1 = ctx.baca_(ctx.SHEET.PENERIMAAN).length; ctx.lupakanMemo_(ctx.SHEET.PENERIMAAN); ctx.lupakanMemo_(); ctx.__batchCalls=0;
+  const n2 = ctx.baca_(ctx.SHEET.PENERIMAAN).length;
+  ok('jumlah baris batch = getValues', n1===n2 && n2>0, [n1,n2]);
+  const f1 = ctx.hitungFifo_(); ctx.lupakanMemo_();
+  ok('FIFO identik lewat jalur batch', JSON.stringify(f1.lapisan)===JSON.stringify(ctx.hitungFifo_().lapisan));
+}
+
+console.log('\n— doPost: idKlien idempoten (ulang kirim tidak dobel) —');
+{
+  const cacheMap = {};
+  ctx.CacheService = { getScriptCache(){ return { get:k=>cacheMap[k]||null, put:(k,v)=>{ cacheMap[k]=v; } }; } };
+  ctx.ContentService = { MimeType:{JSON:'json'}, createTextOutput(t){ return { _t:t, setMimeType(){ return this; } }; } };
+  const nPo = ctx.baca_(ctx.SHEET.PO).length;
+  const body = JSON.stringify({ fn:'simpanPo', idKlien:'abc-123', args:[{supplier:SUP, baris:[{kode:'RM-CSW-W240', qty:7, harga:1000}]}, SPV] });
+  const r1 = JSON.parse(ctx.doPost({ postData:{ contents: body } })._t);
+  const r2 = JSON.parse(ctx.doPost({ postData:{ contents: body } })._t);
+  ok('panggilan pertama sukses', r1.ok && r1.data.noPo, r1);
+  ok('ulang dengan idKlien sama -> hasil sama, PO tidak dibuat dua kali', r2.ok && r2.data.noPo===r1.data.noPo && ctx.baca_(ctx.SHEET.PO).length===nPo+1, [r2, ctx.baca_(ctx.SHEET.PO).length-nPo]);
+  const r3 = JSON.parse(ctx.doPost({ postData:{ contents: JSON.stringify({ fn:'simpanPo', idKlien:'abc-124', args:[{supplier:SUP, baris:[{kode:'RM-CSW-W240', qty:7, harga:1000}]}, SPV] }) } })._t);
+  ok('idKlien beda -> PO baru', r3.ok && r3.data.noPo!==r1.data.noPo && ctx.baca_(ctx.SHEET.PO).length===nPo+2);
+  const r4 = JSON.parse(ctx.doPost({ postData:{ contents: JSON.stringify({ fn:'hitungFifo_', args:[] }) } })._t);
+  ok('fungsi di luar daftar putih ditolak', !r4.ok && /tidak dikenal/.test(r4.error));
+  const r5 = JSON.parse(ctx.doPost({ postData:{ contents: JSON.stringify({ fn:'simpanPo', idKlien:'x', args:[{supplier:SUP, baris:[]}, SPV] }) } })._t);
+  ok('error tidak di-cache (ulang tetap error, bukan hasil lama)', !r5.ok && /Item PO/.test(r5.error) && cacheMap['rq:x']===undefined);
+}
+
 fs.unlinkSync(__dirname + '/.h7.js');
 console.log('\n================ '+pass+' lulus, '+fail+' gagal ================');
 process.exit(fail?1:0);

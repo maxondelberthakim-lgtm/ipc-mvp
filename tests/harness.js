@@ -47,6 +47,8 @@ function makeSheet(name){
 
 const SS = {
   sheets:{},
+  getId(){ return 'SS1'; },
+  getSheets(){ return Object.keys(this.sheets).map(n=>({ getName:()=>n })); },
   getSheetByName(n){ return this.sheets[n]||null; },
   insertSheet(n){ this.sheets[n]=makeSheet(n); return this.sheets[n]; },
   setSpreadsheetTimeZone(){}
@@ -55,6 +57,18 @@ const SS = {
 const ctx = {
   console,
   SpreadsheetApp:{ getActiveSpreadsheet(){ return SS; } },
+  /* mock Sheets API v4 batchGet: nilai Date -> serial (zona lokal), string/angka apa adanya, sel kosong di ujung dibuang */
+  Sheets:{ Spreadsheets:{ Values:{ batchGet(id, opt){
+    ctx.__batchCalls = (ctx.__batchCalls||0) + 1;
+    return { valueRanges: opt.ranges.map(rg=>{
+      const n = rg.replace(/^'|'$/g,''); const sh = SS.sheets[n]; const rows = sh ? sh.rows : [];
+      const values = rows.map(r=>{ const o = r.map(v=>{
+          if (Object.prototype.toString.call(v)==='[object Date]') return (v.getTime() - v.getTimezoneOffset()*60000)/86400000 + 25569;
+          return v===undefined||v===null ? '' : v; });
+        while (o.length && o[o.length-1]==='') o.pop(); return o; });
+      return { range: rg, values };
+    }) };
+  } } } },
   Session:{ getActiveUser(){ return { getEmail(){ return 'pemilik@contoh.co.id'; } }; } },
   LockService:{ getScriptLock(){ return { waitLock(){}, releaseLock(){} }; } },
   DriveApp:{
@@ -70,7 +84,8 @@ const ctx = {
       return fmt.replace('yyyy',d.getFullYear()).replace('yy',String(d.getFullYear()).slice(2))
         .replace('MMM',['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][d.getMonth()])
         .replace('MM',p(d.getMonth()+1)).replace('dd',p(d.getDate()))
-        .replace('HH',p(d.getHours())).replace('mm',p(d.getMinutes())).replace('ss',p(d.getSeconds())).replace('SSS',p(d.getMilliseconds(),3));
+        .replace('HH',p(d.getHours())).replace('mm',p(d.getMinutes())).replace('ss',p(d.getSeconds())).replace('SSS',p(d.getMilliseconds(),3))
+        .replace(/(^|[^+-])Z$/, (m,a)=>{ const off=-d.getTimezoneOffset(); const s=off<0?'-':'+'; const ao=Math.abs(off); return a+s+p(Math.floor(ao/60))+p(ao%60); });
     },
     getUuid(){ return 'uuid'; },
     base64Decode(){ return []; },
