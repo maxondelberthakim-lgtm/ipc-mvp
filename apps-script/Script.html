@@ -10,7 +10,7 @@ var T = {
     statQueue:'Menunggu review', statSusut:'Susut tinggi hari ini',
     secBeli:'Barang dari supplier', secJual:'Barang ke customer',
     secCatat:'Gudang ↔ produksi', secSup:'Supervisor',
-    a0t:'Barang masuk (pembelian)', a0s:'Supplier → GBJ · foto surat jalan',
+    a0t:'Penerimaan barang', a0s:'Supplier → GBJ · dari PO · foto surat jalan · QC',
     a5t:'Retur ke supplier', a5s:'GBJ → supplier · mengurangi stok',
     a6t:'Barang keluar (terjual)', a6s:'GBJ → customer · mengurangi stok',
     a7t:'Retur dari customer', a7s:'Customer → GBJ · menambah stok',
@@ -35,7 +35,7 @@ var T = {
     segSusut:'Susut', segStok:'Stok', segBeli:'Beli', segJual:'Jual', segRiwayat:'Transfer',
     navHome:'Beranda', navJob:'Pekerjaan', navReview:'Review', navReport:'Laporan',
 
-    beliT:'Barang masuk (pembelian)', beliS:'Dari supplier ke Gudang Barang Jadi',
+    beliT:'Penerimaan barang', beliS:'Dari supplier ke Gudang Barang Jadi · pilih PO-nya, cek spesifikasi (QC)',
     returT:'Retur ke supplier', returS:'Keluar dari GBJ — stok berkurang',
     jualT:'Barang keluar (terjual)', jualS:'Dari GBJ ke customer — stok berkurang',
     returCustT:'Retur dari customer', returCustS:'Masuk lagi ke GBJ — stok bertambah',
@@ -131,7 +131,7 @@ var T = {
     /* kalender */
     lgMasuk:'masuk', lgKeluar:'keluar', lgJob:'pekerjaan', lgSusut:'susut tinggi',
     hariKosong:'Tidak ada kejadian di hari ini.', kejadian:'kejadian', hariIni:'hari ini',
-    evMASUK:'Barang masuk', evRETUR_SUPPLIER:'Retur ke supplier', evKELUAR:'Barang keluar',
+    evMASUK:'Penerimaan barang', evRETUR_SUPPLIER:'Retur ke supplier', evKELUAR:'Barang keluar',
     evRETUR_CUSTOMER:'Retur dari customer', evKE_GP:'Transfer ke produksi', evKE_GBJ:'Transfer ke gudang',
     evJOB_MULAI:'Mulai pekerjaan', evJOB_SELESAI:'Pekerjaan selesai', evOPNAME:'Stock opname',
     bulan:['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'],
@@ -189,7 +189,7 @@ var T = {
     statQueue:'Awaiting review', statSusut:'High shrinkage today',
     secBeli:'Goods from suppliers', secJual:'Goods to customers',
     secCatat:'Warehouse ↔ production', secSup:'Supervisor',
-    a0t:'Goods in (purchase)', a0s:'Supplier → GBJ · delivery-note photo',
+    a0t:'Goods receipt', a0s:'Supplier → GBJ · from PO · delivery-note photo · QC',
     a5t:'Return to supplier', a5s:'GBJ → supplier · reduces stock',
     a6t:'Goods out (sold)', a6s:'GBJ → customer · reduces stock',
     a7t:'Return from customer', a7s:'Customer → GBJ · adds stock',
@@ -214,7 +214,7 @@ var T = {
     segSusut:'Shrinkage', segStok:'Stock', segBeli:'In', segJual:'Out', segRiwayat:'Transfers',
     navHome:'Home', navJob:'Jobs', navReview:'Review', navReport:'Reports',
 
-    beliT:'Goods in (purchase)', beliS:'From supplier into the finished-goods warehouse',
+    beliT:'Goods receipt', beliS:'From supplier into the warehouse · pick its PO, check the spec (QC)',
     returT:'Return to supplier', returS:'Leaves GBJ — stock goes down',
     jualT:'Goods out (sold)', jualS:'From GBJ to the customer — stock goes down',
     returCustT:'Return from customer', returCustS:'Back into GBJ — stock goes up',
@@ -309,7 +309,7 @@ var T = {
     identPilihOpsi:'— pick from list —', selesai:'Done',
     lgMasuk:'in', lgKeluar:'out', lgJob:'jobs', lgSusut:'high shrinkage',
     hariKosong:'Nothing happened on this day.', kejadian:'events', hariIni:'today',
-    evMASUK:'Goods in', evRETUR_SUPPLIER:'Return to supplier', evKELUAR:'Goods out',
+    evMASUK:'Goods receipt', evRETUR_SUPPLIER:'Return to supplier', evKELUAR:'Goods out',
     evRETUR_CUSTOMER:'Return from customer', evKE_GP:'Transfer to production', evKE_GBJ:'Transfer to warehouse',
     evJOB_MULAI:'Job started', evJOB_SELESAI:'Job closed', evOPNAME:'Stock count',
     bulan:['January','February','March','April','May','June','July','August','September','October','November','December'],
@@ -416,7 +416,8 @@ function toast(msg, jenis){
 
 /* Transport: kalau API_URL diset (versi GitHub Pages) -> fetch JSON ke Apps Script API.
    Kalau tidak (versi HtmlService lama) -> google.script.run. Satu sumber kode untuk keduanya. */
-function panggil(fn, args){
+var BACA_SAJA_ = /^(getKonteks|daftar|laporan|riwayat|antrian|kalender|poTerbuka|returTersedia|ringkasanPo|ambil|siapkan|aktivitas)/;
+function panggil(fn, args, ulang){
   if (window.API_URL){
     return fetch(window.API_URL, {
       method:'POST', redirect:'follow',
@@ -425,6 +426,12 @@ function panggil(fn, args){
     }).then(function(r){ return r.json(); }).then(function(j){
       if (j && j.ok) return j.data;
       throw new Error(j && j.error ? j.error : 'Gagal menghubungi server');
+    }).catch(function(e){
+      /* jaringan putus sesaat (Failed to fetch): ulangi otomatis 1x, hanya untuk panggilan baca (aman diulang) */
+      if (!ulang && BACA_SAJA_.test(fn) && /fetch|network|NetworkError|Load failed/i.test(String(e && e.message))){
+        return new Promise(function(res){ setTimeout(res, 900); }).then(function(){ return panggil(fn, args, true); });
+      }
+      throw e;
     });
   }
   return new Promise(function(res, rej){

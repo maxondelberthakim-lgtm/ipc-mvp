@@ -77,6 +77,7 @@ function sheet_(nama) {
   return sh;
 }
 
+var KOLOM_TANGGAL_ = /^(Tanggal|Tanggal_Invoice|Perkiraan_Datang)$/;
 function baca_(nama) {
   var sh = sheet_(nama);
   var lastRow = sh.getLastRow();
@@ -87,7 +88,12 @@ function baca_(nama) {
   for (var i = 0; i < val.length; i++) {
     if (val[i].join('') === '') continue;
     var o = { _baris: i + 2 };
-    for (var c = 0; c < head.length; c++) o[head[c]] = val[i][c];
+    for (var c = 0; c < head.length; c++) {
+      var v = val[i][c];
+      /* Sheets mengubah teks 'YYYY-MM-DD' jadi Date; kolom tanggal selalu dinormalkan kembali ke string */
+      if (KOLOM_TANGGAL_.test(head[c]) && Object.prototype.toString.call(v) === '[object Date]') v = tglStr_(v);
+      o[head[c]] = v;
+    }
     out.push(o);
   }
   return out;
