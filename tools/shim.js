@@ -8,7 +8,7 @@
       name:name, rows:[],
       getLastRow(){ return this.rows.length; },
       getMaxColumns(){ return this.rows[0] ? this.rows[0].length : 26; },
-      deleteColumns(){}, setFrozenRows(){}, autoResizeColumns(){},
+      deleteColumns(){}, insertColumnsAfter(){}, setFrozenRows(){}, autoResizeColumns(){},
       appendRow(r){ this.rows.push(r.slice()); },
     deleteRow(n){ this.rows.splice(n-1,1); },
       deleteRows(n,k){ this.rows.splice(n-1,k||1); },
@@ -58,7 +58,7 @@
       function p(n){ return String(n).padStart(2,'0'); }
       return String(fmt).replace('yyyy',d.getFullYear()).replace('yy',String(d.getFullYear()).slice(2))
         .replace('MMM',BLN[d.getMonth()]).replace('MM',p(d.getMonth()+1)).replace('dd',p(d.getDate()))
-        .replace('HH',p(d.getHours())).replace('mm',p(d.getMinutes())).replace('ss',p(d.getSeconds()));
+        .replace('HH',p(d.getHours())).replace('mm',p(d.getMinutes())).replace('ss',p(d.getSeconds())).replace('SSS',p(d.getMilliseconds(),3));
     },
     getUuid:function(){ return 'u'+Math.random().toString(36).slice(2); },
     base64Decode:function(){ return []; }, newBlob:function(){ return {}; }
