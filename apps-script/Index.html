@@ -71,11 +71,20 @@
     <div class="actions">
       <button class="action" onclick="bukaMutasi('BELI_MASUK')">
         <div class="ico d">⓪</div>
-        <div class="tx"><b data-i18n="a0t">Barang masuk (pembelian)</b><span data-i18n="a0s">Supplier → GBJ · foto surat jalan</span></div>
+        <div class="tx"><b data-i18n="a0t">Penerimaan barang</b><span data-i18n="a0s">Supplier → GBJ · dari PO · foto surat jalan · QC</span></div>
+        <span class="badge hide" id="poBadge">0</span>
       </button>
       <button class="action" onclick="bukaMutasi('BELI_RETUR')">
         <div class="ico e">↩</div>
-        <div class="tx"><b data-i18n="a5t">Retur ke supplier</b><span data-i18n="a5s">GBJ → supplier · mengurangi stok</span></div>
+        <div class="tx"><b data-i18n="a5t">Retur ke supplier</b><span data-i18n="a5s">Hanya dari barang yang sudah diterima</span></div>
+      </button>
+      <button class="action" id="tilePo" onclick="tampil('po')">
+        <div class="ico d">📋</div>
+        <div class="tx"><b data-i18n="a8t">Pesanan pembelian (PO)</b><span data-i18n="a8s">Apa yang akan datang · qty · harga · spesifikasi · invoice</span></div>
+      </button>
+      <button class="action" id="tileRusak" onclick="tampil('rusak')">
+        <div class="ico e">⚠️</div>
+        <div class="tx"><b data-i18n="a9t">Barang rusak</b><span data-i18n="a9s">Lapor kerusakan · stok berkurang setelah disetujui manager</span></div>
       </button>
     </div>
 
@@ -159,9 +168,24 @@
         <input id="rcvNoSJ" placeholder="SJ/2026/09/0184">
       </div>
 
+      <div class="field" id="rcvPoWrap">
+        <label data-i18n="lblDariPo">Dari pesanan pembelian (PO)</label>
+        <select id="rcvPoPilih" onchange="pilihPoBaris(this.value)"></select>
+        <div class="hint" data-i18n="hintDariPo">Pilih PO yang barangnya datang — item &amp; spesifikasi terisi otomatis. Bisa pilih lebih dari satu.</div>
+      </div>
+      <div class="field" id="rcvReturWrap">
+        <label data-i18n="lblDariPenerimaan">Barang yang diretur (dari penerimaan)</label>
+        <select id="rcvReturPilih" onchange="pilihReturBaris(this.value)"></select>
+        <div class="hint" data-i18n="hintDariPenerimaan">Hanya barang yang sudah tercatat diterima yang bisa diretur.</div>
+      </div>
+
       <h3 class="sec" data-i18n="secItem">Item <span class="unit">kg</span></h3>
       <div id="rcvLines"></div>
-      <button class="btn sec sm" onclick="tambahBaris('rcv')" data-i18n="btnTambahItem">+ Tambah item</button>
+      <button class="btn sec sm" id="btnTambahRcv" onclick="tambahBaris('rcv')" data-i18n="btnTambahItem">+ Tambah item</button>
+      <div class="field" id="rcvQcWrap" style="margin-top:14px">
+        <label data-i18n="lblQc">Catatan QC (kondisi barang saat diterima)</label>
+        <input id="rcvQc" placeholder="mis. karung utuh, warna sesuai spesifikasi, kadar air ok">
+      </div>
 
       <div class="field" style="margin-top:14px">
         <label data-i18n="lblCatatan">Catatan (opsional)</label>
@@ -382,12 +406,66 @@
     <div id="jobHasil" class="hide"></div>
   </section>
 
+  <!-- ============ PESANAN PEMBELIAN (manager) ============ -->
+  <section id="v-po" class="hide">
+    <div class="seg">
+      <button id="segPoAktif" class="on" onclick="segPo('aktif')" data-i18n="segPoAktif">Terbuka</button>
+      <button id="segPoSelesai" onclick="segPo('selesai')" data-i18n="segPoSelesai">Selesai</button>
+      <button id="segPoBaru" onclick="segPo('baru')" data-i18n="segPoBaru">+ Buat PO</button>
+      <button id="segPoInv" onclick="segPo('inv')"><span data-i18n="segPoInv">Invoice</span> <span class="cnt" id="cntInv"></span></button>
+    </div>
+    <div id="poBody"><div class="load">…</div></div>
+  </section>
+
+  <!-- ============ BARANG RUSAK (staf) ============ -->
+  <section id="v-rusak" class="hide">
+    <div class="card">
+      <h2 data-i18n="rusakT">Lapor barang rusak</h2>
+      <div class="sub" data-i18n="rusakS">Dicatat oleh staf gudang. Stok baru berkurang setelah manager menyetujui.</div>
+      <div class="field">
+        <label data-i18n="lblLokasi">Lokasi</label>
+        <div class="seg" style="margin-bottom:0">
+          <button id="rusakLokGBJ" class="on" onclick="rusakLokasi('GBJ')">GBJ</button>
+          <button id="rusakLokGP" onclick="rusakLokasi('GP')">GP</button>
+        </div>
+      </div>
+      <div class="field">
+        <label data-i18n="lblTanggal">Tanggal transaksi</label>
+        <input type="date" id="rusakTanggal">
+      </div>
+      <h3 class="sec" data-i18n="secItem">Item <span class="unit">kg</span></h3>
+      <div id="rusakLines"></div>
+      <div class="field">
+        <label data-i18n="lblPenyebab">Penyebab kerusakan</label>
+        <input id="rusakPenyebab" placeholder="mis. karung bocor kena hujan / jamur / salah simpan">
+      </div>
+      <div class="field">
+        <label data-i18n="lblFotoOpsi">Foto (opsional)</label>
+        <div class="photo" id="rusakFotoBox" onclick="document.getElementById('rusakFile').click()">
+          <div class="p1">📷 <span data-i18n="fotoAmbil">Ambil foto</span></div>
+        </div>
+        <input type="file" accept="image/*" capture="environment" id="rusakFile" class="hide" onchange="fotoTerpilih(event,'rusak')">
+        <div class="btnrow hide" id="rusakFotoRow"><button class="btn sec sm" onclick="hapusFoto('rusak')" data-i18n="btnGanti">Ganti foto</button></div>
+      </div>
+      <div class="field">
+        <label data-i18n="lblCatatan">Catatan (opsional)</label>
+        <textarea id="rusakCatatan"></textarea>
+      </div>
+      <button class="btn" id="btnSimpanRusak" onclick="simpanRusakUI()" data-i18n="btnLaporRusak">Kirim laporan</button>
+    </div>
+    <div class="card">
+      <h2 data-i18n="rusakRiwayatT">Laporan saya</h2>
+      <div id="rusakRiwayat"><div class="load">…</div></div>
+    </div>
+  </section>
+
   <!-- ============ REVIEW ============ -->
   <section id="v-review" class="hide">
     <div class="seg">
       <button id="segRevMenunggu" class="on" onclick="segRev('MENUNGGU')"><span data-i18n="segMenunggu">Menunggu</span> <span class="cnt" id="cntMenunggu"></span></button>
       <button id="segRevDitandai" onclick="segRev('DITANDAI')"><span data-i18n="segDitandai">Ditandai</span> <span class="cnt" id="cntDitandai"></span></button>
       <button id="segRevUsulan" onclick="segRev('USULAN')"><span data-i18n="segUsulan">Usulan</span> <span class="cnt" id="cntUsulan"></span></button>
+      <button id="segRevRusak" onclick="segRev('RUSAK')"><span data-i18n="segRusak">Rusak</span> <span class="cnt" id="cntRusak"></span></button>
     </div>
     <div class="banner n" id="revHint"></div>
     <div id="revList"><div class="load">…</div></div>
@@ -402,6 +480,8 @@
       <button id="segRepJual" onclick="segRep('jual')" data-i18n="segJual">Jual</button>
       <button id="segRepTrf" onclick="segRep('trf')" data-i18n="segRiwayat">Transfer</button>
       <button id="segRepHpp" class="hide" onclick="segRep('hpp')">HPP</button>
+      <button id="segRepNilai" class="hide" onclick="segRep('nilai')" data-i18n="segNilai">Nilai stok</button>
+      <button id="segRepStd" class="hide" onclick="segRep('std')" data-i18n="segStd">Std susut</button>
     </div>
     <div id="repBody"><div class="load">…</div></div>
   </section>

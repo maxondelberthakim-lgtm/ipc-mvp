@@ -10,7 +10,7 @@
 
 var APP = {
   nama: 'IPC — Inventory & Production Control',
-  versi: '6.4.0',
+  versi: '7.0.0',
   zona: 'Asia/Jakarta',
   satuan: 'kg',
   folderFoto: 'IPC Foto Bukti'
@@ -32,6 +32,9 @@ var SHEET = {
   DETAIL     : 'Pekerjaan_Detail',
   OPNAME     : 'Stock_Opname',      // hitung fisik → penyesuaian stok
   PERMINTAAN : 'Permintaan_Ubah',   // usulan edit/batal dari staf → butuh persetujuan supervisor
+  PO         : 'Pesanan_Pembelian', // PO dari manager: apa yang akan datang, qty, harga, spesifikasi
+  INVOICE    : 'Invoice',           // invoice supplier per PO, divalidasi manager (dasar harga FIFO)
+  KERUSAKAN  : 'Kerusakan',         // laporan barang rusak dari staf → disetujui manager → stok berkurang
   LOG        : 'Log_Audit',
   SETTING    : 'Pengaturan'
 };
@@ -63,7 +66,8 @@ HEADER[SHEET.PENERIMAAN] = [
   'ID','Waktu','Tanggal','Jenis','Supplier','No_Surat_Jalan',
   'Kode_Item','Nama_Item','Qty_Kg','Qty_OCR','Selisih_OCR',
   'Foto_URL','Foto_ID','Dicatat_Oleh','Nama_Pencatat',
-  'Status','Ditinjau_Oleh','Waktu_Tinjau','Catatan_Tinjau','Catatan','Log_Edit'
+  'Status','Ditinjau_Oleh','Waktu_Tinjau','Catatan_Tinjau','Catatan','Log_Edit',
+  'ID_PO','Harga_Per_Kg','ID_Penerimaan_Asal','Catatan_QC'   // v7: PO, harga batch (FIFO), retur merujuk penerimaan, QC
 ];
 
 /* ④ Penjualan keluar (KELUAR) & retur dari customer (RETUR_MASUK) */
@@ -71,7 +75,8 @@ HEADER[SHEET.PENGIRIMAN] = [
   'ID','Waktu','Tanggal','Jenis','Customer','No_Surat_Jalan',
   'Kode_Item','Nama_Item','Qty_Kg',
   'Foto_URL','Foto_ID','Dicatat_Oleh','Nama_Pencatat',
-  'Status','Ditinjau_Oleh','Waktu_Tinjau','Catatan_Tinjau','Catatan','Log_Edit'
+  'Status','Ditinjau_Oleh','Waktu_Tinjau','Catatan_Tinjau','Catatan','Log_Edit',
+  'HPP_Per_Kg'   // v7: harga pokok FIFO barang yang keluar (untuk margin)
 ];
 
 /* ① ③ Transfer internal — TANPA surat jalan, cukup foto + timestamp */
@@ -105,6 +110,25 @@ HEADER[SHEET.OPNAME] = [
 HEADER[SHEET.PERMINTAAN] = [
   'ID','Waktu','Jenis','ID_Entri','Sheet_Entri','Ringkasan','Usulan','Alasan',
   'Diajukan_Oleh','Nama_Pengaju','Status','Ditinjau_Oleh','Waktu_Tinjau','Catatan_Tinjau'
+];
+
+/* PO: satu baris per item. No_PO menggabungkan beberapa baris jadi satu pesanan. */
+HEADER[SHEET.PO] = [
+  'ID','No_PO','Waktu','Tanggal','Supplier','Kode_Item','Nama_Item','Qty_Kg','Harga_Per_Kg',
+  'Spesifikasi','Perkiraan_Datang','Qty_Diterima_Kg','Status','Dibuat_Oleh','Nama_Pembuat','Catatan','Log_Edit'
+];
+
+/* Invoice supplier per No_PO. Total_Sistem = Σ(qty diterima × harga PO). */
+HEADER[SHEET.INVOICE] = [
+  'ID','Waktu','Tanggal','No_PO','Supplier','No_Invoice','Tanggal_Invoice','Total_Invoice','Total_Sistem','Selisih',
+  'File_URL','File_ID','Status','Diunggah_Oleh','Nama_Pengunggah','Divalidasi_Oleh','Waktu_Validasi','Catatan'
+];
+
+/* Barang rusak: hanya STAF yang mencatat; stok berkurang setelah DISETUJUI manager. */
+HEADER[SHEET.KERUSAKAN] = [
+  'ID','Waktu','Tanggal','Lokasi','Kode_Item','Nama_Item','Qty_Kg','Penyebab',
+  'Foto_URL','Foto_ID','Dicatat_Oleh','Nama_Pencatat',
+  'Status','Ditinjau_Oleh','Waktu_Tinjau','Catatan_Tinjau','Nilai_Kerugian','Catatan','Log_Edit'
 ];
 
 HEADER[SHEET.LOG] = [
@@ -145,6 +169,9 @@ var STATUS_PEKERJAAN = { BERJALAN: 'BERJALAN', SELESAI: 'SELESAI' };
 var JENIS_PERMINTAAN  = { EDIT: 'EDIT', BATAL: 'BATAL', EDIT_JOB: 'EDIT_JOB' };
 var STATUS_PERMINTAAN = { MENUNGGU: 'MENUNGGU', DISETUJUI: 'DISETUJUI', DITOLAK: 'DITOLAK' };
 var MAKS_MUNDUR_HARI  = 60;   // tanggal transaksi boleh dimundurkan maksimal sekian hari
+
+var STATUS_PO      = { TERBUKA: 'TERBUKA', SEBAGIAN: 'SEBAGIAN', SELESAI: 'SELESAI', DIBATALKAN: 'DIBATALKAN' };
+var STATUS_INVOICE = { MENUNGGU: 'MENUNGGU', VALID: 'VALID', DITOLAK: 'DITOLAK' };
 
 var JENIS_DETAIL = {
   BAHAN_BAKU  : 'BAHAN_BAKU',
@@ -220,7 +247,9 @@ var DEFAULT_SETTING = [
   ['PERAN_DEFAULT','STAF','Peran untuk email yang belum terdaftar (kalau AKSES_TERBUKA = YA)'],
   ['PIN_SUPERVISOR','2468','PIN darurat supervisor (hanya untuk nama yang BELUM terdaftar). Lebih baik isi PIN per user di Master_Pengguna. GANTI PIN INI.'],
   ['BIAYA_PROSES_PER_KG','2500','Biaya proses (tenaga, listrik, gas, dll) per kg bahan baku masuk. Dipakai untuk HPP.'],
-  ['MATA_UANG','Rp','Simbol mata uang di tampilan HPP']
+  ['MATA_UANG','Rp','Simbol mata uang di tampilan HPP'],
+  ['METODE_HPP','FIFO','FIFO = harga bahan dari batch penerimaan tertua yang terpakai (butuh harga di PO/penerimaan). MASTER = harga tetap dari Master_Item.'],
+  ['WAJIB_PO','TIDAK','YA = penerimaan barang harus merujuk PO. TIDAK = boleh tanpa PO (ditandai TANPA PO).']
 ];
 
 /* ------------------------------------------------------------------ *
