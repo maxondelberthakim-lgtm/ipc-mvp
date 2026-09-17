@@ -87,7 +87,7 @@ function sheet_(nama) {
   return sh;
 }
 
-var KOLOM_TANGGAL_ = /^(Tanggal|Tanggal_Invoice|Perkiraan_Datang)$/;
+var KOLOM_TANGGAL_ = /^(Tanggal|Tanggal_Invoice|Perkiraan_Datang|Tanggal_Kirim)$/;
 /* Memo per eksekusi: satu sheet dibaca dari Spreadsheet sekali saja per request
    (getKonteks dulu membaca sheet yang sama berulang kali -> 6-10 detik). Dibuang setiap ada tulis. */
 var MEMO_BACA_ = {};

@@ -868,7 +868,7 @@ function hintStok(k, i){
   var ada = lok === 'GBJ' ? st.gbj : st.gp;
   var q = parseFloat(b.qty) || 0;
   var lebih = q > ada + 0.0001;
-  var masuk = (k === 'rcv' && (S.modeExt === 'BELI_MASUK' || S.modeExt === 'JUAL_RETUR'));   // barang MASUK ke GBJ: info saja
+  var masuk = (k === 'rcv' && (S.modeExt === 'BELI_MASUK' || S.modeExt === 'JUAL_RETUR')) || k === 'so';   // barang MASUK ke GBJ / pesanan: info saja
   var pesan = (k === 'rcv' && S.modeExt === 'JUAL_KELUAR' && st.dipesan > 0) ? ' · '+esc(t('dipesan'))+' '+n2(st.dipesan)+' kg' : '';
   el.innerHTML = '<span class="'+(lebih && !masuk ? 'stokhint bad' : ada <= 0 && !masuk ? 'stokhint warn' : 'stokhint')+'">' +
     esc(t('tersedia'))+' '+lok+': <b>'+n2(ada)+' kg</b>' + pesan +
