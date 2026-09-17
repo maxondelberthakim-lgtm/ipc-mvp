@@ -92,7 +92,7 @@ h3.sec .unit{background:#eef0f3;color:#4b5563;border-radius:5px;padding:2px 6px;
 /* ---------- stat tiles ---------- */
 .stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
 .stat.wide{grid-column:1 / -1}
-.stat{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:12px 13px;box-shadow:var(--shadow)}
+.stat{text-align:left;font-family:inherit;color:inherit;width:100%;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:12px 13px;box-shadow:var(--shadow)}
 .stat .n{font-size:26px;font-weight:700;line-height:1.1;font-variant-numeric:tabular-nums}
 .stat .l{font-size:11.5px;color:var(--muted);margin-top:3px}
 .stat.alert .n{color:var(--danger)}
@@ -314,6 +314,11 @@ input[type=date]{font-family:inherit}
 .spek{font-size:11.5px;color:var(--primary);margin-top:3px;white-space:pre-line}
 details summary{list-style:none;outline:none}
 details summary::-webkit-details-marker{display:none}
+.tap{cursor:pointer}
+.tap:active{background:var(--surface-2)}
+input:disabled,select:disabled,textarea:disabled{background:#f3f4f6;color:#374151;opacity:1;-webkit-text-fill-color:#374151}
+.chip{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;padding:4px 10px;border-radius:999px;background:var(--surface-2);border:1px solid var(--line);margin:6px 0}
+.chip button{border:0;background:none;font-size:13px;cursor:pointer;padding:0 2px;color:var(--danger)}
 </style>
 
 </head>
@@ -325,6 +330,7 @@ details summary::-webkit-details-marker{display:none}
     <div class="s" id="hdrUser">…</div>
   </div>
   <div class="sp"></div>
+  <button class="langbtn" id="btnSegar" onclick="segarkan()" title="Refresh" style="margin-right:8px">↻</button>
   <button class="langbtn" id="btnKeluar" onclick="keluar()" data-i18n="keluar" style="margin-right:8px">Keluar</button>
   <button class="langbtn" id="btnLang" onclick="gantiBahasa()">ID</button>
 </header>
@@ -356,11 +362,22 @@ details summary::-webkit-details-marker{display:none}
   <!-- ============ BERANDA ============ -->
   <section id="v-home">
     <div class="stats">
-      <div class="stat"><div class="n" id="sMasuk">–</div><div class="l" data-i18n="statMasuk">kg masuk hari ini</div></div>
-      <div class="stat"><div class="n" id="sKeluar">–</div><div class="l" data-i18n="statKeluar">kg keluar hari ini</div></div>
-      <div class="stat"><div class="n" id="sProses">–</div><div class="l" data-i18n="statProses">kg sedang diproses</div></div>
-      <div class="stat warn"><div class="n" id="sQueue">–</div><div class="l" data-i18n="statQueue">Menunggu review</div></div>
-      <div class="stat alert wide"><div class="n" id="sSusut">–</div><div class="l" data-i18n="statSusut">Susut tinggi hari ini</div></div>
+      <button class="stat tap" onclick="tileHome('masuk')"><div class="n" id="sMasuk">–</div><div class="l" data-i18n="statMasuk">kg masuk hari ini</div></button>
+      <button class="stat tap" onclick="tileHome('keluar')"><div class="n" id="sKeluar">–</div><div class="l" data-i18n="statKeluar">kg keluar hari ini</div></button>
+      <button class="stat tap" onclick="tileHome('proses')"><div class="n" id="sProses">–</div><div class="l" data-i18n="statProses">kg sedang diproses</div></button>
+      <button class="stat warn tap" onclick="tileHome('menunggu')"><div class="n" id="sQueue">–</div><div class="l" data-i18n="statQueue">Menunggu review</div></button>
+      <button class="stat alert tap" onclick="tileHome('susut')"><div class="n" id="sSusut">–</div><div class="l" data-i18n="statSusut">Susut tinggi hari ini</div></button>
+      <button class="stat alert tap hide" id="tileBeli" onclick="tileHome('beli')"><div class="n" id="sBeli">–</div><div class="l" data-i18n="statBeli">Bahan perlu dibeli</div></button>
+    </div>
+    <div class="card hide" id="kirimHariIniCard">
+      <h2 data-i18n="kirimT">Kirim hari ini</h2>
+      <div class="sub" data-i18n="kirimS">Sales order yang jatuh tempo hari ini / terlambat</div>
+      <div id="kirimHariIni"></div>
+    </div>
+    <div class="card hide" id="poDatangCard">
+      <h2 data-i18n="datangT">Barang akan datang</h2>
+      <div class="sub" data-i18n="datangS">PO yang belum lengkap diterima</div>
+      <div id="poDatang"></div>
     </div>
 
     <div class="card cal">
@@ -409,6 +426,11 @@ details summary::-webkit-details-marker{display:none}
       <button class="action" onclick="bukaMutasi('JUAL_RETUR')">
         <div class="ico e">↩</div>
         <div class="tx"><b data-i18n="a7t">Retur dari customer</b><span data-i18n="a7s">Customer → GBJ · menambah stok</span></div>
+      </button>
+      <button class="action hide" id="tileSo" onclick="tampil('so')">
+        <div class="ico f">🧾</div>
+        <div class="tx"><b data-i18n="a10t">Sales order (SO)</b><span data-i18n="a10s">Pesanan customer · apa yang harus dikirim &amp; kapan</span></div>
+        <span class="badge hide" id="soBadge">0</span>
       </button>
     </div>
 
@@ -484,6 +506,11 @@ details summary::-webkit-details-marker{display:none}
         <label data-i18n="lblDariPo">Dari pesanan pembelian (PO)</label>
         <select id="rcvPoPilih" onchange="pilihPoBaris(this.value)"></select>
         <div class="hint" data-i18n="hintDariPo">Pilih PO yang barangnya datang — item &amp; spesifikasi terisi otomatis. Bisa pilih lebih dari satu.</div>
+      </div>
+      <div class="field" id="rcvSoWrap">
+        <label data-i18n="lblDariSo">Dari sales order (SO)</label>
+        <select id="rcvSoPilih" onchange="pilihSoBaris(this.value)"></select>
+        <div class="hint" data-i18n="hintDariSo">Pilih pesanan customer yang dikirim — item terisi otomatis, qty tidak boleh melebihi sisa SO. Bisa pilih lebih dari satu.</div>
       </div>
       <div class="field" id="rcvReturWrap">
         <label data-i18n="lblDariPenerimaan">Barang yang diretur (dari penerimaan)</label>
@@ -563,10 +590,13 @@ details summary::-webkit-details-marker{display:none}
   <div id="editWrap" class="overlay hide" onclick="if(event.target===this)tutupEdit()">
     <div class="sheet">
       <div class="sheethead">
-        <b data-i18n="editT">Ubah entri</b>
+        <b data-i18n="editT" id="editTitle">Ubah entri</b>
         <button class="x2" onclick="tutupEdit()">✕</button>
       </div>
       <div class="sub" id="editSub"></div>
+      <div class="banner warn hide" id="editUsulanInfo"></div>
+      <div class="field"><label data-i18n="fotoBukti">Foto bukti</label><div class="photo" id="editFoto"></div></div>
+      <div class="sub hide" id="editEkstra"></div>
       <div class="field" id="editPartnerWrap">
         <label id="editPartnerLabel">Supplier</label>
         <select id="editPartner"></select>
@@ -595,7 +625,6 @@ details summary::-webkit-details-marker{display:none}
         <label data-i18n="lblAlasan">Alasan perubahan</label>
         <input id="editAlasan" placeholder="mis. salah timbang / salah pilih item">
       </div>
-      <div class="banner warn hide" id="editUsulanInfo"></div>
       <div class="logedit hide" id="editLog"></div>
       <div class="btnrow">
         <button class="btn ghost hide" id="btnEditBatal" onclick="batalkanEntriUI()" data-i18n="batalkanInput">Batalkan input</button>
@@ -729,6 +758,16 @@ details summary::-webkit-details-marker{display:none}
     <div id="poBody"><div class="load">…</div></div>
   </section>
 
+  <!-- ============ SALES ORDER (manager) ============ -->
+  <section id="v-so" class="hide">
+    <div class="seg">
+      <button id="segSoAktif" class="on" onclick="segSo('aktif')" data-i18n="segSoAktif">Terbuka</button>
+      <button id="segSoSelesai" onclick="segSo('selesai')" data-i18n="segSoSelesai">Selesai</button>
+      <button id="segSoBaru" onclick="segSo('baru')" data-i18n="segSoBaru">+ Buat SO</button>
+    </div>
+    <div id="soBody"><div class="load">…</div></div>
+  </section>
+
   <!-- ============ BARANG RUSAK (staf) ============ -->
   <section id="v-rusak" class="hide">
     <div class="card">
@@ -794,6 +833,8 @@ details summary::-webkit-details-marker{display:none}
       <button id="segRepHpp" class="hide" onclick="segRep('hpp')">HPP</button>
       <button id="segRepNilai" class="hide" onclick="segRep('nilai')" data-i18n="segNilai">Nilai stok</button>
       <button id="segRepStd" class="hide" onclick="segRep('std')" data-i18n="segStd">Std susut</button>
+      <button id="segRepPrediksi" class="hide" onclick="segRep('prediksi')" data-i18n="segPrediksi">Perlu beli</button>
+      <button id="segRepEkspor" class="hide" onclick="segRep('ekspor')" data-i18n="segEkspor">Ekspor</button>
     </div>
     <div id="repBody"><div class="load">…</div></div>
   </section>
@@ -805,6 +846,7 @@ details summary::-webkit-details-marker{display:none}
       <button id="segAdmSku" onclick="segAdm('sku')">SKU</button>
       <button id="segAdmAkt" onclick="segAdm('akt')" data-i18n="segAkt">Aktivitas</button>
       <button id="segAdmUser" class="hide" onclick="segAdm('user')" data-i18n="segUser">Pengguna</button>
+      <button id="segAdmBackup" onclick="segAdm('backup')" data-i18n="segBackup">Backup</button>
     </div>
     <div id="admBody"><div class="load">…</div></div>
   </section>
@@ -1025,6 +1067,33 @@ var T = {
     batalkanInput:'Batalkan input', simpanPerubahan:'Simpan perubahan', tersimpanEdit:'Perubahan tersimpan',
     tanpaPerubahan:'Tidak ada yang berubah', logJudul:'Riwayat perubahan', terkunci:'Terkunci',
     terkunciHint:'Sudah ditinjau — hanya supervisor yang bisa mengubah',
+    lihatDetail:'Lihat', detailT:'Detail entri', hanyaLihat:'Hanya bisa dilihat',
+    kunciSUDAH_DITINJAU:'Sudah ditinjau supervisor — hanya supervisor/manager yang bisa mengubah.',
+    kunciLEWAT_BATAS:'Lebih dari {n} hari — periode sudah ditutup, tidak bisa diubah siapa pun.',
+    kunciBUKAN_MILIK:'Dicatat oleh orang lain — hanya pencatatnya (selama menunggu) atau supervisor yang bisa mengubah.',
+    kunciDIBATALKAN:'Entri sudah dibatalkan.', kunciJOB24:'Operator hanya bisa mengubah dalam 24 jam — setelah itu minta supervisor.',
+    fotoBukti:'Foto bukti', tidakAdaFoto:'Tidak ada foto', ditinjauOleh:'Ditinjau oleh',
+    statBeli:'Bahan perlu dibeli', datangT:'Barang akan datang', datangS:'PO yang belum lengkap diterima', kosongDatang:'Tidak ada PO terbuka',
+    kirimT:'Kirim hari ini', kirimS:'Sales order yang jatuh tempo hari ini / terlambat',
+    fMasuk:'Masuk hari ini', fKeluar:'Keluar hari ini', fMenunggu:'Menunggu review', fSusut:'Susut tinggi', filterHapus:'hapus filter',
+    segPrediksi:'Perlu beli', prediksiT:'Kapan perlu beli bahan baku', prediksiS:'Pemakaian rata-rata 30 hari terakhir vs stok sekarang. Perlu beli = stok habis sebelum barang pesanan bisa datang (lead time) dan belum ada PO.',
+    pStok:'Stok', pRata:'pakai/hari', pSisaHari:'cukup untuk', pHari:'hari', pPo:'PO jalan', pSaran:'saran beli', pLead:'lead time',
+    stPERLU_BELI:'PERLU BELI', stPO_JALAN:'PO JALAN', stAMAN:'AMAN', stTIDAK_DIPAKAI:'TIDAK DIPAKAI', buatPoDari:'Buat PO',
+    disegarkan:'Data diperbarui',
+    /* v8: sales order, ekspor, backup */
+    a10t:'Sales order (SO)', a10s:'Pesanan customer · apa yang harus dikirim & kapan',
+    lblDariSo:'Dari sales order (SO)', hintDariSo:'Pilih pesanan customer yang dikirim — item terisi otomatis, qty tidak boleh melebihi sisa SO. Bisa pilih lebih dari satu.',
+    pilihSo:'— pilih SO yang dikirim —', tanpaSoTersedia:'Tidak ada SO terbuka untuk customer ini', sisaSo:'sisa SO', kirim:'kirim', dipesan:'dipesan',
+    segSoAktif:'Terbuka', segSoSelesai:'Selesai', segSoBaru:'+ Buat SO',
+    soBaruT:'Buat sales order', soBaruS:'Sales mencatat pesanan customer supaya gudang tahu apa yang harus dikirim hari ini, stok yang sudah dipesan terlihat, dan harga jual jadi dasar laba.',
+    lblTanggalKirim:'Tanggal kirim', lblHargaJual:'Harga jual / kg', btnSimpanSo:'Simpan SO', soTersimpan:'SO tersimpan', kosongSo:'Tidak ada SO',
+    soDikirim:'dikirim', ubahSo:'Ubah', batalSo:'Batalkan SO', alasanBatalSo:'Alasan pembatalan', soDibatalkan:'SO dibatalkan',
+    kirimSo:'Kirim', soTerkirim:'terkirim',
+    segEkspor:'Ekspor', eksporT:'Ekspor bulanan untuk keuangan', eksporS:'6 file CSV (buka di Excel): ringkasan, pembelian, penjualan, produksi, rusak, nilai stok. Angka harga hanya di sini — staf tidak melihatnya.',
+    lblBulan:'Bulan', btnEkspor:'Siapkan file', btnUnduhSemua:'Unduh semua', unduh:'Unduh', eksporSiap:'File siap — tekan Unduh',
+    segBackup:'Backup', backupT:'Backup otomatis', backupS:'Salinan Sheet dibuat tiap malam ke folder Google Drive "IPC Backup". 30 salinan terakhir disimpan.',
+    backupAktif:'Aktif', backupTidak:'BELUM AKTIF', backupTerakhir:'Salinan terakhir', backupJumlah:'Jumlah salinan', backupCara:'Cara mengaktifkan: buka Apps Script → pilih fungsi pasangBackupHarian → Run (sekali saja, oleh pemilik Sheet).',
+    backupKosong:'Belum ada salinan',
     alasanBatalSendiri:'Kenapa dibatalkan?', konfirmBatal:'Batalkan input ini? Stok akan disesuaikan.',
     segSelesai:'Selesai', jobEditT:'Ubah pekerjaan', kosongSelesai:'Belum ada pekerjaan selesai 14 hari terakhir.',
     diubah:'diubah', hitungUlang:'Susut & HPP dihitung ulang',
@@ -1201,6 +1270,32 @@ var T = {
     batalkanInput:'Cancel this entry', simpanPerubahan:'Save changes', tersimpanEdit:'Changes saved',
     tanpaPerubahan:'Nothing changed', logJudul:'Change log', terkunci:'Locked',
     terkunciHint:'Already reviewed — only a supervisor can change it',
+    lihatDetail:'View', detailT:'Entry details', hanyaLihat:'View only',
+    kunciSUDAH_DITINJAU:'Already reviewed by a supervisor — only a supervisor/manager can change it.',
+    kunciLEWAT_BATAS:'Older than {n} days — the period is closed, nobody can change it.',
+    kunciBUKAN_MILIK:'Logged by someone else — only the person who logged it (while pending) or a supervisor can change it.',
+    kunciDIBATALKAN:'Entry has been cancelled.', kunciJOB24:'The operator can only change a job within 24 hours — after that ask a supervisor.',
+    fotoBukti:'Photo evidence', tidakAdaFoto:'No photo', ditinjauOleh:'Reviewed by',
+    statBeli:'Materials to reorder', datangT:'Incoming goods', datangS:'POs not fully received yet', kosongDatang:'No open POs',
+    kirimT:'Ship today', kirimS:'Sales orders due today / overdue',
+    fMasuk:'In today', fKeluar:'Out today', fMenunggu:'Pending review', fSusut:'High shrinkage', filterHapus:'clear filter',
+    segPrediksi:'Reorder', prediksiT:'When to reorder raw materials', prediksiS:'Average usage over the last 30 days vs current stock. Reorder = stock runs out before an order can arrive (lead time) and no PO is open.',
+    pStok:'Stock', pRata:'use/day', pSisaHari:'lasts', pHari:'days', pPo:'PO open', pSaran:'suggested buy', pLead:'lead time',
+    stPERLU_BELI:'REORDER', stPO_JALAN:'PO OPEN', stAMAN:'OK', stTIDAK_DIPAKAI:'UNUSED', buatPoDari:'Create PO',
+    disegarkan:'Data refreshed',
+    a10t:'Sales orders (SO)', a10s:'Customer orders · what to ship & when',
+    lblDariSo:'From sales order (SO)', hintDariSo:'Pick the customer order being shipped — item fills in automatically, qty cannot exceed the SO balance. You can pick more than one.',
+    pilihSo:'— pick the SO being shipped —', tanpaSoTersedia:'No open SO for this customer', sisaSo:'SO remaining', kirim:'ship', dipesan:'reserved',
+    segSoAktif:'Open', segSoSelesai:'Done', segSoBaru:'+ New SO',
+    soBaruT:'Create sales order', soBaruS:'Sales records the customer order so the warehouse knows what to ship today, reserved stock is visible, and the selling price feeds gross profit.',
+    lblTanggalKirim:'Ship date', lblHargaJual:'Selling price / kg', btnSimpanSo:'Save SO', soTersimpan:'SO saved', kosongSo:'No SOs',
+    soDikirim:'shipped', ubahSo:'Edit', batalSo:'Cancel SO', alasanBatalSo:'Cancellation reason', soDibatalkan:'SO cancelled',
+    kirimSo:'Ship', soTerkirim:'shipped',
+    segEkspor:'Export', eksporT:'Monthly export for finance', eksporS:'6 CSV files (open in Excel): summary, purchases, sales, production, damage, stock value. Prices appear only here — staff never see them.',
+    lblBulan:'Month', btnEkspor:'Prepare files', btnUnduhSemua:'Download all', unduh:'Download', eksporSiap:'Files ready — press Download',
+    segBackup:'Backup', backupT:'Automatic backup', backupS:'A copy of the Sheet is made every night into the Google Drive folder "IPC Backup". The last 30 copies are kept.',
+    backupAktif:'Active', backupTidak:'NOT ACTIVE', backupTerakhir:'Last copy', backupJumlah:'Copies kept', backupCara:'To enable: open Apps Script → choose function pasangBackupHarian → Run (once, by the Sheet owner).',
+    backupKosong:'No copies yet',
     alasanBatalSendiri:'Why cancel?', konfirmBatal:'Cancel this entry? Stock will be adjusted.',
     segSelesai:'Done', jobEditT:'Edit job', kosongSelesai:'No jobs closed in the last 14 days.',
     diubah:'edited', hitungUlang:'Shrinkage & COGS recomputed',
@@ -1263,8 +1358,9 @@ function terapkanBahasa(){
 var S = {
   ctx:null, view:'home', jobTab:'list', repTab:'susut', ident:{ nama:'', pin:'' },
   foto:{ rcv:null, trf:null, job:null, fin:null, rusak:null, inv:null },
-  baris:{ rcv:[], trf:[], job:[], finJadi:[], edBahan:[], edJadi:[], rusak:[], po:[] },
+  baris:{ rcv:[], trf:[], job:[], finJadi:[], edBahan:[], edJadi:[], rusak:[], po:[], so:[] },
   poTerbuka:[], returSisa:[], poTab:'aktif', rusakLok:'GBJ', poDetail:null,
+  soTerbuka:[], soTab:'aktif', soCache:null, soAuto:null,
   edit:null, edJob:null, admTab:'opname', opname:null, sku:null, userEdit:null,
   ocr:null, jobAktif:null, arah:'GBJ_KE_GP', modeExt:'BELI_MASUK',
   cal:{ bulan:null, data:null, hari:null }, revTab:'MENUNGGU'
@@ -1350,7 +1446,7 @@ function sibuk(btn, on, teksAsli){
 /* ---------------- navigasi ---------------- */
 function tampil(v){
   S.view = v;
-  ['ident','home','beli','transfer','job','review','report','admin','po','rusak'].forEach(function(x){
+  ['ident','home','beli','transfer','job','review','report','admin','po','rusak','so'].forEach(function(x){
     var el = $('v-'+x); if(el) el.classList.toggle('hide', x !== v);
     var nb = $('nav-'+x); if(nb) nb.classList.toggle('on', x === v);
   });
@@ -1364,6 +1460,7 @@ function tampil(v){
   if (v==='admin')  segAdm(S.admTab);
   if (v==='po')     segPo(S.poTab);
   if (v==='rusak')  bukaRusak();
+  if (v==='so')     segSo(S.soTab);
 }
 
 /* ---------------- boot ---------------- */
@@ -1375,7 +1472,7 @@ window.addEventListener('DOMContentLoaded', function(){
   }catch(e){ L = BAHASA_AWAL || 'id'; }
   if (L !== 'id' && L !== 'en') L = 'id';
   terapkanBahasa();
-  var rp = $('rcvPartner'); if (rp) rp.addEventListener('change', function(){ isiPilihPo(); isiPilihRetur(); });
+  var rp = $('rcvPartner'); if (rp) rp.addEventListener('change', function(){ isiPilihPo(); isiPilihRetur(); isiPilihSo(); });
   muatKonteks(true);
 });
 
@@ -1398,9 +1495,19 @@ function muatKonteks(diam){
     if (tp) tp.classList.toggle('hide', !c.bisaPo);
     if (tr) tr.classList.toggle('hide', !!c.bisaReview);   // hanya staf yang melapor rusak
     var pb = $('poBadge'); if (pb){ pb.textContent = c.ringkasan.poTerbuka || ''; pb.classList.toggle('hide', !c.ringkasan.poTerbuka); }
+    var ts = $('tileSo'); if (ts) ts.classList.toggle('hide', !c.bisaPo);
+    var sb = $('soBadge'); if (sb){ sb.textContent = c.ringkasan.soTerbuka || ''; sb.classList.toggle('hide', !c.ringkasan.soTerbuka); }
+    var se = $('segRepEkspor'); if (se) se.classList.toggle('hide', !c.lihatHpp);
+    var sbk = $('segAdmBackup'); if (sbk) sbk.classList.toggle('hide', !c.bisaReview);
     var cr = $('cntRusak'); if (cr) cr.textContent = c.ringkasan.kerusakanMenunggu || '';
     var ci = $('cntInv'); if (ci) ci.textContent = c.ringkasan.invoiceMenunggu || '';
     ['segRepNilai','segRepStd'].forEach(function(id){ var el=$(id); if (el) el.classList.toggle('hide', !c.lihatHpp); });
+    var sp = $('segRepPrediksi'); if (sp) sp.classList.toggle('hide', !c.bisaReview);
+    var tb = $('tileBeli'); if (tb){ tb.classList.toggle('hide', !c.bisaReview); $('sBeli').textContent = c.ringkasan.perluBeli || 0; }
+    var su = $('segRevUsulan'); if (su) su.classList.toggle('hide', !(c.ringkasan.permintaanMenunggu > 0));
+    gambarPoDatang(c.poDatang || []);
+    gambarKirimHariIni(c.soHariIni || []);
+    S.terakhirSegar = Date.now();
     $('segAdmUser').classList.toggle('hide', !c.bisaAdmin);
     var cm = $('cntMenunggu'), cd = $('cntDitandai'), cu = $('cntUsulan');
     if (cm) cm.textContent = c.ringkasan.menungguReview || '';
@@ -1427,6 +1534,73 @@ function muatKonteks(diam){
     if(!diam) toast(msg,'bad'); else $('hdrUser').textContent = msg;
   });
 }
+
+/* ---------------- beranda: barang akan datang, kirim hari ini, tile, refresh ---------------- */
+function gambarPoDatang(rows){
+  var card = $('poDatangCard'), el = $('poDatang'); if (!card) return;
+  card.classList.toggle('hide', !rows.length);
+  var hari = hariIniStr();
+  el.innerHTML = rows.map(function(p){
+    var telat = p.datang && p.datang < hari;
+    return '<div class="hist"><span class="hq">'+n2(p.sisa)+' kg</span>' +
+      '<span class="hx"><b>'+esc(p.item)+'</b><small>'+esc(p.supplier)+' · '+esc(p.noPo)+(p.spesifikasi?' · '+esc(p.spesifikasi):'')+'</small></span>' +
+      '<span class="hb"><span class="pill '+(telat?'bad':'n')+'">'+(p.datang ? esc(t('datang'))+' '+esc(p.datang) : '—')+'</span></span></div>';
+  }).join('');
+}
+function gambarKirimHariIni(rows){
+  var card = $('kirimHariIniCard'), el = $('kirimHariIni'); if (!card) return;
+  card.classList.toggle('hide', !rows.length);
+  var hari = hariIniStr();
+  el.innerHTML = rows.map(function(p){
+    var telat = p.kirim && p.kirim < hari;
+    return '<div class="hist tap" onclick="bukaKirimSo(\''+esc(p.id||'')+'\')"><span class="hq">'+n2(p.sisa)+' kg</span>' +
+      '<span class="hx"><b>'+esc(p.item)+'</b><small>'+esc(p.customer)+' · '+esc(p.noSo)+'</small></span>' +
+      '<span class="hb"><span class="pill '+(telat?'bad':'warn')+'">'+esc(p.kirim||'')+'</span></span></div>';
+  }).join('');
+}
+/* tile beranda ditekan → filter kejadian hari ini (atau lompat ke halaman terkait) */
+function tileHome(jenis){
+  if (jenis === 'proses'){ tampil('job'); segJob('list'); return; }
+  if (jenis === 'beli'){ tampil('report'); segRep('prediksi'); return; }
+  if (jenis === 'menunggu' && S.ctx && S.ctx.bisaReview){ tampil('review'); segRev('MENUNGGU'); return; }
+  S.cal.filter = jenis;
+  if (S.cal.data && S.cal.data.hariIni){
+    if (S.cal.data.hariIni.indexOf(S.cal.data.bulan) !== 0){ S.cal.hari = null; muatKalender(null); return; }
+    S.cal.hari = S.cal.data.hariIni;
+  }
+  gambarKalender();
+  var el = $('calDay'); if (el) el.scrollIntoView({ behavior:'smooth', block:'start' });
+}
+function hapusFilterHari(){ S.cal.filter = null; gambarKalender(); }
+function cocokFilter(e){
+  var f = S.cal.filter; if (!f) return true;
+  if (f === 'masuk')    return e.jenis === 'MASUK' || e.jenis === 'RETUR_CUSTOMER';
+  if (f === 'keluar')   return e.jenis === 'KELUAR' || e.jenis === 'RETUR_SUPPLIER';
+  if (f === 'menunggu') return e.status === 'MENUNGGU';
+  if (f === 'susut')    return e.jenis === 'JOB_SELESAI' && e.status && e.status !== 'NORMAL';
+  return true;
+}
+function segarkan(){
+  var b = $('btnSegar'); if (b){ b.disabled = true; b.textContent = '…'; }
+  var selesai = function(){ if (b){ b.disabled = false; b.textContent = '↻'; } };
+  muatKonteks(true);
+  muatKalender(S.cal.bulan);
+  if (S.view === 'beli') muatRiwayat('rcv');
+  if (S.view === 'transfer') muatRiwayat('trf');
+  if (S.view === 'job') segJob(S.jobTab);
+  if (S.view === 'review') muatReview();
+  if (S.view === 'report') segRep(S.repTab);
+  if (S.view === 'po') segPo(S.poTab);
+  if (S.view === 'rusak') bukaRusak();
+  if (S.view === 'so') segSo(S.soTab);
+  setTimeout(function(){ selesai(); toast(t('disegarkan'),'ok'); }, 1500);
+}
+/* balik ke tab / buka app lagi → data disegarkan otomatis kalau sudah > 30 detik */
+document.addEventListener('visibilitychange', function(){
+  if (document.visibilityState === 'visible' && S.ctx && S.ident.nama && Date.now() - (S.terakhirSegar || 0) > 30000){
+    muatKonteks(true); muatKalender(S.cal.bulan);
+  }
+});
 
 /* ---------------- kalender ---------------- */
 function bulanStr(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'); }
@@ -1487,8 +1661,10 @@ function gambarHari(){
   var x = null; d.hari.forEach(function(h){ if (h.tanggal===tgl) x=h; });
   var dd = new Date(tgl+'T00:00:00');
   var judul = dd.getDate()+' '+t('bulan')[dd.getMonth()]+' '+dd.getFullYear()+(tgl===d.hariIni?' · '+t('hariIni'):'');
-  if (!x || !x.kejadian.length){
-    el.innerHTML = '<div class="dayhead"><b>'+esc(judul)+'</b></div><div style="font-size:12.5px;color:var(--muted)">'+esc(t('hariKosong'))+'</div>';
+  var chip = S.cal.filter ? '<div class="chip">'+esc(t('f'+S.cal.filter.charAt(0).toUpperCase()+S.cal.filter.slice(1)))+' <button onclick="hapusFilterHari()" title="'+esc(t('filterHapus'))+'">✕</button></div>' : '';
+  var kejadian = x ? x.kejadian.filter(cocokFilter) : [];
+  if (!kejadian.length){
+    el.innerHTML = '<div class="dayhead"><b>'+esc(judul)+'</b></div>'+chip+'<div style="font-size:12.5px;color:var(--muted)">'+esc(t('hariKosong'))+'</div>';
     return;
   }
   var ring = [];
@@ -1496,8 +1672,8 @@ function gambarHari(){
   if (x.keluar)   ring.push('<span style="color:var(--warn)">−'+n2(x.keluar)+' kg</span>');
   if (x.job)      ring.push(x.job+' '+t('jobs'));
   if (x.menunggu) ring.push(x.menunggu+' '+t('statQueue').toLowerCase());
-  el.innerHTML = '<div class="dayhead"><b>'+esc(judul)+'</b><span>'+ring.join(' · ')+'</span></div>' +
-    x.kejadian.map(function(e){
+  el.innerHTML = '<div class="dayhead"><b>'+esc(judul)+'</b><span>'+ring.join(' · ')+'</span></div>' + chip +
+    kejadian.map(function(e){
       var st = '';
       if (e.jenis==='JOB_SELESAI'){
         st = (e.status && e.status!=='NORMAL') ? ' <span class="pill bad">'+esc(t('susutTinggi'))+'</span>' : '';
@@ -1505,10 +1681,17 @@ function gambarHari(){
       else if (e.status==='DITANDAI') st = ' <span class="pill n">'+esc(t('segDitandai'))+'</span>';
       var sub = e.item ? esc(e.item)+' · '+esc(e.label) : esc(e.label);
       if (e.jenis==='JOB_SELESAI') sub += ' · '+esc(t('susut'))+' '+n2(e.susut)+' kg ('+n2(e.persen)+'%)';
-      return '<div class="ev"><span class="jm">'+esc(e.jam)+'</span><span class="tp" style="background:'+warnaEv(e.jenis)+'"></span>' +
+      var klik = e.id ? ' class="ev tap" onclick="bukaKejadian(\''+esc(e.sheet)+'\',\''+esc(e.id)+'\')"' : ' class="ev"';
+      return '<div'+klik+'><span class="jm">'+esc(e.jam)+'</span><span class="tp" style="background:'+warnaEv(e.jenis)+'"></span>' +
         '<span class="tx"><b>'+esc(t('ev'+e.jenis))+'</b>'+st+'<small>'+sub+' · '+esc(e.oleh)+'</small></span>' +
-        '<span class="q">'+n2(e.qty)+' kg</span></div>';
+        '<span class="q">'+n2(e.qty)+' kg ›</span></div>';
     }).join('');
+}
+
+/* tap kejadian di kalender → detail (edit kalau boleh, kalau tidak hanya lihat) */
+function bukaKejadian(sheet, id){
+  if (sheet === 'job'){ tampil('job'); segJob('done'); bukaEditJob(id); return; }
+  bukaEdit(id);
 }
 
 /* ---------------- identitas ---------------- */
@@ -1562,9 +1745,9 @@ function isiSelectPartner(){
 /* =================================================================
    BARIS ITEM
    ================================================================= */
-var MODE_BARIS = { rcv:'all', trf:'all', job:'bahan', finJadi:'jadi', edBahan:'bahan', edJadi:'jadi', rusak:'all', po:'bahan' };
+var MODE_BARIS = { rcv:'all', trf:'all', job:'bahan', finJadi:'jadi', edBahan:'bahan', edJadi:'jadi', rusak:'all', po:'bahan', so:'jadi' };
 var WADAH = { rcv:'rcvLines', trf:'trfLines', job:'jobLines', finJadi:'finJadiLines',
-              edBahan:'edBahanLines', edJadi:'edJadiLines', rusak:'rusakLines', po:'poLines' };
+              edBahan:'edBahanLines', edJadi:'edJadiLines', rusak:'rusakLines', po:'poLines', so:'soLines' };
 
 function tambahBaris(k){ S.baris[k].push({ kode:'', qty:'' }); gambarBaris(k); }
 function hapusBaris(k, i){
@@ -1576,16 +1759,21 @@ function hapusBaris(k, i){
 function lokasiSumber(k){
   if (k === 'trf') return S.arah === 'GBJ_KE_GP' ? 'GBJ' : 'GP';
   if (k === 'job' || k === 'edBahan') return 'GP';
-  if (k === 'rcv') return 'GBJ';
+  if (k === 'rcv' || k === 'so') return 'GBJ';
   if (k === 'rusak') return S.rusakLok;
   return null;
 }
 function hintStok(k, i){
   var b = S.baris[k][i], lok = lokasiSumber(k), el = $('hs-'+k+'-'+i);
   if (!el) return;
-  if (b.idAsal || b.idPo){
+  if (b.idAsal || b.idPo || b.idSo){
     var lim = b.sisa || 0, qq = parseFloat(b.qty) || 0;
-    el.innerHTML = qq > lim + 0.0001 ? '<span class="stokhint bad">'+esc(t('melebihi'))+' ('+n2(lim)+' kg)</span>' : '';
+    var h = qq > lim + 0.0001 ? '<span class="stokhint bad">'+esc(t('melebihi'))+' ('+n2(lim)+' kg)</span>' : '';
+    if (b.idSo && S.ctx && S.ctx.stok && S.ctx.stok[b.kode]){
+      var sg = S.ctx.stok[b.kode];
+      h += '<span class="stokhint'+(qq > sg.gbj + 0.0001 ? ' bad' : '')+'">'+esc(t('tersedia'))+' GBJ: <b>'+n2(sg.gbj)+' kg</b></span>';
+    }
+    el.innerHTML = h;
     return;
   }
   if (!b.kode || !lok || !S.ctx || !S.ctx.stok){ el.innerHTML = ''; return; }
@@ -1594,8 +1782,9 @@ function hintStok(k, i){
   var q = parseFloat(b.qty) || 0;
   var lebih = q > ada + 0.0001;
   var masuk = (k === 'rcv' && (S.modeExt === 'BELI_MASUK' || S.modeExt === 'JUAL_RETUR'));   // barang MASUK ke GBJ: info saja
+  var pesan = (k === 'rcv' && S.modeExt === 'JUAL_KELUAR' && st.dipesan > 0) ? ' · '+esc(t('dipesan'))+' '+n2(st.dipesan)+' kg' : '';
   el.innerHTML = '<span class="'+(lebih && !masuk ? 'stokhint bad' : ada <= 0 && !masuk ? 'stokhint warn' : 'stokhint')+'">' +
-    esc(t('tersedia'))+' '+lok+': <b>'+n2(ada)+' kg</b>' +
+    esc(t('tersedia'))+' '+lok+': <b>'+n2(ada)+' kg</b>' + pesan +
     (lebih && !masuk ? ' · '+esc(t('melebihi')) : '') + '</span>';
 }
 function ubahBaris(k, i, field, val){
@@ -1609,15 +1798,21 @@ function gambarSemuaBaris(){ Object.keys(WADAH).forEach(gambarBaris); }
 
 function gambarBaris(k){
   var el = $(WADAH[k]); if(!el) return;
+  if ((k === 'edBahan' || k === 'edJadi') && S.bacaJob){
+    el.innerHTML = S.baris[k].filter(function(b){ return b.kode; }).map(function(b){
+      return '<div class="kv"><span>'+esc(namaItem(b.kode))+'</span><b>'+n2(parseFloat(b.qty)||0)+' kg</b></div>'; }).join('') || '<div class="p2">—</div>';
+    return;
+  }
   if (!S.baris[k].length) S.baris[k] = [{ kode:'', qty:'' }];
   var opts = itemsFilter(MODE_BARIS[k]);
   el.innerHTML = S.baris[k].map(function(b, i){
-    var terkunci = !!(b.idPo || b.idAsal);
+    var terkunci = !!(b.idPo || b.idAsal || b.idSo);
     var sel = terkunci
       ? '<div class="locked"><b>'+esc(namaItem(b.kode))+'</b>' +
           (b.idPo ? '<small>'+esc(b.noPo||'PO')+' · '+esc(t('sisaPo'))+' <b>'+n2(b.sisa||0)+' kg</b>'+(b.datang?' · '+esc(t('datang'))+' '+esc(b.datang):'')+'</small>' +
                     (b.spesifikasi ? '<small class="spek">'+esc(t('spesifikasi'))+': '+esc(b.spesifikasi)+'</small>' : '') : '') +
           (b.idAsal ? '<small>'+esc(b.tanggalAsal||'')+' · '+esc(b.noSj||'')+' · '+esc(t('bisaRetur'))+' <b>'+n2(b.sisa||0)+' kg</b></small>' : '') +
+          (b.idSo ? '<small>'+esc(b.noSo||'SO')+' · '+esc(t('sisaSo'))+' <b>'+n2(b.sisa||0)+' kg</b>'+(b.kirim?' · '+esc(t('kirim'))+' '+esc(b.kirim):'')+'</small>' : '') +
         '</div>'
       : '<select onchange="ubahBaris(\''+k+'\','+i+',\'kode\',this.value)">' +
         '<option value="">'+esc(t('pilihItem'))+'</option>' +
@@ -1625,6 +1820,11 @@ function gambarBaris(k){
           return '<option value="'+esc(o.kode)+'"'+(o.kode===b.kode?' selected':'')+'>'+esc(o.nama)+'</option>';
         }).join('') + '</select>';
     var ekstra = '';
+    if (k === 'so' && lihatHpp()){
+      ekstra = '<div class="row" style="margin-top:8px">' +
+        '<input type="number" inputmode="decimal" step="any" min="0" placeholder="'+esc(t('lblHargaJual'))+'" value="'+esc(b.harga||'')+'" oninput="ubahBaris(\'so\','+i+',\'harga\',this.value)">' +
+        '<div class="w90"><input value="Rp/kg" readonly style="background:#f3f4f6;text-align:center;font-weight:650"></div></div>';
+    }
     if (k === 'po'){
       ekstra = '<div class="row" style="margin-top:8px">' +
         '<input type="number" inputmode="decimal" step="any" min="0" placeholder="'+esc(t('lblHargaBeli'))+'" value="'+esc(b.harga||'')+'" oninput="ubahBaris(\'po\','+i+',\'harga\',this.value)">' +
@@ -1650,6 +1850,8 @@ function ambilBaris(k){
                      var o = { kode:b.kode, qty:parseFloat(b.qty) };
                      if (b.idPo) o.idPo = b.idPo;
                      if (b.idAsal) o.idAsal = b.idAsal;
+                     if (b.idSo) o.idSo = b.idSo;
+                     if (k === 'so'){ o.harga = parseFloat(b.harga) || 0; }
                      if (k === 'po'){ o.harga = parseFloat(b.harga) || 0; o.spesifikasi = b.spesifikasi || ''; }
                      return o;
                    });
@@ -1739,12 +1941,42 @@ function bukaMutasi(mode){
   $('rcvPoWrap').classList.toggle('hide', mode !== 'BELI_MASUK');
   $('rcvQcWrap').classList.toggle('hide', mode !== 'BELI_MASUK');
   $('rcvReturWrap').classList.toggle('hide', mode !== 'BELI_RETUR');
+  $('rcvSoWrap').classList.toggle('hide', mode !== 'JUAL_KELUAR');
   $('btnTambahRcv').classList.toggle('hide', mode === 'BELI_RETUR');
   gambarBaris('rcv');
   tampil('beli');
   muatRiwayat('rcv');
   if (mode === 'BELI_MASUK') muatPoTerbuka();
   if (mode === 'BELI_RETUR') muatReturTersedia();
+  if (mode === 'JUAL_KELUAR') muatSoTerbuka();
+}
+/* dari kartu "Kirim hari ini" di beranda: buka form barang keluar dengan baris SO sudah terpilih */
+function bukaKirimSo(idSo){ S.soAuto = idSo || null; bukaMutasi('JUAL_KELUAR'); }
+function muatSoTerbuka(){
+  var sel = $('rcvSoPilih'); if (sel) sel.innerHTML = '<option value="">…</option>';
+  panggil('soTerbuka',[S.ident]).then(function(rows){
+    S.soTerbuka = rows;
+    isiPilihSo();
+    if (S.soAuto && S.modeExt === 'JUAL_KELUAR'){ var id = S.soAuto; S.soAuto = null; pilihSoBaris(id); }
+  }).catch(function(e){ toast(e.message,'bad'); });
+}
+function isiPilihSo(){
+  var sel = $('rcvSoPilih'); if (!sel) return;
+  var cus = $('rcvPartner').value;
+  var rows = S.soTerbuka.filter(function(p){ return !cus || p.customer === cus; });
+  sel.innerHTML = '<option value="">'+esc(rows.length ? t('pilihSo') : t('tanpaSoTersedia'))+'</option>' +
+    rows.map(function(p){ return '<option value="'+esc(p.id)+'">'+esc(p.noSo)+' · '+esc(p.item)+' · '+esc(t('sisaSo'))+' '+n2(p.sisa)+' kg'+(p.tanggalKirim?' · '+esc(p.tanggalKirim):'')+(cus?'':' · '+esc(p.customer))+'</option>'; }).join('');
+}
+function pilihSoBaris(id){
+  if (!id) return;
+  var p = null; S.soTerbuka.forEach(function(x){ if (x.id === id) p = x; });
+  if (!p) return;
+  if (S.baris.rcv.some(function(b){ return b.idSo === id; })){ $('rcvSoPilih').value=''; return; }
+  if (!$('rcvPartner').value){ $('rcvPartner').value = p.customer; isiPilihSo(); }
+  S.baris.rcv = S.baris.rcv.filter(function(b){ return b.kode || b.qty; });
+  S.baris.rcv.push({ kode:p.kode, qty:String(p.sisa), idSo:p.id, noSo:p.noSo, sisa:p.sisa, kirim:p.tanggalKirim });
+  gambarBaris('rcv');
+  $('rcvSoPilih').value = '';
 }
 function muatPoTerbuka(){
   var sel = $('rcvPoPilih'); sel.innerHTML = '<option value="">…</option>';
@@ -1938,6 +2170,7 @@ function simpanTransferUI(){
    ②  PEKERJAAN
    ================================================================= */
 function segJob(tab){
+  S.bacaJob = false;
   S.jobTab = tab;
   $('segJobList').classList.toggle('on', tab==='list');
   $('segJobNew').classList.toggle('on', tab==='new');
@@ -2144,9 +2377,9 @@ function muatRiwayat(k){
       var tombol = r.usulan
         ? '<span class="pill warn" title="'+esc(r.usulan.ringkasan||'')+'">⏳ '+esc(t('usulanMenunggu'))+'</span>'
         : r.bolehEdit
-        ? '<button class="btn sec xs" onclick="bukaEdit(\''+esc(r.id)+'\')">✎ '+esc(t('ubah'))+'</button>'
-        : '<span class="pill n" title="'+esc(t('terkunciHint'))+'">🔒 '+esc(t('terkunci'))+'</span>';
-      return '<div class="hist">' +
+        ? '<button class="btn sec xs" onclick="event.stopPropagation();bukaEdit(\''+esc(r.id)+'\')">✎ '+esc(t('ubah'))+'</button>'
+        : '<button class="btn sec xs" onclick="event.stopPropagation();bukaEdit(\''+esc(r.id)+'\')">🔒 '+esc(t('lihatDetail'))+'</button>';
+      return '<div class="hist tap" onclick="bukaEdit(\''+esc(r.id)+'\')">' +
         '<span class="hq">'+n2(r.qty)+' kg</span>' +
         '<span class="hx"><b>'+esc(r.item)+'</b><small>'+sub2+(r.logEdit?' · <i>'+esc(t('diubah'))+'</i>':'')+'</small></span>' +
         '<span class="hb">'+pillStatus(r.status)+tombol+'</span>' +
@@ -2155,6 +2388,14 @@ function muatRiwayat(k){
   }).catch(function(e){ el.innerHTML = '<div class="banner bad">'+esc(e.message)+'</div>'; });
 }
 
+function teksKunci(kunci, job){
+  if (!kunci) return '';
+  if (kunci === 'SUDAH_DITINJAU' && job) return t('kunciJOB24');
+  return t('kunci'+kunci).replace('{n}', (S.ctx && S.ctx.maksEditHari) || 30);
+}
+function setBacaSaja(ids, baca){
+  ids.forEach(function(id){ var el = $(id); if (el) el.disabled = !!baca; });
+}
 function bukaEdit(id){
   panggil('ambilEntri',[id, S.ident]).then(function(r){
     S.edit = r;
@@ -2178,14 +2419,31 @@ function bukaEdit(id){
     }).join('');
     $('editQty').value = r.qty;
     setTanggal('editTanggal'); if (r.tanggal) $('editTanggal').value = r.tanggal;
-    var usul = !!r.perluPersetujuan;
-    $('editAlasanWrap').classList.toggle('hide', !usul); $('editAlasan').value = '';
-    var info = $('editUsulanInfo'); info.classList.toggle('hide', !usul); info.textContent = t('usulanInfo');
-    $('btnEditSimpan').textContent = usul ? t('ajukanPerubahan') : t('simpanPerubahan');
-    $('btnEditBatal').textContent  = usul ? t('ajukanBatal') : t('batalkanInput');
+    var baca = !r.bolehEdit;
+    $('editAlasanWrap').classList.add('hide'); $('editAlasan').value = '';
+    $('editTitle').textContent = baca ? t('detailT') : t('editT');
+    var info = $('editUsulanInfo'); info.classList.toggle('hide', !baca);
+    info.textContent = baca ? ('🔒 ' + t('hanyaLihat') + ' — ' + teksKunci(r.kunci)) : '';
+    $('btnEditSimpan').textContent = t('simpanPerubahan');
+    $('btnEditBatal').textContent  = t('batalkanInput');
+    $('btnEditSimpan').classList.toggle('hide', baca);
     $('editSJWrap').classList.toggle('hide', trf);
     $('editSJ').value = r.noSuratJalan || '';
     $('editCatatan').value = r.catatan || '';
+    setBacaSaja(['editPartner','editKode','editQty','editTanggal','editSJ','editCatatan'], baca);
+    /* foto bukti & info tambahan (PO, QC, peninjau) */
+    var src = r.foto && r.foto.indexOf('data:') === 0 ? r.foto : (r.fotoId ? 'https://drive.google.com/thumbnail?id='+r.fotoId+'&sz=w1200' : (r.foto || ''));
+    var fb = $('editFoto');
+    fb.innerHTML = src ? '<img src="'+esc(src)+'" onerror="this.parentNode.innerHTML=\'<div class=&quot;p2&quot;>'+esc(t('tidakAdaFoto'))+'</div>\'">' : '<div class="p2">'+esc(t('tidakAdaFoto'))+'</div>';
+    fb.className = src ? 'photo filled' : 'photo';
+    if (src && r.foto && r.foto.indexOf('http') === 0) fb.onclick = function(){ window.open(r.foto, '_blank'); }; else fb.onclick = null;
+    var ekstra = [];
+    if (r.idPo) ekstra.push('PO');
+    if (r.catatanQc) ekstra.push('QC: '+r.catatanQc);
+    if (r.ditinjauOleh) ekstra.push(t('ditinjauOleh')+' '+r.ditinjauOleh);
+    if (r.catatanTinjau) ekstra.push(t('catatanTinjau')+': '+r.catatanTinjau);
+    $('editEkstra').textContent = ekstra.join(' · ');
+    $('editEkstra').classList.toggle('hide', !ekstra.length);
     var lg = $('editLog');
     lg.classList.toggle('hide', !r.logEdit);
     lg.setAttribute('data-judul', t('logJudul'));
@@ -2247,7 +2505,7 @@ function muatJobSelesai(){
         '<div style="margin-top:8px;display:flex;justify-content:flex-end">' +
           (j.usulan ? '<span class="pill warn">⏳ '+esc(t('usulanMenunggu'))+'</span>'
            : j.bolehEdit ? '<button class="btn sec xs" onclick="bukaEditJob(\''+esc(j.id)+'\')">✎ '+esc(t('ubah'))+'</button>'
-                       : '<span class="pill n">🔒 '+esc(t('terkunci'))+'</span>') +
+                       : '<button class="btn sec xs" onclick="bukaEditJob(\''+esc(j.id)+'\')">🔒 '+esc(t('lihatDetail'))+'</button>') +
         '</div></div>';
     }).join('');
   }).catch(function(e){ $('jobDone').innerHTML = '<div class="banner bad">'+esc(e.message)+'</div>'; });
@@ -2265,10 +2523,14 @@ function bukaEditJob(id){
     $('edScrapKg').value = j.scrapKg || '';
     $('edKeluar').classList.toggle('hide', j.status !== 'SELESAI');
     $('edCatatan').value = j.catatan || '';
-    var usulJ = !!j.perluPersetujuan;
-    $('edAlasanWrap').classList.toggle('hide', !usulJ); $('edAlasan').value = '';
-    var infoJ = $('edUsulanInfo'); infoJ.classList.toggle('hide', !usulJ); infoJ.textContent = t('usulanInfo');
-    $('btnEdSimpan').textContent = usulJ ? t('ajukanPerubahan') : t('simpanPerubahan');
+    var bacaJ = !j.bolehEdit;
+    S.bacaJob = bacaJ;
+    $('edAlasanWrap').classList.add('hide'); $('edAlasan').value = '';
+    var infoJ = $('edUsulanInfo'); infoJ.classList.toggle('hide', !bacaJ);
+    infoJ.textContent = bacaJ ? ('🔒 ' + t('hanyaLihat') + ' — ' + teksKunci(j.kunci, true)) : '';
+    $('btnEdSimpan').textContent = t('simpanPerubahan');
+    $('btnEdSimpan').classList.toggle('hide', bacaJ);
+    setBacaSaja(['edProduk','edScrapKg','edCatatan'], bacaJ);
     var lg = $('edLog'); lg.classList.toggle('hide', !j.logEdit); lg.setAttribute('data-judul', t('logJudul')); lg.textContent = j.logEdit || '';
     gambarBaris('edBahan'); gambarBaris('edJadi');
     previewEditJob();
@@ -2313,7 +2575,7 @@ function simpanEditJobUI(){
    ================================================================= */
 function segAdm(tab){
   S.admTab = tab;
-  ['opname','sku','akt','user'].forEach(function(x){
+  ['opname','sku','akt','user','backup'].forEach(function(x){
     var id = 'segAdm' + x.charAt(0).toUpperCase() + x.slice(1);
     var el = $(id); if (el) el.classList.toggle('on', x===tab);
   });
@@ -2322,6 +2584,7 @@ function segAdm(tab){
   if (tab==='sku')    admSku();
   if (tab==='akt')    admAkt();
   if (tab==='user')   admUser();
+  if (tab==='backup') admBackup();
 }
 
 /* ---------- opname ---------- */
@@ -2657,7 +2920,7 @@ function tinjau(id, aksi){
    ================================================================= */
 function segRep(tab){
   S.repTab = tab;
-  ['susut','stok','beli','jual','trf','hpp','nilai','std'].forEach(function(x){
+  ['susut','stok','beli','jual','trf','hpp','nilai','std','prediksi','ekspor'].forEach(function(x){
     var id = 'segRep' + x.charAt(0).toUpperCase() + x.slice(1);
     var el = $(id); if (el) el.classList.toggle('on', x===tab);
   });
@@ -2670,6 +2933,8 @@ function segRep(tab){
   if (tab==='trf')   repTrf();
   if (tab==='nilai') repNilai();
   if (tab==='std')   repStd();
+  if (tab==='prediksi') repPrediksi();
+  if (tab==='ekspor') repEkspor();
 }
 
 function pillSusut(st){
@@ -3398,12 +3663,227 @@ function repStd(){
     $('repBody').innerHTML = h;
   }).catch(function(e){ $('repBody').innerHTML = '<div class="banner bad">'+esc(e.message)+'</div>'; });
 }
+function pillPrediksi(st){
+  var cls = st==='PERLU_BELI' ? 'bad' : st==='PO_JALAN' ? 'warn' : st==='AMAN' ? 'ok' : 'n';
+  return '<span class="pill '+cls+'">'+esc(t('st'+st))+'</span>';
+}
+function repPrediksi(){
+  panggil('prediksiBeli',[S.ident, 30]).then(function(rows){
+    if (S.repTab !== 'prediksi') return;
+    if (!rows.length){ $('repBody').innerHTML = '<div class="empty"><span class="g">🛒</span>'+esc(t('kosongData'))+'</div>'; return; }
+    var lead = rows[0].leadTime;
+    var h = '<div class="banner n" style="font-size:12px">'+esc(t('prediksiS'))+' · '+esc(t('pLead'))+' '+lead+' '+esc(t('pHari'))+' (Pengaturan LEAD_TIME_HARI)</div>';
+    h += '<div class="card"><h2>'+esc(t('prediksiT'))+'</h2>' + rows.map(function(p){
+      var sisa = p.sisaHari === null ? '—' : n2(p.sisaHari)+' '+t('pHari');
+      var warna = p.status==='PERLU_BELI' ? 'var(--danger)' : p.status==='PO_JALAN' ? 'var(--warn)' : 'inherit';
+      var lebar = p.sisaHari === null ? 0 : Math.max(2, Math.min(100, p.sisaHari / Math.max(lead*3, 1) * 100));
+      return '<div class="listrow"><div style="display:flex;align-items:baseline;gap:9px"><b style="flex:1;font-size:14px">'+esc(p.nama)+'</b>' +
+        '<span style="font-size:16px;font-weight:700;color:'+warna+';font-variant-numeric:tabular-nums">'+sisa+'</span>'+pillPrediksi(p.status)+'</div>' +
+        (p.sisaHari !== null ? '<div class="bar"><i style="width:'+lebar+'%;background:'+(p.status==='PERLU_BELI'?'var(--danger)':p.status==='PO_JALAN'?'var(--warn)':'var(--ok)')+'"></i></div>' : '') +
+        '<div style="font-size:11.5px;color:var(--muted);font-variant-numeric:tabular-nums">'+esc(t('pStok'))+' '+n2(p.stok)+' kg (GBJ '+n2(p.gbj)+' · GP '+n2(p.gp)+') · '+esc(t('pRata'))+' '+n2(p.rataHari)+' kg' +
+          (p.poSisa ? ' · '+esc(t('pPo'))+' '+n2(p.poSisa)+' kg'+(p.poEta?' ('+esc(p.poEta)+')':'') : '') +
+          (p.saranBeli > 0 ? ' · <b style="color:var(--danger)">'+esc(t('pSaran'))+' '+n2(p.saranBeli)+' kg</b>' : '')+'</div>' +
+        (p.status==='PERLU_BELI' && S.ctx && S.ctx.bisaPo ? '<div class="btnrow" style="justify-content:flex-end;margin-top:6px"><button class="btn sec xs" onclick="poDariPrediksi(\''+esc(p.kode)+'\','+p.saranBeli+')">+ '+esc(t('buatPoDari'))+'</button></div>' : '') +
+      '</div>';
+    }).join('') + '</div>';
+    $('repBody').innerHTML = h;
+  }).catch(function(e){ $('repBody').innerHTML = '<div class="banner bad">'+esc(e.message)+'</div>'; });
+}
+function poDariPrediksi(kode, qty){
+  tampil('po'); segPo('baru');
+  setTimeout(function(){ S.baris.po = [{ kode:kode, qty:String(qty||''), harga:'', spesifikasi:'' }]; gambarBaris('po'); }, 50);
+}
 function terapkanStdUI(kode){
   var n = parseFloat($('stdN-'+kode).value), tl = parseFloat($('stdT-'+kode).value);
   if (isNaN(n) || isNaN(tl)){ toast(t('gagal'),'bad'); return; }
   panggil('terapkanStandarSusut',[kode, n, tl, '', S.ident]).then(function(){
     toast(t('standarDiterapkan')+' · '+n2(n)+'% ± '+n2(tl)+'%','ok'); repStd();
   }).catch(function(e){ toast(e.message,'bad'); });
+}
+
+/* =================================================================
+   SALES ORDER (manager / sales) — harga hanya untuk yang boleh lihat HPP
+   ================================================================= */
+function statusSoGabung(baris){
+  var aktif = baris.filter(function(b){ return b.status !== 'DIBATALKAN'; });
+  if (!aktif.length) return 'DIBATALKAN';
+  if (aktif.every(function(b){ return b.status === 'SELESAI'; })) return 'SELESAI';
+  if (aktif.some(function(b){ return b.dikirim > 0; })) return 'SEBAGIAN';
+  return 'TERBUKA';
+}
+function segSo(tab){
+  S.soTab = tab || 'aktif';
+  ['aktif','selesai','baru'].forEach(function(x){
+    var el = $('segSo'+x.charAt(0).toUpperCase()+x.slice(1)); if (el) el.classList.toggle('on', x===S.soTab);
+  });
+  $('soBody').innerHTML = '<div class="load">…</div>';
+  if (S.soTab==='baru') soFormBaru();
+  else soDaftar(S.soTab);
+}
+function soDaftar(tab){
+  panggil('daftarSo',[S.ident, tab==='selesai' ? 'SEMUA' : '', 120]).then(function(rows){
+    if (S.view !== 'so' || S.soTab !== tab) return;
+    if (tab==='selesai') rows = rows.filter(function(r){ return r.status==='SELESAI' || r.status==='DIBATALKAN'; });
+    var grup = {}, urut = [];
+    rows.forEach(function(r){ if (!grup[r.noSo]){ grup[r.noSo] = []; urut.push(r.noSo); } grup[r.noSo].push(r); });
+    S.soCache = grup;
+    if (!urut.length){ $('soBody').innerHTML = '<div class="empty"><span class="g">🧾</span>'+esc(t('kosongSo'))+'</div>'; return; }
+    $('soBody').innerHTML = urut.map(function(no){ return kartuSo(no, grup[no]); }).join('');
+  }).catch(function(e){ $('soBody').innerHTML = '<div class="banner bad">'+esc(e.message)+'</div>'; });
+}
+function kartuSo(no, baris){
+  var b0 = baris[0], lihat = lihatHpp(), st = statusSoGabung(baris), hari = hariIniStr();
+  var qty = 0, kir = 0, nilai = 0;
+  baris.forEach(function(b){ if (b.status==='DIBATALKAN') return; qty += b.qty; kir += b.dikirim; if (lihat) nilai += b.nilai||0; });
+  var tutup = st==='SELESAI' || st==='DIBATALKAN';
+  var telat = !tutup && b0.tanggalKirim && b0.tanggalKirim < hari;
+  return '<div class="rev" id="so-'+esc(no)+'"><div class="body">' +
+    '<div style="display:flex;align-items:flex-start;gap:10px"><div style="flex:1">' +
+      '<div style="font-weight:700;font-size:15px">'+esc(no)+' · '+esc(b0.customer)+'</div>' +
+      '<div class="meta">'+esc(b0.tanggal)+(b0.tanggalKirim ? ' · '+esc(t('kirim'))+' <b'+(telat?' style="color:var(--danger)"':'')+'>'+esc(b0.tanggalKirim)+'</b>' : '')+' · '+esc(b0.pembuat)+'</div>' +
+    '</div>'+pillPo(st)+'</div>' +
+    '<div class="kv"><span>'+esc(t('total'))+'</span><b>'+n2(qty)+' kg · '+esc(t('soDikirim'))+' '+n2(kir)+' kg'+(lihat ? ' · '+rp(nilai) : '')+'</b></div>' +
+    baris.map(function(b){ return barisSoHtml(b, lihat, tutup); }).join('') +
+    (b0.catatan ? '<div class="kv"><span>'+esc(t('lblCatatan'))+'</span><b>'+esc(b0.catatan)+'</b></div>' : '') +
+  '</div></div>';
+}
+function barisSoHtml(b, lihat, tutup){
+  var pct = b.qty > 0 ? Math.min(100, b.dikirim / b.qty * 100) : 0;
+  var aktif = b.status!=='SELESAI' && b.status!=='DIBATALKAN';
+  var bisaUbah = !tutup && aktif && S.ctx && S.ctx.bisaPo;
+  var st = (S.ctx && S.ctx.stok && S.ctx.stok[b.kode]) || null;
+  var kurang = st && aktif && b.sisa > st.gbj + 0.0001;
+  return '<div class="listrow" id="sor-'+esc(b.id)+'">' +
+    '<div style="display:flex;align-items:baseline;gap:9px"><b style="flex:1;font-size:14px">'+esc(b.item)+'</b>' +
+      '<span style="font-size:16px;font-weight:700;font-variant-numeric:tabular-nums">'+n2(b.qty)+' kg</span>'+(b.status==='DIBATALKAN'?pillPo(b.status):'')+'</div>' +
+    '<div class="bar"><i style="width:'+pct+'%;background:'+(pct>=100?'var(--ok)':'var(--primary)')+'"></i></div>' +
+    '<div style="font-size:11.5px;color:var(--muted);font-variant-numeric:tabular-nums">'+esc(t('soDikirim'))+' '+n2(b.dikirim)+' · '+esc(t('poSisa'))+' '+n2(b.sisa)+' kg' +
+      (st ? ' · '+esc(t('tersedia'))+' GBJ <b'+(kurang?' style="color:var(--danger)"':'')+'>'+n2(st.gbj)+' kg</b>' : '') +
+      (lihat ? ' · '+rp(b.harga)+'/kg = '+rp(b.nilai) : '')+'</div>' +
+    (b.logEdit ? '<div style="font-size:11px;color:var(--muted);white-space:pre-line;margin-top:3px"><i>'+esc(b.logEdit)+'</i></div>' : '') +
+    (aktif && !tutup ? '<div class="btnrow" style="margin-top:7px;justify-content:flex-end">' +
+        (bisaUbah ? '<button class="btn ghost xs" onclick="batalSoUI(\''+esc(b.id)+'\')">✕ '+esc(t('batalSo'))+'</button>' +
+                    '<button class="btn sec xs" onclick="soEditBaris(\''+esc(b.id)+'\')">✎ '+esc(t('ubahSo'))+'</button>' : '') +
+        '<button class="btn xs" onclick="bukaKirimSo(\''+esc(b.id)+'\')">🚚 '+esc(t('kirimSo'))+'</button></div>' : '') +
+  '</div>';
+}
+function cariSoBaris(id){
+  var g = S.soCache || {}, hasil = null;
+  Object.keys(g).forEach(function(no){ g[no].forEach(function(b){ if (b.id === id) hasil = b; }); });
+  return hasil;
+}
+function soEditBaris(id){
+  var b = cariSoBaris(id), el = $('sor-'+id); if (!b || !el) return;
+  el.innerHTML = '<b style="font-size:14px">'+esc(b.item)+'</b>' +
+    '<div class="row" style="margin-top:8px"><input type="number" inputmode="decimal" step="any" min="0" id="se-qty-'+esc(id)+'" value="'+esc(b.qty)+'" placeholder="'+esc(t('qty'))+'">' +
+      '<div class="w90"><input value="kg" readonly style="background:#f3f4f6;text-align:center;font-weight:650"></div></div>' +
+    (lihatHpp() ? '<div class="row" style="margin-top:8px"><input type="number" inputmode="decimal" step="any" min="0" id="se-harga-'+esc(id)+'" value="'+esc(b.harga)+'" placeholder="'+esc(t('lblHargaJual'))+'">' +
+      '<div class="w90"><input value="Rp/kg" readonly style="background:#f3f4f6;text-align:center;font-weight:650"></div></div>' : '') +
+    '<div class="field" style="margin-top:8px"><label>'+esc(t('lblTanggalKirim'))+'</label><input type="date" id="se-kirim-'+esc(id)+'" value="'+esc(b.tanggalKirim)+'"></div>' +
+    '<div class="field"><label>'+esc(t('lblCatatan'))+'</label><input id="se-cat-'+esc(id)+'" value="'+esc(b.catatan)+'"></div>' +
+    '<div class="btnrow"><button class="btn ghost sm" onclick="segSo(S.soTab)">'+esc(t('batal'))+'</button>' +
+      '<button class="btn sm" id="se-btn-'+esc(id)+'" onclick="simpanUbahSo(\''+esc(id)+'\')">'+esc(t('simpanPerubahan'))+'</button></div>';
+}
+function simpanUbahSo(id){
+  var p = { qty: $('se-qty-'+id).value, tanggalKirim: $('se-kirim-'+id).value, catatan: $('se-cat-'+id).value };
+  var h = $('se-harga-'+id); if (h) p.harga = h.value;
+  var btn = $('se-btn-'+id); sibuk(btn, true);
+  panggil('ubahSo',[id, p, S.ident]).then(function(r){
+    toast(r.berubah ? t('tersimpanEdit') : t('tanpaPerubahan'), r.berubah ? 'ok' : '');
+    muatKonteks(true); segSo(S.soTab);
+  }).catch(function(e){ sibuk(btn,false); toast(e.message,'bad'); });
+}
+function batalSoUI(id){
+  var alasan = window.prompt(t('alasanBatalSo')); if (alasan === null) return;
+  panggil('batalkanSo',[id, alasan, S.ident]).then(function(){
+    toast(t('soDibatalkan'), 'ok'); muatKonteks(true); segSo(S.soTab);
+  }).catch(function(e){ toast(e.message,'bad'); });
+}
+function soFormBaru(){
+  S.baris.so = [{ kode:'', qty:'', harga:'' }];
+  var cus = (S.ctx && S.ctx.customer) || [];
+  $('soBody').innerHTML = '<div class="card"><h2>'+esc(t('soBaruT'))+'</h2><div class="sub">'+esc(t('soBaruS'))+'</div>' +
+    '<div class="field"><label>'+esc(t('lblCustomer'))+'</label><select id="soCustomer"><option value="">'+esc(t('pilihCustomer'))+'</option>' +
+      cus.map(function(c){ return '<option value="'+esc(c.nama)+'">'+esc(c.nama)+'</option>'; }).join('') + '</select></div>' +
+    '<div class="row"><div class="field" style="flex:1"><label>'+esc(t('lblTanggal'))+'</label><input type="date" id="soTanggal"></div>' +
+      '<div class="field" style="flex:1"><label>'+esc(t('lblTanggalKirim'))+'</label><input type="date" id="soKirim"></div></div>' +
+    '<h3 class="sec">'+esc(t('item'))+' <span class="unit">kg</span></h3><div id="soLines"></div>' +
+    '<button class="btn sec sm" onclick="tambahBaris(\'so\')">+ '+esc(t('item'))+'</button>' +
+    '<div class="field" style="margin-top:12px"><label>'+esc(t('lblCatatan'))+'</label><textarea id="soCatatan"></textarea></div>' +
+    '<button class="btn" id="btnSimpanSo" onclick="simpanSoUI()">'+esc(t('btnSimpanSo'))+'</button></div>';
+  setTanggal('soTanggal'); setTanggal('soKirim');
+  gambarBaris('so');
+}
+function simpanSoUI(){
+  var baris = ambilBaris('so');
+  if (!$('soCustomer').value){ toast(t('wajibCustomer'),'bad'); return; }
+  if (!baris.length){ toast(t('wajibItem'),'bad'); return; }
+  var b = $('btnSimpanSo'); sibuk(b, true);
+  panggil('simpanSo',[{ customer:$('soCustomer').value, tanggal:ambilTanggal('soTanggal'), tanggalKirim:$('soKirim').value,
+                        baris:baris, catatan:$('soCatatan').value }, S.ident]).then(function(r){
+    toast(t('soTersimpan')+' · '+r.noSo+' · '+kg(r.totalKg)+(lihatHpp() ? ' · '+rp(r.nilai) : ''), 'ok');
+    muatKonteks(true); segSo('aktif');
+  }).catch(function(e){ sibuk(b,false,t('btnSimpanSo')); toast(e.message,'bad'); });
+}
+
+/* =================================================================
+   EKSPOR BULANAN (keuangan) — CSV diunduh di browser
+   ================================================================= */
+function repEkspor(){
+  var d = new Date(); d.setDate(1); d.setMonth(d.getMonth()-1);   // default: bulan lalu (yang sudah ditutup)
+  $('repBody').innerHTML = '<div class="card"><h2>'+esc(t('eksporT'))+'</h2><div class="sub">'+esc(t('eksporS'))+'</div>' +
+    '<div class="row" style="align-items:flex-end"><div class="field" style="flex:1"><label>'+esc(t('lblBulan'))+'</label><input type="month" id="ekBulan" value="'+bulanStr(d)+'"></div>' +
+    '<div class="field"><button class="btn" id="btnEkspor" onclick="jalankanEkspor()">'+esc(t('btnEkspor'))+'</button></div></div>' +
+    '<div id="ekHasil"></div></div>';
+}
+function jalankanEkspor(){
+  var bulan = $('ekBulan').value; if (!/^\d{4}-\d{2}$/.test(bulan)){ toast(t('lblBulan'),'bad'); return; }
+  var b = $('btnEkspor'); sibuk(b, true);
+  panggil('eksporBulanan',[bulan, S.ident]).then(function(r){
+    sibuk(b, false, t('btnEkspor'));
+    if (S.repTab !== 'ekspor') return;
+    S.ekspor = r;
+    var h = '<div class="banner ok" style="margin-top:10px">'+esc(t('eksporSiap'))+' · '+esc(r.bulan)+'</div>';
+    var catatan = '';
+    h += (r.ringkasan||[]).map(function(x){
+      var v = x[1];
+      if (x[0] === 'Catatan'){ catatan = String(v); return ''; }
+      var teks = typeof v === 'number' ? (/\(kg\)/i.test(x[0]) ? n2(v)+' kg' : /pekerjaan/i.test(x[0]) ? n2(v) : rp(v)) : esc(String(v));
+      return '<div class="kv"><span>'+esc(x[0])+'</span><b style="font-variant-numeric:tabular-nums">'+teks+'</b></div>'; }).join('');
+    if (catatan) h += '<div class="hint" style="margin-top:8px">'+esc(catatan)+'</div>';
+    h += '<div class="btnrow" style="margin-top:10px;flex-wrap:wrap">' + r.files.map(function(f, i){
+      return '<button class="btn sec sm" onclick="unduhEkspor('+i+')">⬇ '+esc(f.nama)+'</button>'; }).join('') +
+      '<button class="btn sm" onclick="unduhEkspor(-1)">⬇ '+esc(t('btnUnduhSemua'))+'</button></div>';
+    $('ekHasil').innerHTML = h;
+  }).catch(function(e){ sibuk(b, false, t('btnEkspor')); toast(e.message,'bad'); });
+}
+function unduhEkspor(i){
+  if (!S.ekspor) return;
+  var files = i < 0 ? S.ekspor.files : [S.ekspor.files[i]];
+  files.forEach(function(f, k){
+    setTimeout(function(){
+      var blob = new Blob([f.csv], { type:'text/csv;charset=utf-8' });
+      var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = f.nama;
+      document.body.appendChild(a); a.click();
+      setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); }, 2000);
+    }, k * 400);
+  });
+}
+
+/* =================================================================
+   BACKUP (admin) — status salinan harian
+   ================================================================= */
+function admBackup(){
+  panggil('statusBackup',[S.ident]).then(function(r){
+    if (S.admTab !== 'backup') return;
+    var terakhir = r.terakhir ? r.terakhir.replace('IPC Backup ','') : t('backupKosong');
+    $('admBody').innerHTML = '<div class="card"><h2>'+esc(t('backupT'))+'</h2><div class="sub">'+esc(t('backupS'))+'</div>' +
+      '<div class="kv"><span>Status</span><b>'+(r.terpasang ? '<span class="pill ok">'+esc(t('backupAktif'))+'</span>' : '<span class="pill bad">'+esc(t('backupTidak'))+'</span>')+'</b></div>' +
+      '<div class="kv"><span>'+esc(t('backupTerakhir'))+'</span><b>'+esc(terakhir)+'</b></div>' +
+      '<div class="kv"><span>'+esc(t('backupJumlah'))+'</span><b>'+r.jumlah+' / '+r.simpan+'</b></div>' +
+      (r.terpasang ? '' : '<div class="banner warn" style="margin-top:10px">'+esc(t('backupCara'))+'</div>') +
+      '</div>';
+  }).catch(function(e){ $('admBody').innerHTML = '<div class="banner bad">'+esc(e.message)+'</div>'; });
 }
 
 </script>
