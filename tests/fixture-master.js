@@ -1,19 +1,19 @@
 /* Master data contoh (kacang) untuk tes & demo — TIDAK dipakai di deploy sungguhan */
 DUMMY_ITEM = [
-  ['RM-CSW-W240','Kacang Mete Mentah W240',      KATEGORI_ITEM.BAHAN_BAKU , 185000, 0, 0, 'YA'],
-  ['RM-CSW-W320','Kacang Mete Mentah W320',      KATEGORI_ITEM.BAHAN_BAKU , 170000, 0, 0, 'YA'],
-  ['RM-CSW-LP'  ,'Kacang Mete Mentah LP (pecah)',KATEGORI_ITEM.BAHAN_BAKU , 120000, 0, 0, 'YA'],
-  ['RM-PNT-JAVA','Kacang Tanah Java',            KATEGORI_ITEM.BAHAN_BAKU , 28000, 0, 0, 'YA'],
-  ['RM-ALM-NP'  ,'Almond Non Pareil',            KATEGORI_ITEM.BAHAN_BAKU , 210000, 0, 0, 'YA'],
-  ['RM-SI-SEED' ,'Sacha Inchi Seed',             KATEGORI_ITEM.BAHAN_BAKU , 95000, 0, 0, 'YA'],
-  ['RM-MIN-GRG' ,'Minyak Goreng',                KATEGORI_ITEM.BAHAN_BAKU , 18500, 0, 0, 'YA'],
-  ['RM-GRM-HLS' ,'Garam Halus',                  KATEGORI_ITEM.BAHAN_BAKU , 6000, 0, 0, 'YA'],
-  ['RM-BMB-BBQ' ,'Bumbu Tabur BBQ',              KATEGORI_ITEM.BAHAN_BAKU , 45000, 0, 0, 'YA'],
-  ['FG-MM-CSW'  ,'Mete Panggang Original',       KATEGORI_ITEM.BARANG_JADI, '', 0, 0, 'YA'],
-  ['FG-MM-ALM'  ,'Almond Panggang',     KATEGORI_ITEM.BARANG_JADI, '', 0, 0, 'YA'],
-  ['FG-JM-BBQ'  ,'Kacang Goreng BBQ',     KATEGORI_ITEM.BARANG_JADI, '', 0, 0, 'YA'],
-  ['FG-JM-ASN'  ,'Kacang Goreng Asin',    KATEGORI_ITEM.BARANG_JADI, '', 0, 0, 'YA'],
-  ['FG-SC-SI'   ,'Minyak Sacha Inchi',      KATEGORI_ITEM.BARANG_JADI, '', 0, 0, 'YA']
+  ['RM-CSW-W240','Kacang Mete Mentah W240',      KATEGORI_ITEM.BAHAN_BAKU , 185000, 0, 'YA'],
+  ['RM-CSW-W320','Kacang Mete Mentah W320',      KATEGORI_ITEM.BAHAN_BAKU , 170000, 0, 'YA'],
+  ['RM-CSW-LP'  ,'Kacang Mete Mentah LP (pecah)',KATEGORI_ITEM.BAHAN_BAKU , 120000, 0, 'YA'],
+  ['RM-PNT-JAVA','Kacang Tanah Java',            KATEGORI_ITEM.BAHAN_BAKU , 28000, 0, 'YA'],
+  ['RM-ALM-NP'  ,'Almond Non Pareil',            KATEGORI_ITEM.BAHAN_BAKU , 210000, 0, 'YA'],
+  ['RM-SI-SEED' ,'Sacha Inchi Seed',             KATEGORI_ITEM.BAHAN_BAKU , 95000, 0, 'YA'],
+  ['RM-MIN-GRG' ,'Minyak Goreng',                KATEGORI_ITEM.BAHAN_BAKU , 18500, 0, 'YA'],
+  ['RM-GRM-HLS' ,'Garam Halus',                  KATEGORI_ITEM.BAHAN_BAKU , 6000, 0, 'YA'],
+  ['RM-BMB-BBQ' ,'Bumbu Tabur BBQ',              KATEGORI_ITEM.BAHAN_BAKU , 45000, 0, 'YA'],
+  ['FG-MM-CSW'  ,'Mete Panggang Original',       KATEGORI_ITEM.BARANG_JADI, '', 0, 'YA'],
+  ['FG-MM-ALM'  ,'Almond Panggang',     KATEGORI_ITEM.BARANG_JADI, '', 0, 'YA'],
+  ['FG-JM-BBQ'  ,'Kacang Goreng BBQ',     KATEGORI_ITEM.BARANG_JADI, '', 0, 'YA'],
+  ['FG-JM-ASN'  ,'Kacang Goreng Asin',    KATEGORI_ITEM.BARANG_JADI, '', 0, 'YA'],
+  ['FG-SC-SI'   ,'Minyak Sacha Inchi',      KATEGORI_ITEM.BARANG_JADI, '', 0, 'YA']
 ];
 DUMMY_STANDAR = [
   ['FG-MM-CSW','Mete Panggang Original',   4.0, 1.5, 'Susut panggang normal'],

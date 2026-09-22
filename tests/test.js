@@ -8,7 +8,7 @@ ctx.setSetting_('PAKSA_LOGIN_MANUAL','TIDAK'); ctx.setSetting_('AKSES_TERBUKA','
 
 console.log('— 1. Setup & master —');
 const k = ctx.getKonteks({});
-ok('14 item aktif (scrap dibuat otomatis)', k.items.length===14, k.items.length);
+ok('14 item aktif', k.items.length===14, k.items.length);
 ok('4 supplier aktif', k.supplier.length===4, k.supplier.length);
 ok('4 customer aktif', k.customer.length===4, k.customer.length);
 ok('user ADMIN & bisa review', k.user.peran==='ADMIN' && k.bisaReview);
@@ -57,13 +57,11 @@ ok('kolom retur = 50', mete.retur===50);
 ok('total stok jadi 950', st.total.total===950, st.total);
 ok('retur tidak butuh surat jalan', true);
 
-console.log('\n— 5. ① Transfer GBJ → GP (tanpa surat jalan) —');
-ok('kolom No_Surat_Jalan hilang dari Transfer', ctx.HEADER['Transfer'].indexOf('No_Surat_Jalan')===-1);
-const r2 = ctx.simpanTransfer({ arah:'GBJ_KE_GP', baris:[{kode:'RM-CSW-W240', qty:500}], ident:{nama:'Sri'} });
-ok('transfer 500 kg tersimpan', r2.totalKg===500, r2);
-st = ctx.laporanStok({});
-mete = st.daftar.find(s=>s.kode==='RM-CSW-W240');
-ok('GBJ 250, GP 500', mete.gbj===250 && mete.gp===500, mete);
+console.log('\n— 5. v9: satu gudang — tidak ada transfer / GP —');
+ok('sheet Transfer tidak ada lagi di skema', ctx.SHEET.TRANSFER===undefined && !ctx.SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Transfer'));
+ok('simpanTransfer tidak ada di whitelist RPC', !ctx.RPC_WL.simpanTransfer && !ctx.RPC_WL.riwayatTransfer);
+ok('Master_Item hanya satu stok awal', ctx.HEADER['Master_Item'].indexOf('Stok_Awal')>=0 && ctx.HEADER['Master_Item'].indexOf('Stok_Awal_GP')===-1);
+ok('konteks stok tanpa gp', Object.keys(k.stok).length>0 && Object.keys(ctx.getKonteks({}).stok).every(kd=>ctx.getKonteks({}).stok[kd].gp===undefined));
 
 console.log('\n— 6. ② Pekerjaan: semua kg, tanpa nomor produksi —');
 ok('kolom No_Pekerjaan hilang', ctx.HEADER['Pekerjaan'].indexOf('No_Pekerjaan')===-1);
@@ -86,13 +84,15 @@ ok('rincian susut = 20 kg (bahan tunggal = persis)', f1.rincian[0].susut===20, f
 ok('rincian sebut nama bahan', f1.rincian[0].nama==='Kacang Mete Mentah W240');
 const scrSku = ctx.baca_(ctx.SHEET.ITEM).find(r=>r.Kode_Item==='SCR-FG-MM-CSW');
 ok('SKU scrap produk dibuat otomatis', !!scrSku && scrSku.Kategori==='SCRAP' && /Scrap · Mete Panggang/.test(scrSku.Nama_Item), scrSku);
-ok('scrap masuk stok GP atas nama SKU scrap', ctx.laporanStok({}).daftar.find(x=>x.kode==='SCR-FG-MM-CSW').gp===5);
+ok('scrap masuk stok gudang atas nama SKU scrap', ctx.laporanStok({}).daftar.find(x=>x.kode==='SCR-FG-MM-CSW').gbj===5);
+st = ctx.laporanStok({}); mete = st.daftar.find(s=>s.kode==='RM-CSW-W240');
+ok('bahan baku job langsung dari GBJ: 750 − 500 = 250', mete.gbj===250 && mete.dipakai===500, mete);
+ok('barang jadi langsung masuk GBJ: 475', st.daftar.find(s=>s.kode==='FG-MM-CSW').gbj===475);
 ok('SKU scrap muncul di items (bisa dijual)', ctx.getKonteks({}).items.some(i=>i.kode==='SCR-FG-MM-CSW' && i.kategori==='SCRAP'));
 
 console.log('\n— 8. Job multi-bahan: susut dialokasikan proporsional —');
 ctx.simpanPenerimaan({jenis:'MASUK',supplier:'UD Tani Kacang Jaya',noSuratJalan:'SJ/2',
   baris:[{kode:'RM-PNT-JAVA',qty:400},{kode:'RM-MIN-GRG',qty:100},{kode:'RM-BMB-BBQ',qty:20}]});
-ctx.simpanTransfer({arah:'GBJ_KE_GP',baris:[{kode:'RM-PNT-JAVA',qty:300},{kode:'RM-MIN-GRG',qty:80},{kode:'RM-BMB-BBQ',qty:20}]});
 const j2 = ctx.mulaiPekerjaan({ kodeProduk:'FG-JM-BBQ', bahanBaku:[
   {kode:'RM-PNT-JAVA', qty:300}, {kode:'RM-MIN-GRG', qty:80}, {kode:'RM-BMB-BBQ', qty:20}] });
 ok('total masuk 400 kg', j2.totalKg===400, j2);
@@ -121,23 +121,20 @@ ok('kacang tanah susut terbesar 30 kg', lap.perBahan[0].kode==='RM-PNT-JAVA' && 
 ok('jumlah perBahan = total susut', Math.abs(lap.perBahan.reduce((a,b)=>a+b.susut,0)-lap.total.susut)<0.01);
 
 console.log('\n— 9b. ④ Barang keluar ke customer —');
-// stok GBJ untuk FG-MM-CSW saat ini: hasil job masuk GP, jadi transfer balik dulu
-ctx.simpanTransfer({arah:'GP_KE_GBJ', baris:[{kode:'FG-MM-CSW', qty:500}], ident:{nama:'Sri'}});
 let stokJ = ctx.laporanStok({});
 const fgSebelum = stokJ.daftar.find(s=>s.kode==='FG-MM-CSW');
-ok('FG di GBJ 500 kg sebelum dijual', fgSebelum.gbj===500, fgSebelum);
+ok('FG di GBJ 475 kg sebelum dijual (hasil job langsung di gudang)', fgSebelum.gbj===475, fgSebelum);
 
 const j = ctx.simpanPengiriman({ jenis:'KELUAR', customer:'PT Ritel Nusantara',
   noSuratJalan:'DO/2026/09/0042', baris:[{kode:'FG-MM-CSW', qty:300}], ident:{nama:'Sri'} });
-// jual scrap: transfer scrap ke GBJ dulu, lalu keluar
-ctx.simpanTransfer({arah:'GP_KE_GBJ', baris:[{kode:'SCR-FG-MM-CSW', qty:5}], ident:{nama:'Sri'}});
+// jual scrap langsung dari gudang
 ctx.simpanPengiriman({ jenis:'KELUAR', customer:'Toko Grosir Pasar Baru', noSuratJalan:'DO/SCR/1',
   baris:[{kode:'SCR-FG-MM-CSW', qty:5}], ident:{nama:'Sri'} });
 ok('scrap bisa dijual ke customer', ctx.laporanStok({}).daftar.find(x=>x.kode==='SCR-FG-MM-CSW').jual===5);
 ok('penjualan 300 kg tersimpan', j.totalKg===300 && j.jenis==='KELUAR', j);
 stokJ = ctx.laporanStok({});
 let fg = stokJ.daftar.find(s=>s.kode==='FG-MM-CSW');
-ok('GBJ turun jadi 200', fg.gbj===200, fg);
+ok('GBJ turun jadi 175', fg.gbj===175, fg);
 ok('kolom jual = 300', fg.jual===300, fg);
 ok('total keluar masuk ringkasan', stokJ.total.jual===305, stokJ.total);
 
@@ -151,7 +148,7 @@ ctx.simpanPengiriman({ jenis:'RETUR_MASUK', customer:'PT Ritel Nusantara',
   baris:[{kode:'FG-MM-CSW', qty:25}], catatan:'kemasan penyok waktu kirim', ident:{nama:'Sri'} });
 stokJ = ctx.laporanStok({});
 fg = stokJ.daftar.find(s=>s.kode==='FG-MM-CSW');
-ok('GBJ naik lagi jadi 225', fg.gbj===225, fg);
+ok('GBJ naik lagi jadi 200', fg.gbj===200, fg);
 ok('kolom retur customer = 25', fg.returCust===25, fg);
 ok('retur customer tidak butuh surat jalan', true);
 
@@ -170,13 +167,13 @@ ok('perItem diurut bersih desc', jual.perItem[0].bersih >= jual.perItem[1].bersi
 
 console.log('\n— 10. Antrian review gabungan —');
 const q = ctx.antrianReview({});
-ok('pembelian + penjualan + transfer satu antrian', q.length===16, q.length);
+ok('pembelian + penjualan satu antrian (tanpa transfer)', q.length===10, q.length);
 ok('ada entri PENERIMAAN', q.some(x=>x.sumber==='PENERIMAAN'));
-ok('ada entri TRANSFER', q.some(x=>x.sumber==='TRANSFER'));
+ok('tidak ada entri TRANSFER', !q.some(x=>x.sumber==='TRANSFER'));
 ok('label retur benar', q.some(x=>x.jenis==='RETUR' && /^GBJ →/.test(x.label)), q.filter(x=>x.jenis==='RETUR')[0]);
 ok('label pembelian benar', q.some(x=>x.jenis==='MASUK' && / → GBJ$/.test(x.label)));
 const idRcv = q.find(x=>x.sumber==='PENERIMAAN').id;
-const idTrf = q.find(x=>x.sumber==='TRANSFER').id;
+const idTrf = q.find(x=>x.sumber==='PENERIMAAN' && x.kode==='RM-MIN-GRG').id;   // minyak 100 kg dipakai untuk uji Tandai → Batal
 ctx.tinjauTransfer(idRcv,'setuju','',{});
 ctx.tinjauTransfer(idTrf,'tandai','foto buram',{});
 ok('ada entri PENGIRIMAN', q.some(x=>x.sumber==='PENGIRIMAN'));
@@ -184,7 +181,7 @@ ok('label penjualan benar', q.some(x=>x.jenis==='KELUAR' && /^GBJ → PT Ritel/.
 ok('label retur customer benar', q.some(x=>x.jenis==='RETUR_MASUK' && / → GBJ$/.test(x.label)));
 const idOut = q.find(x=>x.sumber==='PENGIRIMAN').id;
 ctx.tinjauTransfer(idOut,'setuju','',{});
-ok('review pengiriman jalan (routing ID benar)', ctx.antrianReview({}).length===13, ctx.antrianReview({}).length);
+ok('review pengiriman jalan (routing ID benar)', ctx.antrianReview({}).length===7, ctx.antrianReview({}).length);
 tolak('tidak bisa review 2x', ()=>ctx.tinjauTransfer(idRcv,'setuju','',{}), /sudah final/);
 
 console.log('\n— 11. Review: Setuju / Tandai (arsip) / Batal —');
@@ -192,8 +189,8 @@ console.log('\n— 11. Review: Setuju / Tandai (arsip) / Batal —');
 const arsip = ctx.antrianReview({}, 'DITANDAI');
 ok('entri ditandai muncul di tab Ditandai', arsip.some(x=>x.id===idTrf), arsip.map(x=>x.id));
 ok('catatan tinjau ikut', arsip.find(x=>x.id===idTrf).catatanTinjau==='foto buram');
-const trfDitandai = ctx.baca_(ctx.SHEET.TRANSFER).find(r=>r.ID===idTrf);
-const fld = trfDitandai.Arah==='GBJ_KE_GP' ? 'keGP' : 'keGBJ';
+const trfDitandai = ctx.baca_(ctx.SHEET.PENERIMAAN).find(r=>r.ID===idTrf);
+const fld = 'beli';
 const stokA = ctx.laporanStok({});
 const itemA = stokA.daftar.find(x=>x.kode===trfDitandai.Kode_Item);
 ok('DITANDAI tetap dihitung di stok', itemA[fld] >= trfDitandai.Qty_Kg, {arus:itemA[fld], qty:trfDitandai.Qty_Kg});
@@ -203,7 +200,7 @@ ctx.tinjauTransfer(idTrf,'batal','salah item',{});
 const stokB = ctx.laporanStok({});
 const itemB = stokB.daftar.find(x=>x.kode===trfDitandai.Kode_Item);
 ok('DIBATALKAN dikeluarkan dari stok', Math.abs((itemA[fld] - itemB[fld]) - trfDitandai.Qty_Kg) < 0.01, {sebelum:itemA[fld], sesudah:itemB[fld]});
-ok('catatan tinjau digabung', ctx.baca_(ctx.SHEET.TRANSFER).find(r=>r.ID===idTrf).Catatan_Tinjau==='foto buram | salah item');
+ok('catatan tinjau digabung', ctx.baca_(ctx.SHEET.PENERIMAAN).find(r=>r.ID===idTrf).Catatan_Tinjau==='foto buram | salah item');
 tolak('final tidak bisa diubah lagi', ()=>ctx.tinjauTransfer(idTrf,'setuju','',{}), /sudah final/);
 ok('hilang dari tab Ditandai', !ctx.antrianReview({}, 'DITANDAI').some(x=>x.id===idTrf));
 // menunggu -> batal langsung
@@ -216,26 +213,23 @@ ok('ringkasan hitung ditandai', typeof kB.ringkasan.ditandai === 'number');
 
 console.log('\n— 12. Laporan pembelian —');
 const beli = ctx.riwayatPenerimaan(30, {});
-ok('total masuk 1520 kg', beli.total.masuk===1520, beli.total);
+// penerimaan minyak (100 kg) dibatalkan di uji 11 → 1520 − 100
+ok('total masuk 1420 kg (yang dibatalkan tidak dihitung)', beli.total.masuk===1420, beli.total);
 ok('total retur 50 kg', beli.total.retur===50, beli.total);
-ok('bersih 1470 kg', beli.total.bersih===1470, beli.total);
+ok('bersih 1370 kg', beli.total.bersih===1370, beli.total);
 ok('2 supplier', beli.perSupplier.length===2, beli.perSupplier);
 
 console.log('\n— 12b. Neraca stok per item konsisten —');
 const stokAkhir = ctx.laporanStok({});
 let semuaCocok = true, contoh = null;
 stokAkhir.daftar.forEach(function(s){
-  // GBJ = awal + beli − retur supplier + retur customer − terjual − kirim ke GP + balik dari GP
-  const gbjHitung = s.awalGBJ + s.beli - s.retur + s.returCust - s.jual - s.keGP + s.keGBJ;
-  // GP = awal + kirim ke GP − balik ke GBJ − dipakai + dihasilkan
-  const gpHitung  = s.awalGP + s.keGP - s.keGBJ - s.dipakai + s.dihasilkan;
-  if (Math.abs(gbjHitung - s.gbj) > 0.01 || Math.abs(gpHitung - s.gp) > 0.01){
-    semuaCocok = false; contoh = {item:s.nama, gbjHitung, gbj:s.gbj, gpHitung, gp:s.gp};
-  }
+  // v9: GBJ = awal + beli − retur supplier + retur customer − terjual − dipakai + dihasilkan − scrap ke chassen + biji daur ulang − rusak ± opname
+  const gbjHitung = s.awal + s.beli - s.retur + s.returCust - s.jual - s.dipakai + s.dihasilkan - s.daurKirim + s.daurHasil - s.rusak + s.opname;
+  if (Math.abs(gbjHitung - s.gbj) > 0.01){ semuaCocok = false; contoh = {item:s.nama, gbjHitung, gbj:s.gbj}; }
 });
-ok('baris neraca GBJ & GP menjumlah persis ke saldo', semuaCocok, contoh);
-ok('semua item punya awalGBJ & awalGP', stokAkhir.daftar.every(s=>s.awalGBJ!==undefined && s.awalGP!==undefined));
-ok('total = gbj + gp tiap item', stokAkhir.daftar.every(s=>Math.abs((s.gbj+s.gp)-s.total)<0.01));
+ok('baris neraca menjumlah persis ke saldo (satu gudang)', semuaCocok, contoh);
+ok('semua item punya awal & tidak punya gp', stokAkhir.daftar.every(s=>s.awal!==undefined && s.gp===undefined && s.keGP===undefined));
+ok('total = gbj tiap item', stokAkhir.daftar.every(s=>Math.abs(s.gbj-s.total)<0.01));
 
 console.log('\n— 12c. HPP hanya untuk manager —');
 const kM = ctx.getKonteks({});
@@ -266,13 +260,12 @@ const kalLalu = ctx.kalender('2020-01', {});
 ok('bulan kosong -> tidak ada hari', kalLalu.hari.length===0 && kalLalu.jumlahHari===31);
 
 console.log('\n— 13. Validasi —');
-tolak('qty 0 ditolak', ()=>ctx.simpanTransfer({arah:'GBJ_KE_GP',baris:[{kode:'RM-CSW-W240',qty:0}]}), /lebih dari 0/);
-tolak('item tak dikenal', ()=>ctx.simpanTransfer({arah:'GBJ_KE_GP',baris:[{kode:'XXX',qty:1}]}), /tidak dikenal/);
+tolak('qty 0 ditolak', ()=>ctx.mulaiPekerjaan({kodeProduk:'FG-MM-CSW',bahanBaku:[{kode:'RM-CSW-W240',qty:0}]}), /> 0/);
+tolak('item tak dikenal', ()=>ctx.mulaiPekerjaan({kodeProduk:'FG-MM-CSW',bahanBaku:[{kode:'XXX',qty:1}]}), /tidak dikenal/);
 tolak('job tanpa bahan', ()=>ctx.mulaiPekerjaan({kodeProduk:'FG-MM-CSW',bahanBaku:[]}), /belum diisi/);
 tolak('tutup job 2x', ()=>ctx.selesaikanPekerjaan({id:j1.id,barangJadi:[{kode:'FG-MM-CSW',qty:1}]}), /sudah ditutup/);
 
 console.log('\n— 14. Anomali —');
-ctx.simpanTransfer({arah:'GBJ_KE_GP',baris:[{kode:'RM-ALM-NP',qty:1}]});
 const j3 = ctx.mulaiPekerjaan({kodeProduk:'FG-MM-ALM',bahanBaku:[{kode:'RM-ALM-NP',qty:100}]});
 const f3 = ctx.selesaikanPekerjaan({id:j3.id,barangJadi:[{kode:'FG-MM-ALM',qty:110}]});
 ok('output > input -> ANOMALI', f3.status==='ANOMALI', f3);

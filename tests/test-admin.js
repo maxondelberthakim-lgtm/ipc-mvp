@@ -20,7 +20,7 @@ ok('harga tampil ke supervisor', ctx.daftarSku(ANTO).find(s=>s.kode==='RM-PISTAC
 tolak('kode dobel ditolak', ()=>ctx.simpanSku({kode:'RM-PISTACHIO', nama:'X', kategori:'BAHAN_BAKU'}, ANTO), /sudah ada/);
 tolak('kode aneh ditolak', ()=>ctx.simpanSku({kode:'a', nama:'X'}, ANTO), /Kode/);
 const b = ctx.daftarSku(ANTO).find(s=>s.kode==='RM-PISTACHIO').baris;
-ctx.simpanSku({baris:b, kode:'RM-PISTACHIO', nama:'Pistachio Mentah Iran', kategori:'BAHAN_BAKU', harga:330000, awalGBJ:50, awalGP:0}, ANTO);
+ctx.simpanSku({baris:b, kode:'RM-PISTACHIO', nama:'Pistachio Mentah Iran', kategori:'BAHAN_BAKU', harga:330000, awal:50}, ANTO);
 ok('ubah nama', ctx.daftarSku(ANTO).find(s=>s.kode==='RM-PISTACHIO').nama==='Pistachio Mentah Iran');
 // belum dipakai -> hapus beneran
 const h1 = ctx.hapusSku('RM-PISTACHIO', ANTO);
@@ -35,13 +35,14 @@ tolak('ganti kode SKU yang sudah dipakai ditolak', ()=>ctx.simpanSku({baris:ctx.
 
 console.log('\n— Stock opname —');
 ctx.simpanPenerimaan({jenis:'MASUK',supplier:'X',noSuratJalan:'B',baris:[{kode:'RM-CSW-W240',qty:1000}],ident:YANTO});
-ctx.simpanTransfer({arah:'GBJ_KE_GP',baris:[{kode:'RM-CSW-W240',qty:300}],ident:YANTO});
-tolak('staf tidak boleh opname', ()=>ctx.siapkanOpname('GBJ', YANTO), /Supervisor/);
-const prep = ctx.siapkanOpname('GBJ', ANTO);
-ok('daftar item GBJ dengan stok sistem', prep.items.find(i=>i.kode==='RM-CSW-W240').sistem===700, prep.items.find(i=>i.kode==='RM-CSW-W240'));
+ctx.mulaiPekerjaan({kodeProduk:'FG-MM-CSW',bahanBaku:[{kode:'RM-CSW-W240',qty:300}],ident:YANTO});   // 300 kg masuk proses → keluar dari gudang
+tolak('staf tidak boleh opname', ()=>ctx.siapkanOpname(YANTO), /Supervisor/);
+const prep = ctx.siapkanOpname(ANTO);
+ok('daftar item gudang dengan stok sistem (1000 − 300 dipakai job)', prep.items.find(i=>i.kode==='RM-CSW-W240').sistem===700, prep.items.find(i=>i.kode==='RM-CSW-W240'));
+ok('opname tanpa pilihan lokasi (v9)', prep.lokasi==='GBJ');
 ok('item nonaktif tidak ikut', !prep.items.some(i=>i.kode==='RM-ALM-NP'));
 // fisik: mete 688 (kurang 12), W320 tidak dihitung (kosong), sacha inchi seed 20 (lebih 20 — ada stok tak tercatat)
-const o = ctx.simpanOpname({lokasi:'GBJ', baris:[
+const o = ctx.simpanOpname({baris:[
   {kode:'RM-CSW-W240', fisik:688, catatan:'karung sobek'},
   {kode:'RM-CSW-W320', fisik:''},
   {kode:'RM-SI-SEED', fisik:20}
@@ -50,23 +51,22 @@ ok('2 item dicatat (yang kosong dilewati)', o.jumlahItem===2, o);
 ok('kurang 12, lebih 20, bersih +8', o.kurang===12 && o.lebih===20 && o.selisih===8, o);
 const st = ctx.laporanStok(ANTO);
 ok('stok GBJ mete jadi 688 (= fisik)', st.daftar.find(s=>s.kode==='RM-CSW-W240').gbj===688);
-ok('penyesuaian tercatat di neraca', st.daftar.find(s=>s.kode==='RM-CSW-W240').opnameGBJ===-12);
+ok('penyesuaian tercatat di neraca', st.daftar.find(s=>s.kode==='RM-CSW-W240').opname===-12);
 ok('sacha inchi muncul dari 0 jadi 20', st.daftar.find(s=>s.kode==='RM-SI-SEED').gbj===20);
-ok('GP tidak tersentuh', st.daftar.find(s=>s.kode==='RM-CSW-W240').gp===300);
+ok('bahan yang sedang diproses tidak ikut stok gudang', st.daftar.find(s=>s.kode==='RM-CSW-W240').dipakai===300);
 // neraca tetap konsisten
 const m = st.daftar.find(s=>s.kode==='RM-CSW-W240');
-ok('rumus GBJ + opname = saldo', Math.abs((m.awalGBJ + m.beli - m.retur + m.returCust - m.jual - m.keGP + m.keGBJ + m.opnameGBJ) - m.gbj) < 0.01);
-// opname GP
-const o2 = ctx.simpanOpname({lokasi:'GP', baris:[{kode:'RM-CSW-W240', fisik:295}]}, ANTO);
-ok('opname GP: kurang 5', o2.kurang===5);
-ok('GP jadi 295', ctx.laporanStok(ANTO).daftar.find(s=>s.kode==='RM-CSW-W240').gp===295);
-// opname kedua di GBJ: sistem sekarang 688
-ok('siapkanOpname pakai stok terbaru', ctx.siapkanOpname('GBJ', ANTO).items.find(i=>i.kode==='RM-CSW-W240').sistem===688);
+ok('rumus gudang + opname = saldo', Math.abs((m.awal + m.beli - m.retur + m.returCust - m.jual - m.dipakai + m.dihasilkan + m.opname - m.rusak) - m.gbj) < 0.01);
+// opname kedua: sistem sekarang 688
+const o2 = ctx.simpanOpname({baris:[{kode:'RM-CSW-W240', fisik:683}]}, ANTO);
+ok('opname kedua: kurang 5', o2.kurang===5);
+ok('stok jadi 683', ctx.laporanStok(ANTO).daftar.find(s=>s.kode==='RM-CSW-W240').gbj===683);
+ok('siapkanOpname pakai stok terbaru', ctx.siapkanOpname(ANTO).items.find(i=>i.kode==='RM-CSW-W240').sistem===683);
 const rw = ctx.riwayatOpname(90, ANTO);
-ok('riwayat: 2 sesi, terbaru dulu', rw.length===2 && rw[0].lokasi==='GP' && rw[1].jumlahItem===2, rw.map(x=>[x.lokasi,x.jumlahItem]));
+ok('riwayat: 2 sesi, terbaru dulu', rw.length===2 && rw[0].lokasi==='GBJ' && rw[1].jumlahItem===2, rw.map(x=>[x.lokasi,x.jumlahItem]));
 ok('riwayat sesi simpan catatan per item', rw[1].item.find(i=>i.kode==='RM-CSW-W240').catatan==='karung sobek');
-tolak('fisik negatif ditolak', ()=>ctx.simpanOpname({lokasi:'GBJ', baris:[{kode:'RM-CSW-W240', fisik:-1}]}, ANTO), /negatif/);
-tolak('semua kosong ditolak', ()=>ctx.simpanOpname({lokasi:'GBJ', baris:[{kode:'RM-CSW-W240', fisik:''}]}, ANTO), /Belum ada item/);
+tolak('fisik negatif ditolak', ()=>ctx.simpanOpname({baris:[{kode:'RM-CSW-W240', fisik:-1}]}, ANTO), /negatif/);
+tolak('semua kosong ditolak', ()=>ctx.simpanOpname({baris:[{kode:'RM-CSW-W240', fisik:''}]}, ANTO), /Belum ada item/);
 const kal = ctx.kalender(null, ANTO);
 ok('opname muncul di kalender', kal.hari.some(h=>h.kejadian.some(e=>e.jenis==='OPNAME')));
 ok('aktivitas staf hitung opname', ctx.aktivitasStaf('Manager',30,ANTO).daftar[0].jenis.OPNAME===3, ctx.aktivitasStaf('Manager',30,ANTO).daftar[0].jenis);

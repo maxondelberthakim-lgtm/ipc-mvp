@@ -14,13 +14,11 @@ const STAF={nama:'Staff Gudang',pin:'1111'}, STAF2={nama:'Sri'}, SPV={nama:'Mana
 console.log('— Riwayat input per proses —');
 c2.simpanPenerimaan({jenis:'MASUK',supplier:'CV Mitra Mete Sulawesi',noSuratJalan:'SJ/1',baris:[{kode:'RM-CSW-W240',qty:500}],ident:STAF});
 c2.simpanPenerimaan({jenis:'RETUR',supplier:'CV Mitra Mete Sulawesi',baris:[{kode:'RM-CSW-W240',qty:20,idAsal:c2.returTersedia(STAF)[0].id}],ident:STAF});
-c2.simpanTransfer({arah:'GBJ_KE_GP',baris:[{kode:'RM-CSW-W240',qty:300}],ident:STAF2});
 c2.simpanPengiriman({jenis:'KELUAR',customer:'PT Ritel Nusantara',noSuratJalan:'DO/1',baris:[{kode:'RM-CSW-W240',qty:50}],ident:STAF});
 const rM=c2.riwayatInput('BELI_MASUK',14,STAF);
 ok('riwayat masuk: 1 entri', rM.length===1 && rM[0].qty===500 && rM[0].partner==='CV Mitra Mete Sulawesi', rM);
 ok('riwayat retur supplier terpisah', c2.riwayatInput('BELI_RETUR',14,STAF).length===1);
-ok('riwayat transfer ke GP', c2.riwayatInput('TRF_KE_GP',14,STAF).length===1);
-ok('riwayat transfer ke GBJ kosong', c2.riwayatInput('TRF_KE_GBJ',14,STAF).length===0);
+tolak('riwayat transfer tidak ada lagi (v9)', ()=>c2.riwayatInput('TRF_KE_GP',14,STAF), /tidak dikenal/);
 ok('riwayat keluar', c2.riwayatInput('JUAL_KELUAR',14,STAF)[0].qty===50);
 tolak('jenis salah ditolak', ()=>c2.riwayatInput('XXX',14,STAF), /tidak dikenal/);
 
@@ -86,15 +84,15 @@ const kemarin = c2.tglStr_(new Date(Date.now()-864e5));
 const rK = c2.simpanPenerimaan({jenis:'MASUK',supplier:'CV Mitra Mete Sulawesi',noSuratJalan:'SJ/K',baris:[{kode:'RM-CSW-W240',qty:10}],tanggal:kemarin,ident:STAF});
 ok('tanggal kemarin tersimpan', c2.baca_(c2.SHEET.PENERIMAAN).find(r=>r.ID===rK.ids[0]).Tanggal===kemarin);
 ok('default = hari ini', c2.baca_(c2.SHEET.PENERIMAAN).find(r=>r.ID===idM).Tanggal===hariIni);
-tolak('tanggal masa depan ditolak', ()=>c2.simpanTransfer({arah:'GBJ_KE_GP',baris:[{kode:'RM-CSW-W240',qty:1}],tanggal:'2099-01-01',ident:STAF}), /masa depan/);
-tolak('tanggal terlalu lama ditolak', ()=>c2.simpanTransfer({arah:'GBJ_KE_GP',baris:[{kode:'RM-CSW-W240',qty:1}],tanggal:'2020-01-01',ident:STAF}), /terlalu lama/);
-tolak('format salah ditolak', ()=>c2.simpanTransfer({arah:'GBJ_KE_GP',baris:[{kode:'RM-CSW-W240',qty:1}],tanggal:'16/09/2026',ident:STAF}), /YYYY-MM-DD/);
+tolak('tanggal masa depan ditolak', ()=>c2.mulaiPekerjaan({kodeProduk:'FG-MM-CSW',bahanBaku:[{kode:'RM-CSW-W240',qty:1}],tanggal:'2099-01-01',ident:STAF}), /masa depan/);
+tolak('tanggal terlalu lama ditolak', ()=>c2.mulaiPekerjaan({kodeProduk:'FG-MM-CSW',bahanBaku:[{kode:'RM-CSW-W240',qty:1}],tanggal:'2020-01-01',ident:STAF}), /terlalu lama/);
+tolak('format salah ditolak', ()=>c2.mulaiPekerjaan({kodeProduk:'FG-MM-CSW',bahanBaku:[{kode:'RM-CSW-W240',qty:1}],tanggal:'16/09/2026',ident:STAF}), /YYYY-MM-DD/);
 ok('kg masuk hari ini pakai Tanggal (kemarin tidak ikut)', c2.getKonteks(SPV).ringkasan.masukHariIni===520);
 ok('supervisor ubah tanggal entri', /tanggal: /.test(c2.simpanEditEntri(rK.ids[0],{tanggal:hariIni},SPV).log.join()));
 
 console.log('\n— Stok per item di konteks (petunjuk form) —');
 const kS = c2.getKonteks(STAF);
-ok('stok W240 di GBJ & GP tersedia', kS.stok['RM-CSW-W240'] && kS.stok['RM-CSW-W240'].gp===300 && kS.stok['RM-CSW-W240'].gbj===c2.laporanStok(SPV).daftar.find(s=>s.kode==='RM-CSW-W240').gbj, kS.stok['RM-CSW-W240']);
+ok('stok W240 di gudang tersedia (tanpa gp)', kS.stok['RM-CSW-W240'] && kS.stok['RM-CSW-W240'].gp===undefined && kS.stok['RM-CSW-W240'].gbj===c2.laporanStok(SPV).daftar.find(s=>s.kode==='RM-CSW-W240').gbj, kS.stok['RM-CSW-W240']);
 ok('hariIni & maksMundurHari dikirim', kS.hariIni===hariIni && kS.maksMundurHari===60);
 
 console.log('\n— Edit pekerjaan: hitung ulang susut & HPP —');
@@ -131,7 +129,7 @@ c2.ubahBaris_(c2.SHEET.PEKERJAAN, rowJ._baris, { Waktu_Selesai: new Date(Date.no
 tolak('supervisor terkunci setelah 30 hari (job)', ()=>c2.simpanEditPekerjaan(j.id,{bahanBaku:[{kode:'RM-CSW-W240',qty:300}],barangJadi:[{kode:'FG-MM-CSW',qty:285}]},SPV), /periode sudah ditutup/);
 c2.ubahBaris_(c2.SHEET.PEKERJAAN, rowJ._baris, { Waktu_Selesai: new Date(), Tanggal: c2.tglStr_(new Date()) });
 ok('laporan susut konsisten setelah edit', c2.laporanSusut(30,SPV).total.susut===12);
-ok('stok GP ikut angka terbaru', c2.laporanStok(SPV).daftar.find(s=>s.kode==='FG-MM-CSW').gp===285);
+ok('stok gudang ikut angka terbaru', c2.laporanStok(SPV).daftar.find(s=>s.kode==='FG-MM-CSW').gbj===285);
 
 fs.unlinkSync(__dirname+'/.h2.js');
 console.log('\n================ '+pass+' lulus, '+fail+' gagal ================');

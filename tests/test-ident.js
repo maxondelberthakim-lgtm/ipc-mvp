@@ -29,8 +29,8 @@ ok('Direktur = ADMIN', ctx.getKonteks({nama:'Direktur',pin:'2468'}).bisaAdmin===
 ok('Admin = ADMIN', ctx.getKonteks({nama:'Admin',pin:'1234'}).bisaAdmin===true);
 
 console.log('\n— Atribusi entri —');
-ctx.simpanTransfer({arah:'GBJ_KE_GP', baris:[{kode:'RM-CSW-W240',qty:100}], ident:YANTO});
-const t0 = ctx.baca_(ctx.SHEET.TRANSFER)[0];
+ctx.simpanPenerimaan({jenis:'MASUK', supplier:'CV Mitra Mete Sulawesi', noSuratJalan:'SJ/ID/1', baris:[{kode:'RM-CSW-W240',qty:100}], ident:YANTO});
+const t0 = ctx.baca_(ctx.SHEET.PENERIMAAN)[0];
 ok('Nama_Pencatat = Staff Gudang', t0.Nama_Pencatat==='Staff Gudang');
 ok('Dicatat_Oleh = manual:Staff Gudang', t0.Dicatat_Oleh==='manual:Staff Gudang');
 
@@ -40,7 +40,7 @@ const q = ctx.antrianReview(ANTO);
 ok('supervisor lihat 1 antrian', q.length===1);
 tolak('staf tidak bisa approve', ()=>ctx.tinjauTransfer(q[0].id,'setuju','',YANTO), /izin/);
 ctx.tinjauTransfer(q[0].id,'setuju','',ANTO);
-ok('Ditinjau_Oleh = Manager', ctx.baca_(ctx.SHEET.TRANSFER)[0].Ditinjau_Oleh==='Manager');
+ok('Ditinjau_Oleh = Manager', ctx.baca_(ctx.SHEET.PENERIMAAN)[0].Ditinjau_Oleh==='Manager');
 
 console.log('\n— STAF tidak pernah lihat HPP —');
 ok('staf lihatHpp = false', ctx.getKonteks(YANTO).lihatHpp===false);
@@ -80,7 +80,7 @@ console.log('\n— Aktivitas staf —');
 const akt = ctx.aktivitasStaf('', 30, ANTO);
 ok('aktivitas per user ada Staff Gudang', akt.daftar.some(x=>x.nama==='Staff Gudang' && x.total>=2), akt.daftar.map(x=>[x.nama,x.total]));
 const aktY = ctx.aktivitasStaf('Staff Gudang', 30, ANTO);
-ok('filter satu user', aktY.daftar.length===1 && aktY.daftar[0].jenis.KE_GP===1 && aktY.daftar[0].jenis.JOB===1, aktY.daftar[0] && aktY.daftar[0].jenis);
+ok('filter satu user', aktY.daftar.length===1 && aktY.daftar[0].jenis.MASUK===1 && aktY.daftar[0].jenis.JOB===1, aktY.daftar[0] && aktY.daftar[0].jenis);
 tolak('staf tidak boleh lihat aktivitas', ()=>ctx.aktivitasStaf('', 30, YANTO), /Supervisor/);
 
 console.log('— Hardening: PAKSA_LOGIN_MANUAL & AKSES_TERBUKA —');

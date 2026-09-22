@@ -2,6 +2,6 @@
   "name": "ipc-mvp-tests",
   "private": true,
   "scripts": {
-    "test": "node test.js && node test-ident.js && node test-edit.js && node test-admin.js"
+    "test": "node test.js && node test-ident.js && node test-edit.js && node test-admin.js && node test-v7.js && node test-v8.js && node test-v9.js"
   }
 }

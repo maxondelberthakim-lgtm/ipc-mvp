@@ -1,4 +1,5 @@
 /* Simulasi lingkungan Apps Script agar logika bisa diuji di Node */
+function otoTanggal_(v){ return (typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v)) ? new Date(v + 'T00:00:00') : v; }
 const fs = require('fs');
 const vm = require('vm');
 const path = require('path');
@@ -10,8 +11,12 @@ function makeSheet(name){
     getLastRow(){ return this.rows.length; },
     getMaxColumns(){ return this.rows[0] ? this.rows[0].length : 26; },
     deleteColumns(){}, insertColumnsAfter(){},
+    /* v9: migrasi menghapus kolom Stok_Awal_GP & mengganti nama sheet Transfer */
+    deleteColumn(c){ this.rows.forEach(r=>{ if (r.length>=c) r.splice(c-1,1); }); },
+    setName(n){ delete SS.sheets[this.name]; this.name=n; SS.sheets[n]=this; },
     setFrozenRows(){}, autoResizeColumns(){},
-    appendRow(r){ this.rows.push(r.slice()); },
+    /* Sheets mengubah teks 'YYYY-MM-DD' jadi Date otomatis -> tiru supaya bug normalisasi tanggal ketahuan di test */
+    appendRow(r){ this.rows.push(r.map(otoTanggal_)); },
     deleteRow(n){ this.rows.splice(n-1,1); },
     deleteRows(n,k){ this.rows.splice(n-1,k||1); },
     getRange(r,c,nr,nc){
@@ -22,7 +27,7 @@ function makeSheet(name){
           for(let i=0;i<vals.length;i++){
             const ri=r-1+i;
             while(sh.rows.length<=ri) sh.rows.push([]);
-            for(let j=0;j<vals[i].length;j++) sh.rows[ri][c-1+j]=vals[i][j];
+            for(let j=0;j<vals[i].length;j++) sh.rows[ri][c-1+j]=otoTanggal_(vals[i][j]);
           }
           return this;
         },
@@ -95,7 +100,7 @@ const ctx = {
 };
 vm.createContext(ctx);
 
-['Config.gs','Server.gs','Media.gs','Pembelian.gs','Penjualan.gs'].forEach(f=>{
+['Config.gs','Server.gs','Media.gs','Pembelian.gs','Penjualan.gs','DaurUlang.gs'].forEach(f=>{
   vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'apps-script', f), 'utf8'), ctx, {filename:f});
 });
 // tes memakai master data contoh (kacang) — deploy sungguhan memakai DUMMY_ITEM di Config.gs

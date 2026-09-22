@@ -68,11 +68,10 @@ ok('stok GBJ W240 = 400+100-50 = 450', ctx.getKonteks(STAF).stok['RM-CSW-W240'].
 
 console.log('\n— HPP FIFO —');
 // Master W240 = 185000. Batch RCV1 @180000 (350 sisa), RCV3 tanpa PO harga 0 -> pakai cadangan (rata2 lapisan)
-ctx.simpanTransfer({arah:'GBJ_KE_GP',baris:[{kode:'RM-CSW-W240',qty:300}],ident:STAF});
 const nilai = ctx.laporanNilaiStok(SPV);
 const w240 = nilai.daftar.find(x=>x.kode==='RM-CSW-W240');
-ok('nilai stok: GP 300 kg @180000 (lapisan RCV1)', w240.gp.qty===300 && w240.gp.rata===180000, w240.gp);
-ok('nilai stok: GBJ 150 kg (50 RCV1 + 100 RCV3)', w240.gbj.qty===150, w240.gbj);
+ok('nilai stok (v9 satu lokasi): 450 kg = 350 RCV1 @180000 + 100 RCV3', w240.qty===450 && w240.lapisan.length===2 && w240.lapisan[0].harga===180000, w240);
+ok('nilai stok tidak punya gbj/gp terpisah', w240.gbj===undefined && w240.gp===undefined);
 tolak('staf tidak boleh lihat nilai stok', ()=>ctx.laporanNilaiStok(STAF), /Manager/);
 const j1 = ctx.mulaiPekerjaan({kodeProduk:'FG-MM-CSW',bahanBaku:[{kode:'RM-CSW-W240',qty:250}],ident:STAF});
 let jobRow = ctx.baca_(ctx.SHEET.PEKERJAAN).find(r=>r.ID===j1.id);
@@ -86,9 +85,8 @@ ctx.selesaikanPekerjaan({id:j1.id,barangJadi:[{kode:'FG-MM-CSW',qty:240}],scrapK
 jobRow = ctx.baca_(ctx.SHEET.PEKERJAAN).find(r=>r.ID===j1.id);
 const hppKg = jobRow.HPP_Per_Kg;
 ok('HPP/kg produk jadi = (45jt + 250×2500)/240', hppKg===Math.round((250*180000+250*2500)/240), hppKg);
-ctx.simpanTransfer({arah:'GP_KE_GBJ',baris:[{kode:'FG-MM-CSW',qty:240}],ident:STAF});
 const nilai2 = ctx.laporanNilaiStok(SPV).daftar.find(x=>x.kode==='FG-MM-CSW');
-ok('produk jadi di GBJ dinilai HPP/kg pekerjaan', nilai2.gbj.qty===240 && Math.abs(nilai2.gbj.rata-hppKg)<=1, nilai2.gbj);
+ok('produk jadi langsung di gudang, dinilai HPP/kg pekerjaan', nilai2.qty===240 && Math.abs(nilai2.rata-hppKg)<=1, nilai2);
 const jual = ctx.simpanPengiriman({jenis:'KELUAR',customer:'PT Ritel Nusantara',noSuratJalan:'DO/1',baris:[{kode:'FG-MM-CSW',qty:100}],ident:STAF});
 ok('penjualan mencatat HPP_Per_Kg FIFO', Math.abs(ctx.baca_(ctx.SHEET.PENGIRIMAN).find(r=>r.ID===jual.ids[0]).HPP_Per_Kg-hppKg)<=1);
 
@@ -113,13 +111,13 @@ tolak('manager tidak boleh mencatat rusak', ()=>ctx.simpanKerusakan({lokasi:'GBJ
 tolak('tanpa penyebab ditolak', ()=>ctx.simpanKerusakan({lokasi:'GBJ',kode:'RM-CSW-W240',qty:5,ident:STAF}), /Penyebab/);
 const dmg = ctx.simpanKerusakan({lokasi:'GBJ',kode:'RM-CSW-W240',qty:20,penyebab:'karung bocor kena hujan',ident:STAF});
 ok('laporan rusak tersimpan MENUNGGU', dmg.ok && ctx.daftarKerusakan(STAF)[0].status==='MENUNGGU');
-ok('stok belum berkurang sebelum disetujui', ctx.getKonteks(STAF).stok['RM-CSW-W240'].gbj===150);
+ok('stok belum berkurang sebelum disetujui (450 − 250 − 10 dipakai job)', ctx.getKonteks(STAF).stok['RM-CSW-W240'].gbj===190);
 ok('getKonteks spv: 1 laporan rusak menunggu', ctx.getKonteks(SPV).ringkasan.kerusakanMenunggu===1);
 tolak('staf tidak bisa setujui', ()=>ctx.tinjauKerusakan(dmg.id,'setuju','',STAF), /Supervisor/);
 const tk = ctx.tinjauKerusakan(dmg.id,'setuju','dicek langsung',SPV);
 ok('disetujui: nilai kerugian FIFO > 0', tk.status==='DISETUJUI' && tk.nilaiKerugian>0, tk);
-ok('stok GBJ turun 20 → 130', ctx.getKonteks(STAF).stok['RM-CSW-W240'].gbj===130);
-ok('laporanStok punya kolom rusakGBJ=20', ctx.laporanStok(SPV).daftar.find(s=>s.kode==='RM-CSW-W240').rusakGBJ===20);
+ok('stok gudang turun 20 → 170', ctx.getKonteks(STAF).stok['RM-CSW-W240'].gbj===170);
+ok('laporanStok punya kolom rusak=20', ctx.laporanStok(SPV).daftar.find(s=>s.kode==='RM-CSW-W240').rusak===20);
 ok('staf lihat laporannya sendiri (DISETUJUI) tanpa nilai', (()=>{const d=ctx.daftarKerusakan(STAF,'DISETUJUI')[0]; return d && d.nilaiKerugian===undefined;})());
 ok('spv lihat nilai kerugian', ctx.daftarKerusakan(SPV,'DISETUJUI')[0].nilaiKerugian===tk.nilaiKerugian);
 
@@ -148,7 +146,7 @@ console.log('\n— FIFO: pekerjaan lewat tengah malam —');
   const rowJ2 = ctx.baca_(ctx.SHEET.PEKERJAAN).find(r=>r.ID===jm.id);
   ctx.ubahBaris_(ctx.SHEET.PEKERJAAN, rowJ2._baris, { Waktu_Selesai: H1 });
   const f = ctx.hitungFifo_();
-  const lapFG = (f.lapisan['FG-MM-CSW'] && f.lapisan['FG-MM-CSW'].GP || []).filter(l=>l.asal===jm.id);
+  const lapFG = (f.lapisan['FG-MM-CSW'] || []).filter(l=>l.asal===jm.id);
   ok('lapisan FG dari job lewat tengah malam ada & berharga > 0', lapFG.length===1 && lapFG[0].harga>0, lapFG);
   ok('biaya job terhitung', (f.biaya[jm.id]||0) > 0, f.biaya[jm.id]);
 }
@@ -212,12 +210,11 @@ console.log('\n— Laporan stok: rincian neraca = saldo (termasuk barang rusak) 
   const ls = ctx.laporanStok(SPV);
   let cocok = true, adaRusak = false;
   ls.daftar.forEach(s => {
-    const gbj = s.awalGBJ + s.beli + s.returCust + s.keGBJ - s.retur - s.jual - s.keGP - s.rusakGBJ + s.opnameGBJ;
-    const gp  = s.awalGP + s.keGP + s.dihasilkan - s.keGBJ - s.dipakai - s.rusakGP + s.opnameGP;
-    if (Math.abs(gbj - s.gbj) > 0.01 || Math.abs(gp - s.gp) > 0.01) { cocok = false; console.log('   beda:', s.kode, gbj, s.gbj, gp, s.gp); }
-    if (s.rusakGBJ || s.rusakGP) adaRusak = true;
+    const gbj = s.awal + s.beli + s.returCust + s.dihasilkan + s.daurHasil - s.retur - s.jual - s.dipakai - s.daurKirim - s.rusak + s.opname;
+    if (Math.abs(gbj - s.gbj) > 0.01) { cocok = false; console.log('   beda:', s.kode, gbj, s.gbj); }
+    if (s.rusak) adaRusak = true;
   });
-  ok('setiap baris neraca menjumlah tepat ke saldo GBJ & GP', cocok);
+  ok('setiap baris neraca menjumlah tepat ke saldo gudang', cocok);
   ok('ada item dengan barang rusak disetujui di laporan', adaRusak);
   ok('total rusak ikut di ringkasan', ls.total.rusak > 0, ls.total);
 }

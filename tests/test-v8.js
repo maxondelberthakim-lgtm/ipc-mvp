@@ -25,11 +25,9 @@ console.log('\n— Stok awal: beli & produksi —');
 const po = ctx.simpanPo({supplier:SUP, baris:[{kode:'RM-CSW-W240', qty:1000, harga:180000}]}, SPV);
 const poLine = ctx.poTerbuka(STAF)[0];
 ctx.simpanPenerimaan({jenis:'MASUK',supplier:SUP,noSuratJalan:'SJ/1',baris:[{kode:'RM-CSW-W240',qty:600,idPo:poLine.id}],ident:STAF});
-ctx.simpanTransfer({arah:'GBJ_KE_GP',baris:[{kode:'RM-CSW-W240',qty:300}],ident:STAF});
 const j = ctx.mulaiPekerjaan({kodeProduk:'FG-MM-CSW',bahanBaku:[{kode:'RM-CSW-W240',qty:300}],ident:STAF});
 ctx.selesaikanPekerjaan({id:j.id,barangJadi:[{kode:'FG-MM-CSW',qty:285}],scrapKg:3,ident:STAF});
-ctx.simpanTransfer({arah:'GP_KE_GBJ',baris:[{kode:'FG-MM-CSW',qty:285}],ident:STAF});
-ok('FG 285 kg di GBJ', ctx.getKonteks(STAF).stok['FG-MM-CSW'].gbj===285);
+ok('FG 285 kg di GBJ (hasil job langsung di gudang)', ctx.getKonteks(STAF).stok['FG-MM-CSW'].gbj===285);
 
 console.log('\n— Sales order —');
 tolak('staf tidak boleh buat SO', ()=>ctx.simpanSo({customer:CUS,baris:[{kode:'FG-MM-CSW',qty:100,harga:250000}]},STAF), /Manager/);
@@ -84,7 +82,6 @@ ok('PO terbuka 400 kg tercatat', w240.poSisa===400);
 ok('item tak dipakai = TIDAK_DIPAKAI & diurut belakang', pr[pr.length-1].status==='TIDAK_DIPAKAI');
 // habiskan stok W240 supaya PERLU_BELI: selesaikan sisa PO dulu supaya tidak ada PO
 ctx.simpanPenerimaan({jenis:'MASUK',supplier:SUP,noSuratJalan:'SJ/2',baris:[{kode:'RM-CSW-W240',qty:400,idPo:poLine.id}],ident:STAF});
-ctx.simpanTransfer({arah:'GBJ_KE_GP',baris:[{kode:'RM-CSW-W240',qty:650}],ident:STAF});
 const j2 = ctx.mulaiPekerjaan({kodeProduk:'FG-MM-CSW',bahanBaku:[{kode:'RM-CSW-W240',qty:650}],ident:STAF});
 pr = ctx.prediksiBeli(SPV, 30);
 const w2 = pr.find(x=>x.kode==='RM-CSW-W240');
@@ -99,7 +96,7 @@ console.log('\n— Ekspor bulanan —');
 tolak('staf tidak boleh ekspor', ()=>ctx.eksporBulanan(hariIni.slice(0,7), STAF), /Manager/);
 tolak('format bulan salah', ()=>ctx.eksporBulanan('2026/09', SPV), /YYYY-MM/);
 const ex = ctx.eksporBulanan(hariIni.slice(0,7), SPV);
-ok('6 file CSV', ex.files.length===6 && ex.files.every(f=>f.csv.charCodeAt(0)===0xFEFF), ex.files.map(f=>f.nama));
+ok('7 file CSV (v9: + daur_ulang)', ex.files.length===7 && ex.files.every(f=>f.csv.charCodeAt(0)===0xFEFF), ex.files.map(f=>f.nama));
 const beliCsv = ex.files.find(f=>f.nama.indexOf('pembelian')===0).csv;
 ok('pembelian: 2 penerimaan dengan harga PO 180000', beliCsv.split('\r\n').length===3 && /180000;108000000/.test(beliCsv), beliCsv.split('\r\n')[1]);
 const jualCsv = ex.files.find(f=>f.nama.indexOf('penjualan')===0).csv;
@@ -108,7 +105,8 @@ const ring = Object.fromEntries(ex.ringkasan);
 ok('ringkasan: penjualan 15,3 jt, HPP terjual > 0, laba = selisih (hanya yang ada harga SO)', ring['Penjualan (nilai, dari harga SO)']===15300000 && ring['HPP barang terjual (semua pengiriman)']>0 && ring['HPP barang terjual (yang ada harga SO)']===ring['HPP barang terjual (semua pengiriman)'] && ring['Laba kotor (penjualan − HPP, hanya yang ada harga SO)']===15300000-ring['HPP barang terjual (yang ada harga SO)'] && ring['Penjualan tanpa SO / tanpa harga (kg)']===0, ring);
 ok('ringkasan: pembelian 180 jt, 1 pekerjaan, nilai stok > 0', ring['Pembelian (nilai)']===180000000 && ring['Pekerjaan selesai']===1 && ring['Nilai stok akhir bulan (FIFO)']>0, ring);
 const stokCsv = ex.files.find(f=>f.nama.indexOf('nilai_stok')===0).csv;
-ok('nilai stok akhir bulan berisi baris per lokasi', stokCsv.split('\r\n').length>=3);
+ok('nilai stok akhir bulan berisi baris per item (satu lokasi)', stokCsv.split('\r\n').length>=3 && stokCsv.split('\r\n')[0].indexOf('Lokasi')<0);
+
 ok('ekspor bulan kosong: hanya header', ctx.eksporBulanan('2020-01', SPV).files.find(f=>f.nama.indexOf('pembelian')===0).csv.split('\r\n').length===1);
 ok('hitungFifo_ dengan batas tanggal lama = kosong', Object.keys(ctx.hitungFifo_('2020-01-31').lapisan).length===0);
 
