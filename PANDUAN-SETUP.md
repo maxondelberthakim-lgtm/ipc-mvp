@@ -1,4 +1,4 @@
-# IPC — Inventory & Production Control (v8)
+# IPC — Inventory & Production Control (v9)
 
 Backend Google Sheets, frontend web app yang dibuka lewat browser HP.
 Tidak ada server, tidak ada hosting, tidak ada aplikasi yang perlu di-install.
@@ -10,29 +10,29 @@ Tidak ada server, tidak ada hosting, tidak ada aplikasi yang perlu di-install.
 ## Alur lengkap
 
 ```
-                            ┌──① transfer──►  GP
-                            │                  │
-  SUPPLIER ──⓪ beli──►    GBJ              ② pekerjaan
-     ▲       + surat jalan  │  ▲          bahan → jadi + scrap
-     └──↩ retur ke supplier─┘  └──③ transfer──┘   susut auto
+  SUPPLIER ──⓪ beli──►    GBJ  ◄──① pekerjaan: bahan baku keluar → barang jadi + scrap masuk (susut auto)
+     ▲       + surat jalan  │  ▲
+     └──↩ retur ke supplier─┘  └──♻ daur ulang: scrap → mesin chassen (pabrik lain) → biji plastik daur ulang
                             │  ▲
                             │  └──↩ retur dari customer
                             └──④ keluar (terjual)──►  CUSTOMER
                                + surat jalan / DO
 ```
 
+**v9: hanya ada SATU gudang (GBJ).** Gudang produksi (GP) dan transfer ①/③ dihapus — pekerjaan memakai
+bahan baku langsung dari gudang dan hasilnya langsung masuk gudang lagi.
+
 | # | Proses | Foto | Surat jalan | Efek stok |
 |---|---|---|---|---|
 | ⓪ | Pembelian masuk | wajib | **wajib** + OCR | GBJ + |
 | ↩ | Retur ke supplier | wajib | — | GBJ − |
-| ① | Transfer ke produksi | wajib | — | GBJ − , GP + |
-| ② | Pekerjaan | opsional | — | GP: bahan −, jadi + scrap + |
-| ③ | Transfer ke gudang | wajib | — | GP − , GBJ + |
+| ① | Pekerjaan | opsional | — | bahan −, jadi + scrap + |
+| ♻ | Daur ulang scrap (chassen) | opsional | opsional | scrap −, biji plastik daur ulang + |
 | ④ | **Barang keluar (terjual)** | wajib | **wajib** (DO kamu) | **GBJ −** |
 | ↩ | **Retur dari customer** | wajib | — | **GBJ +** |
 
-⓪ ↩ ① ③ ④ semuanya posting langsung lalu masuk **satu antrian review** supervisor.
-② tidak butuh approval — dikontrol lewat laporan susut.
+⓪ ↩ ④ posting langsung lalu masuk **satu antrian review** supervisor.
+① dan ♻ tidak butuh approval — dikontrol lewat laporan susut.
 
 ### Tiga keputusan di antrian review
 
@@ -49,7 +49,8 @@ Dengan ⓪ dan ④ lengkap, stok GBJ jadi persamaan tertutup:
 
 ```
 GBJ = stok awal + beli − retur supplier + retur customer − keluar terjual
-              − transfer ke GP + transfer balik dari GP
+      − bahan baku dipakai pekerjaan + barang jadi + scrap
+      − scrap ke chassen + biji plastik daur ulang − rusak (disetujui) ± opname
 ```
 
 Selisih antara angka ini dan hitungan fisik = barang yang bergerak tanpa dicatat.
@@ -88,6 +89,7 @@ Panel kiri (Files):
 - **+ → Script** → **Media** → paste `Media.gs`
 - **+ → Script** → **Pembelian** → paste `Pembelian.gs`
 - **+ → Script** → **Penjualan** → paste `Penjualan.gs`
+- **+ → Script** → **DaurUlang** → paste `DaurUlang.gs`
 - **+ → HTML** → **Index** → hapus isi bawaan, paste `Index.html`
 - **+ → HTML** → **Styles** → paste `Styles.html`
 - **+ → HTML** → **Script** → paste `Script.html`
@@ -151,25 +153,30 @@ Kirim link via WhatsApp. Di HP: buka link → menu browser → **Add to Home scr
 1. Truk supplier datang → **⓪ Barang masuk** → pilih supplier → foto surat jalan →
    🔍 **Baca surat jalan** (OCR isi no. SJ + saran qty) → ketik qty asli hasil timbang → Simpan
 2. Barang tidak sesuai → **↩ Retur ke supplier** → stok GBJ langsung berkurang
-3. Kirim bahan ke produksi → **① Transfer ke Produksi**
-4. Barang terjual, mau dikirim → **④ Barang keluar** → pilih customer → isi no. DO →
+3. Barang terjual, mau dikirim → **④ Barang keluar** → pilih customer → isi no. DO →
    foto barang / surat jalan → qty → Simpan. Stok GBJ langsung berkurang.
-5. Barang dikembalikan customer → **↩ Retur dari customer** → stok GBJ bertambah lagi
+4. Barang dikembalikan customer → **↩ Retur dari customer** → stok GBJ bertambah lagi
+5. Supplier / customer / item belum ada di daftar? Ketik namanya di kotak pencarian → **+ Tambah baru** →
+   langsung terpilih (kode dibuat otomatis, nama yang sama tidak digandakan)
 
-**Staff produksi (GP)**
-1. **② Pekerjaan → Mulai baru** → pilih produk → isi bahan baku (kg) → Mulai
+**Staff produksi**
+1. **① Pekerjaan → Mulai baru** → pilih produk → isi bahan baku (kg, langsung dari gudang) → Mulai
 2. Layar "Sedang dibuat" langsung menunjukkan **apa yang dibuat** dan **berapa kg** ada di dalamnya
-3. Selesai → tap job → isi barang jadi + scrap → **Tutup & hitung susut**
+3. Selesai → tap job → isi barang jadi + scrap → **Tutup & hitung susut** — hasilnya langsung ada di gudang
 4. Hasilnya langsung tampil: total susut kg, %, dan **susutnya dari bahan apa**
-5. Kirim balik ke gudang → **③ Transfer ke Gudang**
+5. Scrap menumpuk → **♻ Daur ulang scrap → Kirim scrap**: pilih tempat chassen (vendor), kg scrap, foto.
+   Saat biji plastiknya kembali → tab *Di chassen* → tap batch → isi kg biji plastik yang diterima →
+   **Terima & hitung susut**. Biaya jasa chassen diisi manager (staf tidak melihatnya).
 
 **Supervisor / manager**
 1. Isi nama + **PIN supervisor**
 2. **Beranda → kalender** — titik warna per hari (hijau masuk, oranye keluar, ungu pekerjaan,
    merah susut tinggi) dan angka kg masuk. Ketuk tanggal → semua kejadian hari itu.
-3. Tab **Review** — pembelian, penjualan, retur, dan transfer semuanya di satu antrian.
+3. Tab **Review** — pembelian, penjualan, dan retur semuanya di satu antrian.
    Foto persis di sebelah angka. Untuk pembelian, selisih angka ketik vs OCR ditandai merah.
-4. Tab **Laporan** → Susut / Stok / Beli / Jual / Transfer / **HPP**
+4. Tab **Laporan** → Susut / Stok / Beli / Jual / **Daur ulang** / **HPP** / Nilai stok / Std susut / Perlu beli / Ekspor
+5. **♻ Daur ulang → Selesai**: isi **biaya jasa chassen** per batch (bisa belakangan). HPP biji plastik
+   daur ulang = (nilai scrap FIFO + jasa) ÷ kg diterima, dan otomatis dipakai pekerjaan berikutnya.
 
 ---
 
@@ -179,10 +186,10 @@ Kirim link via WhatsApp. Di HP: buka link → menu browser → **Add to Home scr
 | Kolom | Isi |
 |---|---|
 | `Kode_Item` | kode unik, bebas formatnya |
-| `Nama_Item` | nama yang muncul di dropdown HP |
+| `Nama_Item` | nama yang muncul di kotak pencarian HP |
 | `Kategori` | `BAHAN_BAKU`, `BARANG_JADI`, atau `KEDUANYA` |
 | `Harga_Per_Kg` | harga beli bahan baku per kg — dasar HPP. Kosongkan untuk barang jadi |
-| `Stok_Awal_GBJ` / `Stok_Awal_GP` | stok pembuka dalam kg (boleh 0) |
+| `Stok_Awal` | stok pembuka dalam kg (boleh 0). v9: satu kolom — `Stok_Awal_GBJ` + `Stok_Awal_GP` lama digabung otomatis |
 | `Aktif` | `YA` / `TIDAK` |
 
 Tidak ada kolom satuan — semuanya kg. Scrap pakai `KEDUANYA`.
@@ -237,8 +244,7 @@ Admin terakhir yang aktif tidak bisa diturunkan atau dinonaktifkan — supaya ti
 
 **Opname** — stock opname. Cara kerjanya:
 
-1. Pilih lokasi (GBJ atau GP). App menampilkan semua item dengan **stok sistem** — angka hasil hitungan
-   dari seluruh transaksi.
+1. App menampilkan semua item dengan **stok sistem** — angka hasil hitungan dari seluruh transaksi.
 2. Hitung barang yang benar-benar ada di rak, isi di kolom **Fisik**. Item yang tidak dihitung, kosongkan.
 3. Simpan. Selisih (fisik − sistem) tersimpan di tab `Stock_Opname` sebagai **penyesuaian**:
    stok sistem langsung = angka fisik, dan selisihnya tercatat siapa yang menghitung, kapan, catatan apa.
@@ -265,8 +271,8 @@ Scrap **tidak lagi** pakai SKU generik. Saat pekerjaan ditutup, kamu isi satu an
 Sistem otomatis membuat SKU `SCR-<kode produk>` (mis. `SCR-FG-MM-CSW` = "Scrap · Mete Panggang Mete
 Panggang") kalau belum ada, dan mencatat scrap-nya di situ. Akibatnya:
 
-- stok scrap **per produk** kelihatan di Laporan → Stok (di GP, karena lahirnya di produksi)
-- bisa ditransfer ③ ke GBJ lalu **dijual lewat ④** seperti barang lain
+- stok scrap **per produk** kelihatan di Laporan → Stok
+- bisa **dijual lewat ④** seperti barang lain, atau **dikirim ke mesin chassen (♻)** jadi biji plastik daur ulang
 - muncul di Admin → SKU dengan label *scrap*; kamu bisa isi `Harga_Per_Kg` kalau mau
 
 Rumus susut tidak berubah: scrap tetap dikurangkan sebagai output, bukan susut.
@@ -351,7 +357,6 @@ langsung jadi persis.
 (maks 1400px, JPEG 72%) supaya hemat kuota staff.
 
 **OCR** cuma dipakai di pembelian masuk — di situlah ada surat jalan dari luar.
-Transfer internal GBJ↔GP tidak pakai surat jalan sama sekali, cukup foto + timestamp.
 Hasil OCR **hanya saran**; yang tersimpan tetap angka yang diketik staff, dan selisihnya
 muncul di antrian review.
 
@@ -359,7 +364,7 @@ muncul di antrian review.
 itu justru informasi yang kamu cari.
 
 **Laporan → Stok** menampilkan saldo tiap item; ketuk namanya untuk membuka rincian
-seperti buku kas — dua blok terpisah (GBJ dan GP), tiap baris jelas tanda plus/minusnya,
+seperti buku kas — satu blok gudang, tiap baris jelas tanda plus/minusnya,
 dan berakhir di saldo. Kalau ada angka yang kelihatan aneh, blok itu langsung menunjukkan
 baris mana penyebabnya.
 
@@ -384,8 +389,36 @@ Version: **New version** → Deploy. Link di HP staff tidak berubah.
 - Offline mode (harus ada sinyal saat submit)
 - Piutang / pelunasan customer (sales order sudah ada sejak v8)
 - Barcode / QR (sesuai proposal: kamera saja)
-- Multi-gudang di luar GBJ / GP
+- Multi-gudang (v9 sengaja satu gudang)
 - Notifikasi push ke supervisor
+
+## Versi 9 (satu gudang · search bar + tambah baru · daur ulang scrap)
+
+- **Gudang produksi dihapus.** Tidak ada lagi Transfer ke Produksi / ke Gudang. Pekerjaan mengambil bahan baku
+  langsung dari gudang (GBJ) dan barang jadi + scrap langsung masuk gudang. Laporan Stok jadi satu blok per item;
+  opname & barang rusak tanpa pilihan lokasi. Data lama: `Stok_Awal_GP` digabung ke `Stok_Awal`, tab `Transfer`
+  diganti nama `Transfer_lama` (tidak dihitung — transfer bolak-balik dalam satu gudang memang saling meniadakan).
+  Semua otomatis lewat `migrasiSkema` saat versi baru pertama dipanggil.
+- **Search bar + tambah baru** di semua kotak supplier / customer / item (penerimaan, barang keluar, PO, SO,
+  pekerjaan, rusak, daur ulang, ubah entri): ketik untuk mencari; kalau belum ada, tekan **+ Tambah baru** — langsung
+  tersimpan di master & terpilih. Boleh dilakukan semua peran. Kode otomatis: `SUP-00n`, `CUS-00n`, item
+  `RM-…` (bahan baku) / `FG-…` (barang jadi) dari nama. Nama yang sama (huruf besar/kecil diabaikan) tidak
+  digandakan; SKU nonaktif dengan nama itu diaktifkan lagi. Scrap tidak bisa ditambah manual (dibuat otomatis
+  oleh pekerjaan).
+- **Daur ulang scrap (♻)** — pabrik tidak punya mesin chassen, jadi scrap dikirim ke pabrik lain:
+  1. **Kirim scrap** (staf): vendor (dari daftar supplier, bisa tambah baru), tanggal, no. surat jalan (opsional),
+     kg scrap per SKU scrap, foto. Stok scrap berkurang; batch berstatus *Di chassen*.
+  2. **Terima** (staf/manager): kg biji plastik daur ulang yang kembali (SKU bahan baku, mis. `RM-BP-DU`; bisa
+     tambah baru), tanggal terima, foto. **Susut chassen = scrap dikirim − biji plastik diterima**, status
+     NORMAL / TINGGI / ANOMALI menurut Pengaturan `SUSUT_CHASSEN_PERSEN` (5) ± `TOLERANSI_CHASSEN_PERSEN` (3).
+  3. **Biaya jasa** (Manager/Admin saja, saat terima atau belakangan dari tab *Selesai*): HPP biji plastik
+     daur ulang = (nilai scrap FIFO + jasa) ÷ kg diterima → masuk mesin FIFO, jadi pekerjaan yang memakai biji
+     daur ulang menghitung HPP-nya benar. Staf tidak pernah menerima angka jasa/HPP (log edit pun disaring).
+  4. Batal: staf hanya batch sendiri yang masih di chassen; manager kapan saja (stok kembali seperti semula).
+  Laporan → **Daur ulang** (total, per vendor, per batch), kalender (kirim/terima), ekspor bulanan file
+  `daur_ulang_YYYY-MM.csv`, kotak *Daur ulang scrap* di beranda dengan jumlah batch yang sedang di chassen.
+- Tab baru: `Daur_Ulang`, `Daur_Ulang_Detail`. Pengaturan baru: `SUSUT_CHASSEN_PERSEN`, `TOLERANSI_CHASSEN_PERSEN`.
+  File script baru: `DaurUlang.gs`. Ekspor bulanan sekarang 7 file.
 
 ## Versi 8 (sales order · ekspor keuangan · backup · beranda yang bisa ditekan)
 
@@ -419,7 +452,7 @@ Version: **New version** → Deploy. Link di HP staff tidak berubah.
 | Tombol OCR tidak muncul | Drive API v2 belum di-add, atau kamu sedang di layar retur (memang tidak ada) |
 | "No. surat jalan wajib diisi" | Itu di pembelian masuk & barang keluar — retur tidak butuh |
 | Mau barang keluar tanpa nomor DO | Tab `Pengaturan` → `WAJIB_SJ_KELUAR` → `TIDAK` |
-| Stok GBJ minus setelah jual | Barang keluar lebih banyak dari yang pernah masuk — cek transfer balik dari GP |
+| Stok minus setelah jual | Barang keluar lebih banyak dari yang pernah masuk — cek pekerjaan yang belum ditutup / penerimaan yang belum dicatat |
 | Foto tidak muncul di antrian review | Domain melarang link-sharing — buka lewat link di tab Riwayat |
 | Staff tidak diminta nama | Akunnya satu domain Workspace — email kebaca otomatis, ini normal |
 | "PIN salah untuk …" | Nama itu sudah punya PIN di `Master_Pengguna` — tanya admin |
@@ -431,7 +464,9 @@ Version: **New version** → Deploy. Link di HP staff tidak berubah.
 | HPP job = 0 | `Harga_Per_Kg` bahan bakunya kosong di `Master_Item` |
 | "Entri ini sudah final" | Setuju / Batal tidak bisa diubah statusnya lagi — tapi supervisor masih bisa mengubah angkanya lewat Ubah |
 | Tombol Ubah tidak ada, cuma 🔒 | Bukan entri kamu, atau sudah ditinjau — minta supervisor |
-| Stok GP minus | Pekerjaan memakai lebih banyak dari yang ditransfer — cek transfer yang belum dicatat |
+| Stok scrap minus | Scrap dikirim ke chassen lebih banyak dari yang dicatat keluar dari pekerjaan — cek angka scrap saat tutup pekerjaan |
+| Nama supplier/item tidak ada di daftar | Ketik namanya di kotak pencarian → **+ Tambah baru** |
+| HPP biji plastik daur ulang = 0 | Biaya jasa belum diisi — Manager: ♻ Daur ulang → Selesai → *Isi biaya jasa* |
 
 
 ### 8. Aplikasi di GitHub Pages (yang dipakai staf)

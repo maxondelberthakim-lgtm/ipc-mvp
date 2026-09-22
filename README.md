@@ -1,7 +1,7 @@
-# IPC — Inventory & Production Control (v8)
+# IPC — Inventory & Production Control (v9)
 
 Mobile web app for a small factory (polybag plant): every kilogram that moves between
-**supplier → warehouse (GBJ) → production (GP) → warehouse → customer** is logged with a
+**supplier → warehouse (GBJ) → job → warehouse → customer** is logged with a
 typed quantity, a photo and a timestamp — then reviewed after the fact by a supervisor.
 
 **Backend is a Google Sheet.** No server, no hosting, no app to install. The plant already
@@ -22,10 +22,9 @@ runs on spreadsheets, so the data lands in the format the team already knows.
 | ⓪ | Goods receipt against a PO (supplier → GBJ), QC note | required | required + OCR | GBJ + |
 | 🧾 | Supplier invoice upload → compare with Σ(received × PO price) → validate, correct price | required | — | prices only |
 | ↩ | Return to supplier — only from a recorded receipt ("returnable X kg") | required | — | GBJ − |
-| ⚠ | Damaged goods — reported by staff, approved by manager | optional | — | GBJ/GP − after approval |
-| ① | Transfer to production (GBJ → GP) | required | — | GBJ −, GP + |
-| ② | Job: raw material → finished goods + scrap | optional | — | GP |
-| ③ | Transfer back (GP → GBJ) | required | — | GP −, GBJ + |
+| ⚠ | Damaged goods — reported by staff, approved by manager | optional | — | GBJ − after approval |
+| ① | Job: raw material (from GBJ) → finished goods + scrap (back into GBJ) | optional | — | GBJ: material −, product + scrap + |
+| ♻ | Scrap recycling: scrap sent to another factory's crusher (chassen) → recycled pellets back, with shrinkage & service fee | optional | optional | scrap −, pellets + |
 | SO | Sales order (manager/sales: customer, item, kg, selling price, ship date) | — | — | reserves stock |
 | ④ | Goods out, sold (GBJ → customer), picked from an SO | required | required | GBJ − |
 | ↩ | Return from customer | required | — | GBJ + |
@@ -69,9 +68,18 @@ runs on spreadsheets, so the data lands in the format the team already knows.
 - **Sales orders**: status TERBUKA → SEBAGIAN → SELESAI, reserved quantity shown next to available stock,
   shipping quantity cannot exceed the SO balance. Selling prices are visible to Manager/Admin only —
   the server never sends SO prices or COGS to warehouse staff.
-- **Monthly finance export** (Reports → Ekspor, Manager/Admin): six CSV files for one month — summary,
+- **One warehouse (v9)**: the separate production store (GP) is gone — jobs consume raw material straight from GBJ and
+  their output lands straight back in GBJ. No transfers to log; stock = one number per item.
+- **Search bars instead of dropdowns (v9)**: every supplier / customer / item field is a search box; a name that does
+  not exist yet can be added on the spot (`+ Tambah baru`) by any role — codes are generated automatically
+  (`SUP-005`, `CUS-005`, `RM-…`/`FG-…`), duplicates (case-insensitive) are reused.
+- **Scrap recycling (v9)**: scrap is sent to a crushing vendor (the plant has no chassen of its own), comes back as
+  recycled pellets — a raw-material SKU. Shrinkage at the crusher = sent − received, flagged against
+  `SUSUT_CHASSEN_PERSEN` ± `TOLERANSI_CHASSEN_PERSEN`; the service fee (Manager/Admin only, can be entered later)
+  becomes the pellets' FIFO cost: `(scrap value + fee) ÷ kg received`, which then flows into job COGS.
+- **Monthly finance export** (Reports → Ekspor, Manager/Admin): seven CSV files for one month — summary,
   purchases (with PO/invoice numbers), sales (with SO price, COGS, gross profit), production, damage,
-  month-end FIFO stock value.
+  recycling (scrap, pellets, fee, cost/kg), month-end FIFO stock value.
 - **Automatic backup**: a time trigger copies the Sheet to a Drive folder "IPC Backup" every night
   (last 30 kept); status visible under Admin → Backup.
 - UI in **Bahasa Indonesia / English** (toggle); sheet & column names in Indonesian.
@@ -101,7 +109,7 @@ PANDUAN-SETUP.md deployment guide (Indonesian) — start here
 Full steps in **[PANDUAN-SETUP.md](PANDUAN-SETUP.md)**. Short version:
 
 1. New Google Sheet → **Extensions → Apps Script**
-2. Paste the eight files from `apps-script/` (names must match: `Config`, `Server`, `Media`, `Pembelian`, `Penjualan`, `Index`, `Styles`, `Script`)
+2. Paste the nine files from `apps-script/` (names must match: `Config`, `Server`, `Media`, `Pembelian`, `Penjualan`, `DaurUlang`, `Index`, `Styles`, `Script`)
 3. **Services → + Drive API (v2)** — enables OCR
 4. Run `setupSistem()` once, grant permissions; run `pasangBackupHarian()` once to install the nightly backup
 5. Change the four default PINs (Admin → Pengguna). Everyone — the sheet owner included — logs in with name + PIN (`PAKSA_LOGIN_MANUAL=YA`); unregistered names are refused (`AKSES_TERBUKA=TIDAK`)
@@ -111,7 +119,7 @@ Full steps in **[PANDUAN-SETUP.md](PANDUAN-SETUP.md)**. Short version:
 ## Development
 
 ```bash
-cd tests && npm test          # 416 checks: stock math, shrinkage, permissions, FIFO, SO, export, backup
+cd tests && npm test          # 494 checks: stock math, shrinkage, permissions, FIFO, SO, export, backup, v9 migration, recycling
 python3 tools/build-demo.py   # rebuild docs/index.html after editing apps-script/
 python3 tools/build-app.py    # rebuild docs/app/ (PWA); API URL comes from tools/api-url.txt
 ```
@@ -122,10 +130,12 @@ before anything is pasted into Google.
 
 ## Not yet
 
-Offline mode · barcode scanning · warehouses beyond GBJ/GP · push notifications · receivables / payment tracking.
+Offline mode · barcode scanning · more than one warehouse · push notifications · receivables / payment tracking.
 
 ## Status
 
-v8 live (Apps Script deployment version 11; GitHub Pages app). 416 automated checks (`cd tests && node test.js …`).
-Built for a pilot on one warehouse pair. Shrinkage thresholds in
+v9 live (GitHub Pages app + Apps Script JSON API). 494 automated checks (`cd tests && npm test`).
+Upgrading from v8: the schema migration runs itself on the first request (merges `Stok_Awal_GP` into `Stok_Awal`,
+archives the old `Transfer` sheet as `Transfer_lama`, adds the `Daur_Ulang` sheets and settings).
+Built for a pilot on one warehouse. Shrinkage thresholds in
 `Master_Standar_Susut` should be set from real pilot data, not guessed.
