@@ -547,6 +547,9 @@ function keluar(){
   try{ localStorage.removeItem('ipc_nama'); localStorage.removeItem('ipc_pin'); }catch(e){}
   S.ident = { nama:'', pin:'' }; S.ctx = null;
   $('hdrUser').textContent = '';
+  /* v9: kosongkan layar hasil/daftar yang mungkin memuat harga — supaya akun berikutnya di HP yang sama tidak melihat sisa tampilan akun sebelumnya */
+  ['daurHasil','jobHasil','repBody','admBody','poBody','soBody','daurDone','daurList','daurDetailBody','revList','jobDone','jobList','daurFinHead'].forEach(function(id){ var el=$(id); if (el) el.innerHTML=''; });
+  S.daurCache = null; S.daurCacheDone = null; S.soCache = null; S.poCache = null; S.ekspor = null; STOK_CACHE = {};
   ['nav-review','nav-admin'].forEach(function(id){ var el=$(id); if(el) el.classList.add('hide'); });
   tampil('ident');
 }
