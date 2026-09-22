@@ -9,6 +9,8 @@
       getLastRow(){ return this.rows.length; },
       getMaxColumns(){ return this.rows[0] ? this.rows[0].length : 26; },
       deleteColumns(){}, insertColumnsAfter(){}, setFrozenRows(){}, autoResizeColumns(){},
+      deleteColumn(c){ this.rows.forEach(function(r){ if (r.length>=c) r.splice(c-1,1); }); },
+      setName(n){ delete SS.sheets[this.name]; this.name=n; SS.sheets[n]=this; },
       appendRow(r){ this.rows.push(r.slice()); },
     deleteRow(n){ this.rows.splice(n-1,1); },
       deleteRows(n,k){ this.rows.splice(n-1,k||1); },

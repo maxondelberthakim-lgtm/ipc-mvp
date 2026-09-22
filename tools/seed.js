@@ -6,7 +6,7 @@
   setupSistem();
   try { migrasiSkema(); } catch(e) {}
   // staf gudang tambahan untuk demo (supaya riwayat & aktivitas per user terlihat)
-  [['Yanto','2222','GBJ'],['Sri','3333','GP'],['Rina','4444','GP']].forEach(function(u){
+  [['Yanto','2222','Gudang'],['Sri','3333','Produksi'],['Rina','4444','Produksi']].forEach(function(u){
     tambah_(SHEET.PENGGUNA, { Email:'', Nama:u[0], Peran:PERAN.STAF, Lokasi:u[2], PIN:u[1], Aktif:'YA' });
   });
 
@@ -101,19 +101,7 @@
       catatan:'harga biji KW naik jadi 13.125?' }, MGR);
   } catch(e) {}
 
-  /* --- ① ③ transfer --- */
-  function trf(arah, baris, menit, orang){
-    simpanTransfer({ arah:arah, baris:baris, ident:id(orang) });
-    if (menit) geser(SHEET.TRANSFER, menit, 0, baris.length);
-  }
-  trf('GBJ_KE_GP', [{kode:'RM-BP-KW', qty:1200},{kode:'RM-BP-SUP', qty:300}], 60*44, 'Sri');
-  trf('GBJ_KE_GP', [{kode:'RM-PG-KW', qty:60},{kode:'RM-AF', qty:30}], 60*24, 'Yanto');
-  trf('GBJ_KE_GP', [{kode:'RM-BS-SUP', qty:200}], 60*6, 'Rina');
-  trf('GP_KE_GBJ', [{kode:'FG-PB-HP', qty:900}], 60*20, 'Sri');
-  trf('GP_KE_GBJ', [{kode:'FG-PB-HP', qty:580}], 60*9, 'Rina');
-  trf('GBJ_KE_GP', [{kode:'RM-BP-KW', qty:150}], 0, 'Sri');   // menunggu review
-
-  /* --- ② pekerjaan yang sudah selesai --- */
+  /* --- ① pekerjaan yang sudah selesai (v9: bahan langsung dari gudang, hasil langsung ke gudang) --- */
   function jobSelesai(produk, bahan, keluar, scrap, menit, orang){
     var j = mulaiPekerjaan({ kodeProduk:produk, bahanBaku:bahan, ident:id(orang) });
     selesaikanPekerjaan({ id:j.id, barangJadi:[{kode:produk, qty:keluar}], scrapKg: scrap || 0, ident:id(orang) });
@@ -154,10 +142,10 @@
 
   /* --- laporan barang rusak (v7): satu disetujui, satu menunggu --- */
   try {
-    var d1 = simpanKerusakan({ lokasi:'GBJ', kode:'RM-BP-KW', qty:25, penyebab:'karung bocor kena hujan di bongkar muat', ident:id('Yanto') });
+    var d1 = simpanKerusakan({ kode:'RM-BP-KW', qty:25, penyebab:'karung bocor kena hujan di bongkar muat', ident:id('Yanto') });
     geser(SHEET.KERUSAKAN, 60*26, 0, 1);
     tinjauKerusakan(d1.id, 'setuju', '', MGR);
-    simpanKerusakan({ lokasi:'GP', kode:'RM-PG-KW', qty:2, penyebab:'sak pigmen tumpah', ident:id('Rina') });
+    simpanKerusakan({ kode:'RM-PG-KW', qty:2, penyebab:'sak pigmen tumpah', ident:id('Rina') });
     geser(SHEET.KERUSAKAN, 60*2, 0, 1);
   } catch(e) {}
 
@@ -186,8 +174,17 @@
     }; } }; } };
   };
 
+  /* --- daur ulang scrap (v9): satu batch selesai (jasa diisi manager), satu masih di chassen --- */
+  try {
+    var du1 = mulaiDaurUlang({ vendor:'UD Daur Ulang Makmur', tanggal:tglMundur(60*30), noSuratJalan:'SJ/CH/0091', scrap:[{kode:'SCR-FG-PB-HP', qty:20}], catatan:'dikirim pakai pickup', ident:id('Yanto') });
+    geser(SHEET.DAUR, 60*30, 0, 1);
+    selesaikanDaurUlang({ id:du1.id, hasil:[{kode:'RM-BP-DU', qty:18.5}], biayaJasa:60000, catatan:'diterima sore, karung 2', ident:MGR });
+    mulaiDaurUlang({ vendor:'UD Daur Ulang Makmur', scrap:[{kode:'SCR-FG-PB-HP', qty:6}], ident:id('Sri') });
+    geser(SHEET.DAUR, 60*5, 0, 1);
+  } catch(e) { console.warn('seed daur ulang', e); }
+
   /* --- contoh opname oleh Manager --- */
-  simpanOpname({ lokasi:'GBJ', baris:[{kode:'RM-BP-KW', fisik:620, catatan:'2 karung sobek'}, {kode:'RM-BS-SUP', fisik:98}], catatan:'opname mingguan' }, MGR);
+  simpanOpname({ baris:[{kode:'RM-BP-KW', fisik:620, catatan:'2 karung sobek'}, {kode:'RM-BS-SUP', fisik:98}], catatan:'opname mingguan' }, MGR);
   geser(SHEET.OPNAME, 60*15, 0, 2);
 
   /* --- demo: login pakai layar identitas asli (nama + PIN). Akun ada di banner. --- */
@@ -195,11 +192,11 @@
 
   /* --- jembatan google.script.run --- */
   window.google = { script: { run: (function(){
-    var fns = ['getKonteks','simpanPenerimaan','simpanPengiriman','simpanTransfer',
+    var fns = ['getKonteks','simpanPenerimaan','simpanPengiriman',
                'mulaiPekerjaan','selesaikanPekerjaan','daftarPekerjaanBerjalan',
                'antrianReview','tinjauTransfer','tinjauMassal',
                'laporanSusut','laporanStok','riwayatPenerimaan','laporanPenjualan',
-               'riwayatTransfer','ocrSuratJalan','unggahFoto','kalender','laporanHpp',
+               'ocrSuratJalan','unggahFoto','kalender','laporanHpp',
                'riwayatInput','ambilEntri','simpanEditEntri','batalkanEntriSendiri',
                'daftarPekerjaanSelesai','ambilPekerjaan','simpanEditPekerjaan',
                'daftarPengguna','simpanPengguna','aktivitasStaf','daftarSku','simpanSku','hapusSku',
@@ -207,7 +204,8 @@
                'simpanPo','ubahPo','batalkanPo','daftarPo','poTerbuka','returTersedia','ringkasanPo',
                'simpanInvoice','validasiInvoice','daftarInvoice','laporanNilaiStok','hitungUlangHpp',
                'simpanKerusakan','daftarKerusakan','tinjauKerusakan','laporanStandarSusut','terapkanStandarSusut',
-               'diagnosa','prediksiBeli','simpanSo','ubahSo','batalkanSo','daftarSo','soTerbuka','eksporBulanan','statusBackup'];
+               'diagnosa','prediksiBeli','simpanSo','ubahSo','batalkanSo','daftarSo','soTerbuka','eksporBulanan','statusBackup',
+               'tambahMaster','mulaiDaurUlang','selesaikanDaurUlang','daftarDaurUlang','ambilDaurUlang','ubahDaurUlang','batalkanDaurUlang','laporanDaurUlang'];
     function buat(sukses, gagal){
       var o = { withSuccessHandler:function(f){ return buat(f, gagal); },
                 withFailureHandler:function(f){ return buat(sukses, f); } };
