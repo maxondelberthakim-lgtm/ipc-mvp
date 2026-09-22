@@ -75,6 +75,7 @@
         <span><i style="background:var(--warn)"></i><span data-i18n="lgKeluar">keluar</span></span>
         <span><i style="background:#4338ca"></i><span data-i18n="lgJob">pekerjaan</span></span>
         <span><i style="background:var(--danger)"></i><span data-i18n="lgSusut">susut tinggi</span></span>
+        <span><i style="background:#b45309"></i><span data-i18n="lgDaur">daur ulang</span></span>
       </div>
       <div id="calDay"></div>
     </div>
@@ -117,19 +118,16 @@
       </button>
     </div>
 
-    <h3 class="sec" data-i18n="secCatat">Gudang ↔ produksi</h3>
+    <h3 class="sec" data-i18n="secCatat">Produksi</h3>
     <div class="actions">
-      <button class="action" onclick="bukaTransfer('GBJ_KE_GP')">
-        <div class="ico">①</div>
-        <div class="tx"><b data-i18n="a1t">Transfer ke Produksi</b><span data-i18n="a1s">GBJ → GP · qty + foto</span></div>
-      </button>
       <button class="action" onclick="tampil('job')">
-        <div class="ico b">②</div>
-        <div class="tx"><b data-i18n="a2t">Pekerjaan</b><span data-i18n="a2s">Bahan baku → barang jadi · susut otomatis</span></div>
+        <div class="ico b">①</div>
+        <div class="tx"><b data-i18n="a2t">Pekerjaan</b><span data-i18n="a2s">Bahan baku dari gudang → barang jadi &amp; scrap kembali ke gudang · susut otomatis</span></div>
       </button>
-      <button class="action" onclick="bukaTransfer('GP_KE_GBJ')">
-        <div class="ico c">③</div>
-        <div class="tx"><b data-i18n="a3t">Transfer ke Gudang</b><span data-i18n="a3s">GP → GBJ · qty + foto</span></div>
+      <button class="action" onclick="tampil('daur')">
+        <div class="ico c">♻️</div>
+        <div class="tx"><b data-i18n="a11t">Daur ulang scrap</b><span data-i18n="a11s">Scrap → mesin chassen (pabrik lain) → biji plastik · susut &amp; jasa</span></div>
+        <span class="badge hide" id="daurBadge">0</span>
       </button>
     </div>
 
@@ -157,7 +155,8 @@
 
       <div class="field">
         <label id="rcvPartnerLabel" data-i18n="lblSupplier">Supplier</label>
-        <select id="rcvPartner"></select>
+        <div class="combo"><input id="rcvPartner" autocomplete="off"><div class="combo-list hide"></div></div>
+        <div class="hint" data-i18n="hintCombo">Ketik untuk mencari. Nama yang belum ada bisa langsung ditambah.</div>
       </div>
 
       <div class="field" id="rcvFotoWrap">
@@ -225,50 +224,6 @@
     </div>
   </section>
 
-  <!-- ============ ① ③ TRANSFER ============ -->
-  <section id="v-transfer" class="hide">
-    <div class="card">
-      <h2 id="trfJudul">Transfer</h2>
-      <div class="sub" id="trfSub"></div>
-
-      <div class="field">
-        <label data-i18n="lblFoto">Foto bukti</label>
-        <div class="photo" id="trfPhoto" onclick="pilihFoto('trf')">
-          <div class="p1">📷 <span data-i18n="fotoAmbil">Ambil foto</span></div>
-          <div class="p2" data-i18n="fotoHint">Wajib — jadi bukti silang angka yang diketik</div>
-        </div>
-        <input type="file" accept="image/*" capture="environment" id="trfFile" class="hide" onchange="fotoTerpilih(event,'trf')">
-        <div class="btnrow hide" id="trfFotoRow">
-          <button class="btn sec sm" onclick="hapusFoto('trf')" data-i18n="btnGanti">Ganti foto</button>
-        </div>
-      </div>
-
-      <div class="field">
-        <label data-i18n="lblTanggal">Tanggal transaksi</label>
-        <input type="date" id="trfTanggal">
-        <div class="hint" data-i18n="hintTanggal">Default hari ini. Ganti kalau barangnya masuk/keluar kemarin tapi baru dicatat sekarang.</div>
-      </div>
-
-      <h3 class="sec" data-i18n="secItem">Item <span class="unit">kg</span></h3>
-      <div id="trfLines"></div>
-      <button class="btn sec sm" onclick="tambahBaris('trf')" data-i18n="btnTambahItem">+ Tambah item</button>
-
-      <div class="field" style="margin-top:14px">
-        <label data-i18n="lblCatatan">Catatan (opsional)</label>
-        <textarea id="trfCatatan"></textarea>
-      </div>
-
-      <button class="btn" id="btnSimpanTrf" onclick="simpanTransferUI()" data-i18n="btnSimpanTrf">Simpan transfer</button>
-      <div class="hint" data-i18n="hintPost">Langsung tercatat. Supervisor meninjau setelahnya — produksi tidak menunggu.</div>
-    </div>
-
-    <div class="card">
-      <h2 data-i18n="riwayatT">Riwayat input</h2>
-      <div class="sub" id="trfRiwayatSub"></div>
-      <div id="trfRiwayat"><div class="load">…</div></div>
-    </div>
-  </section>
-
   <!-- ============ EDIT ENTRI (overlay) ============ -->
   <div id="editWrap" class="overlay hide" onclick="if(event.target===this)tutupEdit()">
     <div class="sheet">
@@ -282,11 +237,11 @@
       <div class="sub hide" id="editEkstra"></div>
       <div class="field" id="editPartnerWrap">
         <label id="editPartnerLabel">Supplier</label>
-        <select id="editPartner"></select>
+        <div class="combo"><input id="editPartner" autocomplete="off"><div class="combo-list hide"></div></div>
       </div>
       <div class="field">
         <label data-i18n="item">Item</label>
-        <select id="editKode"></select>
+        <div class="combo"><input id="editKode" autocomplete="off"><div class="combo-list hide"></div></div>
       </div>
       <div class="field">
         <label data-i18n="qty">Qty (kg)</label>
@@ -316,7 +271,7 @@
     </div>
   </div>
 
-  <!-- ============ ② PEKERJAAN ============ -->
+  <!-- ============ ① PEKERJAAN ============ -->
   <section id="v-job" class="hide">
     <div class="seg">
       <button id="segJobList" class="on" onclick="segJob('list')" data-i18n="segBerjalan">Sedang dibuat</button>
@@ -333,7 +288,7 @@
         <div class="sub" id="jobEditSub"></div>
         <div class="field">
           <label data-i18n="lblProduk">Produk yang dibuat</label>
-          <select id="edProduk"></select>
+          <div class="combo"><input id="edProduk" autocomplete="off"><div class="combo-list hide"></div></div>
         </div>
         <h3 class="sec" data-i18n="secBahan">Bahan baku masuk <span class="unit">kg</span></h3>
         <div id="edBahanLines"></div>
@@ -371,7 +326,7 @@
         <div class="sub" data-i18n="jobNewS">Pilih produk yang dibuat, lalu catat bahan baku yang masuk proses.</div>
         <div class="field">
           <label data-i18n="lblProduk">Produk yang dibuat</label>
-          <select id="jobProduk" onchange="ringkasJobBaru()"></select>
+          <div class="combo"><input id="jobProduk" autocomplete="off"><div class="combo-list hide"></div></div>
         </div>
         <div class="field">
           <label data-i18n="lblTanggal">Tanggal transaksi</label>
@@ -430,6 +385,94 @@
     <div id="jobHasil" class="hide"></div>
   </section>
 
+  <!-- ============ DAUR ULANG SCRAP (v9) ============ -->
+  <section id="v-daur" class="hide">
+    <div class="seg">
+      <button id="segDaurList" class="on" onclick="segDaur('list')" data-i18n="segDaurList">Di chassen</button>
+      <button id="segDaurNew" onclick="segDaur('new')" data-i18n="segDaurNew">Kirim scrap</button>
+      <button id="segDaurDone" onclick="segDaur('done')" data-i18n="segDaurDone">Selesai</button>
+    </div>
+    <div class="banner n" id="daurHint"></div>
+    <div id="daurList"><div class="load">…</div></div>
+    <div id="daurDone" class="hide"><div class="load">…</div></div>
+
+    <div id="daurNew" class="hide">
+      <div class="card">
+        <h2 data-i18n="daurNewT">Kirim scrap ke mesin chassen</h2>
+        <div class="sub" data-i18n="daurNewS">Scrap keluar dari gudang, digiling di pabrik lain, kembali sebagai biji plastik daur ulang.</div>
+        <div class="field">
+          <label data-i18n="lblVendor">Tempat chassen (vendor)</label>
+          <div class="combo"><input id="daurVendor" autocomplete="off"><div class="combo-list hide"></div></div>
+          <div class="hint" data-i18n="hintCombo">Ketik untuk mencari. Nama yang belum ada bisa langsung ditambah.</div>
+        </div>
+        <div class="field">
+          <label data-i18n="lblTanggal">Tanggal transaksi</label>
+          <input type="date" id="daurTanggal">
+        </div>
+        <div class="field">
+          <label data-i18n="lblNoSJ">No. surat jalan</label>
+          <input id="daurNoSJ" placeholder="SJ/CH/2026/09/01">
+        </div>
+        <h3 class="sec" data-i18n="secScrapKirim">Scrap dikirim <span class="unit">kg</span></h3>
+        <div id="daurLines"></div>
+        <button class="btn sec sm" onclick="tambahBaris('daur')" data-i18n="btnTambahItem">+ Tambah item</button>
+        <div class="field" style="margin-top:14px">
+          <label data-i18n="lblFotoOpsi">Foto (opsional)</label>
+          <div class="photo" id="daurPhoto" onclick="pilihFoto('daur')"><div class="p1">📷 <span data-i18n="fotoAmbil">Ambil foto</span></div></div>
+          <input type="file" accept="image/*" capture="environment" id="daurFile" class="hide" onchange="fotoTerpilih(event,'daur')">
+        </div>
+        <div class="field">
+          <label data-i18n="lblCatatan">Catatan (opsional)</label>
+          <textarea id="daurCatatan"></textarea>
+        </div>
+        <button class="btn" id="btnKirimDaur" onclick="kirimDaurUI()" data-i18n="btnKirimDaur">Kirim scrap</button>
+      </div>
+    </div>
+
+    <div id="daurFinish" class="hide">
+      <div class="card">
+        <h2 data-i18n="daurFinT">Terima biji plastik dari chassen</h2>
+        <div id="daurFinHead"></div>
+        <h3 class="sec" data-i18n="secHasil">Biji plastik diterima <span class="unit">kg</span></h3>
+        <div id="daurHasilLines"></div>
+        <button class="btn sec sm" onclick="tambahBaris('daurHasil')" data-i18n="btnTambahItem">+ Tambah item</button>
+        <div id="daurSusutPreview" style="margin-top:15px"></div>
+        <div class="field" style="margin-top:14px">
+          <label data-i18n="lblTanggalTerima">Tanggal terima</label>
+          <input type="date" id="daurTglTerima">
+        </div>
+        <div class="field hide" id="daurJasaWrap">
+          <label data-i18n="lblJasa">Biaya jasa chassen (total)</label>
+          <input type="number" inputmode="decimal" step="any" min="0" id="daurJasa" placeholder="0">
+          <div class="hint" data-i18n="hintJasa">Hanya manager yang melihat ini. HPP biji plastik = (nilai scrap + biaya jasa) ÷ kg diterima. Bisa diisi belakangan dari tab Selesai.</div>
+        </div>
+        <div class="field">
+          <label data-i18n="lblFotoOpsi">Foto (opsional)</label>
+          <div class="photo" id="daurFinPhoto" onclick="pilihFoto('daurFin')"><div class="p1">📷 <span data-i18n="fotoAmbil">Ambil foto</span></div></div>
+          <input type="file" accept="image/*" capture="environment" id="daurFinFile" class="hide" onchange="fotoTerpilih(event,'daurFin')">
+        </div>
+        <div class="field">
+          <label data-i18n="lblCatatan">Catatan (opsional)</label>
+          <textarea id="daurFinCatatan"></textarea>
+        </div>
+        <div class="btnrow">
+          <button class="btn sec" onclick="segDaur('list')" data-i18n="btnBatal">Batal</button>
+          <button class="btn ok" id="btnTerimaDaur" onclick="terimaDaurUI()" data-i18n="btnTerimaDaur">Terima &amp; hitung susut</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="daurHasil" class="hide"></div>
+  </section>
+
+  <!-- ============ DETAIL DAUR ULANG (overlay) ============ -->
+  <div id="daurWrap" class="overlay hide" onclick="if(event.target===this)tutupDaur()">
+    <div class="sheet">
+      <div class="sheethead"><b data-i18n="daurDetailT">Detail daur ulang</b><button class="x2" onclick="tutupDaur()">✕</button></div>
+      <div id="daurDetailBody"></div>
+    </div>
+  </div>
+
   <!-- ============ PESANAN PEMBELIAN (manager) ============ -->
   <section id="v-po" class="hide">
     <div class="seg">
@@ -456,13 +499,6 @@
     <div class="card">
       <h2 data-i18n="rusakT">Lapor barang rusak</h2>
       <div class="sub" data-i18n="rusakS">Dicatat oleh staf gudang. Stok baru berkurang setelah manager menyetujui.</div>
-      <div class="field">
-        <label data-i18n="lblLokasi">Lokasi</label>
-        <div class="seg" style="margin-bottom:0">
-          <button id="rusakLokGBJ" class="on" onclick="rusakLokasi('GBJ')">GBJ</button>
-          <button id="rusakLokGP" onclick="rusakLokasi('GP')">GP</button>
-        </div>
-      </div>
       <div class="field">
         <label data-i18n="lblTanggal">Tanggal transaksi</label>
         <input type="date" id="rusakTanggal">
@@ -512,7 +548,7 @@
       <button id="segRepStok" onclick="segRep('stok')" data-i18n="segStok">Stok</button>
       <button id="segRepBeli" onclick="segRep('beli')" data-i18n="segBeli">Beli</button>
       <button id="segRepJual" onclick="segRep('jual')" data-i18n="segJual">Jual</button>
-      <button id="segRepTrf" onclick="segRep('trf')" data-i18n="segRiwayat">Transfer</button>
+      <button id="segRepDaur" onclick="segRep('daur')" data-i18n="segDaur">Daur ulang</button>
       <button id="segRepHpp" class="hide" onclick="segRep('hpp')">HPP</button>
       <button id="segRepNilai" class="hide" onclick="segRep('nilai')" data-i18n="segNilai">Nilai stok</button>
       <button id="segRepStd" class="hide" onclick="segRep('std')" data-i18n="segStd">Std susut</button>
@@ -547,10 +583,7 @@
           <option value="KEDUANYA">Keduanya</option>
         </select></div>
       <div class="field" id="skuHargaWrap"><label data-i18n="skuHarga">Harga beli per kg (untuk HPP)</label><input type="number" inputmode="decimal" id="skuHarga" placeholder="0"></div>
-      <div class="row">
-        <div class="field"><label data-i18n="skuAwalGBJ">Stok awal GBJ (kg)</label><input type="number" inputmode="decimal" id="skuAwalGBJ" placeholder="0"></div>
-        <div class="field"><label data-i18n="skuAwalGP">Stok awal GP (kg)</label><input type="number" inputmode="decimal" id="skuAwalGP" placeholder="0"></div>
-      </div>
+      <div class="field"><label data-i18n="skuAwal">Stok awal (kg)</label><input type="number" inputmode="decimal" id="skuAwal" placeholder="0"></div>
       <div class="field"><label><input type="checkbox" id="skuAktif" checked style="width:auto;margin-right:8px"><span data-i18n="skuAktif">Aktif (muncul di dropdown)</span></label></div>
       <div class="btnrow">
         <button class="btn ghost hide" id="btnSkuHapus" onclick="hapusSkuUI()" data-i18n="hapus">Hapus</button>
@@ -570,7 +603,7 @@
           <option value="SUPERVISOR">SUPERVISOR — review, HPP, opname, SKU</option>
           <option value="ADMIN">ADMIN — semua + kelola pengguna</option>
         </select></div>
-      <div class="field"><label data-i18n="userLokasi">Lokasi (opsional)</label><input id="userLokasi" placeholder="GBJ / GP / HQ"></div>
+      <div class="field"><label data-i18n="userLokasi">Lokasi (opsional)</label><input id="userLokasi" placeholder="Gudang / Produksi / HQ"></div>
       <div class="field"><label data-i18n="userEmail">Email Google (opsional)</label><input id="userEmail" placeholder="hanya kalau pakai Google Workspace"></div>
       <div class="field"><label data-i18n="userPin">PIN (4–8 angka)</label><input id="userPin" type="tel" inputmode="numeric" placeholder=""><div class="hint" id="userPinHint"></div></div>
       <div class="field"><label><input type="checkbox" id="userAktif" checked style="width:auto;margin-right:8px"><span data-i18n="userAktif">Aktif (boleh login)</span></label></div>

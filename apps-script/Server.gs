@@ -1,6 +1,6 @@
 /**********************************************************************
- * IPC — Inventory & Production Control (MVP v6)
- * File 2 of 3 : Server.gs
+ * IPC — Inventory & Production Control (v9)
+ * File 2 : Server.gs
  *
  * SEMUA QTY DALAM KILOGRAM.
  **********************************************************************/
@@ -25,12 +25,12 @@ function include(nama) {
  * Content-Type text/plain -> tidak kena preflight CORS. Balasan JSON.
  * Hanya fungsi di daftar putih (RPC_WL) yang boleh dipanggil. */
 var RPC_WL = {
-  getKonteks:1, simpanPenerimaan:1, simpanPengiriman:1, simpanTransfer:1,
+  getKonteks:1, simpanPenerimaan:1, simpanPengiriman:1,
   mulaiPekerjaan:1, selesaikanPekerjaan:1, daftarPekerjaanBerjalan:1, daftarPekerjaanSelesai:1,
   ambilPekerjaan:1, simpanEditPekerjaan:1,
   riwayatInput:1, ambilEntri:1, simpanEditEntri:1, batalkanEntriSendiri:1,
   antrianReview:1, tinjauTransfer:1, daftarPermintaan:1, tinjauPermintaan:1,
-  laporanSusut:1, laporanStok:1, riwayatPenerimaan:1, laporanPenjualan:1, laporanHpp:1, riwayatTransfer:1,
+  laporanSusut:1, laporanStok:1, riwayatPenerimaan:1, laporanPenjualan:1, laporanHpp:1,
   kalender:1, ocrSuratJalan:1,
   daftarPengguna:1, simpanPengguna:1, aktivitasStaf:1,
   daftarSku:1, simpanSku:1, hapusSku:1,
@@ -41,7 +41,10 @@ var RPC_WL = {
   laporanNilaiStok:1, hitungUlangHpp:1,
   simpanKerusakan:1, daftarKerusakan:1, tinjauKerusakan:1,
   laporanStandarSusut:1, terapkanStandarSusut:1, diagnosa:1, prediksiBeli:1,
-  simpanSo:1, ubahSo:1, batalkanSo:1, daftarSo:1, soTerbuka:1, eksporBulanan:1, statusBackup:1
+  simpanSo:1, ubahSo:1, batalkanSo:1, daftarSo:1, soTerbuka:1, eksporBulanan:1, statusBackup:1,
+  /* v9 */
+  tambahMaster:1, mulaiDaurUlang:1, selesaikanDaurUlang:1, daftarDaurUlang:1, ambilDaurUlang:1,
+  ubahDaurUlang:1, batalkanDaurUlang:1, laporanDaurUlang:1
 };
 
 function doPost(e) {
@@ -87,7 +90,7 @@ function sheet_(nama) {
   return sh;
 }
 
-var KOLOM_TANGGAL_ = /^(Tanggal|Tanggal_Invoice|Perkiraan_Datang|Tanggal_Kirim)$/;
+var KOLOM_TANGGAL_ = /^(Tanggal|Tanggal_Invoice|Perkiraan_Datang|Tanggal_Kirim|Tanggal_Terima)$/;
 /* Memo per eksekusi: satu sheet dibaca dari Spreadsheet sekali saja per request
    (getKonteks dulu membaca sheet yang sama berulang kali -> 6-10 detik). Dibuang setiap ada tulis. */
 var MEMO_BACA_ = {};
@@ -335,7 +338,7 @@ function petaItem_() {
     peta[r.Kode_Item] = {
       kode: r.Kode_Item, nama: r.Nama_Item, kategori: r.Kategori,
       harga: angka_(r.Harga_Per_Kg), aktif: r.Aktif,
-      awalGBJ: angka_(r.Stok_Awal_GBJ), awalGP: angka_(r.Stok_Awal_GP)
+      awal: angka_(r.Stok_Awal)
     };
   });
   return peta;
@@ -355,9 +358,68 @@ function skuScrapUntuk_(produk) {
   }
   var nama = 'Scrap · ' + produk.nama;
   tambah_(SHEET.ITEM, { Kode_Item: kode, Nama_Item: nama, Kategori: KATEGORI_ITEM.SCRAP,
-                        Harga_Per_Kg: '', Stok_Awal_GBJ: 0, Stok_Awal_GP: 0, Aktif: 'YA' });
+                        Harga_Per_Kg: '', Stok_Awal: 0, Aktif: 'YA' });
   catatLog_('SKU_SCRAP', kode, 'dibuat otomatis untuk ' + produk.nama);
   return { kode: kode, nama: nama, kategori: KATEGORI_ITEM.SCRAP, harga: 0 };
+}
+
+/**
+ * v9: tambah master langsung dari form (search bar "+ tambah baru"). Semua peran boleh.
+ * jenis: 'SUPPLIER' | 'CUSTOMER' | 'ITEM'.  p = { nama, kategori (item: BAHAN_BAKU|BARANG_JADI|KEDUANYA) }
+ * Nama yang sudah ada (tanpa peduli huruf besar/kecil) tidak digandakan — yang lama dipakai (diaktifkan lagi kalau nonaktif).
+ */
+function tambahMaster(jenis, p, ident) {
+  var u = penggunaSaatIni_(ident);
+  p = p || {};
+  var nama = String(p.nama || '').replace(/\s+/g, ' ').trim();
+  if (!nama) throw new Error('Nama belum diisi.');
+  if (nama.length > 80) throw new Error('Nama terlalu panjang (maks 80 karakter).');
+  jenis = String(jenis || '').toUpperCase();
+  var lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  lupakanMemo_();
+  try {
+    if (jenis === 'SUPPLIER' || jenis === 'CUSTOMER') {
+      var sheet = jenis === 'SUPPLIER' ? SHEET.SUPPLIER : SHEET.CUSTOMER;
+      var kolKode = jenis === 'SUPPLIER' ? 'Kode_Supplier' : 'Kode_Customer';
+      var kolNama = jenis === 'SUPPLIER' ? 'Nama_Supplier' : 'Nama_Customer';
+      var awalan = jenis === 'SUPPLIER' ? 'SUP-' : 'CUS-';
+      var rows = baca_(sheet), maks = 0;
+      for (var i = 0; i < rows.length; i++) {
+        var m = /(\d+)\s*$/.exec(String(rows[i][kolKode] || '')); if (m) maks = Math.max(maks, parseInt(m[1], 10));
+        if (String(rows[i][kolNama] || '').trim().toLowerCase() === nama.toLowerCase()) {
+          if (String(rows[i].Aktif).toUpperCase() === 'TIDAK') { ubahBaris_(sheet, rows[i]._baris, { Aktif: 'YA' }); catatLog_('TAMBAH_MASTER', rows[i][kolKode], jenis + ' diaktifkan lagi: ' + rows[i][kolNama]); }
+          return { ok: true, ada: true, jenis: jenis, kode: rows[i][kolKode], nama: rows[i][kolNama] };
+        }
+      }
+      var kode = awalan + String(maks + 1).padStart(3, '0');
+      var obj = { Keterangan: 'ditambah dari form oleh ' + u.nama + ' ' + tglStr_(new Date()), Aktif: 'YA' };
+      obj[kolKode] = kode; obj[kolNama] = nama;
+      tambah_(sheet, obj);
+      catatLog_('TAMBAH_MASTER', kode, jenis + ' baru: ' + nama);
+      return { ok: true, ada: false, jenis: jenis, kode: kode, nama: nama };
+    }
+    if (jenis === 'ITEM') {
+      var kat = [KATEGORI_ITEM.BAHAN_BAKU, KATEGORI_ITEM.BARANG_JADI, KATEGORI_ITEM.KEDUANYA].indexOf(p.kategori) >= 0 ? p.kategori : KATEGORI_ITEM.BAHAN_BAKU;
+      var items = baca_(SHEET.ITEM), adaKode = {};
+      for (var j = 0; j < items.length; j++) {
+        adaKode[String(items[j].Kode_Item).toUpperCase()] = true;
+        if (String(items[j].Nama_Item || '').trim().toLowerCase() === nama.toLowerCase()) {
+          if (String(items[j].Aktif).toUpperCase() === 'TIDAK') { ubahBaris_(SHEET.ITEM, items[j]._baris, { Aktif: 'YA' }); catatLog_('TAMBAH_MASTER', items[j].Kode_Item, 'item diaktifkan lagi: ' + items[j].Nama_Item); }
+          return { ok: true, ada: true, jenis: jenis, kode: items[j].Kode_Item, nama: items[j].Nama_Item, kategori: items[j].Kategori };
+        }
+      }
+      var dasar = (kat === KATEGORI_ITEM.BARANG_JADI ? 'FG-' : 'RM-') +
+                  nama.toUpperCase().replace(/[^A-Z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 20).replace(/-+$/, '');
+      if (dasar.length < 4) dasar += '-ITEM';
+      var kodeItem = dasar, n = 2;
+      while (adaKode[kodeItem]) { kodeItem = dasar + '-' + n; n++; }
+      tambah_(SHEET.ITEM, { Kode_Item: kodeItem, Nama_Item: nama, Kategori: kat, Harga_Per_Kg: '', Stok_Awal: 0, Aktif: 'YA' });
+      catatLog_('TAMBAH_MASTER', kodeItem, 'item baru: ' + nama + ' (' + kat + ') oleh ' + u.nama);
+      return { ok: true, ada: false, jenis: jenis, kode: kodeItem, nama: nama, kategori: kat };
+    }
+    throw new Error('Jenis master tidak dikenal: ' + jenis);
+  } finally { lock.releaseLock(); }
 }
 
 /* ================= BOOTSTRAP ================= */
@@ -380,7 +442,6 @@ function getKonteks(ident) {
   }).map(function (r) { return { kode: r.Kode_Customer, nama: r.Nama_Customer }; });
 
   var hariIni = tglStr_(new Date());
-  var trf = baca_(SHEET.TRANSFER);
   var rcv = baca_(SHEET.PENERIMAAN);
   var snd = baca_(SHEET.PENGIRIMAN);
   var pkj = baca_(SHEET.PEKERJAAN);
@@ -407,10 +468,11 @@ function getKonteks(ident) {
            tglStr_(new Date(r.Waktu_Selesai)) === hariIni;
   }).length;
 
-  /* stok per item untuk petunjuk di form ("tersedia di GBJ: … kg") */
+  /* stok per item untuk petunjuk di form ("tersedia: … kg") — v9: satu lokasi (GBJ) */
   var stokSemua = hitungStokSemua_(), stok = {};
   var dipesan = soDipesan_();
-  Object.keys(stokSemua).forEach(function (k) { stok[k] = { gbj: bulat_(stokSemua[k].gbj, 2), gp: bulat_(stokSemua[k].gp, 2), dipesan: bulat_(dipesan[k] || 0, 2) }; });
+  Object.keys(stokSemua).forEach(function (k) { stok[k] = { gbj: bulat_(stokSemua[k].gbj, 2), dipesan: bulat_(dipesan[k] || 0, 2) }; });
+  var daurBerjalanN = baca_(SHEET.DAUR).filter(function (r) { return r.Status === STATUS_DAUR.BERJALAN; }).length;
   var permintaanMenunggu = bolehReview_(u)
     ? baca_(SHEET.PERMINTAAN).filter(function (r) { return r.Status === STATUS_PERMINTAAN.MENUNGGU; }).length : 0;
   var kerusakanMenunggu = bolehReview_(u)
@@ -456,8 +518,9 @@ function getKonteks(ident) {
     leadTimeHari: leadTimeHari_(),
     ringkasan: {
       perluBeli: perluBeli,
-      menungguReview   : menunggu(trf) + menunggu(rcv) + menunggu(snd),
-      ditandai         : ditandai(trf) + ditandai(rcv) + ditandai(snd),
+      menungguReview   : menunggu(rcv) + menunggu(snd),
+      ditandai         : ditandai(rcv) + ditandai(snd),
+      daurBerjalan     : daurBerjalanN,
       pekerjaanBerjalan: berjalan.length,
       kgSedangDiproses : bulat_(kgProses, 1),
       masukHariIni     : bulat_(masukHariIni, 1),
@@ -642,55 +705,7 @@ function simpanPengiriman(p) {
 }
 
 /* =================================================================
-   ① / ③  TRANSFER INTERNAL   (tanpa surat jalan)
-   ================================================================= */
-
-/** p = { arah, baris:[{kode,qty}], catatan, foto, ident } */
-function simpanTransfer(p) {
-  var u = penggunaSaatIni_(p && p.ident);
-  if (!p || !p.arah || !p.baris || !p.baris.length) throw new Error('Data transfer tidak lengkap.');
-  if (p.arah !== ARAH.KE_PRODUKSI && p.arah !== ARAH.KE_GUDANG) throw new Error('Arah transfer tidak dikenal.');
-
-  var peta = petaItem_();
-  var foto = p.foto ? unggahFoto_(p.foto, 'TRF') : { url: '', id: '' };
-
-  var lock = LockService.getScriptLock();
-  lock.waitLock(20000);
-  lupakanMemo_();   // di dalam lock: baca ulang dari sheet, jangan pakai memo sebelum lock
-  try {
-    var now = new Date();
-    var tanggal = tglValid_(p.tanggal);
-    var ids = [], total = 0;
-
-    p.baris.forEach(function (b) {
-      var it = peta[b.kode];
-      if (!it) throw new Error('Item tidak dikenal: ' + b.kode);
-      var qty = angka_(b.qty);
-      if (qty <= 0) throw new Error('Qty harus lebih dari 0 untuk ' + it.nama);
-      total += qty;
-
-      var id = buatId_('TRF');
-      ids.push(id);
-      tambah_(SHEET.TRANSFER, {
-        ID: id, Waktu: now, Tanggal: tanggal, Arah: p.arah,
-        Kode_Item: it.kode, Nama_Item: it.nama, Qty_Kg: qty,
-        Foto_URL: foto.url, Foto_ID: foto.id,
-        Dicatat_Oleh: u.email || ('manual:' + u.nama), Nama_Pencatat: u.nama,
-        Status: STATUS_TRANSFER.MENUNGGU,
-        Ditinjau_Oleh: '', Waktu_Tinjau: '', Catatan_Tinjau: '',
-        Catatan: p.catatan || ''
-      });
-    });
-
-    catatLog_('TRANSFER', ids.join(','), p.arah + ' • ' + bulat_(total, 2) + ' kg');
-    return { ok: true, ids: ids, jumlah: ids.length, totalKg: bulat_(total, 2) };
-  } finally {
-    lock.releaseLock();
-  }
-}
-
-/* =================================================================
-   ②  PEKERJAAN
+   ①  PEKERJAAN  (bahan baku dari GBJ → barang jadi & scrap kembali ke GBJ)
    ================================================================= */
 
 /** p = { kodeProduk, bahanBaku:[{kode,qty}], catatan, foto, ident } */
@@ -721,7 +736,7 @@ function mulaiPekerjaan(p) {
       var q = angka_(b.qty);
       if (q <= 0) throw new Error('Qty bahan baku harus > 0 (' + it.nama + ')');
       total += q;
-      var harga = fifo ? hargaDariFifo_(fifo, it.kode, q, peta) : it.harga;   // snapshot harga saat job dimulai (FIFO batch tertua di GP)
+      var harga = fifo ? hargaDariFifo_(fifo, it.kode, q, peta) : it.harga;   // snapshot harga saat job dimulai (FIFO batch tertua di gudang)
       var nilai = q * harga;
       hppBahan += nilai;
       tambah_(SHEET.DETAIL, {
@@ -907,7 +922,7 @@ function daftarPekerjaanBerjalan(ident) {
 }
 
 /* =================================================================
-   ANTRIAN REVIEW  (penerimaan + transfer digabung)
+   ANTRIAN REVIEW  (penerimaan + pengiriman)
    ================================================================= */
 
 /**
@@ -949,19 +964,6 @@ function antrianReview(ident, status) {
       item: r.Nama_Item, kode: r.Kode_Item, qty: angka_(r.Qty_Kg),
       noSuratJalan: r.No_Surat_Jalan, supplier: r.Customer,
       qtyOcr: null, selisih: null,
-      foto: r.Foto_URL, fotoId: r.Foto_ID, pencatat: r.Nama_Pencatat, catatan: r.Catatan,
-      catatanTinjau: r.Catatan_Tinjau, ditinjauOleh: r.Ditinjau_Oleh
-    });
-  });
-
-  baca_(SHEET.TRANSFER).forEach(function (r) {
-    if (r.Status !== target) return;
-    out.push({
-      id: r.ID, sumber: 'TRANSFER', jenis: r.Arah,
-      label: r.Arah === ARAH.KE_PRODUKSI ? 'GBJ → GP' : 'GP → GBJ',
-      waktuRaw: new Date(r.Waktu).getTime(), waktu: jam_(r.Waktu),
-      item: r.Nama_Item, kode: r.Kode_Item, qty: angka_(r.Qty_Kg),
-      noSuratJalan: '', supplier: '', qtyOcr: null, selisih: null,
       foto: r.Foto_URL, fotoId: r.Foto_ID, pencatat: r.Nama_Pencatat, catatan: r.Catatan,
       catatanTinjau: r.Catatan_Tinjau, ditinjauOleh: r.Ditinjau_Oleh
     });
@@ -1110,11 +1112,12 @@ function laporanSusut(hari, ident) {
 }
 
 /**
- * Stok berjalan + dari mana asalnya.
- * GBJ = stok awal + pembelian masuk − retur − ke produksi + kembali dari produksi
- * GP  = stok awal + ke produksi − kembali − bahan baku dipakai + barang jadi + scrap
+ * Stok berjalan + dari mana asalnya. v9: SATU lokasi (GBJ) — pekerjaan memakai bahan dari GBJ
+ * dan hasilnya (barang jadi + scrap) langsung masuk GBJ lagi. Tidak ada transfer.
+ * GBJ = stok awal + pembelian − retur ke supplier + retur dari customer − terjual
+ *       − bahan baku dipakai + barang jadi + scrap − scrap ke chassen + biji plastik daur ulang
+ *       − rusak (disetujui) ± penyesuaian opname
  */
-/** Stok semua item per lokasi (GBJ/GP) beserta rincian arusnya. Dipakai laporanStok & getKonteks. */
 function hitungStokSemua_() {
   var peta = petaItem_();
   var stok = {};
@@ -1123,12 +1126,11 @@ function hitungStokSemua_() {
     if (!stok[kode]) {
       var it = peta[kode] || { nama: kode };
       stok[kode] = { kode: kode, nama: it.nama, kategori: it.kategori || '',
-                     awalGBJ: it.awalGBJ || 0, awalGP: it.awalGP || 0,
-                     awal: (it.awalGBJ || 0) + (it.awalGP || 0),
+                     awal: it.awal || 0,
                      beli: 0, retur: 0, jual: 0, returCust: 0,
-                     keGP: 0, keGBJ: 0, dipakai: 0, dihasilkan: 0,
-                     opnameGBJ: 0, opnameGP: 0, rusakGBJ: 0, rusakGP: 0,
-                     gbj: it.awalGBJ || 0, gp: it.awalGP || 0 };
+                     dipakai: 0, dihasilkan: 0, daurKirim: 0, daurHasil: 0,
+                     opname: 0, rusak: 0,
+                     gbj: it.awal || 0 };
     }
     return stok[kode];
   }
@@ -1148,31 +1150,33 @@ function hitungStokSemua_() {
     else { s.jual += q; s.gbj -= q; }
   });
 
-  baca_(SHEET.TRANSFER).forEach(function (r) {
-    if (!dihitung_(r)) return;
-    var s = sel(r.Kode_Item), q = angka_(r.Qty_Kg);
-    if (r.Arah === ARAH.KE_PRODUKSI) { s.keGP += q; s.gbj -= q; s.gp += q; }
-    else { s.keGBJ += q; s.gp -= q; s.gbj += q; }
-  });
-
   baca_(SHEET.DETAIL).forEach(function (d) {
     var s = sel(d.Kode_Item), q = angka_(d.Qty_Kg);
-    if (d.Jenis === JENIS_DETAIL.BAHAN_BAKU) { s.dipakai += q; s.gp -= q; }
-    else { s.dihasilkan += q; s.gp += q; }
+    if (d.Jenis === JENIS_DETAIL.BAHAN_BAKU) { s.dipakai += q; s.gbj -= q; }
+    else { s.dihasilkan += q; s.gbj += q; }
+  });
+
+  /* v9: daur ulang — scrap keluar ke chassen, biji plastik kembali (batch DIBATALKAN tidak dihitung) */
+  var daurAktif = {};
+  baca_(SHEET.DAUR).forEach(function (r) { if (r.Status !== STATUS_DAUR.DIBATALKAN) daurAktif[r.ID] = true; });
+  baca_(SHEET.DAUR_DETAIL).forEach(function (d) {
+    if (!daurAktif[d.ID_Daur]) return;
+    var s = sel(d.Kode_Item), q = angka_(d.Qty_Kg);
+    if (d.Jenis === JENIS_DAUR_DETAIL.SCRAP) { s.daurKirim += q; s.gbj -= q; }
+    else { s.daurHasil += q; s.gbj += q; }
   });
 
   /* barang rusak yang sudah disetujui manager */
   baca_(SHEET.KERUSAKAN).forEach(function (r) {
     if (r.Status !== STATUS_TRANSFER.DISETUJUI) return;
     var s = sel(r.Kode_Item), q = angka_(r.Qty_Kg);
-    if (r.Lokasi === LOKASI.GP) { s.rusakGP += q; s.gp -= q; } else { s.rusakGBJ += q; s.gbj -= q; }
+    s.rusak += q; s.gbj -= q;
   });
 
   /* penyesuaian dari stock opname: selisih = fisik − sistem saat dihitung */
   baca_(SHEET.OPNAME).forEach(function (r) {
     var s = sel(r.Kode_Item), d = angka_(r.Selisih);
-    if (r.Lokasi === LOKASI.GP) { s.opnameGP += d; s.gp += d; }
-    else { s.opnameGBJ += d; s.gbj += d; }
+    s.opname += d; s.gbj += d;
   });
   return stok;
 }
@@ -1183,23 +1187,22 @@ function laporanStok(ident) {
 
   var daftar = Object.keys(stok).map(function (k) {
     var s = stok[k];
-    ['awalGBJ','awalGP','awal','beli','retur','jual','returCust',
-     'keGP','keGBJ','dipakai','dihasilkan','opnameGBJ','opnameGP','rusakGBJ','rusakGP','gbj','gp'].forEach(function (f) {
+    ['awal','beli','retur','jual','returCust','dipakai','dihasilkan','daurKirim','daurHasil','opname','rusak','gbj'].forEach(function (f) {
       s[f] = bulat_(s[f], 2);
     });
-    s.total = bulat_(s.gbj + s.gp, 2);
+    s.total = s.gbj;
     return s;
   }).filter(function (s) {
     return s.awal || s.beli || s.retur || s.jual || s.returCust ||
-           s.keGP || s.keGBJ || s.dipakai || s.dihasilkan || s.opnameGBJ || s.opnameGP || s.rusakGBJ || s.rusakGP;
+           s.dipakai || s.dihasilkan || s.daurKirim || s.daurHasil || s.opname || s.rusak;
   }).sort(function (a, b) { return b.total - a.total; });
 
-  var tot = { beli: 0, retur: 0, jual: 0, returCust: 0, rusak: 0, gbj: 0, gp: 0, total: 0 };
+  var tot = { beli: 0, retur: 0, jual: 0, returCust: 0, rusak: 0, daurKirim: 0, daurHasil: 0, gbj: 0, total: 0 };
   daftar.forEach(function (s) {
     tot.beli += s.beli; tot.retur += s.retur;
     tot.jual += s.jual; tot.returCust += s.returCust;
-    tot.rusak += (s.rusakGBJ || 0) + (s.rusakGP || 0);
-    tot.gbj += s.gbj; tot.gp += s.gp; tot.total += s.total;
+    tot.rusak += s.rusak; tot.daurKirim += s.daurKirim; tot.daurHasil += s.daurHasil;
+    tot.gbj += s.gbj; tot.total += s.total;
   });
   Object.keys(tot).forEach(function (k) { tot[k] = bulat_(tot[k], 2); });
 
@@ -1308,9 +1311,7 @@ var JENIS_RIWAYAT = {
   BELI_MASUK : { sheet: 'PENERIMAAN', filter: function (r) { return r.Jenis === JENIS_PENERIMAAN.MASUK; } },
   BELI_RETUR : { sheet: 'PENERIMAAN', filter: function (r) { return r.Jenis === JENIS_PENERIMAAN.RETUR; } },
   JUAL_KELUAR: { sheet: 'PENGIRIMAN', filter: function (r) { return r.Jenis === JENIS_PENGIRIMAN.KELUAR; } },
-  JUAL_RETUR : { sheet: 'PENGIRIMAN', filter: function (r) { return r.Jenis === JENIS_PENGIRIMAN.RETUR_MASUK; } },
-  TRF_KE_GP  : { sheet: 'TRANSFER',   filter: function (r) { return r.Arah === ARAH.KE_PRODUKSI; } },
-  TRF_KE_GBJ : { sheet: 'TRANSFER',   filter: function (r) { return r.Arah === ARAH.KE_GUDANG; } }
+  JUAL_RETUR : { sheet: 'PENGIRIMAN', filter: function (r) { return r.Jenis === JENIS_PENGIRIMAN.RETUR_MASUK; } }
 };
 
 function penandaPencatat_(u) { return u.email || ('manual:' + u.nama); }
@@ -1340,8 +1341,8 @@ function bolehEditEntri_(u, r) { return alasanKunci_(u, r) === ''; }
 
 function sheetDariId_(id) {
   var pre = String(id).slice(0, 4);
-  if (pre === 'TRF-') return SHEET.TRANSFER;
   if (pre === 'OUT-' || pre === 'RTC-') return SHEET.PENGIRIMAN;
+  if (pre === 'DUR-') return SHEET.DAUR;
   if (pre === 'JOB-') return SHEET.PEKERJAAN;
   return SHEET.PENERIMAAN;
 }
@@ -1364,7 +1365,6 @@ function ringkasEntri_(r, nama, u, tertunda) {
   };
   if (nama === SHEET.PENERIMAAN) { o.partner = r.Supplier; o.jenis = r.Jenis; }
   if (nama === SHEET.PENGIRIMAN) { o.partner = r.Customer; o.jenis = r.Jenis; }
-  if (nama === SHEET.TRANSFER)   { o.partner = ''; o.jenis = r.Arah; }
   return o;
 }
 
@@ -1389,6 +1389,7 @@ function ambilEntri(id, ident) {
   var u = penggunaSaatIni_(ident);
   var nama = sheetDariId_(id);
   if (nama === SHEET.PEKERJAAN) throw new Error('Pakai ambilPekerjaan untuk job.');
+  if (nama === SHEET.DAUR) throw new Error('Pakai ambilDaurUlang untuk daur ulang.');
   var rows = baca_(nama);
   for (var i = 0; i < rows.length; i++) {
     if (rows[i].ID === id) {
@@ -1428,7 +1429,7 @@ function susunEdit_(nama, r, perubahan) {
       ubah[kolom] = perubahan.partner; log.push(kolom.toLowerCase() + ': ' + r[kolom] + ' → ' + perubahan.partner);
     }
   }
-  if (perubahan.noSuratJalan !== undefined && nama !== SHEET.TRANSFER &&
+  if (perubahan.noSuratJalan !== undefined &&
       String(perubahan.noSuratJalan) !== String(r.No_Surat_Jalan || '')) {
     ubah.No_Surat_Jalan = perubahan.noSuratJalan;
     log.push('surat jalan: ' + (r.No_Surat_Jalan || '—') + ' → ' + (perubahan.noSuratJalan || '—'));
@@ -1469,6 +1470,7 @@ function simpanEditEntri(id, perubahan, ident, alasan) {
   var u = penggunaSaatIni_(ident);
   var nama = sheetDariId_(id);
   if (nama === SHEET.PEKERJAAN) throw new Error('Pakai simpanEditPekerjaan untuk job.');
+  if (nama === SHEET.DAUR) throw new Error('Pakai ubahDaurUlang untuk daur ulang.');
   var lock = LockService.getScriptLock();
   lock.waitLock(20000);
   lupakanMemo_();   // di dalam lock: baca ulang dari sheet, jangan pakai memo sebelum lock
@@ -1492,6 +1494,7 @@ function pesanKunci_(kunci) {
 function batalkanEntriSendiri(id, alasan, ident) {
   var u = penggunaSaatIni_(ident);
   var nama = sheetDariId_(id);
+  if (nama === SHEET.DAUR) return batalkanDaurUlang(id, alasan, ident);
   var lock = LockService.getScriptLock();
   lock.waitLock(20000);
   lupakanMemo_();   // di dalam lock: baca ulang dari sheet, jangan pakai memo sebelum lock
@@ -1862,9 +1865,10 @@ function aktivitasStaf(nama, hari, ident) {
     if (new Date(r.Waktu) < batas) return;
     tambah(r.Nama_Pencatat, r.Jenis === JENIS_PENGIRIMAN.RETUR_MASUK ? 'RETUR_CUSTOMER' : 'KELUAR', angka_(r.Qty_Kg), r.Waktu, r.Nama_Item + ' · ' + r.Customer);
   });
-  baca_(SHEET.TRANSFER).forEach(function (r) {
-    if (new Date(r.Waktu) < batas) return;
-    tambah(r.Nama_Pencatat, r.Arah === ARAH.KE_PRODUKSI ? 'KE_GP' : 'KE_GBJ', angka_(r.Qty_Kg), r.Waktu, r.Nama_Item);
+  baca_(SHEET.DAUR).forEach(function (r) {
+    if (r.Status === STATUS_DAUR.DIBATALKAN) return;
+    if (new Date(r.Waktu_Kirim) >= batas) tambah(r.Nama_Pencatat, 'DAUR_KIRIM', angka_(r.Total_Scrap_Kg), r.Waktu_Kirim, r.Vendor);
+    if (r.Status === STATUS_DAUR.SELESAI && r.Waktu_Terima && new Date(r.Waktu_Terima) >= batas) tambah(r.Nama_Penerima, 'DAUR_TERIMA', angka_(r.Total_Hasil_Kg), r.Waktu_Terima, r.Vendor);
   });
   baca_(SHEET.PEKERJAAN).forEach(function (r) {
     if (new Date(r.Waktu_Mulai) < batas) return;
@@ -1902,7 +1906,7 @@ function daftarSku(ident) {
   var lihatHpp = bolehLihatHpp_(u);
   return baca_(SHEET.ITEM).map(function (r) {
     var o = { baris: r._baris, kode: r.Kode_Item, nama: r.Nama_Item, kategori: r.Kategori,
-              awalGBJ: angka_(r.Stok_Awal_GBJ), awalGP: angka_(r.Stok_Awal_GP),
+              awal: angka_(r.Stok_Awal),
               aktif: String(r.Aktif).toUpperCase() !== 'TIDAK', dipakai: !!dipakai[r.Kode_Item] };
     if (lihatHpp) o.harga = angka_(r.Harga_Per_Kg);
     return o;
@@ -1911,14 +1915,14 @@ function daftarSku(ident) {
 
 function skuDipakai_() {
   var d = {};
-  [SHEET.PENERIMAAN, SHEET.PENGIRIMAN, SHEET.TRANSFER, SHEET.DETAIL, SHEET.OPNAME].forEach(function (nama) {
+  [SHEET.PENERIMAAN, SHEET.PENGIRIMAN, SHEET.DETAIL, SHEET.OPNAME, SHEET.DAUR_DETAIL].forEach(function (nama) {
     baca_(nama).forEach(function (r) { if (r.Kode_Item) d[r.Kode_Item] = true; });
   });
   baca_(SHEET.PEKERJAAN).forEach(function (r) { if (r.Kode_Produk) d[r.Kode_Produk] = true; });
   return d;
 }
 
-/** p = { baris (kosong = baru), kode, nama, kategori, harga, awalGBJ, awalGP, aktif } */
+/** p = { baris (kosong = baru), kode, nama, kategori, harga, awal, aktif } */
 function simpanSku(p, ident) {
   var u = penggunaSaatIni_(ident);
   if (!bolehReview_(u)) throw new Error('Hanya Supervisor / Admin.');
@@ -1940,7 +1944,7 @@ function simpanSku(p, ident) {
       else if (String(rows[i].Kode_Item).toUpperCase() === kode) throw new Error('Kode "' + kode + '" sudah ada.');
     }
     var ubah = { Kode_Item: kode, Nama_Item: nama, Kategori: kat,
-                 Stok_Awal_GBJ: angka_(p.awalGBJ), Stok_Awal_GP: angka_(p.awalGP),
+                 Stok_Awal: angka_(p.awal !== undefined ? p.awal : p.awalGBJ),
                  Aktif: p.aktif === false ? 'TIDAK' : 'YA' };
     if (p.harga !== undefined && p.harga !== null && String(p.harga) !== '') ubah.Harga_Per_Kg = angka_(p.harga);
     if (target) {
@@ -1988,33 +1992,32 @@ function hapusSku(kode, ident) {
 /* ---------- STOCK OPNAME (SUPERVISOR / ADMIN) ---------- */
 
 /**
- * Daftar item + stok sistem di satu lokasi, siap diisi stok fisik.
+ * Daftar item + stok sistem, siap diisi stok fisik. v9: satu lokasi (GBJ).
  */
-function siapkanOpname(lokasi, ident) {
+function siapkanOpname(ident) {
   var u = penggunaSaatIni_(ident);
   if (!bolehReview_(u)) throw new Error('Hanya Supervisor / Admin yang bisa stock opname.');
-  lokasi = lokasi === LOKASI.GP ? LOKASI.GP : LOKASI.GBJ;
+  var lokasi = LOKASI.GBJ;
   var stok = {};
   laporanStok(ident).daftar.forEach(function (s) { stok[s.kode] = s; });
   var items = baca_(SHEET.ITEM).filter(function (r) {
     return r.Kode_Item && String(r.Aktif).toUpperCase() !== 'TIDAK';
   }).map(function (r) {
     var s = stok[r.Kode_Item];
-    return { kode: r.Kode_Item, nama: r.Nama_Item, kategori: r.Kategori,
-             sistem: s ? (lokasi === LOKASI.GP ? s.gp : s.gbj) : 0 };
+    return { kode: r.Kode_Item, nama: r.Nama_Item, kategori: r.Kategori, sistem: s ? s.gbj : 0 };
   });
   return { lokasi: lokasi, waktu: jam_(new Date()), items: items };
 }
 
 /**
- * p = { lokasi, baris:[{kode, fisik}], catatan }
+ * p = { baris:[{kode, fisik}], catatan }
  * Baris yang fisik-nya kosong dilewati. Selisih 0 tetap dicatat (bukti sudah dihitung).
  */
 function simpanOpname(p, ident) {
   var u = penggunaSaatIni_(ident);
   if (!bolehReview_(u)) throw new Error('Hanya Supervisor / Admin yang bisa stock opname.');
   if (!p || !p.baris || !p.baris.length) throw new Error('Belum ada item yang dihitung.');
-  var lokasi = p.lokasi === LOKASI.GP ? LOKASI.GP : LOKASI.GBJ;
+  var lokasi = LOKASI.GBJ;
 
   var lock = LockService.getScriptLock();
   lock.waitLock(20000);
@@ -2033,7 +2036,7 @@ function simpanOpname(p, ident) {
       var fisik = angka_(b.fisik);
       if (fisik < 0) throw new Error('Stok fisik tidak boleh negatif (' + it.nama + ').');
       var s = stok[b.kode];
-      var sistem = s ? (lokasi === LOKASI.GP ? s.gp : s.gbj) : 0;
+      var sistem = s ? s.gbj : 0;
       var selisih = bulat_(fisik - sistem, 3);
       n++; totalSelisih += selisih;
       if (selisih > 0) plus += selisih; else minus += -selisih;
@@ -2099,7 +2102,7 @@ function kalender(bulan, ident) {
   var hari = {};
   function h(d) {
     var k = tglStr_(d);
-    if (!hari[k]) hari[k] = { tanggal: k, masuk: 0, keluar: 0, transfer: 0, job: 0,
+    if (!hari[k]) hari[k] = { tanggal: k, masuk: 0, keluar: 0, daur: 0, job: 0,
                               susutTinggi: 0, menunggu: 0, ditandai: 0, kg: 0, kejadian: [] };
     return hari[k];
   }
@@ -2130,16 +2133,27 @@ function kalender(bulan, ident) {
       item: r.Nama_Item, qty: q, status: r.Status, oleh: r.Nama_Pencatat, id: r.ID, sheet: 'entri' });
   });
 
-  baca_(SHEET.TRANSFER).forEach(function (r) {
-    var d = new Date(r.Waktu); if (!dalam(d) || !dihitung_(r)) return;
-    var x = h(d), q = angka_(r.Qty_Kg);
-    x.transfer++;
-    if (r.Status === STATUS_TRANSFER.MENUNGGU) x.menunggu++;
-    if (r.Status === STATUS_TRANSFER.DITANDAI) x.ditandai++;
-    pushK(d, { t: d.getTime(), jam: Utilities.formatDate(d, APP.zona, 'HH:mm'),
-      jenis: r.Arah === ARAH.KE_PRODUKSI ? 'KE_GP' : 'KE_GBJ',
-      label: r.Arah === ARAH.KE_PRODUKSI ? 'GBJ → GP' : 'GP → GBJ',
-      item: r.Nama_Item, qty: q, status: r.Status, oleh: r.Nama_Pencatat, id: r.ID, sheet: 'entri' });
+  /* v9: daur ulang scrap — kirim ke chassen & terima biji plastik */
+  baca_(SHEET.DAUR).forEach(function (r) {
+    if (r.Status === STATUS_DAUR.DIBATALKAN) return;
+    var dk = new Date(r.Waktu_Kirim);
+    if (dalam(dk)) {
+      var xk = h(dk); xk.daur = (xk.daur || 0) + 1;
+      pushK(dk, { t: dk.getTime(), jam: Utilities.formatDate(dk, APP.zona, 'HH:mm'),
+        jenis: 'DAUR_KIRIM', label: 'Scrap → ' + r.Vendor, item: '', qty: angka_(r.Total_Scrap_Kg),
+        status: r.Status, oleh: r.Nama_Pencatat, id: r.ID, sheet: 'daur' });
+    }
+    if (r.Status === STATUS_DAUR.SELESAI && r.Waktu_Terima) {
+      var dt = new Date(r.Waktu_Terima);
+      if (dalam(dt)) {
+        var xt = h(dt); xt.daur = (xt.daur || 0) + 1;
+        if (r.Status_Susut && r.Status_Susut !== 'NORMAL') xt.susutTinggi++;
+        pushK(dt, { t: dt.getTime(), jam: Utilities.formatDate(dt, APP.zona, 'HH:mm'),
+          jenis: 'DAUR_TERIMA', label: r.Vendor + ' → GBJ', item: '', qty: angka_(r.Total_Hasil_Kg),
+          status: r.Status_Susut, susut: angka_(r.Susut_Kg), persen: angka_(r.Susut_Persen),
+          oleh: r.Nama_Penerima, id: r.ID, sheet: 'daur' });
+      }
+    }
   });
 
   baca_(SHEET.PEKERJAAN).forEach(function (r) {
@@ -2246,17 +2260,4 @@ function laporanHpp(hari, ident) {
 
   return { hari: hari, mataUang: mataUang_(), biayaProsesPerKg: biayaProsesPerKg_(),
            total: tot, perProduk: ringkas, detail: detail };
-}
-
-function riwayatTransfer(hari, ident) {
-  penggunaSaatIni_(ident);
-  var batas = new Date();
-  batas.setDate(batas.getDate() - (hari || 7));
-  return baca_(SHEET.TRANSFER)
-    .filter(function (r) { return new Date(r.Waktu) >= batas; })
-    .map(function (r) {
-      return { id: r.ID, waktu: jam_(r.Waktu), arah: r.Arah, item: r.Nama_Item,
-               qty: angka_(r.Qty_Kg), status: r.Status, pencatat: r.Nama_Pencatat,
-               foto: r.Foto_URL, fotoId: r.Foto_ID };
-    }).reverse().slice(0, 150);
 }

@@ -13,6 +13,7 @@
 function migrasiSkema() {
   lupakanMemo_();
   var ss = ss_();
+  migrasiV9_(ss);
   Object.keys(SHEET).forEach(function (k) {
     var nama = SHEET[k], head = HEADER[nama];
     var sh = ss.getSheetByName(nama);
@@ -41,6 +42,31 @@ function migrasiSkema() {
   return 'Skema v' + APP.versi + ' siap.';
 }
 
+/**
+ * v9: gudang produksi (GP) dihapus → satu lokasi.
+ *  - Master_Item: Stok_Awal_GP digabung ke Stok_Awal_GBJ, kolomnya dihapus, header jadi 'Stok_Awal'.
+ *  - Sheet 'Transfer' lama tidak dipakai lagi → diganti nama 'Transfer_lama' (data tetap ada, tidak dihitung;
+ *    transfer GBJ↔GP dalam satu gudang memang saling meniadakan).
+ * Aman dijalankan berulang.
+ */
+function migrasiV9_(ss) {
+  var sh = ss.getSheetByName(SHEET.ITEM);
+  if (sh) {
+    var maxKol = sh.getMaxColumns();
+    var head = sh.getRange(1, 1, 1, maxKol).getValues()[0].map(String);
+    var iGbj = head.indexOf('Stok_Awal_GBJ'), iGp = head.indexOf('Stok_Awal_GP'), n = sh.getLastRow();
+    if (iGbj >= 0 && iGp >= 0 && n >= 2) {
+      var vG = sh.getRange(2, iGbj + 1, n - 1, 1).getValues(), vP = sh.getRange(2, iGp + 1, n - 1, 1).getValues();
+      sh.getRange(2, iGbj + 1, n - 1, 1).setValues(vG.map(function (r, i) { return [angka_(r[0]) + angka_(vP[i][0])]; }));
+    }
+    if (iGp >= 0) { sh.deleteColumn(iGp + 1); if (iGp < iGbj) iGbj--; }
+    if (iGbj >= 0) sh.getRange(1, iGbj + 1).setValue('Stok_Awal');
+    lupakanMemo_(SHEET.ITEM);
+  }
+  var trf = ss.getSheetByName('Transfer');
+  if (trf) { try { trf.setName('Transfer_lama'); } catch (e) {} }
+}
+
 /** Dipanggil di awal tiap request: migrasi hanya kalau versi skema berubah (1 property read). */
 function pastikanSkema_() {
   if (typeof PropertiesService === 'undefined') return;
@@ -62,7 +88,7 @@ function kunciWaktu_(tanggal, waktu) {
   return String(tanggal || '') + 'T' + jam;
 }
 /* urutan kalau waktu sama persis: penambahan lapisan dulu, baru pemakaian */
-var PRIORITAS_EV_ = { MASUK: 0, RETUR_CUST: 0, JOB_SELESAI: 0, OPNAME: 1, KE_GP: 2, KE_GBJ: 2, JOB_MULAI: 3, RETUR: 3, JUAL: 3, RUSAK: 3 };
+var PRIORITAS_EV_ = { MASUK: 0, RETUR_CUST: 0, JOB_SELESAI: 0, DAUR_TERIMA: 0, OPNAME: 1, JOB_MULAI: 3, RETUR: 3, JUAL: 3, RUSAK: 3, DAUR_KIRIM: 3 };
 
 /* =================================================================
    PESANAN PEMBELIAN (PO) — manager
@@ -350,29 +376,30 @@ function daftarInvoice(ident, status) {
 }
 
 /* =================================================================
-   HPP FIFO — mesin lapisan (batch) per item per lokasi
+   HPP FIFO — mesin lapisan (batch) per item. v9: satu lokasi (GBJ).
    ================================================================= */
 
 /**
  * Putar ulang semua kejadian secara kronologis. Setiap penerimaan = lapisan {qty, harga}.
- * Pemakaian mengambil lapisan tertua dulu. Transfer memindahkan lapisan apa adanya.
- * Hasil: { lapisan: {kode:{GBJ:[...],GP:[...]}}, biaya: {idKejadian: nilai}, hargaJob: {idJob:{kode:hargaRata}} }
+ * Pemakaian mengambil lapisan tertua dulu. Pekerjaan memakai bahan dari gudang dan hasilnya kembali ke gudang.
+ * Daur ulang: scrap keluar (nilai lapisannya = Nilai_Scrap), biji plastik kembali dengan harga (nilai scrap + jasa) / kg.
+ * Hasil: { lapisan: {kode:[{qty,harga,asal}]}, biaya: {idKejadian: nilai}, hargaJob: {idJob:{kode:hargaRata}}, nilaiDaur: {idDaur: nilaiScrap} }
  */
 function hitungFifo_(sampaiTanggal) {
   var peta = petaItem_();
   var batasK = sampaiTanggal ? String(sampaiTanggal) + 'T23:59:59.999' : null;   // opsional: posisi per akhir tanggal tertentu
-  var L = {};   // kode -> { GBJ:[{qty,harga,asal}], GP:[...] }
-  function lap(kode, lok) { if (!L[kode]) L[kode] = { GBJ: [], GP: [] }; return L[kode][lok]; }
+  var L = {};   // kode -> [{qty,harga,asal}]
+  function lap(kode) { if (!L[kode]) L[kode] = []; return L[kode]; }
   function hargaCadangan(kode) {
-    var q = 0, n = 0, l = L[kode];
-    if (l) [l.GBJ, l.GP].forEach(function (arr) { arr.forEach(function (x) { q += x.qty; n += x.qty * x.harga; }); });
+    var q = 0, n = 0, arr = L[kode] || [];
+    arr.forEach(function (x) { q += x.qty; n += x.qty * x.harga; });
     if (q > 0) return n / q;
     return peta[kode] ? peta[kode].harga : 0;
   }
-  function tambahLap(kode, lok, qty, harga, asal) { if (qty > 0) lap(kode, lok).push({ qty: qty, harga: harga, asal: asal }); }
-  /** ambil qty dari lokasi (FIFO). Kalau lapisan kurang, sisanya dinilai harga cadangan. Kembalikan {nilai, lapisan:[{qty,harga,asal}]} */
-  function ambil(kode, lok, qty, asalKhusus) {
-    var arr = lap(kode, lok), sisa = qty, nilai = 0, diambil = [];
+  function tambahLap(kode, qty, harga, asal) { if (qty > 0) lap(kode).push({ qty: qty, harga: harga, asal: asal }); }
+  /** ambil qty (FIFO). Kalau lapisan kurang, sisanya dinilai harga cadangan. Kembalikan {nilai, lapisan:[{qty,harga,asal}]} */
+  function ambil(kode, qty, asalKhusus) {
+    var arr = lap(kode), sisa = qty, nilai = 0, diambil = [];
     if (asalKhusus) {
       for (var j = 0; j < arr.length && sisa > 0; j++) {
         if (arr[j].asal !== asalKhusus) continue;
@@ -390,10 +417,7 @@ function hitungFifo_(sampaiTanggal) {
   }
 
   /* stok awal = lapisan pertama */
-  Object.keys(peta).forEach(function (k) {
-    tambahLap(k, 'GBJ', peta[k].awalGBJ || 0, peta[k].harga || 0, 'AWAL');
-    tambahLap(k, 'GP',  peta[k].awalGP  || 0, peta[k].harga || 0, 'AWAL');
-  });
+  Object.keys(peta).forEach(function (k) { tambahLap(k, peta[k].awal || 0, peta[k].harga || 0, 'AWAL'); });
 
   var ev = [];
   var poHarga = {}; baca_(SHEET.PO).forEach(function (r) { poHarga[r.ID] = angka_(r.Harga_Per_Kg); });
@@ -406,10 +430,6 @@ function hitungFifo_(sampaiTanggal) {
     if (!dihitung_(r)) return;
     ev.push({ k: kunciWaktu_(r.Tanggal, r.Waktu), t: r.Jenis === JENIS_PENGIRIMAN.RETUR_MASUK ? 'RETUR_CUST' : 'JUAL', r: r });
   });
-  baca_(SHEET.TRANSFER).forEach(function (r) {
-    if (!dihitung_(r)) return;
-    ev.push({ k: kunciWaktu_(r.Tanggal, r.Waktu), t: r.Arah === ARAH.KE_PRODUKSI ? 'KE_GP' : 'KE_GBJ', r: r });
-  });
   var detail = baca_(SHEET.DETAIL), detPerJob = {};
   detail.forEach(function (d) { (detPerJob[d.ID_Pekerjaan] = detPerJob[d.ID_Pekerjaan] || []).push(d); });
   baca_(SHEET.PEKERJAAN).forEach(function (r) {
@@ -421,6 +441,19 @@ function hitungFifo_(sampaiTanggal) {
       ev.push({ k: kunciWaktu_(tglSelesai, r.Waktu_Selesai), t: 'JOB_SELESAI', r: r });
     }
   });
+  /* v9: daur ulang scrap */
+  var detDaur = {};
+  baca_(SHEET.DAUR_DETAIL).forEach(function (d) { (detDaur[d.ID_Daur] = detDaur[d.ID_Daur] || []).push(d); });
+  baca_(SHEET.DAUR).forEach(function (r) {
+    if (r.Status === STATUS_DAUR.DIBATALKAN) return;
+    ev.push({ k: kunciWaktu_(r.Tanggal, r.Waktu_Kirim), t: 'DAUR_KIRIM', r: r });
+    if (r.Status === STATUS_DAUR.SELESAI && r.Waktu_Terima) {
+      var tglT = r.Tanggal_Terima || r.Tanggal;
+      try { var tt = tglStr_(new Date(r.Waktu_Terima)); if (!r.Tanggal_Terima && tt > String(r.Tanggal || '')) tglT = tt; } catch (e2) {}
+      if (String(tglT) < String(r.Tanggal || '')) tglT = r.Tanggal;
+      ev.push({ k: kunciWaktu_(tglT, r.Waktu_Terima), t: 'DAUR_TERIMA', r: r });
+    }
+  });
   baca_(SHEET.OPNAME).forEach(function (r) { ev.push({ k: kunciWaktu_(r.Tanggal, r.Waktu), t: 'OPNAME', r: r }); });
   baca_(SHEET.KERUSAKAN).forEach(function (r) {
     if (r.Status === STATUS_TRANSFER.DISETUJUI) ev.push({ k: kunciWaktu_(r.Tanggal, r.Waktu), t: 'RUSAK', r: r });
@@ -428,32 +461,30 @@ function hitungFifo_(sampaiTanggal) {
   if (batasK) ev = ev.filter(function (e) { return e.k <= batasK; });
   ev.sort(function (a, b) {
     if (a.k !== b.k) return a.k < b.k ? -1 : 1;
-    /* satu pekerjaan yang mulai & selesai di milidetik yang sama: MULAI tetap lebih dulu */
-    if (a.r === b.r && a.t !== b.t) return a.t === 'JOB_MULAI' ? -1 : 1;
+    /* satu pekerjaan / batch daur ulang yang mulai & selesai di milidetik yang sama: MULAI / KIRIM tetap lebih dulu */
+    if (a.r === b.r && a.t !== b.t) return (a.t === 'JOB_MULAI' || a.t === 'DAUR_KIRIM') ? -1 : 1;
     return (PRIORITAS_EV_[a.t] || 0) - (PRIORITAS_EV_[b.t] || 0);
   });
 
-  var biaya = {}, hargaJob = {}, hppJob = {};
+  var biaya = {}, hargaJob = {}, hppJob = {}, nilaiDaur = {};
   ev.forEach(function (e) {
     var r = e.r, q;
     switch (e.t) {
-      case 'MASUK':      tambahLap(r.Kode_Item, 'GBJ', angka_(r.Qty_Kg), e.harga || hargaCadangan(r.Kode_Item), r.ID); break;
-      case 'RETUR':      biaya[r.ID] = ambil(r.Kode_Item, 'GBJ', angka_(r.Qty_Kg), r.ID_Penerimaan_Asal || null).nilai; break;
-      case 'JUAL':       biaya[r.ID] = ambil(r.Kode_Item, 'GBJ', angka_(r.Qty_Kg)).nilai; break;
-      case 'RETUR_CUST': tambahLap(r.Kode_Item, 'GBJ', angka_(r.Qty_Kg), hargaCadangan(r.Kode_Item), r.ID); break;
-      case 'KE_GP':      ambil(r.Kode_Item, 'GBJ', angka_(r.Qty_Kg)).lapisan.forEach(function (x) { tambahLap(r.Kode_Item, 'GP', x.qty, x.harga, x.asal); }); break;
-      case 'KE_GBJ':     ambil(r.Kode_Item, 'GP',  angka_(r.Qty_Kg)).lapisan.forEach(function (x) { tambahLap(r.Kode_Item, 'GBJ', x.qty, x.harga, x.asal); }); break;
-      case 'RUSAK':      biaya[r.ID] = ambil(r.Kode_Item, r.Lokasi === LOKASI.GP ? 'GP' : 'GBJ', angka_(r.Qty_Kg)).nilai; break;
+      case 'MASUK':      tambahLap(r.Kode_Item, angka_(r.Qty_Kg), e.harga || hargaCadangan(r.Kode_Item), r.ID); break;
+      case 'RETUR':      biaya[r.ID] = ambil(r.Kode_Item, angka_(r.Qty_Kg), r.ID_Penerimaan_Asal || null).nilai; break;
+      case 'JUAL':       biaya[r.ID] = ambil(r.Kode_Item, angka_(r.Qty_Kg)).nilai; break;
+      case 'RETUR_CUST': tambahLap(r.Kode_Item, angka_(r.Qty_Kg), hargaCadangan(r.Kode_Item), r.ID); break;
+      case 'RUSAK':      biaya[r.ID] = ambil(r.Kode_Item, angka_(r.Qty_Kg)).nilai; break;
       case 'OPNAME':
-        var d = angka_(r.Selisih), lok = r.Lokasi === LOKASI.GP ? 'GP' : 'GBJ';
-        if (d > 0) tambahLap(r.Kode_Item, lok, d, hargaCadangan(r.Kode_Item), r.ID);
-        else if (d < 0) biaya[r.ID] = ambil(r.Kode_Item, lok, -d).nilai;
+        var d = angka_(r.Selisih);
+        if (d > 0) tambahLap(r.Kode_Item, d, hargaCadangan(r.Kode_Item), r.ID);
+        else if (d < 0) biaya[r.ID] = ambil(r.Kode_Item, -d).nilai;
         break;
       case 'JOB_MULAI':
         var tot = 0, hj = {};
         (detPerJob[r.ID] || []).forEach(function (d) {
           if (d.Jenis !== JENIS_DETAIL.BAHAN_BAKU) return;
-          q = angka_(d.Qty_Kg); var h = ambil(d.Kode_Item, 'GP', q);
+          q = angka_(d.Qty_Kg); var h = ambil(d.Kode_Item, q);
           tot += h.nilai; hj[d.Kode_Item] = q > 0 ? h.nilai / q : 0;
         });
         biaya[r.ID] = tot; hargaJob[r.ID] = hj; hppJob[r.ID] = tot;
@@ -463,59 +494,64 @@ function hitungFifo_(sampaiTanggal) {
         var hppTotal = (hppJob[r.ID] || 0) + angka_(r.Total_Bahan_Baku_Kg) * biayaProsesPerKg_();
         var hpk = jadi > 0 ? hppTotal / jadi : 0;
         (detPerJob[r.ID] || []).forEach(function (d) {
-          if (d.Jenis === JENIS_DETAIL.BARANG_JADI) tambahLap(d.Kode_Item, 'GP', angka_(d.Qty_Kg), hpk, r.ID);
-          if (d.Jenis === JENIS_DETAIL.SCRAP)       tambahLap(d.Kode_Item, 'GP', angka_(d.Qty_Kg), 0, r.ID);
+          if (d.Jenis === JENIS_DETAIL.BARANG_JADI) tambahLap(d.Kode_Item, angka_(d.Qty_Kg), hpk, r.ID);
+          if (d.Jenis === JENIS_DETAIL.SCRAP)       tambahLap(d.Kode_Item, angka_(d.Qty_Kg), 0, r.ID);   // scrap dinilai 0 — nilainya muncul lagi lewat daur ulang (jasa)
         });
+        break;
+      case 'DAUR_KIRIM':
+        var ns = 0;
+        (detDaur[r.ID] || []).forEach(function (d) { if (d.Jenis === JENIS_DAUR_DETAIL.SCRAP) ns += ambil(d.Kode_Item, angka_(d.Qty_Kg)).nilai; });
+        nilaiDaur[r.ID] = ns; biaya[r.ID] = ns;
+        break;
+      case 'DAUR_TERIMA':
+        var hasilKg = 0; (detDaur[r.ID] || []).forEach(function (d) { if (d.Jenis === JENIS_DAUR_DETAIL.HASIL) hasilKg += angka_(d.Qty_Kg); });
+        var hargaHasil = hasilKg > 0 ? ((nilaiDaur[r.ID] || 0) + angka_(r.Biaya_Jasa)) / hasilKg : 0;
+        (detDaur[r.ID] || []).forEach(function (d) { if (d.Jenis === JENIS_DAUR_DETAIL.HASIL) tambahLap(d.Kode_Item, angka_(d.Qty_Kg), hargaHasil, r.ID); });
         break;
     }
   });
-  return { lapisan: L, biaya: biaya, hargaJob: hargaJob };
+  return { lapisan: L, biaya: biaya, hargaJob: hargaJob, nilaiDaur: nilaiDaur };
 }
 
-/** Harga rata-rata FIFO untuk qty yang akan dipakai SEKARANG dari GP (dari hasil hitungFifo_ yang sudah ada). */
+/** Harga rata-rata FIFO untuk qty yang akan dipakai SEKARANG dari gudang (dari hasil hitungFifo_ yang sudah ada). */
 function hargaDariFifo_(fifo, kode, qty, peta) {
-  var L = fifo.lapisan, arr = (L[kode] && L[kode].GP) || [];
+  var arr = fifo.lapisan[kode] || [];
   var sisa = qty, nilai = 0;
   for (var i = 0; i < arr.length && sisa > 0; i++) { var a = Math.min(arr[i].qty, sisa); nilai += a * arr[i].harga; sisa -= a; }
   if (sisa > 0) {
     var q = 0, n = 0;
-    [ (L[kode] && L[kode].GBJ) || [], arr ].forEach(function (x) { x.forEach(function (y) { q += y.qty; n += y.qty * y.harga; }); });
+    arr.forEach(function (y) { q += y.qty; n += y.qty * y.harga; });
     nilai += sisa * (q > 0 ? n / q : (peta[kode] ? peta[kode].harga : 0));
   }
   var h = qty > 0 ? nilai / qty : 0;
   return h > 0 ? h : (peta[kode] ? peta[kode].harga : 0);
 }
 
-/** Harga FIFO barang yang keluar dari GBJ sekarang (untuk HPP penjualan). */
+/** Harga FIFO barang yang keluar dari gudang sekarang (untuk HPP penjualan). */
 function hargaKeluarGbjFifo_(fifo, kode, qty, peta) {
-  var L = fifo.lapisan, arr = (L[kode] && L[kode].GBJ) || [];
+  var arr = fifo.lapisan[kode] || [];
   var sisa = qty, nilai = 0;
   for (var i = 0; i < arr.length && sisa > 0; i++) { var a = Math.min(arr[i].qty, sisa); nilai += a * arr[i].harga; sisa -= a; }
   if (sisa > 0) nilai += sisa * (peta[kode] ? peta[kode].harga : 0);
   return qty > 0 ? bulat_(nilai / qty, 2) : 0;
 }
 
-/** Laporan nilai stok FIFO per item per lokasi (manager). */
+/** Laporan nilai stok FIFO per item (manager). v9: satu lokasi. */
 function laporanNilaiStok(ident) {
   var u = penggunaSaatIni_(ident);
   if (!bolehLihatHpp_(u)) throw new Error('Hanya Manager / Admin.');
   var peta = petaItem_(), L = hitungFifo_().lapisan;
-  var daftar = [], tot = { gbj: 0, gp: 0, nilaiGBJ: 0, nilaiGP: 0 };
+  var daftar = [], tot = { qty: 0, nilai: 0 };
   Object.keys(L).forEach(function (k) {
-    function ringkas(arr) {
-      var q = 0, n = 0; arr.forEach(function (x) { q += x.qty; n += x.qty * x.harga; });
-      return { qty: bulat_(q, 2), nilai: bulat_(n, 0), rata: q > 0 ? bulat_(n / q, 0) : 0,
-               lapisan: arr.map(function (x) { return { qty: bulat_(x.qty, 2), harga: bulat_(x.harga, 0), asal: x.asal }; }) };
-    }
-    var g = ringkas(L[k].GBJ), p = ringkas(L[k].GP);
-    if (!g.qty && !p.qty) return;
-    daftar.push({ kode: k, nama: peta[k] ? peta[k].nama : k, kategori: peta[k] ? peta[k].kategori : '', gbj: g, gp: p,
-                  total: bulat_(g.qty + p.qty, 2), nilai: bulat_(g.nilai + p.nilai, 0) });
-    tot.gbj += g.qty; tot.gp += p.qty; tot.nilaiGBJ += g.nilai; tot.nilaiGP += p.nilai;
+    var arr = L[k], q = 0, n = 0; arr.forEach(function (x) { q += x.qty; n += x.qty * x.harga; });
+    if (q <= 0.0001) return;
+    daftar.push({ kode: k, nama: peta[k] ? peta[k].nama : k, kategori: peta[k] ? peta[k].kategori : '',
+                  qty: bulat_(q, 2), total: bulat_(q, 2), nilai: bulat_(n, 0), rata: bulat_(n / q, 0),
+                  lapisan: arr.map(function (x) { return { qty: bulat_(x.qty, 2), harga: bulat_(x.harga, 0), asal: x.asal }; }) });
+    tot.qty += q; tot.nilai += n;
   });
   daftar.sort(function (a, b) { return b.nilai - a.nilai; });
-  Object.keys(tot).forEach(function (k) { tot[k] = bulat_(tot[k], 0); });
-  tot.nilai = bulat_(tot.nilaiGBJ + tot.nilaiGP, 0);
+  tot.qty = bulat_(tot.qty, 2); tot.nilai = bulat_(tot.nilai, 0);
   return { metode: metodeHpp_(), daftar: daftar, total: tot };
 }
 
@@ -549,8 +585,19 @@ function hitungUlangHpp(ident) {
       }
       ubahBaris_(SHEET.PEKERJAAN, r._baris, ubah); diubah++;
     });
-    catatLog_('HPP_HITUNG_ULANG', '', diubah + ' pekerjaan diperbarui');
-    return { ok: true, diubah: diubah };
+    /* v9: HPP biji plastik daur ulang ikut dihitung ulang (nilai scrap dari FIFO + biaya jasa) */
+    var daurDiubah = 0;
+    baca_(SHEET.DAUR).forEach(function (r) {
+      if (r.Status !== STATUS_DAUR.SELESAI || f.nilaiDaur[r.ID] === undefined) return;
+      var ns = bulat_(f.nilaiDaur[r.ID], 0), hasil = angka_(r.Total_Hasil_Kg);
+      var hppT = ns + angka_(r.Biaya_Jasa), hpk = hasil > 0 ? bulat_(hppT / hasil, 0) : 0;
+      if (Math.abs(ns - angka_(r.Nilai_Scrap)) < 1 && Math.abs(hpk - angka_(r.HPP_Per_Kg)) < 1) return;
+      ubahBaris_(SHEET.DAUR, r._baris, { Nilai_Scrap: ns, HPP_Total: bulat_(hppT, 0), HPP_Per_Kg: hpk });
+      baca_(SHEET.DAUR_DETAIL).forEach(function (d) { if (d.ID_Daur === r.ID && d.Jenis === JENIS_DAUR_DETAIL.HASIL) ubahBaris_(SHEET.DAUR_DETAIL, d._baris, { Harga_Per_Kg: hpk, Nilai: bulat_(hpk * angka_(d.Qty_Kg), 0) }); });
+      daurDiubah++;
+    });
+    catatLog_('HPP_HITUNG_ULANG', '', diubah + ' pekerjaan, ' + daurDiubah + ' daur ulang diperbarui');
+    return { ok: true, diubah: diubah, daurDiubah: daurDiubah };
   } finally { lock.releaseLock(); }
 }
 
@@ -558,12 +605,12 @@ function hitungUlangHpp(ident) {
    BARANG RUSAK — staf mencatat, manager menyetujui
    ================================================================= */
 
-/** p = { lokasi:'GBJ'|'GP', kode, qty, penyebab, tanggal, foto, catatan, ident } — HANYA STAF. */
+/** p = { kode, qty, penyebab, tanggal, foto, catatan, ident } — HANYA STAF. (v9: lokasi selalu GBJ) */
 function simpanKerusakan(p) {
   var u = penggunaSaatIni_(p && p.ident);
   if (bolehReview_(u)) throw new Error('Laporan barang rusak harus dicatat oleh STAF gudang (bukan manager).');
   if (!p || !p.kode) throw new Error('Item belum dipilih.');
-  var lok = p.lokasi === LOKASI.GP ? LOKASI.GP : LOKASI.GBJ;
+  var lok = LOKASI.GBJ;
   var q = angka_(p.qty); if (q <= 0) throw new Error('Qty harus > 0.');
   if (!String(p.penyebab || '').trim()) throw new Error('Penyebab kerusakan wajib diisi.');
   var it = petaItem_()[p.kode]; if (!it) throw new Error('Item tidak dikenal: ' + p.kode);
@@ -711,7 +758,7 @@ function prediksiBeli(ident, hari) {
     var it = peta[k];
     if (it.kategori !== KATEGORI_ITEM.BAHAN_BAKU && it.kategori !== KATEGORI_ITEM.KEDUANYA) return;
     if (String(it.aktif || 'YA').toUpperCase() === 'TIDAK') return;
-    var st = stok[k] || { gbj: 0, gp: 0 }, total = st.gbj + st.gp;
+    var st = stok[k] || { gbj: 0 }, total = st.gbj;
     var rata = (pakai[k] || 0) / hari;
     var sisaHari = rata > 0 ? total / rata : null;
     var sisaPo = poSisa[k] || 0;
@@ -721,7 +768,7 @@ function prediksiBeli(ident, hari) {
                : (sisaHari <= lead && sisaPo <= 0) ? 'PERLU_BELI'
                : (sisaHari <= lead && sisaPo > 0) ? 'PO_JALAN'
                : 'AMAN';
-    out.push({ kode: k, nama: it.nama, stok: bulat_(total, 2), gbj: bulat_(st.gbj, 2), gp: bulat_(st.gp, 2),
+    out.push({ kode: k, nama: it.nama, stok: bulat_(total, 2),
                rataHari: bulat_(rata, 2), sisaHari: sisaHari === null ? null : bulat_(sisaHari, 1),
                poSisa: bulat_(sisaPo, 2), poEta: poEta[k] || '', saranBeli: bulat_(saran, 0),
                leadTime: lead, status: status });

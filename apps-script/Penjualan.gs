@@ -1,5 +1,5 @@
 /*************************************************************************
- * IPC — Inventory & Production Control (v8)
+ * IPC — Inventory & Production Control (v9)
  * File 5 : Penjualan.gs
  *
  * Modul v8: sales order (pesanan customer), ekspor keuangan bulanan (CSV),
@@ -195,7 +195,7 @@ function akhirBulan_(bulan) {
 
 /**
  * bulan = 'YYYY-MM'. Mengembalikan beberapa file CSV (pemisah ; supaya Excel Indonesia langsung membuka):
- * pembelian, penjualan, produksi (HPP), rusak, nilai_stok (posisi akhir bulan, FIFO), ringkasan.
+ * pembelian, penjualan, produksi (HPP), rusak, daur_ulang (v9), nilai_stok (posisi akhir bulan, FIFO), ringkasan.
  */
 function eksporBulanan(bulan, ident) {
   var u = penggunaSaatIni_(ident);
@@ -261,15 +261,25 @@ function eksporBulanan(bulan, ident) {
     tot.rusakKg += angka_(r.Qty_Kg); tot.rusakRp += angka_(r.Nilai_Kerugian);
   });
 
-  /* --- nilai stok posisi akhir bulan (FIFO) --- */
+  /* --- daur ulang scrap (v9): batch diterima di bulan itu --- */
+  var daur = [], totDaur = { batch: 0, scrap: 0, hasil: 0, susut: 0, jasa: 0, nilaiScrap: 0 };
+  baca_(SHEET.DAUR).forEach(function (r) {
+    if (r.Status !== STATUS_DAUR.SELESAI || !r.Waktu_Terima) return;
+    var tglT = r.Tanggal_Terima || tglStr_(new Date(r.Waktu_Terima));
+    if (!dalamBulan_(tglT, bulan)) return;
+    daur.push([r.Tanggal, tglT, r.ID, r.Vendor, r.No_Surat_Jalan, angka_(r.Total_Scrap_Kg), angka_(r.Total_Hasil_Kg), angka_(r.Susut_Kg), angka_(r.Susut_Persen), r.Status_Susut,
+               angka_(r.Nilai_Scrap), angka_(r.Biaya_Jasa), angka_(r.HPP_Total), angka_(r.HPP_Per_Kg), r.Nama_Pencatat, r.Nama_Penerima]);
+    totDaur.batch++; totDaur.scrap += angka_(r.Total_Scrap_Kg); totDaur.hasil += angka_(r.Total_Hasil_Kg); totDaur.susut += angka_(r.Susut_Kg);
+    totDaur.jasa += angka_(r.Biaya_Jasa); totDaur.nilaiScrap += angka_(r.Nilai_Scrap);
+  });
+
+  /* --- nilai stok posisi akhir bulan (FIFO) — v9: satu lokasi --- */
   var L = hitungFifo_(akhirBulan_(bulan)).lapisan, stokRows = [], nilaiStok = 0;
   Object.keys(L).forEach(function (k) {
-    ['GBJ', 'GP'].forEach(function (lok) {
-      var q = 0, n = 0; L[k][lok].forEach(function (x) { q += x.qty; n += x.qty * x.harga; });
-      if (q <= 0.0001) return;
-      stokRows.push([k, peta[k] ? peta[k].nama : k, lok, bulat_(q, 2), bulat_(n / q, 0), bulat_(n, 0), L[k][lok].length]);
-      nilaiStok += n;
-    });
+    var q = 0, n = 0; L[k].forEach(function (x) { q += x.qty; n += x.qty * x.harga; });
+    if (q <= 0.0001) return;
+    stokRows.push([k, peta[k] ? peta[k].nama : k, bulat_(q, 2), bulat_(n / q, 0), bulat_(n, 0), L[k].length]);
+    nilaiStok += n;
   });
 
   var ringkasan = [
@@ -284,6 +294,9 @@ function eksporBulanan(bulan, ident) {
     ['Pekerjaan selesai', tot.jobs], ['HPP bahan (produksi)', bulat_(tot.hppBahan, 0)], ['HPP proses (produksi)', bulat_(tot.hppProses, 0)],
     ['Susut (kg)', bulat_(tot.susutKg, 2)], ['Susut (nilai)', bulat_(tot.susutRp, 0)],
     ['Barang rusak (kg)', bulat_(tot.rusakKg, 2)], ['Barang rusak (nilai)', bulat_(tot.rusakRp, 0)],
+    ['Daur ulang scrap: batch selesai', totDaur.batch], ['Daur ulang: scrap dikirim (kg)', bulat_(totDaur.scrap, 2)],
+    ['Daur ulang: biji plastik diterima (kg)', bulat_(totDaur.hasil, 2)], ['Daur ulang: susut chassen (kg)', bulat_(totDaur.susut, 2)],
+    ['Daur ulang: biaya jasa chassen (nilai)', bulat_(totDaur.jasa, 0)],
     ['Nilai stok akhir bulan (FIFO)', bulat_(nilaiStok, 0)],
     ['Catatan', 'Nilai penjualan & laba hanya untuk pengiriman yang merujuk SO (ada harga jual); pengiriman tanpa SO tercantum di kolom kg-nya. HPP belum memuat overhead pabrik. PPN tidak dihitung.']
   ];
@@ -297,7 +310,8 @@ function eksporBulanan(bulan, ident) {
       { nama: 'penjualan_' + bulan + '.csv', csv: csv_(['Tanggal', 'ID', 'Jenis', 'Customer', 'No_SO', 'No_Surat_Jalan', 'Kode_Item', 'Nama_Item', 'Qty_Kg', 'Harga_Jual_Per_Kg', 'Nilai_Jual', 'HPP_Per_Kg', 'Nilai_HPP', 'Laba_Kotor', 'Status', 'Pencatat'], jual) },
       { nama: 'produksi_' + bulan + '.csv', csv: csv_(['Tanggal_Selesai', 'ID', 'Kode_Produk', 'Nama_Produk', 'Bahan_Kg', 'Jadi_Kg', 'Scrap_Kg', 'Susut_Kg', 'Susut_Persen', 'Status_Susut', 'HPP_Bahan', 'HPP_Proses', 'HPP_Total', 'HPP_Per_Kg', 'Nilai_Susut', 'Operator'], prod) },
       { nama: 'rusak_' + bulan + '.csv', csv: csv_(['Tanggal', 'ID', 'Lokasi', 'Kode_Item', 'Nama_Item', 'Qty_Kg', 'Nilai_Kerugian', 'Penyebab', 'Pencatat', 'Disetujui_Oleh'], rusak) },
-      { nama: 'nilai_stok_' + bulan + '.csv', csv: csv_(['Kode_Item', 'Nama_Item', 'Lokasi', 'Qty_Kg', 'Harga_Rata', 'Nilai', 'Jumlah_Batch'], stokRows) }
+      { nama: 'daur_ulang_' + bulan + '.csv', csv: csv_(['Tanggal_Kirim', 'Tanggal_Terima', 'ID', 'Vendor_Chassen', 'No_Surat_Jalan', 'Scrap_Kg', 'Hasil_Kg', 'Susut_Kg', 'Susut_Persen', 'Status_Susut', 'Nilai_Scrap', 'Biaya_Jasa', 'HPP_Total', 'HPP_Per_Kg', 'Pengirim', 'Penerima'], daur) },
+      { nama: 'nilai_stok_' + bulan + '.csv', csv: csv_(['Kode_Item', 'Nama_Item', 'Qty_Kg', 'Harga_Rata', 'Nilai', 'Jumlah_Batch'], stokRows) }
     ],
     ringkasan: ringkasan
   };
