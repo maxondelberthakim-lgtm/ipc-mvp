@@ -1,0 +1,13 @@
+{
+  "name": "ipc-api",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "python3 ../tools/build-cf.py",
+    "dev": "python3 ../tools/build-cf.py && wrangler dev",
+    "deploy": "python3 ../tools/build-cf.py && wrangler deploy"
+  },
+  "devDependencies": {
+    "wrangler": "^4"
+  }
+}
