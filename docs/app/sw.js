@@ -1,7 +1,7 @@
 /* App shell cache — data (API Apps Script) TIDAK di-cache, selalu online.
    Halaman (index.html): NETWORK-FIRST supaya versi baru langsung terpakai; cache hanya cadangan offline.
    Ikon/manifest: cache-first. Nama cache = hash build -> cache lama otomatis dibuang. */
-var CACHE = 'ipc-shell-1f41301a59';
+var CACHE = 'ipc-shell-ebcd18665b';
 var SHELL = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png'];
 self.addEventListener('install', function(e){
   e.waitUntil(caches.open(CACHE).then(function(c){ return c.addAll(SHELL); }).then(function(){ return self.skipWaiting(); }));
@@ -14,7 +14,7 @@ self.addEventListener('activate', function(e){
 self.addEventListener('fetch', function(e){
   var url = e.request.url;
   // Panggilan API Apps Script: selalu network, jangan pernah cache.
-  if (url.indexOf('script.google.com') > -1 || url.indexOf('googleusercontent.com') > -1 || e.request.method !== 'GET') return;
+  if (url.indexOf('script.google.com') > -1 || url.indexOf('googleusercontent.com') > -1 || url.indexOf('workers.dev') > -1 || e.request.method !== 'GET') return;
   var halaman = e.request.mode === 'navigate' || /\/(index\.html)?(\?.*)?$/.test(url);
   if (halaman){
     // network-first: selalu coba ambil versi terbaru; kalau offline pakai cache.
