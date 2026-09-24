@@ -1,4 +1,6 @@
 /* Simulasi lingkungan Apps Script agar logika bisa diuji di Node */
+/* IPC_HARNESS=cf → suite yang sama dijalankan di atas mesin Cloudflare (cloudflare/src/mesin.js + SQLite) */
+if (process.env.IPC_HARNESS === 'cf') { module.exports = require(__dirname + '/harness-cf.js').baru({ email: /harness\.js$/.test(__filename) ? 'pemilik@contoh' + '.co.id' : '' }); return; }
 function otoTanggal_(v){ return (typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v)) ? new Date(v + 'T00:00:00') : v; }
 const fs = require('fs');
 const vm = require('vm');
