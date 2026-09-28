@@ -1,5 +1,5 @@
 /**********************************************************************
- * IPC — Inventory & Production Control (v9)
+ * IPC — Inventory & Production Control (v10)
  * File 2 : Server.gs
  *
  * SEMUA QTY DALAM KILOGRAM.
@@ -26,11 +26,9 @@ function include(nama) {
  * Hanya fungsi di daftar putih (RPC_WL) yang boleh dipanggil. */
 var RPC_WL = {
   getKonteks:1, simpanPenerimaan:1, simpanPengiriman:1,
-  mulaiPekerjaan:1, selesaikanPekerjaan:1, daftarPekerjaanBerjalan:1, daftarPekerjaanSelesai:1,
-  ambilPekerjaan:1, simpanEditPekerjaan:1,
   riwayatInput:1, ambilEntri:1, simpanEditEntri:1, batalkanEntriSendiri:1,
   antrianReview:1, tinjauTransfer:1, daftarPermintaan:1, tinjauPermintaan:1,
-  laporanSusut:1, laporanStok:1, riwayatPenerimaan:1, laporanPenjualan:1, laporanHpp:1,
+  laporanStok:1, riwayatPenerimaan:1, laporanPenjualan:1,
   kalender:1, ocrSuratJalan:1,
   daftarPengguna:1, simpanPengguna:1, aktivitasStaf:1,
   daftarSku:1, simpanSku:1, hapusSku:1,
@@ -40,11 +38,14 @@ var RPC_WL = {
   ringkasanPo:1, simpanInvoice:1, validasiInvoice:1, daftarInvoice:1,
   laporanNilaiStok:1, hitungUlangHpp:1,
   simpanKerusakan:1, daftarKerusakan:1, tinjauKerusakan:1,
-  laporanStandarSusut:1, terapkanStandarSusut:1, diagnosa:1, prediksiBeli:1,
+  diagnosa:1, prediksiBeli:1,
   simpanSo:1, ubahSo:1, batalkanSo:1, daftarSo:1, soTerbuka:1, eksporBulanan:1, statusBackup:1,
   /* v9 */
   tambahMaster:1, mulaiDaurUlang:1, selesaikanDaurUlang:1, daftarDaurUlang:1, ambilDaurUlang:1,
-  ubahDaurUlang:1, batalkanDaurUlang:1, laporanDaurUlang:1
+  ubahDaurUlang:1, batalkanDaurUlang:1, laporanDaurUlang:1,
+  /* v10: laporan shift produksi, laporan produksi, tutup bulan (COGS periodik) */
+  konfigurasiShift:1, simpanLaporanShift:1, daftarLaporanShift:1, ambilLaporanShift:1, ubahLaporanShift:1, batalkanLaporanShift:1,
+  laporanProduksi:1, laporanBulanan:1, tutupBulan:1, bukaBulan:1, daftarTutupBulan:1
 };
 
 function doPost(e) {
@@ -90,7 +91,7 @@ function sheet_(nama) {
   return sh;
 }
 
-var KOLOM_TANGGAL_ = /^(Tanggal|Tanggal_Invoice|Perkiraan_Datang|Tanggal_Kirim|Tanggal_Terima)$/;
+var KOLOM_TANGGAL_ = /^(Tanggal|Tanggal_Invoice|Perkiraan_Datang|Tanggal_Kirim|Tanggal_Terima|Jatuh_Tempo)$/;
 /* Memo per eksekusi: satu sheet dibaca dari Spreadsheet sekali saja per request
    (getKonteks dulu membaca sheet yang sama berulang kali -> 6-10 detik). Dibuang setiap ada tulis. */
 var MEMO_BACA_ = {};
@@ -234,6 +235,7 @@ function tglValid_(s) {
   if (s > hariIni) throw new Error('Tanggal tidak boleh di masa depan.');
   var batas = new Date(); batas.setDate(batas.getDate() - MAKS_MUNDUR_HARI);
   if (s < tglStr_(batas)) throw new Error('Tanggal terlalu lama (maks ' + MAKS_MUNDUR_HARI + ' hari ke belakang).');
+  if (bulanTertutup_(s)) throw new Error('Bulan ' + s.slice(0, 7) + ' sudah ditutup — transaksi bertanggal di bulan itu tidak bisa ditambah.');
   return s;
 }
 
@@ -338,29 +340,10 @@ function petaItem_() {
     peta[r.Kode_Item] = {
       kode: r.Kode_Item, nama: r.Nama_Item, kategori: r.Kategori,
       harga: angka_(r.Harga_Per_Kg), aktif: r.Aktif,
-      awal: angka_(r.Stok_Awal)
+      awal: angka_(r.Stok_Awal), kualitas: String(r.Kualitas || '').trim()
     };
   });
   return peta;
-}
-
-/**
- * SKU scrap untuk satu produk: SCR-<kode produk>. Dibuat kalau belum ada.
- * Scrap disimpan per produk supaya bisa dilihat stoknya dan dijual lewat ④.
- */
-function skuScrapUntuk_(produk) {
-  var kode = PREFIX_SCRAP + produk.kode;
-  var rows = baca_(SHEET.ITEM);
-  for (var i = 0; i < rows.length; i++) {
-    if (rows[i].Kode_Item === kode) {
-      return { kode: kode, nama: rows[i].Nama_Item, kategori: rows[i].Kategori, harga: angka_(rows[i].Harga_Per_Kg) };
-    }
-  }
-  var nama = 'Scrap · ' + produk.nama;
-  tambah_(SHEET.ITEM, { Kode_Item: kode, Nama_Item: nama, Kategori: KATEGORI_ITEM.SCRAP,
-                        Harga_Per_Kg: '', Stok_Awal: 0, Aktif: 'YA' });
-  catatLog_('SKU_SCRAP', kode, 'dibuat otomatis untuk ' + produk.nama);
-  return { kode: kode, nama: nama, kategori: KATEGORI_ITEM.SCRAP, harga: 0 };
 }
 
 /**
@@ -400,7 +383,9 @@ function tambahMaster(jenis, p, ident) {
       return { ok: true, ada: false, jenis: jenis, kode: kode, nama: nama };
     }
     if (jenis === 'ITEM') {
-      var kat = [KATEGORI_ITEM.BAHAN_BAKU, KATEGORI_ITEM.BARANG_JADI, KATEGORI_ITEM.KEDUANYA].indexOf(p.kategori) >= 0 ? p.kategori : KATEGORI_ITEM.BAHAN_BAKU;
+      var kat = [KATEGORI_ITEM.BAHAN_BAKU, KATEGORI_ITEM.BARANG_JADI, KATEGORI_ITEM.KEDUANYA, KATEGORI_ITEM.ROLL, KATEGORI_ITEM.SCRAP].indexOf(p.kategori) >= 0 ? p.kategori : KATEGORI_ITEM.BAHAN_BAKU;
+      var kual = String(p.kualitas || '').trim().toUpperCase().replace(/\s+/g, '_');
+      if (kual && !KUALITAS[kual]) throw new Error('Kualitas tidak dikenal: ' + p.kualitas + ' (pilih KW / SUPER / SUPER_PLUS atau kosong).');
       var items = baca_(SHEET.ITEM), adaKode = {};
       for (var j = 0; j < items.length; j++) {
         adaKode[String(items[j].Kode_Item).toUpperCase()] = true;
@@ -409,14 +394,14 @@ function tambahMaster(jenis, p, ident) {
           return { ok: true, ada: true, jenis: jenis, kode: items[j].Kode_Item, nama: items[j].Nama_Item, kategori: items[j].Kategori };
         }
       }
-      var dasar = (kat === KATEGORI_ITEM.BARANG_JADI ? 'FG-' : 'RM-') +
+      var dasar = (kat === KATEGORI_ITEM.BARANG_JADI ? 'FG-' : kat === KATEGORI_ITEM.ROLL ? 'WIP-' : kat === KATEGORI_ITEM.SCRAP ? 'SCR-' : 'RM-') +
                   nama.toUpperCase().replace(/[^A-Z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 20).replace(/-+$/, '');
       if (dasar.length < 4) dasar += '-ITEM';
       var kodeItem = dasar, n = 2;
       while (adaKode[kodeItem]) { kodeItem = dasar + '-' + n; n++; }
-      tambah_(SHEET.ITEM, { Kode_Item: kodeItem, Nama_Item: nama, Kategori: kat, Harga_Per_Kg: '', Stok_Awal: 0, Aktif: 'YA' });
-      catatLog_('TAMBAH_MASTER', kodeItem, 'item baru: ' + nama + ' (' + kat + ') oleh ' + u.nama);
-      return { ok: true, ada: false, jenis: jenis, kode: kodeItem, nama: nama, kategori: kat };
+      tambah_(SHEET.ITEM, { Kode_Item: kodeItem, Nama_Item: nama, Kategori: kat, Harga_Per_Kg: '', Stok_Awal: 0, Aktif: 'YA', Kualitas: kual });
+      catatLog_('TAMBAH_MASTER', kodeItem, 'item baru: ' + nama + ' (' + kat + (kual ? ' ' + kual : '') + ') oleh ' + u.nama);
+      return { ok: true, ada: false, jenis: jenis, kode: kodeItem, nama: nama, kategori: kat, kualitas: kual };
     }
     throw new Error('Jenis master tidak dikenal: ' + jenis);
   } finally { lock.releaseLock(); }
@@ -430,7 +415,7 @@ function getKonteks(ident) {
   var items = baca_(SHEET.ITEM).filter(function (r) {
     return String(r.Aktif).toUpperCase() !== 'TIDAK' && r.Kode_Item;
   }).map(function (r) {
-    return { kode: r.Kode_Item, nama: r.Nama_Item, kategori: r.Kategori };
+    return { kode: r.Kode_Item, nama: r.Nama_Item, kategori: r.Kategori, kualitas: String(r.Kualitas || '').trim() };
   });
 
   var supplier = baca_(SHEET.SUPPLIER).filter(function (r) {
@@ -444,7 +429,6 @@ function getKonteks(ident) {
   var hariIni = tglStr_(new Date());
   var rcv = baca_(SHEET.PENERIMAAN);
   var snd = baca_(SHEET.PENGIRIMAN);
-  var pkj = baca_(SHEET.PEKERJAAN);
 
   function hitungStatus(rows, st) {
     return rows.filter(function (r) { return r.Status === st; }).length;
@@ -452,8 +436,13 @@ function getKonteks(ident) {
   function menunggu(rows) { return hitungStatus(rows, STATUS_TRANSFER.MENUNGGU); }
   function ditandai(rows) { return hitungStatus(rows, STATUS_TRANSFER.DITANDAI); }
 
-  var berjalan = pkj.filter(function (r) { return r.Status === STATUS_PEKERJAAN.BERJALAN; });
-  var kgProses = berjalan.reduce(function (a, r) { return a + angka_(r.Total_Bahan_Baku_Kg); }, 0);
+  /* v10: produksi hari ini dari laporan shift (polybag jadi dari cutting, BS dari kedua mesin) */
+  var shiftHariIni = 0, jadiHariIni = 0, bsHariIni = 0;
+  baca_(SHEET.SHIFT).forEach(function (r) {
+    if (r.Status === STATUS_SHIFT.DIBATALKAN || String(r.Tanggal) !== hariIni) return;
+    shiftHariIni++; bsHariIni += angka_(r.Total_BS_Kg);
+    if (r.Mesin === MESIN.CUTTING) jadiHariIni += angka_(r.Total_Hasil_Kg);
+  });
 
   var masukHariIni = rcv.filter(function (r) {
     return r.Jenis === JENIS_PENERIMAAN.MASUK && String(r.Tanggal) === hariIni && dihitung_(r);
@@ -462,11 +451,6 @@ function getKonteks(ident) {
   var keluarHariIni = snd.filter(function (r) {
     return r.Jenis === JENIS_PENGIRIMAN.KELUAR && String(r.Tanggal) === hariIni && dihitung_(r);
   }).reduce(function (a, r) { return a + angka_(r.Qty_Kg); }, 0);
-
-  var susutTinggi = pkj.filter(function (r) {
-    return r.Status === STATUS_PEKERJAAN.SELESAI && r.Status_Susut !== 'NORMAL' && r.Status_Susut &&
-           tglStr_(new Date(r.Waktu_Selesai)) === hariIni;
-  }).length;
 
   /* stok per item untuk petunjuk di form ("tersedia: … kg") — v9: satu lokasi (GBJ) */
   var stokSemua = hitungStokSemua_(), stok = {};
@@ -500,6 +484,8 @@ function getKonteks(ident) {
     lihatHpp: bolehLihatHpp_(u),
     bisaPo: bolehPo_(u),
     metodeHpp: metodeHpp_(),
+    kualitas: petaKualitas_().map(function (q) { return { kualitas: q.kualitas, nama: q.nama, biji: q.biji ? q.biji.kode : '', roll: q.roll ? q.roll.kode : '', jadi: q.jadi ? q.jadi.kode : '', bs: q.bs ? q.bs.kode : '' }; }),
+    bulanTertutup: bulanTerakhirTertutup_(),
     wajibPo: wajibPo_(),
     mataUang: mataUang_(),
     identitasManual: !!u.identitasManual,
@@ -521,11 +507,11 @@ function getKonteks(ident) {
       menungguReview   : menunggu(rcv) + menunggu(snd),
       ditandai         : ditandai(rcv) + ditandai(snd),
       daurBerjalan     : daurBerjalanN,
-      pekerjaanBerjalan: berjalan.length,
-      kgSedangDiproses : bulat_(kgProses, 1),
+      shiftHariIni     : shiftHariIni,
+      jadiHariIni      : bulat_(jadiHariIni, 1),
+      bsHariIni        : bulat_(bsHariIni, 1),
       masukHariIni     : bulat_(masukHariIni, 1),
       keluarHariIni    : bulat_(keluarHariIni, 1),
-      susutTinggiHariIni: susutTinggi,
       permintaanMenunggu: permintaanMenunggu,
       kerusakanMenunggu: kerusakanMenunggu,
       invoiceMenunggu: invoiceMenunggu,
@@ -655,7 +641,7 @@ function simpanPengiriman(p) {
   try {
     var now = new Date();
     var tanggal = tglValid_(p.tanggal);
-    var fifoJual = (jenis === JENIS_PENGIRIMAN.KELUAR && metodeHpp_() === 'FIFO') ? hitungFifo_() : null;
+    var rataJual = (jenis === JENIS_PENGIRIMAN.KELUAR && metodeHpp_() !== 'MASTER') ? hitungRata_() : null;
     var ids = [], total = 0;
     /* v8: sales order — baris pengiriman boleh merujuk baris SO (item ikut SO, customer harus sama, tidak melebihi sisa) */
     var soRows = {}, soDisentuh = {};
@@ -690,7 +676,7 @@ function simpanPengiriman(p) {
         Status: STATUS_TRANSFER.MENUNGGU,
         Ditinjau_Oleh: '', Waktu_Tinjau: '', Catatan_Tinjau: '',
         Catatan: p.catatan || '', Log_Edit: '',
-        HPP_Per_Kg: fifoJual ? hargaKeluarGbjFifo_(fifoJual, it.kode, qty, peta) : '',
+        HPP_Per_Kg: rataJual ? bulat_(hargaRataItem_(rataJual, it.kode, peta), 2) : (it.harga || ''),
         ID_SO: idSo
       });
     });
@@ -702,223 +688,6 @@ function simpanPengiriman(p) {
   } finally {
     lock.releaseLock();
   }
-}
-
-/* =================================================================
-   ①  PEKERJAAN  (bahan baku dari GBJ → barang jadi & scrap kembali ke GBJ)
-   ================================================================= */
-
-/** p = { kodeProduk, bahanBaku:[{kode,qty}], catatan, foto, ident } */
-function mulaiPekerjaan(p) {
-  var u = penggunaSaatIni_(p && p.ident);
-  if (!p || !p.kodeProduk) throw new Error('Produk belum dipilih.');
-  if (!p.bahanBaku || !p.bahanBaku.length) throw new Error('Bahan baku belum diisi.');
-
-  var peta = petaItem_();
-  var produk = peta[p.kodeProduk];
-  if (!produk) throw new Error('Produk tidak dikenal.');
-
-  var foto = p.foto ? unggahFoto_(p.foto, 'JOB-START') : { url: '', id: '' };
-
-  var lock = LockService.getScriptLock();
-  lock.waitLock(20000);
-  lupakanMemo_();   // di dalam lock: baca ulang dari sheet, jangan pakai memo sebelum lock
-  try {
-    var now = new Date();
-    var tanggal = tglValid_(p.tanggal);
-    var id = buatId_('JOB');
-    var total = 0, hppBahan = 0;
-    var fifo = metodeHpp_() === 'FIFO' ? hitungFifo_() : null;
-
-    p.bahanBaku.forEach(function (b) {
-      var it = peta[b.kode];
-      if (!it) throw new Error('Bahan baku tidak dikenal: ' + b.kode);
-      var q = angka_(b.qty);
-      if (q <= 0) throw new Error('Qty bahan baku harus > 0 (' + it.nama + ')');
-      total += q;
-      var harga = fifo ? hargaDariFifo_(fifo, it.kode, q, peta) : it.harga;   // snapshot harga saat job dimulai (FIFO batch tertua di gudang)
-      var nilai = q * harga;
-      hppBahan += nilai;
-      tambah_(SHEET.DETAIL, {
-        ID: buatId_('DTL'), ID_Pekerjaan: id, Jenis: JENIS_DETAIL.BAHAN_BAKU,
-        Kode_Item: it.kode, Nama_Item: it.nama, Qty_Kg: q,
-        Harga_Per_Kg: bulat_(harga, 2), Nilai: bulat_(nilai, 0), Waktu: now
-      });
-    });
-
-    var hppProses = total * biayaProsesPerKg_();
-
-    tambah_(SHEET.PEKERJAAN, {
-      ID: id, Waktu_Mulai: now, Waktu_Selesai: '', Tanggal: tanggal,
-      Kode_Produk: produk.kode, Nama_Produk: produk.nama, Status: STATUS_PEKERJAAN.BERJALAN,
-      Total_Bahan_Baku_Kg: bulat_(total, 3),
-      Total_Barang_Jadi_Kg: '', Total_Scrap_Kg: '',
-      Susut_Kg: '', Susut_Persen: '', Status_Susut: '',
-      HPP_Bahan: bulat_(hppBahan, 0), HPP_Proses: bulat_(hppProses, 0),
-      HPP_Total: bulat_(hppBahan + hppProses, 0), HPP_Per_Kg: '', Nilai_Susut: '',
-      Operator: u.email || ('manual:' + u.nama), Nama_Operator: u.nama,
-      Foto_Mulai_URL: foto.url, Foto_Selesai_URL: '', Catatan: p.catatan || ''
-    });
-
-    catatLog_('PEKERJAAN_MULAI', id, produk.nama + ' • ' + bulat_(total, 2) + ' kg');
-    var out = { ok: true, id: id, produk: produk.nama, totalKg: bulat_(total, 2) };
-    if (bolehLihatHpp_(u)) out.hpp = { bahan: bulat_(hppBahan, 0), proses: bulat_(hppProses, 0),
-                                       total: bulat_(hppBahan + hppProses, 0) };
-    return out;
-  } finally {
-    lock.releaseLock();
-  }
-}
-
-/** p = { id, barangJadi:[{kode,qty}], scrap:[{kode,qty}], catatan, foto, ident } */
-function selesaikanPekerjaan(p) {
-  var u = penggunaSaatIni_(p && p.ident);
-  if (!p || !p.id) throw new Error('ID pekerjaan kosong.');
-  if (!p.barangJadi || !p.barangJadi.length) throw new Error('Barang jadi belum diisi.');
-
-  var peta = petaItem_();
-  var foto = p.foto ? unggahFoto_(p.foto, 'JOB-END') : { url: '', id: '' };
-
-  var lock = LockService.getScriptLock();
-  lock.waitLock(20000);
-  lupakanMemo_();   // di dalam lock: baca ulang dari sheet, jangan pakai memo sebelum lock
-  try {
-    var jobs = baca_(SHEET.PEKERJAAN);
-    var job = null;
-    for (var i = 0; i < jobs.length; i++) if (jobs[i].ID === p.id) job = jobs[i];
-    if (!job) throw new Error('Pekerjaan tidak ditemukan.');
-    if (job.Status === STATUS_PEKERJAAN.SELESAI) throw new Error('Pekerjaan ini sudah ditutup.');
-
-    var now = new Date();
-    var totalJadi = 0, totalScrap = 0;
-
-    (p.barangJadi || []).forEach(function (b) {
-      var it = peta[b.kode]; if (!it) throw new Error('Item tidak dikenal: ' + b.kode);
-      var q = angka_(b.qty); if (q <= 0) throw new Error('Qty barang jadi harus > 0 (' + it.nama + ')');
-      totalJadi += q;
-      tambah_(SHEET.DETAIL, { ID: buatId_('DTL'), ID_Pekerjaan: job.ID, Jenis: JENIS_DETAIL.BARANG_JADI,
-        Kode_Item: it.kode, Nama_Item: it.nama, Qty_Kg: q, Waktu: now });
-    });
-
-    /* scrap: satu angka, dicatat sebagai SKU scrap milik produk ini */
-    var scrapKg = angka_(p.scrapKg);
-    (p.scrap || []).forEach(function (b) { scrapKg += angka_(b.qty); });   // format lama (list) masih diterima
-    if (scrapKg < 0) throw new Error('Scrap tidak boleh negatif.');
-    if (scrapKg > 0) {
-      var produkJob = peta[job.Kode_Produk] || { kode: job.Kode_Produk, nama: job.Nama_Produk };
-      var scr = skuScrapUntuk_(produkJob);
-      totalScrap = scrapKg;
-      tambah_(SHEET.DETAIL, { ID: buatId_('DTL'), ID_Pekerjaan: job.ID, Jenis: JENIS_DETAIL.SCRAP,
-        Kode_Item: scr.kode, Nama_Item: scr.nama, Qty_Kg: scrapKg, Waktu: now });
-    }
-
-    var masuk = angka_(job.Total_Bahan_Baku_Kg);
-    var h = hitungSusut_(masuk, totalJadi, totalScrap, job.Kode_Produk);
-
-    /* HPP: total biaya dibagi kg barang jadi; nilai susut = kg susut × harga rata-rata bahan */
-    var hppTotal = angka_(job.HPP_Total);
-    var hppPerKg = totalJadi > 0 ? hppTotal / totalJadi : 0;
-    var hargaRata = masuk > 0 ? angka_(job.HPP_Bahan) / masuk : 0;
-    var nilaiSusut = Math.max(0, h.susut) * hargaRata;
-
-    ubahBaris_(SHEET.PEKERJAAN, job._baris, {
-      Waktu_Selesai: now, Status: STATUS_PEKERJAAN.SELESAI,
-      Total_Barang_Jadi_Kg: bulat_(totalJadi, 3),
-      Total_Scrap_Kg: bulat_(totalScrap, 3),
-      Susut_Kg: h.susut, Susut_Persen: h.persen, Status_Susut: h.status,
-      HPP_Per_Kg: bulat_(hppPerKg, 0), Nilai_Susut: bulat_(nilaiSusut, 0),
-      Foto_Selesai_URL: foto.url,
-      Catatan: [job.Catatan, p.catatan].filter(String).join(' | ')
-    });
-
-    /* susutnya dari bahan apa — dialokasikan proporsional ke tiap bahan baku */
-    var rincian = rincianSusutJob_(job.ID, angka_(job.Total_Bahan_Baku_Kg), h.susut);
-
-    catatLog_('PEKERJAAN_SELESAI', job.ID, 'susut ' + h.susut + ' kg (' + h.persen + '%, ' + h.status + ')');
-    var out = { ok: true, susut: h.susut, persen: h.persen, status: h.status,
-                batas: h.batas, standar: h.standar, produk: job.Nama_Produk,
-                masuk: masuk, jadi: bulat_(totalJadi, 2),
-                scrap: bulat_(totalScrap, 2), rincian: rincian };
-    if (bolehLihatHpp_(u)) {
-      out.hpp = { bahan: angka_(job.HPP_Bahan), proses: angka_(job.HPP_Proses),
-                  total: hppTotal, perKg: bulat_(hppPerKg, 0), nilaiSusut: bulat_(nilaiSusut, 0) };
-    }
-    return out;
-  } finally {
-    lock.releaseLock();
-  }
-}
-
-/**
- * SUSUT = Bahan Baku Masuk − Barang Jadi − Scrap   (kg)
- */
-function hitungSusut_(bahanBaku, barangJadi, scrap, kodeProduk) {
-  var susut = bahanBaku - barangJadi - scrap;
-  var persen = bahanBaku > 0 ? (susut / bahanBaku) * 100 : 0;
-  var std = standarSusut_(kodeProduk);
-  var batas = std.normal + std.toleransi;
-  var status;
-  if (persen < 0) status = 'ANOMALI';
-  else if (persen > batas) status = 'TINGGI';
-  else status = 'NORMAL';
-  return { susut: bulat_(susut, 3), persen: bulat_(persen, 2), status: status,
-           batas: bulat_(batas, 2), standar: bulat_(std.normal, 2) };
-}
-
-function standarSusut_(kodeProduk) {
-  var rows = baca_(SHEET.STANDAR);
-  for (var i = 0; i < rows.length; i++) {
-    if (rows[i].Kode_Produk === kodeProduk) {
-      return { normal: angka_(rows[i].Susut_Normal_Persen) || DEFAULT_SUSUT_NORMAL_PERSEN,
-               toleransi: angka_(rows[i].Toleransi_Persen) || DEFAULT_TOLERANSI_PERSEN };
-    }
-  }
-  return { normal: DEFAULT_SUSUT_NORMAL_PERSEN, toleransi: DEFAULT_TOLERANSI_PERSEN };
-}
-
-/**
- * Susut satu job dipecah ke bahan bakunya, proporsional terhadap kg masuk.
- * Job satu bahan -> angkanya persis. Job banyak bahan -> perkiraan.
- */
-function rincianSusutJob_(idJob, totalMasuk, susut, detailCache) {
-  var det = (detailCache || baca_(SHEET.DETAIL)).filter(function (d) {
-    return d.ID_Pekerjaan === idJob && d.Jenis === JENIS_DETAIL.BAHAN_BAKU;
-  });
-  if (!det.length || totalMasuk <= 0) return [];
-  return det.map(function (d) {
-    var q = angka_(d.Qty_Kg);
-    return { kode: d.Kode_Item, nama: d.Nama_Item, masuk: bulat_(q, 2),
-             susut: bulat_(susut * (q / totalMasuk), 3),
-             porsi: bulat_((q / totalMasuk) * 100, 1) };
-  }).sort(function (a, b) { return b.susut - a.susut; });
-}
-
-function daftarPekerjaanBerjalan(ident) {
-  var u = penggunaSaatIni_(ident);
-  var lihatHpp = bolehLihatHpp_(u);
-  var det = baca_(SHEET.DETAIL);
-  return baca_(SHEET.PEKERJAAN)
-    .filter(function (r) { return r.Status === STATUS_PEKERJAAN.BERJALAN; })
-    .map(function (r) {
-      var bahan = det.filter(function (d) {
-        return d.ID_Pekerjaan === r.ID && d.Jenis === JENIS_DETAIL.BAHAN_BAKU;
-      }).map(function (d) { return { kode: d.Kode_Item, nama: d.Nama_Item, qty: angka_(d.Qty_Kg) }; })
-        .sort(function (a, b) { return b.qty - a.qty; });
-      var mulai = new Date(r.Waktu_Mulai);
-      var jamJalan = Math.max(0, Math.round((Date.now() - mulai.getTime()) / 3600000 * 10) / 10);
-      var o = {
-        id: r.ID, produk: r.Nama_Produk, kodeProduk: r.Kode_Produk,
-        totalKg: bulat_(angka_(r.Total_Bahan_Baku_Kg), 2),
-        bahanUtama: bahan.length ? bahan[0].nama : '',
-        bahan: bahan, jumlahBahan: bahan.length,
-        mulai: jam_(mulai), jamJalan: jamJalan,
-        operator: r.Nama_Operator,
-        batas: standarSusut_(r.Kode_Produk).normal + standarSusut_(r.Kode_Produk).toleransi
-      };
-      if (lihatHpp) o.hpp = { bahan: angka_(r.HPP_Bahan), proses: angka_(r.HPP_Proses), total: angka_(r.HPP_Total) };
-      return o;
-    })
-    .sort(function (a, b) { return b.totalKg - a.totalKg; });
 }
 
 /* =================================================================
@@ -997,6 +766,7 @@ function tinjauTransfer(id, aksi, catatan, ident) {
         if (skrg === STATUS_TRANSFER.DISETUJUI || skrg === STATUS_TRANSFER.DIBATALKAN) {
           throw new Error('Entri ini sudah final (' + skrg + ').');
         }
+        if (status === STATUS_TRANSFER.DIBATALKAN && bulanTertutup_(rows[i].Tanggal)) throw new Error(pesanKunci_('BULAN_TUTUP'));
         if (skrg === STATUS_TRANSFER.DITANDAI && status === STATUS_TRANSFER.DITANDAI) {
           throw new Error('Entri ini sudah ditandai.');
         }
@@ -1029,94 +799,11 @@ function tinjauMassal(ids, aksi, catatan, ident) {
    LAPORAN
    ================================================================= */
 
-/** Total susut + susutnya dari bahan apa. */
-function laporanSusut(hari, ident) {
-  penggunaSaatIni_(ident);
-  hari = hari || 30;
-  var batas = new Date();
-  batas.setDate(batas.getDate() - hari);
-
-  var rows = baca_(SHEET.PEKERJAAN).filter(function (r) {
-    return r.Status === STATUS_PEKERJAAN.SELESAI && new Date(r.Waktu_Selesai) >= batas;
-  });
-  var detAll = baca_(SHEET.DETAIL);
-
-  var totalMasuk = 0, totalJadi = 0, totalScrap = 0, totalSusut = 0, jobTinggi = 0;
-  var perProduk = {}, perBahan = {};
-
-  rows.forEach(function (r) {
-    var masuk = angka_(r.Total_Bahan_Baku_Kg);
-    var susut = angka_(r.Susut_Kg);
-    totalMasuk += masuk;
-    totalJadi  += angka_(r.Total_Barang_Jadi_Kg);
-    totalScrap += angka_(r.Total_Scrap_Kg);
-    totalSusut += susut;
-    if (r.Status_Susut && r.Status_Susut !== 'NORMAL') jobTinggi++;
-
-    var k = r.Kode_Produk;
-    if (!perProduk[k]) perProduk[k] = { kode: k, nama: r.Nama_Produk, jobs: 0, masuk: 0, jadi: 0, scrap: 0, susut: 0, tinggi: 0 };
-    var pp = perProduk[k];
-    pp.jobs++; pp.masuk += masuk; pp.jadi += angka_(r.Total_Barang_Jadi_Kg);
-    pp.scrap += angka_(r.Total_Scrap_Kg); pp.susut += susut;
-    if (r.Status_Susut && r.Status_Susut !== 'NORMAL') pp.tinggi++;
-
-    /* susutnya apa — alokasi proporsional ke bahan baku job ini */
-    rincianSusutJob_(r.ID, masuk, susut, detAll).forEach(function (b) {
-      if (!perBahan[b.kode]) perBahan[b.kode] = { kode: b.kode, nama: b.nama, masuk: 0, susut: 0, jobs: 0 };
-      perBahan[b.kode].masuk += b.masuk;
-      perBahan[b.kode].susut += b.susut;
-      perBahan[b.kode].jobs++;
-    });
-  });
-
-  var ringkasProduk = Object.keys(perProduk).map(function (k) {
-    var p = perProduk[k];
-    p.persen = p.masuk > 0 ? bulat_((p.susut / p.masuk) * 100, 2) : 0;
-    var std = standarSusut_(k);
-    p.batas = bulat_(std.normal + std.toleransi, 2);
-    p.masuk = bulat_(p.masuk, 2); p.jadi = bulat_(p.jadi, 2);
-    p.scrap = bulat_(p.scrap, 2); p.susut = bulat_(p.susut, 2);
-    return p;
-  }).sort(function (a, b) { return b.susut - a.susut; });
-
-  var ringkasBahan = Object.keys(perBahan).map(function (k) {
-    var b = perBahan[k];
-    b.persen = b.masuk > 0 ? bulat_((b.susut / b.masuk) * 100, 2) : 0;
-    b.porsiDariTotal = totalSusut > 0 ? bulat_((b.susut / totalSusut) * 100, 1) : 0;
-    b.masuk = bulat_(b.masuk, 2); b.susut = bulat_(b.susut, 2);
-    return b;
-  }).sort(function (a, b) { return b.susut - a.susut; });
-
-  var detail = rows.map(function (r) {
-    return {
-      id: r.ID, produk: r.Nama_Produk,
-      tanggal: jam_(r.Waktu_Selesai),
-      masuk: angka_(r.Total_Bahan_Baku_Kg), jadi: angka_(r.Total_Barang_Jadi_Kg),
-      scrap: angka_(r.Total_Scrap_Kg), susut: angka_(r.Susut_Kg),
-      persen: angka_(r.Susut_Persen), status: r.Status_Susut, operator: r.Nama_Operator
-    };
-  }).reverse();
-
-  return {
-    hari: hari,
-    total: {
-      jobs: rows.length, jobTinggi: jobTinggi,
-      masuk: bulat_(totalMasuk, 2), jadi: bulat_(totalJadi, 2), scrap: bulat_(totalScrap, 2),
-      susut: bulat_(totalSusut, 2),
-      persen: totalMasuk > 0 ? bulat_((totalSusut / totalMasuk) * 100, 2) : 0
-    },
-    perBahan: ringkasBahan,
-    perProduk: ringkasProduk,
-    detail: detail.slice(0, 100)
-  };
-}
-
 /**
- * Stok berjalan + dari mana asalnya. v9: SATU lokasi (GBJ) — pekerjaan memakai bahan dari GBJ
- * dan hasilnya (barang jadi + scrap) langsung masuk GBJ lagi. Tidak ada transfer.
+ * Stok berjalan + dari mana asalnya. Satu lokasi (GBJ).
  * GBJ = stok awal + pembelian − retur ke supplier + retur dari customer − terjual
- *       − bahan baku dipakai + barang jadi + scrap − scrap ke chassen + biji plastik daur ulang
- *       − rusak (disetujui) ± penyesuaian opname
+ *       − biji plastik diambil blowing + roll hasil blowing − roll dipakai cutting + polybag hasil cutting + BS
+ *       − BS ke chassen + biji plastik daur ulang − rusak (disetujui) ± penyesuaian opname
  */
 function hitungStokSemua_() {
   var peta = petaItem_();
@@ -1150,9 +837,12 @@ function hitungStokSemua_() {
     else { s.jual += q; s.gbj -= q; }
   });
 
-  baca_(SHEET.DETAIL).forEach(function (d) {
+  /* v10: laporan shift — AMBIL (biji plastik keluar) & PAKAI_ROLL (roll keluar) mengurangi; HASIL (roll/polybag) & BS menambah */
+  var shiftOk = shiftAktif_();
+  baca_(SHEET.SHIFT_DETAIL).forEach(function (d) {
+    if (!shiftOk[d.ID_Shift]) return;
     var s = sel(d.Kode_Item), q = angka_(d.Qty_Kg);
-    if (d.Jenis === JENIS_DETAIL.BAHAN_BAKU) { s.dipakai += q; s.gbj -= q; }
+    if (d.Jenis === JENIS_SHIFT.AMBIL || d.Jenis === JENIS_SHIFT.PAKAI_ROLL) { s.dipakai += q; s.gbj -= q; }
     else { s.dihasilkan += q; s.gbj += q; }
   });
 
@@ -1331,6 +1021,7 @@ function dalamBatasEdit_(r) { return umurHari_(r.Tanggal, r.Waktu) <= maksEditHa
    - Semua: tidak bisa lagi setelah MAKS_EDIT_HARI. */
 function alasanKunci_(u, r) {
   if (r.Status === STATUS_TRANSFER.DIBATALKAN) return 'DIBATALKAN';
+  if (bulanTertutup_(r.Tanggal)) return 'BULAN_TUTUP';
   if (!dalamBatasEdit_(r)) return 'LEWAT_BATAS';
   if (bolehReview_(u)) return '';
   if (r.Dicatat_Oleh !== penandaPencatat_(u)) return 'BUKAN_MILIK';
@@ -1343,7 +1034,7 @@ function sheetDariId_(id) {
   var pre = String(id).slice(0, 4);
   if (pre === 'OUT-' || pre === 'RTC-') return SHEET.PENGIRIMAN;
   if (pre === 'DUR-') return SHEET.DAUR;
-  if (pre === 'JOB-') return SHEET.PEKERJAAN;
+  if (pre === 'SHF-') return SHEET.SHIFT;
   return SHEET.PENERIMAAN;
 }
 
@@ -1388,7 +1079,7 @@ function riwayatInput(jenis, hari, ident) {
 function ambilEntri(id, ident) {
   var u = penggunaSaatIni_(ident);
   var nama = sheetDariId_(id);
-  if (nama === SHEET.PEKERJAAN) throw new Error('Pakai ambilPekerjaan untuk job.');
+  if (nama === SHEET.SHIFT) throw new Error('Pakai ambilLaporanShift untuk laporan shift.');
   if (nama === SHEET.DAUR) throw new Error('Pakai ambilDaurUlang untuk daur ulang.');
   var rows = baca_(nama);
   for (var i = 0; i < rows.length; i++) {
@@ -1449,6 +1140,7 @@ function cariEntri_(nama, id) {
 /** Terapkan perubahan ke entri (dipanggil oleh supervisor langsung, atau saat usulan disetujui). */
 function terapkanEdit_(nama, id, perubahan, olehNama, awalan) {
   var r = cariEntri_(nama, id);
+  if (bulanTertutup_(r.Tanggal)) throw new Error(pesanKunci_('BULAN_TUTUP'));
   var hasil = susunEdit_(nama, r, perubahan);
   if (!hasil.log.length) return { ok: true, berubah: false };
   if (hasil.ubah.Kode_Item && (r.ID_PO || r.ID_Penerimaan_Asal || r.ID_SO)) throw new Error('Item tidak bisa diganti karena entri ini merujuk PO / SO / penerimaan asal. Batalkan lalu buat baru.');
@@ -1469,7 +1161,7 @@ function terapkanEdit_(nama, id, perubahan, olehNama, awalan) {
 function simpanEditEntri(id, perubahan, ident, alasan) {
   var u = penggunaSaatIni_(ident);
   var nama = sheetDariId_(id);
-  if (nama === SHEET.PEKERJAAN) throw new Error('Pakai simpanEditPekerjaan untuk job.');
+  if (nama === SHEET.SHIFT) throw new Error('Pakai ubahLaporanShift untuk laporan shift.');
   if (nama === SHEET.DAUR) throw new Error('Pakai ubahDaurUlang untuk daur ulang.');
   var lock = LockService.getScriptLock();
   lock.waitLock(20000);
@@ -1487,6 +1179,7 @@ function simpanEditEntri(id, perubahan, ident, alasan) {
 function pesanKunci_(kunci) {
   return kunci === 'SUDAH_DITINJAU' ? 'Entri sudah ditinjau supervisor — hanya supervisor/manager yang bisa mengubahnya.'
        : kunci === 'LEWAT_BATAS' ? 'Entri lebih tua dari ' + maksEditHari_() + ' hari — periode sudah ditutup, tidak bisa diubah.'
+       : kunci === 'BULAN_TUTUP' ? 'Bulan entri ini sudah ditutup (tutup buku) — tidak bisa diubah.'
        : kunci === 'BUKAN_MILIK' ? 'Hanya entri yang kamu catat sendiri yang bisa diubah.'
        : kunci === 'DIBATALKAN' ? 'Entri sudah dibatalkan.' : 'Entri terkunci.';
 }
@@ -1560,10 +1253,7 @@ function daftarPermintaan(ident, status) {
     var o = { id: p.ID, waktu: jam_(p.Waktu), jenis: p.Jenis, idEntri: p.ID_Entri, sheet: p.Sheet_Entri,
               ringkasan: p.Ringkasan, alasan: p.Alasan, pengaju: p.Nama_Pengaju, status: p.Status,
               ditinjau: p.Ditinjau_Oleh, catatanTinjau: p.Catatan_Tinjau, usulan: usulan, entri: null };
-    if (r && p.Sheet_Entri === SHEET.PEKERJAAN) {
-      o.entri = { produk: r.Nama_Produk, masuk: angka_(r.Total_Bahan_Baku_Kg), jadi: angka_(r.Total_Barang_Jadi_Kg),
-                  scrap: angka_(r.Total_Scrap_Kg), status: r.Status, tanggal: r.Tanggal, operator: r.Nama_Operator };
-    } else if (r) {
+    if (r) {
       o.entri = { item: r.Nama_Item, kode: r.Kode_Item, qty: angka_(r.Qty_Kg), tanggal: r.Tanggal, status: r.Status,
                   partner: r.Supplier || r.Customer || '', noSuratJalan: r.No_Surat_Jalan || '', catatan: r.Catatan || '',
                   jenis: r.Jenis || r.Arah, foto: r.Foto_URL, fotoId: r.Foto_ID, pencatat: r.Nama_Pencatat };
@@ -1591,8 +1281,6 @@ function tinjauPermintaan(id, aksi, catatan, ident) {
         hasil = terapkanEdit_(p.Sheet_Entri, p.ID_Entri, usulan, u.nama, awalan);
       } else if (p.Jenis === JENIS_PERMINTAAN.BATAL) {
         hasil = tinjauTransfer(p.ID_Entri, 'batal', [p.Alasan, catatan].filter(String).join(' | '), ident);
-      } else if (p.Jenis === JENIS_PERMINTAAN.EDIT_JOB) {
-        hasil = simpanEditPekerjaan(p.ID_Entri, usulan, ident, awalan);
       } else throw new Error('Jenis usulan tidak dikenal: ' + p.Jenis);
     } else if (aksi !== 'tolak') throw new Error('Aksi tidak dikenal: ' + aksi);
 
@@ -1602,160 +1290,6 @@ function tinjauPermintaan(id, aksi, catatan, ident) {
     });
     catatLog_(aksi === 'setuju' ? 'SETUJU_USULAN' : 'TOLAK_USULAN', p.ID_Entri, p.ID + ' ' + p.Jenis + (catatan ? ' | ' + catatan : ''));
     return { ok: true, status: aksi === 'setuju' ? STATUS_PERMINTAAN.DISETUJUI : STATUS_PERMINTAAN.DITOLAK, hasil: hasil };
-  } finally {
-    lock.releaseLock();
-  }
-}
-
-/* ---------- pekerjaan: riwayat & edit ---------- */
-
-function alasanKunciJob_(u, r) {
-  var tglRef = r.Waktu_Selesai ? tglStr_(new Date(r.Waktu_Selesai)) : r.Tanggal;
-  if (umurHari_(tglRef, r.Waktu_Selesai || r.Waktu_Mulai) > maksEditHari_()) return 'LEWAT_BATAS';
-  if (bolehReview_(u)) return '';
-  if (r.Operator !== penandaPencatat_(u)) return 'BUKAN_MILIK';
-  /* staf: pekerjaan sendiri, hanya dalam 24 jam setelah dimulai/ditutup */
-  var acuan = new Date(r.Waktu_Selesai || r.Waktu_Mulai).getTime();
-  if (Date.now() - acuan > 24 * 3600000) return 'SUDAH_DITINJAU';
-  return '';
-}
-function bolehEditJob_(u, r) { return alasanKunciJob_(u, r) === ''; }
-
-function daftarPekerjaanSelesai(hari, ident) {
-  var u = penggunaSaatIni_(ident);
-  var lihatHpp = bolehLihatHpp_(u);
-  var batas = new Date();
-  batas.setDate(batas.getDate() - (hari || 14));
-  var tertunda = permintaanTertunda_();
-  return baca_(SHEET.PEKERJAAN)
-    .filter(function (r) { return r.Status === STATUS_PEKERJAAN.SELESAI && new Date(r.Waktu_Selesai) >= batas; })
-    .map(function (r) {
-      var o = { usulan: tertunda[r.ID] || null, perluPersetujuan: false, kunci: alasanKunciJob_(u, r),
-        id: r.ID, produk: r.Nama_Produk, kodeProduk: r.Kode_Produk,
-        selesai: jam_(r.Waktu_Selesai), masuk: angka_(r.Total_Bahan_Baku_Kg),
-        jadi: angka_(r.Total_Barang_Jadi_Kg), scrap: angka_(r.Total_Scrap_Kg),
-        susut: angka_(r.Susut_Kg), persen: angka_(r.Susut_Persen), status: r.Status_Susut,
-        operator: r.Nama_Operator, logEdit: r.Log_Edit || '', bolehEdit: bolehEditJob_(u, r)
-      };
-      if (lihatHpp) o.hpp = { total: angka_(r.HPP_Total), perKg: angka_(r.HPP_Per_Kg) };
-      return o;
-    })
-    .reverse().slice(0, 60);
-}
-
-function ambilPekerjaan(id, ident) {
-  var u = penggunaSaatIni_(ident);
-  var rows = baca_(SHEET.PEKERJAAN), r = null;
-  for (var i = 0; i < rows.length; i++) if (rows[i].ID === id) r = rows[i];
-  if (!r) throw new Error('Pekerjaan tidak ditemukan.');
-  var det = baca_(SHEET.DETAIL).filter(function (d) { return d.ID_Pekerjaan === id; });
-  function ambil(jenis) {
-    return det.filter(function (d) { return d.Jenis === jenis; })
-              .map(function (d) { return { kode: d.Kode_Item, nama: d.Nama_Item, qty: angka_(d.Qty_Kg) }; });
-  }
-  return {
-    id: r.ID, produk: r.Nama_Produk, kodeProduk: r.Kode_Produk, status: r.Status,
-    catatan: r.Catatan || '', logEdit: r.Log_Edit || '',
-    bahanBaku: ambil(JENIS_DETAIL.BAHAN_BAKU), barangJadi: ambil(JENIS_DETAIL.BARANG_JADI),
-    scrap: ambil(JENIS_DETAIL.SCRAP),
-    scrapKg: ambil(JENIS_DETAIL.SCRAP).reduce(function (a, b) { return a + b.qty; }, 0),
-    bolehEdit: bolehEditJob_(u, r), kunci: alasanKunciJob_(u, r), perluPersetujuan: false, tanggal: r.Tanggal,
-    usulan: permintaanTertunda_()[r.ID] || null
-  };
-}
-
-/**
- * p = { kodeProduk, bahanBaku:[{kode,qty}], barangJadi:[...], scrap:[...], catatan }
- * Baris detail lama diganti; susut & HPP dihitung ulang. Harga bahan memakai harga SAAT INI.
- */
-function simpanEditPekerjaan(id, p, ident, awalanLog) {
-  var u = penggunaSaatIni_(ident);
-  p = p || {};
-  var lock = LockService.getScriptLock();
-  lock.waitLock(20000);
-  lupakanMemo_();   // di dalam lock: baca ulang dari sheet, jangan pakai memo sebelum lock
-  try {
-    var rows = baca_(SHEET.PEKERJAAN), r = null;
-    for (var i = 0; i < rows.length; i++) if (rows[i].ID === id) r = rows[i];
-    if (!r) throw new Error('Pekerjaan tidak ditemukan.');
-    var kunciJob = alasanKunciJob_(u, r);
-    if (kunciJob) throw new Error(kunciJob === 'SUDAH_DITINJAU' ? 'Pekerjaan hanya bisa diubah operatornya dalam 24 jam — setelah itu minta supervisor.' : pesanKunci_(kunciJob));
-    if (!p.bahanBaku || !p.bahanBaku.length) throw new Error('Bahan baku tidak boleh kosong.');
-    var selesai = r.Status === STATUS_PEKERJAAN.SELESAI;
-    if (selesai && (!p.barangJadi || !p.barangJadi.length)) throw new Error('Barang jadi tidak boleh kosong.');
-
-    var peta = petaItem_();
-    var produk = peta[p.kodeProduk || r.Kode_Produk];
-    if (!produk) throw new Error('Produk tidak dikenal.');
-
-    /* hapus detail lama — dari bawah ke atas supaya nomor baris tidak bergeser */
-    var sh = sheet_(SHEET.DETAIL);
-    baca_(SHEET.DETAIL).filter(function (d) { return d.ID_Pekerjaan === id; })
-      .map(function (d) { return d._baris; })
-      .sort(function (a, b) { return b - a; })
-      .forEach(function (baris) { sh.deleteRow(baris); });
-    lupakanMemo_(SHEET.DETAIL);
-
-    var now = new Date();
-    var total = 0, hppBahan = 0, totalJadi = 0, totalScrap = 0;
-    var fifoEd = metodeHpp_() === 'FIFO' ? hitungFifo_() : null;
-    function tulis(list, jenis, hitung) {
-      (list || []).forEach(function (b) {
-        var it = peta[b.kode]; if (!it) throw new Error('Item tidak dikenal: ' + b.kode);
-        var q = angka_(b.qty); if (q <= 0) return;
-        var hargaB = jenis === JENIS_DETAIL.BAHAN_BAKU ? (fifoEd ? hargaDariFifo_(fifoEd, it.kode, q, peta) : it.harga) : '';
-        var nilai = jenis === JENIS_DETAIL.BAHAN_BAKU ? q * hargaB : '';
-        hitung(q, nilai);
-        tambah_(SHEET.DETAIL, { ID: buatId_('DTL'), ID_Pekerjaan: id, Jenis: jenis,
-          Kode_Item: it.kode, Nama_Item: it.nama, Qty_Kg: q,
-          Harga_Per_Kg: jenis === JENIS_DETAIL.BAHAN_BAKU ? bulat_(hargaB, 2) : '',
-          Nilai: nilai === '' ? '' : bulat_(nilai, 0), Waktu: now });
-      });
-    }
-    tulis(p.bahanBaku,  JENIS_DETAIL.BAHAN_BAKU,  function (q, n) { total += q; hppBahan += n; });
-    tulis(p.barangJadi, JENIS_DETAIL.BARANG_JADI, function (q) { totalJadi += q; });
-    var scrapKgEd = angka_(p.scrapKg);
-    (p.scrap || []).forEach(function (b) { scrapKgEd += angka_(b.qty); });
-    if (scrapKgEd > 0) {
-      var scrEd = skuScrapUntuk_(produk);
-      totalScrap = scrapKgEd;
-      tambah_(SHEET.DETAIL, { ID: buatId_('DTL'), ID_Pekerjaan: id, Jenis: JENIS_DETAIL.SCRAP,
-        Kode_Item: scrEd.kode, Nama_Item: scrEd.nama, Qty_Kg: scrapKgEd, Harga_Per_Kg: '', Nilai: '', Waktu: now });
-    }
-    if (total <= 0) throw new Error('Total bahan baku harus > 0.');
-
-    var hppProses = total * biayaProsesPerKg_();
-    var hppTotal = hppBahan + hppProses;
-    var ubah = {
-      Kode_Produk: produk.kode, Nama_Produk: produk.nama,
-      Total_Bahan_Baku_Kg: bulat_(total, 3),
-      HPP_Bahan: bulat_(hppBahan, 0), HPP_Proses: bulat_(hppProses, 0), HPP_Total: bulat_(hppTotal, 0)
-    };
-    var log = ['bahan ' + angka_(r.Total_Bahan_Baku_Kg) + ' → ' + bulat_(total, 2) + ' kg'];
-    if (p.catatan !== undefined) ubah.Catatan = p.catatan;
-
-    if (selesai) {
-      var h = hitungSusut_(total, totalJadi, totalScrap, produk.kode);
-      var hargaRata = total > 0 ? hppBahan / total : 0;
-      ubah.Total_Barang_Jadi_Kg = bulat_(totalJadi, 3);
-      ubah.Total_Scrap_Kg = bulat_(totalScrap, 3);
-      ubah.Susut_Kg = h.susut; ubah.Susut_Persen = h.persen; ubah.Status_Susut = h.status;
-      ubah.HPP_Per_Kg = bulat_(totalJadi > 0 ? hppTotal / totalJadi : 0, 0);
-      ubah.Nilai_Susut = bulat_(Math.max(0, h.susut) * hargaRata, 0);
-      log.push('jadi ' + angka_(r.Total_Barang_Jadi_Kg) + ' → ' + bulat_(totalJadi, 2) + ' kg');
-      log.push('susut ' + angka_(r.Susut_Persen) + '% → ' + h.persen + '%');
-    }
-    if (produk.kode !== r.Kode_Produk) log.push('produk: ' + r.Nama_Produk + ' → ' + produk.nama);
-
-    var stempel = Utilities.formatDate(now, APP.zona, 'dd/MM HH:mm') + ' ' + u.nama + ': ' + (awalanLog || '') + log.join('; ');
-    ubah.Log_Edit = [r.Log_Edit, stempel].filter(String).join('\n');
-    ubahBaris_(SHEET.PEKERJAAN, r._baris, ubah);
-    catatLog_('EDIT_PEKERJAAN', id, log.join('; '));
-
-    var out = { ok: true, log: log, masuk: bulat_(total, 2) };
-    if (selesai) { out.susut = ubah.Susut_Kg; out.persen = ubah.Susut_Persen; out.status = ubah.Status_Susut; }
-    if (bolehLihatHpp_(u)) out.hpp = { total: ubah.HPP_Total, perKg: ubah.HPP_Per_Kg || 0 };
-    return out;
   } finally {
     lock.releaseLock();
   }
@@ -1870,9 +1404,9 @@ function aktivitasStaf(nama, hari, ident) {
     if (new Date(r.Waktu_Kirim) >= batas) tambah(r.Nama_Pencatat, 'DAUR_KIRIM', angka_(r.Total_Scrap_Kg), r.Waktu_Kirim, r.Vendor);
     if (r.Status === STATUS_DAUR.SELESAI && r.Waktu_Terima && new Date(r.Waktu_Terima) >= batas) tambah(r.Nama_Penerima, 'DAUR_TERIMA', angka_(r.Total_Hasil_Kg), r.Waktu_Terima, r.Vendor);
   });
-  baca_(SHEET.PEKERJAAN).forEach(function (r) {
-    if (new Date(r.Waktu_Mulai) < batas) return;
-    tambah(r.Nama_Operator, 'JOB', angka_(r.Total_Bahan_Baku_Kg), r.Waktu_Mulai, r.Nama_Produk);
+  baca_(SHEET.SHIFT).forEach(function (r) {
+    if (r.Status === STATUS_SHIFT.DIBATALKAN || new Date(r.Waktu) < batas) return;
+    tambah(r.Nama_Pencatat, 'SHIFT', angka_(r.Total_Hasil_Kg), r.Waktu, r.Mesin + ' S' + r.Shift + ' · ' + r.Operator);
   });
   baca_(SHEET.OPNAME).forEach(function (r) {
     if (new Date(r.Waktu) < batas) return;
@@ -1881,7 +1415,7 @@ function aktivitasStaf(nama, hari, ident) {
   // review & edit dari log audit
   baca_(SHEET.LOG).forEach(function (r) {
     if (new Date(r.Waktu) < batas) return;
-    if (r.Aksi !== 'REVIEW' && r.Aksi !== 'EDIT' && r.Aksi !== 'EDIT_PEKERJAAN' && r.Aksi !== 'BATAL_SENDIRI') return;
+    if (r.Aksi !== 'REVIEW' && r.Aksi !== 'EDIT' && r.Aksi !== 'SHIFT_UBAH' && r.Aksi !== 'BATAL_SENDIRI') return;
     // nama pelaku ada di detail? Log_Audit menyimpan email; untuk manual-ident pakai Ditinjau_Oleh — cukup hitung per aksi
   });
 
@@ -1905,7 +1439,7 @@ function daftarSku(ident) {
   var dipakai = skuDipakai_();
   var lihatHpp = bolehLihatHpp_(u);
   return baca_(SHEET.ITEM).map(function (r) {
-    var o = { baris: r._baris, kode: r.Kode_Item, nama: r.Nama_Item, kategori: r.Kategori,
+    var o = { baris: r._baris, kode: r.Kode_Item, nama: r.Nama_Item, kategori: r.Kategori, kualitas: String(r.Kualitas || '').trim(),
               awal: angka_(r.Stok_Awal),
               aktif: String(r.Aktif).toUpperCase() !== 'TIDAK', dipakai: !!dipakai[r.Kode_Item] };
     if (lihatHpp) o.harga = angka_(r.Harga_Per_Kg);
@@ -1915,10 +1449,9 @@ function daftarSku(ident) {
 
 function skuDipakai_() {
   var d = {};
-  [SHEET.PENERIMAAN, SHEET.PENGIRIMAN, SHEET.DETAIL, SHEET.OPNAME, SHEET.DAUR_DETAIL].forEach(function (nama) {
+  [SHEET.PENERIMAAN, SHEET.PENGIRIMAN, SHEET.SHIFT_DETAIL, SHEET.OPNAME, SHEET.DAUR_DETAIL, SHEET.PO, SHEET.SO].forEach(function (nama) {
     baca_(nama).forEach(function (r) { if (r.Kode_Item) d[r.Kode_Item] = true; });
   });
-  baca_(SHEET.PEKERJAAN).forEach(function (r) { if (r.Kode_Produk) d[r.Kode_Produk] = true; });
   return d;
 }
 
@@ -1931,8 +1464,10 @@ function simpanSku(p, ident) {
   var nama = String(p.nama || '').trim();
   if (!kode || !nama) throw new Error('Kode dan nama wajib diisi.');
   if (!/^[A-Z0-9][A-Z0-9\-_.]{1,30}$/.test(kode)) throw new Error('Kode: huruf/angka/strip saja, 2–31 karakter.');
-  var kat = [KATEGORI_ITEM.BAHAN_BAKU, KATEGORI_ITEM.BARANG_JADI, KATEGORI_ITEM.KEDUANYA].indexOf(p.kategori) >= 0
+  var kat = [KATEGORI_ITEM.BAHAN_BAKU, KATEGORI_ITEM.BARANG_JADI, KATEGORI_ITEM.KEDUANYA, KATEGORI_ITEM.ROLL, KATEGORI_ITEM.SCRAP].indexOf(p.kategori) >= 0
             ? p.kategori : KATEGORI_ITEM.BAHAN_BAKU;
+  var kual = String(p.kualitas || '').trim().toUpperCase().replace(/\s+/g, '_');
+  if (kual && !KUALITAS[kual]) throw new Error('Kualitas tidak dikenal: ' + p.kualitas + ' (pilih KW / SUPER / SUPER_PLUS atau kosong).');
 
   var lock = LockService.getScriptLock();
   lock.waitLock(20000);
@@ -1943,7 +1478,7 @@ function simpanSku(p, ident) {
       if (rows[i]._baris === p.baris) target = rows[i];
       else if (String(rows[i].Kode_Item).toUpperCase() === kode) throw new Error('Kode "' + kode + '" sudah ada.');
     }
-    var ubah = { Kode_Item: kode, Nama_Item: nama, Kategori: kat,
+    var ubah = { Kode_Item: kode, Nama_Item: nama, Kategori: kat, Kualitas: kual,
                  Stok_Awal: angka_(p.awal !== undefined ? p.awal : p.awalGBJ),
                  Aktif: p.aktif === false ? 'TIDAK' : 'YA' };
     if (p.harga !== undefined && p.harga !== null && String(p.harga) !== '') ubah.Harga_Per_Kg = angka_(p.harga);
@@ -2102,7 +1637,7 @@ function kalender(bulan, ident) {
   var hari = {};
   function h(d) {
     var k = tglStr_(d);
-    if (!hari[k]) hari[k] = { tanggal: k, masuk: 0, keluar: 0, daur: 0, job: 0,
+    if (!hari[k]) hari[k] = { tanggal: k, masuk: 0, keluar: 0, daur: 0, shift: 0,
                               susutTinggi: 0, menunggu: 0, ditandai: 0, kg: 0, kejadian: [] };
     return hari[k];
   }
@@ -2156,25 +1691,17 @@ function kalender(bulan, ident) {
     }
   });
 
-  baca_(SHEET.PEKERJAAN).forEach(function (r) {
-    var dm = new Date(r.Waktu_Mulai);
-    if (dalam(dm)) {
-      var x = h(dm); x.job++;
-      pushK(dm, { t: dm.getTime(), jam: Utilities.formatDate(dm, APP.zona, 'HH:mm'),
-        jenis: 'JOB_MULAI', label: r.Nama_Produk, item: '', qty: angka_(r.Total_Bahan_Baku_Kg),
-        status: r.Status, oleh: r.Nama_Operator, id: r.ID, sheet: 'job' });
-    }
-    if (r.Status === STATUS_PEKERJAAN.SELESAI && r.Waktu_Selesai) {
-      var ds = new Date(r.Waktu_Selesai);
-      if (dalam(ds)) {
-        var y = h(ds);
-        if (r.Status_Susut && r.Status_Susut !== 'NORMAL') y.susutTinggi++;
-        pushK(ds, { t: ds.getTime(), jam: Utilities.formatDate(ds, APP.zona, 'HH:mm'),
-          jenis: 'JOB_SELESAI', label: r.Nama_Produk, item: '', qty: angka_(r.Total_Barang_Jadi_Kg),
-          status: r.Status_Susut, susut: angka_(r.Susut_Kg), persen: angka_(r.Susut_Persen),
-          oleh: r.Nama_Operator, id: r.ID, sheet: 'job' });
-      }
-    }
+  /* v10: laporan shift — satu kejadian per laporan (blowing / cutting) */
+  baca_(SHEET.SHIFT).forEach(function (r) {
+    if (r.Status === STATUS_SHIFT.DIBATALKAN) return;
+    var ds = new Date(String(r.Tanggal) + 'T12:00:00'); if (isNaN(ds.getTime())) ds = new Date(r.Waktu);
+    if (!dalam(ds)) return;
+    var x = h(ds); x.shift++;
+    var blow = r.Mesin === MESIN.BLOWING;
+    pushK(ds, { t: new Date(r.Waktu).getTime(), jam: 'S' + r.Shift,
+      jenis: blow ? 'SHIFT_BLOWING' : 'SHIFT_CUTTING', label: (blow ? 'Blowing' : 'Cutting') + ' · ' + r.Operator,
+      item: blow ? 'roll' : 'polybag', qty: angka_(r.Total_Hasil_Kg), bs: angka_(r.Total_BS_Kg),
+      status: '', oleh: r.Nama_Pencatat, id: r.ID, sheet: 'shift' });
   });
 
   var sesiOpn = {};
@@ -2205,59 +1732,4 @@ function kalender(bulan, ident) {
     hariPertama: awal.getDay(),           // 0 = Minggu
     hari: daftar
   };
-}
-
-/* =================================================================
-   HPP — hanya manager
-   ================================================================= */
-
-function laporanHpp(hari, ident) {
-  var u = penggunaSaatIni_(ident);
-  if (!bolehLihatHpp_(u)) throw new Error('HPP hanya bisa dilihat Supervisor / Admin.');
-  hari = hari || 30;
-  var batas = new Date();
-  batas.setDate(batas.getDate() - hari);
-
-  var rows = baca_(SHEET.PEKERJAAN).filter(function (r) {
-    return r.Status === STATUS_PEKERJAAN.SELESAI && new Date(r.Waktu_Selesai) >= batas;
-  });
-
-  var tot = { jobs: 0, jadi: 0, hppBahan: 0, hppProses: 0, hppTotal: 0, nilaiSusut: 0 };
-  var perProduk = {};
-  rows.forEach(function (r) {
-    var jadi = angka_(r.Total_Barang_Jadi_Kg);
-    tot.jobs++; tot.jadi += jadi;
-    tot.hppBahan += angka_(r.HPP_Bahan); tot.hppProses += angka_(r.HPP_Proses);
-    tot.hppTotal += angka_(r.HPP_Total); tot.nilaiSusut += angka_(r.Nilai_Susut);
-    var k = r.Kode_Produk;
-    if (!perProduk[k]) perProduk[k] = { kode: k, nama: r.Nama_Produk, jobs: 0, jadi: 0, hppTotal: 0, nilaiSusut: 0, minPerKg: null, maxPerKg: null };
-    var pp = perProduk[k];
-    pp.jobs++; pp.jadi += jadi; pp.hppTotal += angka_(r.HPP_Total); pp.nilaiSusut += angka_(r.Nilai_Susut);
-    var pk = angka_(r.HPP_Per_Kg);
-    if (pk > 0) { pp.minPerKg = pp.minPerKg === null ? pk : Math.min(pp.minPerKg, pk);
-                  pp.maxPerKg = pp.maxPerKg === null ? pk : Math.max(pp.maxPerKg, pk); }
-  });
-  tot.perKg = tot.jadi > 0 ? bulat_(tot.hppTotal / tot.jadi, 0) : 0;
-  ['jadi'].forEach(function (f) { tot[f] = bulat_(tot[f], 2); });
-  ['hppBahan','hppProses','hppTotal','nilaiSusut'].forEach(function (f) { tot[f] = bulat_(tot[f], 0); });
-
-  var ringkas = Object.keys(perProduk).map(function (k) {
-    var p = perProduk[k];
-    p.perKg = p.jadi > 0 ? bulat_(p.hppTotal / p.jadi, 0) : 0;
-    p.jadi = bulat_(p.jadi, 2); p.hppTotal = bulat_(p.hppTotal, 0); p.nilaiSusut = bulat_(p.nilaiSusut, 0);
-    p.minPerKg = p.minPerKg === null ? 0 : bulat_(p.minPerKg, 0);
-    p.maxPerKg = p.maxPerKg === null ? 0 : bulat_(p.maxPerKg, 0);
-    return p;
-  }).sort(function (a, b) { return b.hppTotal - a.hppTotal; });
-
-  var detail = rows.map(function (r) {
-    return { id: r.ID, produk: r.Nama_Produk, tanggal: jam_(r.Waktu_Selesai),
-             masuk: angka_(r.Total_Bahan_Baku_Kg), jadi: angka_(r.Total_Barang_Jadi_Kg),
-             hppBahan: angka_(r.HPP_Bahan), hppProses: angka_(r.HPP_Proses),
-             hppTotal: angka_(r.HPP_Total), perKg: angka_(r.HPP_Per_Kg),
-             susut: angka_(r.Susut_Kg), nilaiSusut: angka_(r.Nilai_Susut), status: r.Status_Susut };
-  }).reverse().slice(0, 100);
-
-  return { hari: hari, mataUang: mataUang_(), biayaProsesPerKg: biayaProsesPerKg_(),
-           total: tot, perProduk: ringkas, detail: detail };
 }

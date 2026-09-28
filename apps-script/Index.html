@@ -47,9 +47,10 @@
     <div class="stats">
       <button class="stat tap" onclick="tileHome('masuk')"><div class="n" id="sMasuk">–</div><div class="l" data-i18n="statMasuk">kg masuk hari ini</div></button>
       <button class="stat tap" onclick="tileHome('keluar')"><div class="n" id="sKeluar">–</div><div class="l" data-i18n="statKeluar">kg keluar hari ini</div></button>
-      <button class="stat tap" onclick="tileHome('proses')"><div class="n" id="sProses">–</div><div class="l" data-i18n="statProses">kg sedang diproses</div></button>
+      <button class="stat tap" onclick="tileHome('jadi')"><div class="n" id="sJadi">–</div><div class="l" data-i18n="statJadi">kg polybag jadi hari ini</div></button>
+      <button class="stat alert tap" onclick="tileHome('bs')"><div class="n" id="sBs">–</div><div class="l" data-i18n="statBs">kg BS hari ini</div></button>
       <button class="stat warn tap" onclick="tileHome('menunggu')"><div class="n" id="sQueue">–</div><div class="l" data-i18n="statQueue">Menunggu review</div></button>
-      <button class="stat alert tap" onclick="tileHome('susut')"><div class="n" id="sSusut">–</div><div class="l" data-i18n="statSusut">Susut tinggi hari ini</div></button>
+      <button class="stat tap" onclick="tileHome('shift')"><div class="n" id="sShift">–</div><div class="l" data-i18n="statShift">Laporan shift hari ini</div></button>
       <button class="stat alert tap hide" id="tileBeli" onclick="tileHome('beli')"><div class="n" id="sBeli">–</div><div class="l" data-i18n="statBeli">Bahan perlu dibeli</div></button>
     </div>
     <div class="card hide" id="kirimHariIniCard">
@@ -73,8 +74,8 @@
       <div class="callegend">
         <span><i style="background:var(--ok)"></i><span data-i18n="lgMasuk">masuk</span></span>
         <span><i style="background:var(--warn)"></i><span data-i18n="lgKeluar">keluar</span></span>
-        <span><i style="background:#4338ca"></i><span data-i18n="lgJob">pekerjaan</span></span>
-        <span><i style="background:var(--danger)"></i><span data-i18n="lgSusut">susut tinggi</span></span>
+        <span><i style="background:#4338ca"></i><span data-i18n="lgJob">produksi</span></span>
+        <span><i style="background:var(--danger)"></i><span data-i18n="lgSusut">susut chassen tinggi</span></span>
         <span><i style="background:#b45309"></i><span data-i18n="lgDaur">daur ulang</span></span>
       </div>
       <div id="calDay"></div>
@@ -120,9 +121,10 @@
 
     <h3 class="sec" data-i18n="secCatat">Produksi</h3>
     <div class="actions">
-      <button class="action" onclick="tampil('job')">
+      <button class="action" onclick="tampil('shift')">
         <div class="ico b">①</div>
-        <div class="tx"><b data-i18n="a2t">Pekerjaan</b><span data-i18n="a2s">Bahan baku dari gudang → barang jadi &amp; scrap kembali ke gudang · susut otomatis</span></div>
+        <div class="tx"><b data-i18n="a2t">Laporan shift produksi</b><span data-i18n="a2s">Per shift per mesin: operator · biji plastik diambil · roll / polybag jadi per kualitas · BS</span></div>
+        <span class="badge hide" id="shiftBadge">0</span>
       </button>
       <button class="action" onclick="tampil('daur')">
         <div class="ico c">♻️</div>
@@ -271,118 +273,87 @@
     </div>
   </div>
 
-  <!-- ============ ① PEKERJAAN ============ -->
-  <section id="v-job" class="hide">
+  <!-- ============ ① LAPORAN SHIFT PRODUKSI (v10) ============ -->
+  <section id="v-shift" class="hide">
     <div class="seg">
-      <button id="segJobList" class="on" onclick="segJob('list')" data-i18n="segBerjalan">Sedang dibuat</button>
-      <button id="segJobNew" onclick="segJob('new')" data-i18n="segMulai">Mulai baru</button>
-      <button id="segJobDone" onclick="segJob('done')" data-i18n="segSelesai">Selesai</button>
+      <button id="segShiftList" class="on" onclick="segShift('list')" data-i18n="segShiftList">Laporan</button>
+      <button id="segShiftNew" onclick="segShift('new')" data-i18n="segShiftNew">+ Isi laporan</button>
+      <button id="segShiftRep" onclick="segShift('rep')" data-i18n="segShiftRep">Rekap bulan</button>
     </div>
 
-    <div id="jobList"><div class="load">…</div></div>
-    <div id="jobDone" class="hide"><div class="load">…</div></div>
-
-    <div id="jobEdit" class="hide">
-      <div class="card">
-        <h2 data-i18n="jobEditT">Ubah pekerjaan</h2>
-        <div class="sub" id="jobEditSub"></div>
-        <div class="field">
-          <label data-i18n="lblProduk">Produk yang dibuat</label>
-          <div class="combo"><input id="edProduk" autocomplete="off"><div class="combo-list hide"></div></div>
-        </div>
-        <h3 class="sec" data-i18n="secBahan">Bahan baku masuk <span class="unit">kg</span></h3>
-        <div id="edBahanLines"></div>
-        <button class="btn sec sm" onclick="tambahBaris('edBahan')" data-i18n="btnTambahBahan">+ Tambah bahan</button>
-        <div id="edKeluar">
-          <h3 class="sec" data-i18n="secJadi">Barang jadi <span class="unit">kg</span></h3>
-          <div id="edJadiLines"></div>
-          <button class="btn sec sm" onclick="tambahBaris('edJadi')" data-i18n="btnTambahItem">+ Tambah item</button>
-          <h3 class="sec" data-i18n="secScrap">Scrap / afkir <span class="unit">kg</span></h3>
-          <div class="field">
-            <input type="number" inputmode="decimal" step="any" min="0" id="edScrapKg" placeholder="0" oninput="previewEditJob()">
-          </div>
-          <div id="edSusutPreview" style="margin-top:15px"></div>
-        </div>
-        <div class="field" style="margin-top:14px">
-          <label data-i18n="lblCatatan">Catatan (opsional)</label>
-          <textarea id="edCatatan"></textarea>
-        </div>
-        <div class="field hide" id="edAlasanWrap">
-          <label data-i18n="lblAlasan">Alasan perubahan</label>
-          <input id="edAlasan" placeholder="mis. salah catat hasil timbang">
-        </div>
-        <div class="banner warn hide" id="edUsulanInfo"></div>
-        <div class="logedit hide" id="edLog"></div>
-        <div class="btnrow">
-          <button class="btn sec" onclick="segJob('done')" data-i18n="btnBatal">Batal</button>
-          <button class="btn ok" id="btnEdSimpan" onclick="simpanEditJobUI()" data-i18n="simpanPerubahan">Simpan perubahan</button>
+    <div id="shiftList">
+      <div class="card" style="padding:10px 12px">
+        <div class="row" style="align-items:center">
+          <button class="calnav" onclick="geserHariShift(-1)" aria-label="prev">‹</button>
+          <input type="date" id="shiftTglFilter" onchange="muatShift()" style="flex:1">
+          <button class="calnav" onclick="geserHariShift(1)" aria-label="next">›</button>
+          <button class="btn sec xs" onclick="semuaHariShift()" data-i18n="shift14">14 hari</button>
         </div>
       </div>
+      <div id="shiftRows"><div class="load">…</div></div>
     </div>
 
-    <div id="jobNew" class="hide">
+    <div id="shiftForm" class="hide">
       <div class="card">
-        <h2 data-i18n="jobNewT">Mulai pekerjaan</h2>
-        <div class="sub" data-i18n="jobNewS">Pilih produk yang dibuat, lalu catat bahan baku yang masuk proses.</div>
-        <div class="field">
-          <label data-i18n="lblProduk">Produk yang dibuat</label>
-          <div class="combo"><input id="jobProduk" autocomplete="off"><div class="combo-list hide"></div></div>
-        </div>
-        <div class="field">
-          <label data-i18n="lblTanggal">Tanggal transaksi</label>
-          <input type="date" id="jobTanggal">
-        </div>
-        <h3 class="sec" data-i18n="secBahan">Bahan baku masuk <span class="unit">kg</span></h3>
-        <div id="jobLines"></div>
-        <button class="btn sec sm" onclick="tambahBaris('job')" data-i18n="btnTambahBahan">+ Tambah bahan</button>
-        <div class="banner ok" id="jobBaruRingkas" style="margin-top:14px"></div>
-        <div class="field">
-          <label data-i18n="lblFotoOpsi">Foto (opsional)</label>
-          <div class="photo" id="jobPhoto" onclick="pilihFoto('job')">
-            <div class="p1">📷 <span data-i18n="fotoAmbil">Ambil foto</span></div>
+        <h2 id="shiftFormT" data-i18n="shiftFormT">Laporan shift</h2>
+        <div class="sub" id="shiftFormS" data-i18n="shiftFormS">Satu laporan per shift per mesin. Tidak perlu persetujuan — stok langsung ikut.</div>
+        <div class="banner warn hide" id="shiftInfo"></div>
+        <div class="row">
+          <div class="field" style="flex:1"><label data-i18n="lblTanggal">Tanggal transaksi</label><input type="date" id="shiftTanggal"></div>
+          <div class="field" style="flex:1"><label data-i18n="lblShift">Shift</label>
+            <div class="seg" style="margin:0" id="shiftPilihWrap">
+              <button type="button" id="shiftP1" onclick="pilihShift('1')">1</button>
+              <button type="button" id="shiftP2" onclick="pilihShift('2')">2</button>
+              <button type="button" id="shiftP3" onclick="pilihShift('3')">3</button>
+            </div>
           </div>
-          <input type="file" accept="image/*" capture="environment" id="jobFile" class="hide" onchange="fotoTerpilih(event,'job')">
         </div>
-        <button class="btn" id="btnMulaiJob" onclick="mulaiJobUI()" data-i18n="btnMulaiJob">Mulai pekerjaan</button>
-      </div>
-    </div>
-
-    <div id="jobFinish" class="hide">
-      <div class="card">
-        <h2 data-i18n="jobFinT">Tutup pekerjaan</h2>
-        <div id="jobFinHead"></div>
-
-        <h3 class="sec" data-i18n="secJadi">Barang jadi <span class="unit">kg</span></h3>
-        <div id="finJadiLines"></div>
-        <button class="btn sec sm" onclick="tambahBaris('finJadi')" data-i18n="btnTambahItem">+ Tambah item</button>
-
-        <h3 class="sec" data-i18n="secScrap">Scrap / afkir <span class="unit">kg</span></h3>
+        <div class="field"><label data-i18n="lblMesin">Mesin</label>
+          <div class="seg" style="margin:0">
+            <button type="button" id="mesinBlowing" onclick="pilihMesin('BLOWING')">🌬️ Blowing</button>
+            <button type="button" id="mesinCutting" onclick="pilihMesin('CUTTING')">✂️ Cutting</button>
+          </div>
+          <div class="hint" id="mesinHint"></div>
+        </div>
         <div class="field">
-          <input type="number" inputmode="decimal" step="any" min="0" id="finScrapKg" placeholder="0" oninput="hitungPreviewSusut()">
-          <div class="hint" id="finScrapHint"></div>
+          <label data-i18n="lblOperator">Operator (bisa lebih dari satu)</label>
+          <div id="shiftOpChips"></div>
+          <div class="combo"><input id="shiftOperator" autocomplete="off"><div class="combo-list hide"></div></div>
+          <div class="hint" data-i18n="hintOperator">Ketik nama lalu pilih / Enter. Nama baru langsung boleh.</div>
         </div>
 
-        <div id="susutPreview" style="margin-top:15px"></div>
+        <div id="ambilWrap">
+          <h3 class="sec" data-i18n="secAmbil">Biji plastik diambil dari gudang <span class="unit">kg</span></h3>
+          <div id="ambilLines"></div>
+          <button class="btn sec sm" onclick="tambahBaris('ambil')" data-i18n="btnTambahBahan">+ Tambah bahan</button>
+        </div>
+
+        <h3 class="sec" id="hasilJudul" data-i18n="secHasilRoll">Roll jadi per kualitas <span class="unit">kg</span></h3>
+        <div id="hasilLines"></div>
+        <h3 class="sec" data-i18n="secBs">BS (scrap) per kualitas <span class="unit">kg</span></h3>
+        <div id="bsLines"></div>
+
+        <div class="banner n" id="shiftRingkas" style="margin-top:14px"></div>
 
         <div class="field">
           <label data-i18n="lblFotoOpsi">Foto (opsional)</label>
-          <div class="photo" id="finPhoto" onclick="pilihFoto('fin')">
-            <div class="p1">📷 <span data-i18n="fotoAmbil">Ambil foto</span></div>
-          </div>
-          <input type="file" accept="image/*" capture="environment" id="finFile" class="hide" onchange="fotoTerpilih(event,'fin')">
+          <div class="photo" id="shiftPhoto" onclick="pilihFoto('shift')"><div class="p1">📷 <span data-i18n="fotoAmbil">Ambil foto</span></div></div>
+          <input type="file" accept="image/*" capture="environment" id="shiftFile" class="hide" onchange="fotoTerpilih(event,'shift')">
         </div>
         <div class="field">
           <label data-i18n="lblCatatan">Catatan (opsional)</label>
-          <textarea id="finCatatan"></textarea>
+          <textarea id="shiftCatatan"></textarea>
         </div>
+        <div class="logedit hide" id="shiftLog"></div>
         <div class="btnrow">
-          <button class="btn sec" onclick="segJob('list')" data-i18n="btnBatal">Batal</button>
-          <button class="btn ok" id="btnTutupJob" onclick="tutupJobUI()" data-i18n="btnTutupJob">Tutup &amp; hitung susut</button>
+          <button class="btn ghost hide" id="btnBatalShift" onclick="batalShiftUI()" data-i18n="btnBatalShift">Batalkan laporan</button>
+          <button class="btn sec" onclick="segShift('list')" data-i18n="btnBatal">Batal</button>
+          <button class="btn ok" id="btnSimpanShift" onclick="simpanShiftUI()" data-i18n="btnSimpanShift">Simpan laporan</button>
         </div>
       </div>
     </div>
 
-    <div id="jobHasil" class="hide"></div>
+    <div id="shiftRep" class="hide"></div>
   </section>
 
   <!-- ============ DAUR ULANG SCRAP (v9) ============ -->
@@ -544,14 +515,13 @@
   <!-- ============ LAPORAN ============ -->
   <section id="v-report" class="hide">
     <div class="seg">
-      <button id="segRepSusut" class="on" onclick="segRep('susut')" data-i18n="segSusut">Susut</button>
+      <button id="segRepProduksi" class="on" onclick="segRep('produksi')" data-i18n="segProduksi">Produksi</button>
       <button id="segRepStok" onclick="segRep('stok')" data-i18n="segStok">Stok</button>
       <button id="segRepBeli" onclick="segRep('beli')" data-i18n="segBeli">Beli</button>
       <button id="segRepJual" onclick="segRep('jual')" data-i18n="segJual">Jual</button>
       <button id="segRepDaur" onclick="segRep('daur')" data-i18n="segDaur">Daur ulang</button>
-      <button id="segRepHpp" class="hide" onclick="segRep('hpp')">HPP</button>
+      <button id="segRepBulanan" class="hide" onclick="segRep('bulanan')" data-i18n="segBulanan">Laba bulan</button>
       <button id="segRepNilai" class="hide" onclick="segRep('nilai')" data-i18n="segNilai">Nilai stok</button>
-      <button id="segRepStd" class="hide" onclick="segRep('std')" data-i18n="segStd">Std susut</button>
       <button id="segRepPrediksi" class="hide" onclick="segRep('prediksi')" data-i18n="segPrediksi">Perlu beli</button>
       <button id="segRepEkspor" class="hide" onclick="segRep('ekspor')" data-i18n="segEkspor">Ekspor</button>
     </div>
@@ -578,10 +548,20 @@
       <div class="field"><label data-i18n="skuNama">Nama</label><input id="skuNama"></div>
       <div class="field"><label data-i18n="skuKat">Kategori</label>
         <select id="skuKat">
-          <option value="BAHAN_BAKU">Bahan baku</option>
-          <option value="BARANG_JADI">Barang jadi</option>
+          <option value="BAHAN_BAKU">Bahan baku (biji plastik, pigmen…)</option>
+          <option value="ROLL">Roll (hasil blowing)</option>
+          <option value="BARANG_JADI">Barang jadi (polybag)</option>
+          <option value="SCRAP">BS / scrap</option>
           <option value="KEDUANYA">Keduanya</option>
         </select></div>
+      <div class="field"><label data-i18n="skuKualitas">Kualitas (untuk biji / roll / polybag / BS)</label>
+        <select id="skuKualitas">
+          <option value="">—</option>
+          <option value="KW">KW</option>
+          <option value="SUPER">Super</option>
+          <option value="SUPER_PLUS">Super Plus</option>
+        </select>
+        <div class="hint" data-i18n="skuKualitasHint">Laporan shift memakai SKU per kualitas: biji → roll → polybag, dan BS-nya.</div></div>
       <div class="field" id="skuHargaWrap"><label data-i18n="skuHarga">Harga beli per kg (untuk HPP)</label><input type="number" inputmode="decimal" id="skuHarga" placeholder="0"></div>
       <div class="field"><label data-i18n="skuAwal">Stok awal (kg)</label><input type="number" inputmode="decimal" id="skuAwal" placeholder="0"></div>
       <div class="field"><label><input type="checkbox" id="skuAktif" checked style="width:auto;margin-right:8px"><span data-i18n="skuAktif">Aktif (muncul di dropdown)</span></label></div>
@@ -615,7 +595,7 @@
 
 <nav>
   <button id="nav-home" class="on" onclick="tampil('home')"><span class="g">🏠</span><span data-i18n="navHome">Beranda</span></button>
-  <button id="nav-job" onclick="tampil('job')"><span class="g">⚙️</span><span data-i18n="navJob">Pekerjaan</span></button>
+  <button id="nav-shift" onclick="tampil('shift')"><span class="g">🏭</span><span data-i18n="navJob">Produksi</span></button>
   <button id="nav-review" class="hide" onclick="tampil('review')"><span class="g">✅</span><span data-i18n="navReview">Review</span><span class="dot hide" id="navDot"></span></button>
   <button id="nav-report" onclick="tampil('report')"><span class="g">📊</span><span data-i18n="navReport">Laporan</span></button>
   <button id="nav-admin" class="hide" onclick="tampil('admin')"><span class="g">🛠️</span><span data-i18n="navAdmin">Admin</span></button>

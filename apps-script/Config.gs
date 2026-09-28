@@ -10,7 +10,7 @@
 
 var APP = {
   nama: 'IPC — Inventory & Production Control',
-  versi: '9.0.0',
+  versi: '10.0.0',
   zona: 'Asia/Jakarta',
   satuan: 'kg',
   folderFoto: 'IPC Foto Bukti'
@@ -24,11 +24,11 @@ var SHEET = {
   SUPPLIER   : 'Master_Supplier',
   CUSTOMER   : 'Master_Customer',
   PENGGUNA   : 'Master_Pengguna',
-  STANDAR    : 'Master_Standar_Susut',
   PENERIMAAN : 'Penerimaan',        // ⓪ pembelian masuk & retur ke supplier
   PENGIRIMAN : 'Pengiriman',        // ④ penjualan keluar & retur dari customer
-  PEKERJAAN  : 'Pekerjaan',         // ① bahan baku → barang jadi (semua di GBJ; v9: tidak ada gudang produksi terpisah)
-  DETAIL     : 'Pekerjaan_Detail',
+  SHIFT      : 'Laporan_Shift',     // v10: laporan produksi per shift per mesin (blowing / cutting), diisi manager produksi
+  SHIFT_DETAIL: 'Laporan_Shift_Detail',
+  TUTUP      : 'Tutup_Bulan',       // v10: penutupan bulan — nilai stok awal/akhir, COGS, laba kotor, susut
   OPNAME     : 'Stock_Opname',      // hitung fisik → penyesuaian stok
   PERMINTAAN : 'Permintaan_Ubah',   // usulan edit/batal dari staf → butuh persetujuan supervisor
   PO         : 'Pesanan_Pembelian', // PO dari manager: apa yang akan datang, qty, harga, spesifikasi
@@ -44,7 +44,8 @@ var SHEET = {
 var HEADER = {};
 
 HEADER[SHEET.ITEM] = [
-  'Kode_Item','Nama_Item','Kategori','Harga_Per_Kg','Stok_Awal','Aktif'   // v9: satu lokasi (GBJ) → satu stok awal
+  'Kode_Item','Nama_Item','Kategori','Harga_Per_Kg','Stok_Awal','Aktif',
+  'Kualitas'   // v10: KW / SUPER / SUPER_PLUS — menghubungkan biji plastik ↔ roll ↔ polybag ↔ BS di laporan shift
 ];
 
 HEADER[SHEET.SUPPLIER] = [
@@ -57,10 +58,6 @@ HEADER[SHEET.CUSTOMER] = [
 
 HEADER[SHEET.PENGGUNA] = [
   'Email','Nama','Peran','Lokasi','PIN','Aktif'
-];
-
-HEADER[SHEET.STANDAR] = [
-  'Kode_Produk','Nama_Produk','Susut_Normal_Persen','Toleransi_Persen','Catatan'
 ];
 
 /* ⓪ Pembelian masuk (MASUK) & retur ke supplier (RETUR) — pakai surat jalan */
@@ -82,16 +79,23 @@ HEADER[SHEET.PENGIRIMAN] = [
   'ID_SO'        // v8: baris sales order yang dipenuhi pengiriman ini
 ];
 
-HEADER[SHEET.PEKERJAAN] = [
-  'ID','Waktu_Mulai','Waktu_Selesai','Tanggal','Kode_Produk','Nama_Produk','Status',
-  'Total_Bahan_Baku_Kg','Total_Barang_Jadi_Kg','Total_Scrap_Kg',
-  'Susut_Kg','Susut_Persen','Status_Susut',
-  'HPP_Bahan','HPP_Proses','HPP_Total','HPP_Per_Kg','Nilai_Susut',
-  'Operator','Nama_Operator','Foto_Mulai_URL','Foto_Selesai_URL','Catatan','Log_Edit'
+/* v10: laporan shift. Satu baris per shift per mesin. Tidak perlu persetujuan.
+   BLOWING : ambil biji plastik dari gudang (AMBIL) → hasil roll per kualitas (HASIL) + BS per kualitas (BS)
+   CUTTING : hasil polybag per kualitas (HASIL) + BS per kualitas (BS); roll yang terpakai = hasil + BS (PAKAI_ROLL, otomatis) */
+HEADER[SHEET.SHIFT] = [
+  'ID','Waktu','Tanggal','Shift','Mesin','Operator',
+  'Total_Ambil_Kg','Total_Hasil_Kg','Total_BS_Kg','Total_Roll_Pakai_Kg',
+  'Dicatat_Oleh','Nama_Pencatat','Foto_URL','Catatan','Log_Edit','Status'
 ];
-
-HEADER[SHEET.DETAIL] = [
-  'ID','ID_Pekerjaan','Jenis','Kode_Item','Nama_Item','Qty_Kg','Harga_Per_Kg','Nilai','Waktu'
+HEADER[SHEET.SHIFT_DETAIL] = [
+  'ID','ID_Shift','Jenis','Kode_Item','Nama_Item','Kualitas','Qty_Kg','Waktu'
+];
+/* v10: tutup bulan — snapshot untuk pelaporan (COGS periodik = awal + pembelian + jasa + proses − akhir) */
+HEADER[SHEET.TUTUP] = [
+  'ID','Bulan','Waktu','Ditutup_Oleh','Nama_Penutup',
+  'Nilai_Stok_Awal','Pembelian','Retur_Supplier','Biaya_Jasa_Chassen','Biaya_Proses','Nilai_Stok_Akhir','COGS',
+  'Penjualan','Laba_Kotor','Masuk_Produksi_Kg','Hasil_Jadi_Kg','BS_Kg','Roll_Perubahan_Kg','Susut_Kg','Susut_Persen',
+  'Detail_JSON','Catatan','Status'
 ];
 
 /* Stock opname: satu baris per item per sesi hitung. Selisih = fisik − sistem, dipakai
@@ -111,7 +115,8 @@ HEADER[SHEET.PERMINTAAN] = [
 /* PO: satu baris per item. No_PO menggabungkan beberapa baris jadi satu pesanan. */
 HEADER[SHEET.PO] = [
   'ID','No_PO','Waktu','Tanggal','Supplier','Kode_Item','Nama_Item','Qty_Kg','Harga_Per_Kg',
-  'Spesifikasi','Perkiraan_Datang','Qty_Diterima_Kg','Status','Dibuat_Oleh','Nama_Pembuat','Catatan','Log_Edit'
+  'Spesifikasi','Perkiraan_Datang','Qty_Diterima_Kg','Status','Dibuat_Oleh','Nama_Pembuat','Catatan','Log_Edit',
+  'TOP_Hari','Jatuh_Tempo'   // v10: termin pembayaran (hari) & tanggal jatuh tempo
 ];
 
 /* Invoice supplier per No_PO. Total_Sistem = Σ(qty diterima × harga PO). */
@@ -128,7 +133,8 @@ HEADER[SHEET.KERUSAKAN] = [
 ];
 HEADER[SHEET.SO] = [
   'ID','No_SO','Waktu','Tanggal','Customer','Kode_Item','Nama_Item','Qty_Kg','Harga_Per_Kg',
-  'Tanggal_Kirim','Qty_Dikirim_Kg','Status','Dibuat_Oleh','Nama_Pembuat','Catatan','Log_Edit'
+  'Tanggal_Kirim','Qty_Dikirim_Kg','Status','Dibuat_Oleh','Nama_Pembuat','Catatan','Log_Edit',
+  'TOP_Hari','Jatuh_Tempo'   // v10: termin pembayaran (hari) & tanggal jatuh tempo
 ];
 
 /* v9: daur ulang scrap → biji plastik lewat mesin chassen pabrik lain (jasa). Satu baris per batch kirim. */
@@ -171,11 +177,15 @@ var STATUS_TRANSFER = {
   DIBATALKAN : 'DIBATALKAN'    // dibatalkan — TIDAK dihitung di stok
 };
 
-var STATUS_PEKERJAAN = { BERJALAN: 'BERJALAN', SELESAI: 'SELESAI' };
+var MESIN        = { BLOWING: 'BLOWING', CUTTING: 'CUTTING' };                       // v10
+var JENIS_SHIFT  = { AMBIL: 'AMBIL', HASIL: 'HASIL', BS: 'BS', PAKAI_ROLL: 'PAKAI_ROLL' }; // v10: baris detail laporan shift
+var STATUS_SHIFT = { AKTIF: 'AKTIF', DIBATALKAN: 'DIBATALKAN' };
+var STATUS_TUTUP = { DITUTUP: 'DITUTUP', DIBUKA: 'DIBUKA' };
+var DAFTAR_SHIFT = ['1', '2', '3'];
 var STATUS_DAUR      = { BERJALAN: 'BERJALAN', SELESAI: 'SELESAI', DIBATALKAN: 'DIBATALKAN' };   // v9
 var JENIS_DAUR_DETAIL = { SCRAP: 'SCRAP', HASIL: 'HASIL' };                                       // v9: scrap keluar / biji plastik masuk
 
-var JENIS_PERMINTAAN  = { EDIT: 'EDIT', BATAL: 'BATAL', EDIT_JOB: 'EDIT_JOB' };
+var JENIS_PERMINTAAN  = { EDIT: 'EDIT', BATAL: 'BATAL' };
 var STATUS_PERMINTAAN = { MENUNGGU: 'MENUNGGU', DISETUJUI: 'DISETUJUI', DITOLAK: 'DITOLAK' };
 var MAKS_MUNDUR_HARI  = 60;   // tanggal transaksi boleh dimundurkan maksimal sekian hari
 
@@ -183,25 +193,19 @@ var STATUS_PO      = { TERBUKA: 'TERBUKA', SEBAGIAN: 'SEBAGIAN', SELESAI: 'SELES
 var STATUS_INVOICE = { MENUNGGU: 'MENUNGGU', VALID: 'VALID', DITOLAK: 'DITOLAK' };
 var STATUS_SO      = STATUS_PO;   // TERBUKA / SEBAGIAN / SELESAI / DIBATALKAN
 
-var JENIS_DETAIL = {
-  BAHAN_BAKU  : 'BAHAN_BAKU',
-  BARANG_JADI : 'BARANG_JADI',
-  SCRAP       : 'SCRAP'
-};
-
 var KATEGORI_ITEM = {
-  BAHAN_BAKU  : 'BAHAN_BAKU',
-  BARANG_JADI : 'BARANG_JADI',
+  BAHAN_BAKU  : 'BAHAN_BAKU',  // biji plastik, pigmen, antifoam — diambil mesin blowing
+  ROLL        : 'ROLL',        // v10: hasil blowing (setengah jadi), dipakai mesin cutting
+  BARANG_JADI : 'BARANG_JADI', // polybag hasil cutting — dijual
   KEDUANYA    : 'KEDUANYA',
-  SCRAP       : 'SCRAP'        // dibuat otomatis per produk: SCR-<kode produk>. Bisa dijual (④).
+  SCRAP       : 'SCRAP'        // BS dari blowing & cutting → dikirim ke chassen → jadi biji plastik daur ulang
 };
-var PREFIX_SCRAP = 'SCR-';
+var KUALITAS = { KW: 'KW', SUPER: 'SUPER', SUPER_PLUS: 'SUPER_PLUS' };   // v10: nilai kolom Master_Item.Kualitas
+var NAMA_KUALITAS = { KW: 'KW', SUPER: 'Super', SUPER_PLUS: 'Super Plus' };
 
 var PERAN = { STAF: 'STAF', SUPERVISOR: 'SUPERVISOR', ADMIN: 'ADMIN' };
 var LOKASI = { GBJ: 'GBJ' };   // v9: satu gudang saja — pekerjaan berjalan di GBJ
 
-var DEFAULT_SUSUT_NORMAL_PERSEN = 3.0;
-var DEFAULT_TOLERANSI_PERSEN    = 1.5;
 var DEFAULT_SUSUT_CHASSEN_PERSEN     = 5.0;   // v9: susut normal scrap → biji plastik di mesin chassen
 var DEFAULT_TOLERANSI_CHASSEN_PERSEN = 3.0;
 
@@ -209,19 +213,27 @@ var DEFAULT_TOLERANSI_CHASSEN_PERSEN = 3.0;
  * DUMMY DATA — ganti lewat sheet Master_Item / Master_Supplier
  * ------------------------------------------------------------------ */
 var DUMMY_ITEM = [
-  // Bahan baku polybag (harga pokok per kg, Agustus 2026)
-  ['RM-BP-KW' ,'Biji Plastik KW',         KATEGORI_ITEM.BAHAN_BAKU , 13000, 0, 'YA'],
-  ['RM-BP-SUP','Biji Plastik Super',      KATEGORI_ITEM.BAHAN_BAKU , 15000, 0, 'YA'],
-  ['RM-BP-SPL','Biji Plastik Super Plus', KATEGORI_ITEM.BAHAN_BAKU , 15000, 0, 'YA'],
-  ['RM-PG-KW' ,'Pigmen KW',               KATEGORI_ITEM.BAHAN_BAKU , 28000, 0, 'YA'],
-  ['RM-PG-SPL','Pigmen Super Plus',       KATEGORI_ITEM.BAHAN_BAKU , 33300, 0, 'YA'],
-  ['RM-AF'    ,'Antifoam',                KATEGORI_ITEM.BAHAN_BAKU , 13500, 0, 'YA'],
-  ['RM-BS-KW' ,'BS KW',                   KATEGORI_ITEM.BAHAN_BAKU , 13000, 0, 'YA'],
-  ['RM-BS-SUP','BS Super',                KATEGORI_ITEM.BAHAN_BAKU , 15000, 0, 'YA'],
-  ['RM-BS-SPL','BS Super Plus',           KATEGORI_ITEM.BAHAN_BAKU , 15000, 0, 'YA'],
-  ['RM-BP-DU' ,'Biji Plastik Daur Ulang', KATEGORI_ITEM.BAHAN_BAKU , '',    0, 'YA'],   // hasil chassen scrap (v9) — harga dari biaya jasa
-  // Barang jadi
-  ['FG-PB-HP' ,'Polybag H Plast',         KATEGORI_ITEM.BARANG_JADI, '',    0, 'YA']
+  // [kode, nama, kategori, harga pokok/kg (Agustus 2026), stok awal, aktif, kualitas]
+  // Bahan baku — diambil mesin blowing
+  ['RM-BP-KW' ,'Biji Plastik KW',         KATEGORI_ITEM.BAHAN_BAKU , 13000, 0, 'YA', KUALITAS.KW],
+  ['RM-BP-SUP','Biji Plastik Super',      KATEGORI_ITEM.BAHAN_BAKU , 15000, 0, 'YA', KUALITAS.SUPER],
+  ['RM-BP-SPL','Biji Plastik Super Plus', KATEGORI_ITEM.BAHAN_BAKU , 15000, 0, 'YA', KUALITAS.SUPER_PLUS],
+  ['RM-PG-KW' ,'Pigmen KW',               KATEGORI_ITEM.BAHAN_BAKU , 28000, 0, 'YA', ''],
+  ['RM-PG-SPL','Pigmen Super Plus',       KATEGORI_ITEM.BAHAN_BAKU , 33300, 0, 'YA', ''],
+  ['RM-AF'    ,'Antifoam',                KATEGORI_ITEM.BAHAN_BAKU , 13500, 0, 'YA', ''],
+  ['RM-BP-DU' ,'Biji Plastik Daur Ulang', KATEGORI_ITEM.BAHAN_BAKU , '',    0, 'YA', ''],   // hasil chassen dari BS — harga dari biaya jasa
+  // Roll (hasil blowing, setengah jadi) — dipakai mesin cutting
+  ['WIP-ROLL-KW' ,'Roll KW',              KATEGORI_ITEM.ROLL       , '',    0, 'YA', KUALITAS.KW],
+  ['WIP-ROLL-SUP','Roll Super',           KATEGORI_ITEM.ROLL       , '',    0, 'YA', KUALITAS.SUPER],
+  ['WIP-ROLL-SPL','Roll Super Plus',      KATEGORI_ITEM.ROLL       , '',    0, 'YA', KUALITAS.SUPER_PLUS],
+  // Barang jadi — polybag
+  ['FG-PB-KW' ,'Polybag KW',              KATEGORI_ITEM.BARANG_JADI, '',    0, 'YA', KUALITAS.KW],
+  ['FG-PB-SUP','Polybag Super',           KATEGORI_ITEM.BARANG_JADI, '',    0, 'YA', KUALITAS.SUPER],
+  ['FG-PB-SPL','Polybag Super Plus',      KATEGORI_ITEM.BARANG_JADI, '',    0, 'YA', KUALITAS.SUPER_PLUS],
+  // BS (scrap) dari blowing & cutting — dikirim ke chassen
+  ['SCR-BS-KW' ,'BS KW',                  KATEGORI_ITEM.SCRAP      , '',    0, 'YA', KUALITAS.KW],
+  ['SCR-BS-SUP','BS Super',               KATEGORI_ITEM.SCRAP      , '',    0, 'YA', KUALITAS.SUPER],
+  ['SCR-BS-SPL','BS Super Plus',          KATEGORI_ITEM.SCRAP      , '',    0, 'YA', KUALITAS.SUPER_PLUS]
 ];
 
 var DUMMY_SUPPLIER = [
@@ -239,14 +251,12 @@ var DUMMY_CUSTOMER = [
    SUPERVISOR = review, HPP, opname, SKU, edit semua entri
    STAF       = input pergerakan barang */
 var DUMMY_PENGGUNA = [
-  ['', 'Admin',        PERAN.ADMIN,      'HQ',  '1234', 'YA'],
-  ['', 'Direktur',     PERAN.ADMIN,      'HQ',  '2468', 'YA'],
-  ['', 'Manager',      PERAN.SUPERVISOR, 'GBJ', '1357', 'YA'],
-  ['', 'Staff Gudang', PERAN.STAF,       'GBJ', '1111', 'YA']
-];
-
-var DUMMY_STANDAR = [
-  ['FG-PB-HP','Polybag H Plast', 3.0, 1.5, 'Angka awal — sesuaikan dari data pilot']
+  ['', 'Admin',            PERAN.ADMIN,      'HQ',       '1234', 'YA'],
+  ['', 'Direktur',         PERAN.ADMIN,      'HQ',       '2468', 'YA'],
+  ['', 'Manager',          PERAN.SUPERVISOR, 'GBJ',      '1357', 'YA'],
+  ['', 'Manager Produksi', PERAN.SUPERVISOR, 'Produksi', '1122', 'YA'],   // v10: mengisi laporan shift
+  ['', 'Sales Manager',    PERAN.SUPERVISOR, 'Sales',    '3344', 'YA'],   // v10: SO & PO
+  ['', 'Staff Gudang',     PERAN.STAF,       'GBJ',      '1111', 'YA']
 ];
 
 var DEFAULT_SETTING = [
@@ -259,9 +269,9 @@ var DEFAULT_SETTING = [
   ['AKSES_TERBUKA','TIDAK','YA = nama yang belum terdaftar tetap boleh masuk sebagai PERAN_DEFAULT. TIDAK = hanya akun di Master_Pengguna (disarankan).'],
   ['PERAN_DEFAULT','STAF','Peran untuk email yang belum terdaftar (kalau AKSES_TERBUKA = YA)'],
   ['PIN_SUPERVISOR','2468','PIN darurat supervisor (hanya untuk nama yang BELUM terdaftar). Lebih baik isi PIN per user di Master_Pengguna. GANTI PIN INI.'],
-  ['BIAYA_PROSES_PER_KG','2500','Biaya proses (tenaga, listrik, gas, dll) per kg bahan baku masuk. Dipakai untuk HPP.'],
+  ['BIAYA_PROSES_PER_KG','2500','Biaya proses (tenaga, listrik, gas, dll) per kg biji plastik yang masuk produksi (blowing). Dipakai untuk HPP & COGS bulanan.'],
   ['MATA_UANG','Rp','Simbol mata uang di tampilan HPP'],
-  ['METODE_HPP','FIFO','FIFO = harga bahan dari batch penerimaan tertua yang terpakai (butuh harga di PO/penerimaan). MASTER = harga tetap dari Master_Item.'],
+  ['METODE_HPP','RATA','v10: RATA = harga rata-rata tertimbang dari pembelian (bergerak). MASTER = harga tetap dari Master_Item.'],
   ['WAJIB_PO','TIDAK','YA = penerimaan barang harus merujuk PO. TIDAK = boleh tanpa PO (ditandai TANPA PO).'],
   ['MAKS_EDIT_HARI','30','Entri lebih tua dari sekian hari (dari tanggal transaksi) tidak bisa diubah/dibatalkan siapa pun — periode dianggap ditutup.'],
   ['LEAD_TIME_HARI','7','Lama pesan sampai barang datang (hari). Dipakai untuk peringatan "perlu beli": stok habis sebelum lead time.'],
@@ -293,7 +303,6 @@ function setupSistem() {
   seedJika(ss, SHEET.ITEM, DUMMY_ITEM);
   seedJika(ss, SHEET.SUPPLIER, DUMMY_SUPPLIER);
   seedJika(ss, SHEET.CUSTOMER, DUMMY_CUSTOMER);
-  seedJika(ss, SHEET.STANDAR, DUMMY_STANDAR);
   seedJika(ss, SHEET.SETTING, DEFAULT_SETTING);
 
   var email = Session.getActiveUser().getEmail();
@@ -333,18 +342,18 @@ function seedJika(ss, nama, rows) {
 function seedUlangMaster() {
   lupakanMemo_();
   var ss = SpreadsheetApp.getActiveSpreadsheet();
-  [SHEET.PENERIMAAN, SHEET.PENGIRIMAN, SHEET.PEKERJAAN, SHEET.OPNAME, SHEET.PO, SHEET.KERUSAKAN, SHEET.DAUR].forEach(function (n) {
+  [SHEET.PENERIMAAN, SHEET.PENGIRIMAN, SHEET.SHIFT, SHEET.OPNAME, SHEET.PO, SHEET.KERUSAKAN, SHEET.DAUR].forEach(function (n) {
     var sh = ss.getSheetByName(n);
     if (sh && sh.getLastRow() >= 2) throw new Error('Sudah ada transaksi di ' + n + '. Ubah SKU lewat menu Admin > SKU, jangan seed ulang.');
   });
-  [[SHEET.ITEM, DUMMY_ITEM], [SHEET.STANDAR, DUMMY_STANDAR],
+  [[SHEET.ITEM, DUMMY_ITEM],
    [SHEET.SUPPLIER, DUMMY_SUPPLIER], [SHEET.CUSTOMER, DUMMY_CUSTOMER]].forEach(function (pair) {
     var sh = ss.getSheetByName(pair[0]);
     if (sh.getLastRow() >= 2) sh.deleteRows(2, sh.getLastRow() - 1);
     sh.getRange(2, 1, pair[1].length, pair[1][0].length).setValues(pair[1]);
   });
   lupakanMemo_();
-  catatLog_('SEED_ULANG_MASTER', '', DUMMY_ITEM.length + ' item, ' + DUMMY_SUPPLIER.length + ' supplier, ' + DUMMY_CUSTOMER.length + ' customer, ' + DUMMY_STANDAR.length + ' standar susut');
+  catatLog_('SEED_ULANG_MASTER', '', DUMMY_ITEM.length + ' item, ' + DUMMY_SUPPLIER.length + ' supplier, ' + DUMMY_CUSTOMER.length + ' customer');
 }
 
 /**
@@ -355,8 +364,8 @@ function seedUlangMaster() {
 function resetUntukGoLive() {
   lupakanMemo_();
   var ss = SpreadsheetApp.getActiveSpreadsheet();
-  [SHEET.PENERIMAAN, SHEET.PENGIRIMAN, SHEET.PEKERJAAN, SHEET.DETAIL, SHEET.OPNAME,
-   SHEET.PERMINTAAN, SHEET.PO, SHEET.INVOICE, SHEET.KERUSAKAN, SHEET.SO, SHEET.DAUR, SHEET.DAUR_DETAIL].forEach(function (n) {
+  [SHEET.PENERIMAAN, SHEET.PENGIRIMAN, SHEET.SHIFT, SHEET.SHIFT_DETAIL, SHEET.OPNAME,
+   SHEET.PERMINTAAN, SHEET.PO, SHEET.INVOICE, SHEET.KERUSAKAN, SHEET.SO, SHEET.DAUR, SHEET.DAUR_DETAIL, SHEET.TUTUP].forEach(function (n) {
     var sh = ss.getSheetByName(n);
     if (sh && sh.getLastRow() >= 2) sh.deleteRows(2, sh.getLastRow() - 1);
   });

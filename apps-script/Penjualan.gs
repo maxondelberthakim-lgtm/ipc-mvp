@@ -1,5 +1,5 @@
 /*************************************************************************
- * IPC — Inventory & Production Control (v9)
+ * IPC — Inventory & Production Control (v10)
  * File 5 : Penjualan.gs
  *
  * Modul v8: sales order (pesanan customer), ekspor keuangan bulanan (CSV),
@@ -20,32 +20,36 @@ function nomorSoBaru_() {
   return awalan + String(n + 1).padStart(2, '0');
 }
 
-/** p = { customer, tanggal, tanggalKirim, baris:[{kode, qty, harga}], catatan } */
+/** p = { customer, tanggal, tanggalKirim, topHari, baris:[{kode, qty, harga}], catatan } — v10: TOP wajib diisi (0 = tunai). */
 function simpanSo(p, ident) {
   var u = penggunaSaatIni_(ident);
   if (!bolehPo_(u)) throw new Error('Hanya Manager / Admin yang bisa membuat sales order.');
   if (!p || !String(p.customer || '').trim()) throw new Error('Customer belum dipilih.');
   if (!p.baris || !p.baris.length) throw new Error('Item SO belum diisi.');
   var kirim = String(p.tanggalKirim || '').trim();
-  if (kirim && !/^\d{4}-\d{2}-\d{2}$/.test(kirim)) throw new Error('Format tanggal kirim harus YYYY-MM-DD.');
+  if (!kirim) throw new Error('Tanggal kirim belum diisi.');
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(kirim)) throw new Error('Format tanggal kirim harus YYYY-MM-DD.');
   var peta = petaItem_();
   var lock = LockService.getScriptLock();
   lock.waitLock(20000);
   lupakanMemo_();
   try {
     var now = new Date(), tanggal = tglValid_(p.tanggal);
+    if (p.topHari === undefined || p.topHari === null || String(p.topHari).trim() === '') throw new Error('TOP (hari) belum diisi — isi 0 untuk tunai.');
+    var top = topValid_(p.topHari), jatuhTempo = jatuhTempo_(kirim || tanggal, top);
     var noSo = nomorSoBaru_(), ids = [], total = 0, nilai = 0;
     p.baris.forEach(function (b) {
       var it = peta[b.kode]; if (!it) throw new Error('Item tidak dikenal: ' + b.kode);
       var q = angka_(b.qty), h = angka_(b.harga);
       if (q <= 0) throw new Error('Qty harus > 0 (' + it.nama + ')');
-      if (h < 0) throw new Error('Harga jual tidak boleh negatif (' + it.nama + ')');
+      if (b.harga === undefined || b.harga === null || String(b.harga).trim() === '' || h <= 0) throw new Error('Harga jual belum diisi (' + it.nama + ')');
       var id = buatId_('SO'); ids.push(id); total += q; nilai += q * h;
       tambah_(SHEET.SO, {
         ID: id, No_SO: noSo, Waktu: now, Tanggal: tanggal, Customer: p.customer,
         Kode_Item: it.kode, Nama_Item: it.nama, Qty_Kg: q, Harga_Per_Kg: h,
         Tanggal_Kirim: kirim, Qty_Dikirim_Kg: 0, Status: STATUS_SO.TERBUKA,
-        Dibuat_Oleh: penandaPencatat_(u), Nama_Pembuat: u.nama, Catatan: p.catatan || '', Log_Edit: ''
+        Dibuat_Oleh: penandaPencatat_(u), Nama_Pembuat: u.nama, Catatan: p.catatan || '', Log_Edit: '',
+        TOP_Hari: top, Jatuh_Tempo: jatuhTempo
       });
     });
     catatLog_('SO_BUAT', noSo, p.customer + ' • ' + ids.length + ' item • ' + bulat_(total, 2) + ' kg • ' + mataUang_() + ' ' + bulat_(nilai, 0));
@@ -76,8 +80,10 @@ function ubahSo(id, perubahan, ident) {
       if (h !== angka_(r.Harga_Per_Kg)) { ubah.Harga_Per_Kg = h; log.push('harga: ' + angka_(r.Harga_Per_Kg) + ' → ' + h); }
     }
     if (perubahan.tanggalKirim !== undefined && String(perubahan.tanggalKirim) !== String(r.Tanggal_Kirim || '')) { ubah.Tanggal_Kirim = perubahan.tanggalKirim; log.push('tanggal kirim: ' + (r.Tanggal_Kirim || '—') + ' → ' + (perubahan.tanggalKirim || '—')); }
+    if (perubahan.topHari !== undefined && topValid_(perubahan.topHari) !== angka_(r.TOP_Hari)) { ubah.TOP_Hari = topValid_(perubahan.topHari); log.push('TOP: ' + angka_(r.TOP_Hari) + ' → ' + ubah.TOP_Hari + ' hari'); }
     if (perubahan.catatan !== undefined && String(perubahan.catatan) !== String(r.Catatan || '')) { ubah.Catatan = perubahan.catatan; log.push('catatan diubah'); }
     if (!log.length) return { ok: true, berubah: false };
+    if (ubah.Tanggal_Kirim !== undefined || ubah.TOP_Hari !== undefined) ubah.Jatuh_Tempo = jatuhTempo_((ubah.Tanggal_Kirim !== undefined ? ubah.Tanggal_Kirim : r.Tanggal_Kirim) || r.Tanggal, ubah.TOP_Hari !== undefined ? ubah.TOP_Hari : angka_(r.TOP_Hari));
     var stempel = Utilities.formatDate(new Date(), APP.zona, 'dd/MM HH:mm') + ' ' + u.nama + ': ' + log.join('; ');
     ubah.Log_Edit = [r.Log_Edit, stempel].filter(String).join('\n');
     ubahBaris_(SHEET.SO, r._baris, ubah);
@@ -124,7 +130,8 @@ function ringkasSo_(r, lihatHarga) {
     id: r.ID, noSo: r.No_SO, tanggal: r.Tanggal, customer: r.Customer,
     kode: r.Kode_Item, item: r.Nama_Item, qty: angka_(r.Qty_Kg), dikirim: angka_(r.Qty_Dikirim_Kg),
     sisa: bulat_(Math.max(0, angka_(r.Qty_Kg) - angka_(r.Qty_Dikirim_Kg)), 3),
-    tanggalKirim: r.Tanggal_Kirim || '', status: r.Status, pembuat: r.Nama_Pembuat, catatan: r.Catatan || '', logEdit: r.Log_Edit || ''
+    tanggalKirim: r.Tanggal_Kirim || '', status: r.Status, pembuat: r.Nama_Pembuat, catatan: r.Catatan || '', logEdit: r.Log_Edit || '',
+    topHari: angka_(r.TOP_Hari), jatuhTempo: r.Jatuh_Tempo || ''
   };
   if (lihatHarga) { o.harga = angka_(r.Harga_Per_Kg); o.nilai = bulat_(o.qty * o.harga, 0); }
   return o;
@@ -195,7 +202,7 @@ function akhirBulan_(bulan) {
 
 /**
  * bulan = 'YYYY-MM'. Mengembalikan beberapa file CSV (pemisah ; supaya Excel Indonesia langsung membuka):
- * pembelian, penjualan, produksi (HPP), rusak, daur_ulang (v9), nilai_stok (posisi akhir bulan, FIFO), ringkasan.
+ * pembelian, penjualan, produksi (laporan shift), rusak, daur_ulang, nilai_stok (posisi akhir bulan, harga rata-rata), ringkasan.
  */
 function eksporBulanan(bulan, ident) {
   var u = penggunaSaatIni_(ident);
@@ -206,7 +213,8 @@ function eksporBulanan(bulan, ident) {
   var soById = {}; baca_(SHEET.SO).forEach(function (r) { soById[r.ID] = r; });
   var invByPo = {}; baca_(SHEET.INVOICE).forEach(function (r) { if (r.Status === STATUS_INVOICE.VALID) invByPo[r.No_PO] = r.No_Invoice; });
   var tot = { beliKg: 0, beliRp: 0, returKg: 0, returRp: 0, jualKg: 0, jualRp: 0, hppJualRp: 0, hppJualSoRp: 0, jualTanpaSoKg: 0, returCustKg: 0,
-              jobs: 0, hppBahan: 0, hppProses: 0, susutKg: 0, susutRp: 0, rusakKg: 0, rusakRp: 0 };
+              shift: 0, ambilKg: 0, jadiKg: 0, bsKg: 0, rollKg: 0, rollPakaiKg: 0, fgKg: 0, bsBlowingKg: 0, bsCuttingKg: 0,
+              hppBahan: 0, hppProses: 0, rusakKg: 0, rusakRp: 0 };
 
   /* --- pembelian: penerimaan & retur ke supplier --- */
   var beli = [];
@@ -242,15 +250,29 @@ function eksporBulanan(bulan, ident) {
     }
   });
 
-  /* --- produksi: pekerjaan selesai di bulan itu --- */
-  var prod = [];
-  baca_(SHEET.PEKERJAAN).forEach(function (r) {
-    if (r.Status !== STATUS_PEKERJAAN.SELESAI || !r.Waktu_Selesai) return;
-    var tglSelesai = tglStr_(new Date(r.Waktu_Selesai));
-    if (!dalamBulan_(tglSelesai, bulan)) return;
-    prod.push([tglSelesai, r.ID, r.Kode_Produk, r.Nama_Produk, angka_(r.Total_Bahan_Baku_Kg), angka_(r.Total_Barang_Jadi_Kg), angka_(r.Total_Scrap_Kg),
-               angka_(r.Susut_Kg), angka_(r.Susut_Persen), r.Status_Susut, angka_(r.HPP_Bahan), angka_(r.HPP_Proses), angka_(r.HPP_Total), angka_(r.HPP_Per_Kg), angka_(r.Nilai_Susut), r.Nama_Operator]);
-    tot.jobs++; tot.hppBahan += angka_(r.HPP_Bahan); tot.hppProses += angka_(r.HPP_Proses); tot.susutKg += angka_(r.Susut_Kg); tot.susutRp += angka_(r.Nilai_Susut);
+  /* --- produksi (v10): laporan shift di bulan itu --- */
+  var prod = [], detShift = {};
+  baca_(SHEET.SHIFT_DETAIL).forEach(function (d) { (detShift[d.ID_Shift] = detShift[d.ID_Shift] || []).push(d); });
+  var rataBulan = hitungRata_(akhirBulan_(bulan));
+  baca_(SHEET.SHIFT).forEach(function (r) {
+    if (r.Status === STATUS_SHIFT.DIBATALKAN || !dalamBulan_(r.Tanggal, bulan)) return;
+    var per = {};
+    (detShift[r.ID] || []).forEach(function (x) {
+      var k = x.Jenis + ':' + (x.Kualitas || '');
+      if (x.Jenis === JENIS_SHIFT.AMBIL) k = 'AMBIL:' + x.Nama_Item;
+      per[k] = (per[k] || 0) + angka_(x.Qty_Kg);
+    });
+    var ambilTxt = Object.keys(per).filter(function (k) { return k.indexOf('AMBIL:') === 0; }).map(function (k) { return k.slice(6) + ' ' + bulat_(per[k], 2); }).join(', ');
+    function q(j, kual) { return bulat_(per[j + ':' + kual] || 0, 2); }
+    var bahan = angka_(rataBulan.biaya[r.ID]), proses = angka_(rataBulan.proses[r.ID]);
+    prod.push([r.Tanggal, r.Shift, r.Mesin, r.ID, r.Operator, ambilTxt, angka_(r.Total_Ambil_Kg), angka_(r.Total_Roll_Pakai_Kg),
+               q(JENIS_SHIFT.HASIL, KUALITAS.KW), q(JENIS_SHIFT.HASIL, KUALITAS.SUPER), q(JENIS_SHIFT.HASIL, KUALITAS.SUPER_PLUS), angka_(r.Total_Hasil_Kg),
+               q(JENIS_SHIFT.BS, KUALITAS.KW), q(JENIS_SHIFT.BS, KUALITAS.SUPER), q(JENIS_SHIFT.BS, KUALITAS.SUPER_PLUS), angka_(r.Total_BS_Kg),
+               bulat_(bahan, 0), bulat_(proses, 0), r.Nama_Pencatat, r.Catatan || '']);
+    tot.shift++; tot.ambilKg += angka_(r.Total_Ambil_Kg); tot.jadiKg += angka_(r.Total_Hasil_Kg); tot.bsKg += angka_(r.Total_BS_Kg);
+    tot.hppBahan += bahan; tot.hppProses += proses;
+    if (r.Mesin === MESIN.BLOWING) { tot.rollKg += angka_(r.Total_Hasil_Kg); tot.bsBlowingKg += angka_(r.Total_BS_Kg); }
+    else { tot.rollPakaiKg += angka_(r.Total_Roll_Pakai_Kg); tot.fgKg += angka_(r.Total_Hasil_Kg); tot.bsCuttingKg += angka_(r.Total_BS_Kg); }
   });
 
   /* --- barang rusak disetujui --- */
@@ -273,14 +295,16 @@ function eksporBulanan(bulan, ident) {
     totDaur.jasa += angka_(r.Biaya_Jasa); totDaur.nilaiScrap += angka_(r.Nilai_Scrap);
   });
 
-  /* --- nilai stok posisi akhir bulan (FIFO) — v9: satu lokasi --- */
-  var L = hitungFifo_(akhirBulan_(bulan)).lapisan, stokRows = [], nilaiStok = 0;
-  Object.keys(L).forEach(function (k) {
-    var q = 0, n = 0; L[k].forEach(function (x) { q += x.qty; n += x.qty * x.harga; });
-    if (q <= 0.0001) return;
-    stokRows.push([k, peta[k] ? peta[k].nama : k, bulat_(q, 2), bulat_(n / q, 0), bulat_(n, 0), L[k].length]);
-    nilaiStok += n;
+  /* --- nilai stok posisi akhir bulan (harga rata-rata) --- */
+  var P = rataBulan.pos, stokRows = [], nilaiStok = 0;
+  Object.keys(P).forEach(function (k) {
+    if (P[k].qty <= 0.0001) return;
+    stokRows.push([k, peta[k] ? peta[k].nama : k, peta[k] ? peta[k].kategori : '', bulat_(P[k].qty, 2), bulat_(P[k].rata, 0), bulat_(P[k].nilai, 0)]);
+    nilaiStok += P[k].nilai;
   });
+
+  /* --- laba kotor bulan (COGS total = stok awal + pembelian − retur + jasa + proses − stok akhir) --- */
+  var lb = laporanBulanan_(bulan, rataBulan);
 
   var ringkasan = [
     ['Periode', bulan], ['Mata uang', cur],
@@ -291,14 +315,19 @@ function eksporBulanan(bulan, ident) {
     ['HPP barang terjual (semua pengiriman)', bulat_(tot.hppJualRp, 0)], ['HPP barang terjual (yang ada harga SO)', bulat_(tot.hppJualSoRp, 0)],
     ['Laba kotor (penjualan − HPP, hanya yang ada harga SO)', bulat_(tot.jualRp - tot.hppJualSoRp, 0)],
     ['Retur dari customer (kg)', bulat_(tot.returCustKg, 2)],
-    ['Pekerjaan selesai', tot.jobs], ['HPP bahan (produksi)', bulat_(tot.hppBahan, 0)], ['HPP proses (produksi)', bulat_(tot.hppProses, 0)],
-    ['Susut (kg)', bulat_(tot.susutKg, 2)], ['Susut (nilai)', bulat_(tot.susutRp, 0)],
+    ['Laporan shift', tot.shift], ['Biji plastik masuk blowing (kg)', bulat_(tot.ambilKg, 2)], ['Roll hasil blowing (kg)', bulat_(tot.rollKg, 2)],
+    ['Roll dipakai cutting (kg)', bulat_(tot.rollPakaiKg, 2)], ['Polybag jadi (kg)', bulat_(tot.fgKg, 2)],
+    ['BS blowing (kg)', bulat_(tot.bsBlowingKg, 2)], ['BS cutting (kg)', bulat_(tot.bsCuttingKg, 2)], ['BS total (kg)', bulat_(tot.bsKg, 2)],
+    ['Susut produksi (kg, biji masuk − polybag − BS − perubahan roll)', bulat_(lb.susutKg, 2)], ['Susut produksi (%)', lb.susutPersen],
+    ['Nilai bahan masuk produksi (rata-rata)', bulat_(tot.hppBahan, 0)], ['Biaya proses blowing', bulat_(tot.hppProses, 0)],
     ['Barang rusak (kg)', bulat_(tot.rusakKg, 2)], ['Barang rusak (nilai)', bulat_(tot.rusakRp, 0)],
     ['Daur ulang scrap: batch selesai', totDaur.batch], ['Daur ulang: scrap dikirim (kg)', bulat_(totDaur.scrap, 2)],
     ['Daur ulang: biji plastik diterima (kg)', bulat_(totDaur.hasil, 2)], ['Daur ulang: susut chassen (kg)', bulat_(totDaur.susut, 2)],
     ['Daur ulang: biaya jasa chassen (nilai)', bulat_(totDaur.jasa, 0)],
-    ['Nilai stok akhir bulan (FIFO)', bulat_(nilaiStok, 0)],
-    ['Catatan', 'Nilai penjualan & laba hanya untuk pengiriman yang merujuk SO (ada harga jual); pengiriman tanpa SO tercantum di kolom kg-nya. HPP belum memuat overhead pabrik. PPN tidak dihitung.']
+    ['Nilai stok awal bulan (rata-rata)', bulat_(lb.nilaiStokAwal, 0)], ['Nilai stok akhir bulan (rata-rata)', bulat_(nilaiStok, 0)],
+    ['COGS bulan (stok awal + pembelian − retur + jasa chassen + biaya proses − stok akhir)', bulat_(lb.cogs, 0)],
+    ['Laba kotor bulan (penjualan dari harga SO − COGS)', bulat_(lb.labaKotor, 0)],
+    ['Catatan', 'Nilai penjualan hanya untuk pengiriman yang merujuk SO (ada harga jual); pengiriman tanpa SO tercantum di kolom kg-nya. COGS belum memuat overhead pabrik selain biaya proses per kg. PPN tidak dihitung.']
   ];
 
   catatLog_('EKSPOR', bulan, u.nama);
@@ -308,10 +337,10 @@ function eksporBulanan(bulan, ident) {
       { nama: 'ringkasan_' + bulan + '.csv', csv: csv_(['Keterangan', 'Nilai'], ringkasan) },
       { nama: 'pembelian_' + bulan + '.csv', csv: csv_(['Tanggal', 'ID', 'Jenis', 'Supplier', 'No_PO', 'No_Invoice', 'No_Surat_Jalan', 'Kode_Item', 'Nama_Item', 'Qty_Kg', 'Harga_Per_Kg', 'Nilai', 'Status', 'Pencatat', 'Catatan_QC'], beli) },
       { nama: 'penjualan_' + bulan + '.csv', csv: csv_(['Tanggal', 'ID', 'Jenis', 'Customer', 'No_SO', 'No_Surat_Jalan', 'Kode_Item', 'Nama_Item', 'Qty_Kg', 'Harga_Jual_Per_Kg', 'Nilai_Jual', 'HPP_Per_Kg', 'Nilai_HPP', 'Laba_Kotor', 'Status', 'Pencatat'], jual) },
-      { nama: 'produksi_' + bulan + '.csv', csv: csv_(['Tanggal_Selesai', 'ID', 'Kode_Produk', 'Nama_Produk', 'Bahan_Kg', 'Jadi_Kg', 'Scrap_Kg', 'Susut_Kg', 'Susut_Persen', 'Status_Susut', 'HPP_Bahan', 'HPP_Proses', 'HPP_Total', 'HPP_Per_Kg', 'Nilai_Susut', 'Operator'], prod) },
+      { nama: 'produksi_' + bulan + '.csv', csv: csv_(['Tanggal', 'Shift', 'Mesin', 'ID', 'Operator', 'Ambil_Gudang', 'Ambil_Kg', 'Roll_Pakai_Kg', 'Hasil_KW_Kg', 'Hasil_Super_Kg', 'Hasil_Super_Plus_Kg', 'Hasil_Kg', 'BS_KW_Kg', 'BS_Super_Kg', 'BS_Super_Plus_Kg', 'BS_Kg', 'Nilai_Bahan', 'Biaya_Proses', 'Pencatat', 'Catatan'], prod) },
       { nama: 'rusak_' + bulan + '.csv', csv: csv_(['Tanggal', 'ID', 'Lokasi', 'Kode_Item', 'Nama_Item', 'Qty_Kg', 'Nilai_Kerugian', 'Penyebab', 'Pencatat', 'Disetujui_Oleh'], rusak) },
       { nama: 'daur_ulang_' + bulan + '.csv', csv: csv_(['Tanggal_Kirim', 'Tanggal_Terima', 'ID', 'Vendor_Chassen', 'No_Surat_Jalan', 'Scrap_Kg', 'Hasil_Kg', 'Susut_Kg', 'Susut_Persen', 'Status_Susut', 'Nilai_Scrap', 'Biaya_Jasa', 'HPP_Total', 'HPP_Per_Kg', 'Pengirim', 'Penerima'], daur) },
-      { nama: 'nilai_stok_' + bulan + '.csv', csv: csv_(['Kode_Item', 'Nama_Item', 'Qty_Kg', 'Harga_Rata', 'Nilai', 'Jumlah_Batch'], stokRows) }
+      { nama: 'nilai_stok_' + bulan + '.csv', csv: csv_(['Kode_Item', 'Nama_Item', 'Kategori', 'Qty_Kg', 'Harga_Rata', 'Nilai'], stokRows) }
     ],
     ringkasan: ringkasan
   };

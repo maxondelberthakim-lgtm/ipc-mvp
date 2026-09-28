@@ -103,9 +103,9 @@ function selesaikanDaurUlang(p) {
     });
     var scrapKg = angka_(r.Total_Scrap_Kg);
     var h = hitungSusutChassen_(scrapKg, hasilKg);
-    /* nilai scrap menurut FIFO (batch ini sudah tercatat sebagai DAUR_KIRIM) */
+    /* nilai scrap menurut harga rata-rata (batch ini sudah tercatat sebagai DAUR_KIRIM) */
     var nilaiScrap = 0;
-    if (metodeHpp_() === 'FIFO') { try { nilaiScrap = hitungFifo_().nilaiDaur[r.ID] || 0; } catch (e) { nilaiScrap = 0; } }
+    if (metodeHpp_() !== 'MASTER') { try { nilaiScrap = hitungRata_().nilaiDaur[r.ID] || 0; } catch (e) { nilaiScrap = 0; } }
     var hppTotal = nilaiScrap + jasa, hppPerKg = hasilKg > 0 ? hppTotal / hasilKg : 0;
     baris.forEach(function (b) {
       tambah_(SHEET.DAUR_DETAIL, { ID: buatId_('DDT'), ID_Daur: r.ID, Jenis: JENIS_DAUR_DETAIL.HASIL,
@@ -185,6 +185,7 @@ function ubahDaurUlang(id, perubahan, ident) {
   try {
     var r = cariDaur_(id);
     if (r.Status === STATUS_DAUR.DIBATALKAN) throw new Error('Batch sudah dibatalkan.');
+    if (bulanTertutup_(r.Tanggal) || (r.Tanggal_Terima && bulanTertutup_(r.Tanggal_Terima))) throw new Error('Bulan batch ini sudah ditutup — tidak bisa diubah.');
     var ubah = {}, log = [];
     if (perubahan.vendor !== undefined && String(perubahan.vendor).trim() && String(perubahan.vendor).trim() !== String(r.Vendor)) { ubah.Vendor = String(perubahan.vendor).trim(); log.push('vendor: ' + r.Vendor + ' → ' + ubah.Vendor); }
     if (perubahan.noSuratJalan !== undefined && String(perubahan.noSuratJalan) !== String(r.No_Surat_Jalan || '')) { ubah.No_Surat_Jalan = perubahan.noSuratJalan; log.push('surat jalan: ' + (r.No_Surat_Jalan || '—') + ' → ' + (perubahan.noSuratJalan || '—')); }
@@ -218,6 +219,7 @@ function batalkanDaurUlang(id, alasan, ident) {
   try {
     var r = cariDaur_(id);
     if (r.Status === STATUS_DAUR.DIBATALKAN) throw new Error('Batch sudah dibatalkan.');
+    if (bulanTertutup_(r.Tanggal) || (r.Tanggal_Terima && bulanTertutup_(r.Tanggal_Terima))) throw new Error('Bulan batch ini sudah ditutup — tidak bisa dibatalkan.');
     if (!bolehReview_(u)) {
       if (r.Dicatat_Oleh !== penandaPencatat_(u)) throw new Error('Hanya batch yang kamu catat sendiri yang bisa dibatalkan.');
       if (r.Status !== STATUS_DAUR.BERJALAN) throw new Error('Batch sudah selesai — minta manager untuk membatalkan.');
