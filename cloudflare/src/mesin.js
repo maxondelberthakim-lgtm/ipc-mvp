@@ -177,7 +177,7 @@ export class Mesin {
       const head = rows[0] || [];
       /* kolom Waktu* (dan sel apa pun berbentuk ISO 8601) kembali jadi Date; kolom Tanggal tetap teks YYYY-MM-DD */
       const kolomW = head.map((h, i) => /^Waktu/.test(String(h)) ? i : -1).filter((i) => i >= 0);
-      const kolomT = head.map((h, i) => /^(Tanggal|Tanggal_Invoice|Perkiraan_Datang|Tanggal_Kirim|Tanggal_Terima)$/.test(String(h)) ? i : -1).filter((i) => i >= 0);
+      const kolomT = head.map((h, i) => /^(Tanggal|Tanggal_Invoice|Perkiraan_Datang|Tanggal_Kirim|Tanggal_Terima|Jatuh_Tempo)$/.test(String(h)) ? i : -1).filter((i) => i >= 0);
       for (let i = 1; i < rows.length; i++) {
         const r = rows[i];
         kolomW.forEach((c) => { if (typeof r[c] === 'string' && ISO.test(r[c])) r[c] = new Date(r[c]); });
@@ -186,7 +186,7 @@ export class Mesin {
       this.SS.muat(n, rows); this.kotor.set(n, 'SEMUA');
     });
     this.fns.lupakanMemo_();
-    this.fns.pastikanSkema_();
+    this.fns.migrasiSkema();   // data impor bisa dari skema lama → selalu migrasi (aman diulang)
     this.simpan();
     return Object.keys(this.SS.sheets).map((n) => n + ':' + Math.max(0, this.SS.sheets[n].rows.length - 1));
   }
