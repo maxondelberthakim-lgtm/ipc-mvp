@@ -1,141 +1,119 @@
-# IPC — Inventory & Production Control (v9)
+# IPC — Inventory & Production Control (v10)
 
-Mobile web app for a small factory (polybag plant): every kilogram that moves between
-**supplier → warehouse (GBJ) → job → warehouse → customer** is logged with a
-typed quantity, a photo and a timestamp — then reviewed after the fact by a supervisor.
+Mobile web app for a small polybag factory: every kilogram that moves between
+**supplier → warehouse (GBJ) → blowing → cutting → warehouse → customer** is logged with a
+typed quantity, a photo where it matters, and a timestamp — then reviewed after the fact by a supervisor.
 
-**Backend is a Google Sheet.** No server, no hosting, no app to install. The plant already
-runs on spreadsheets, so the data lands in the format the team already knows.
+**Backend: Cloudflare Workers + Durable Object (SQLite), free plan.** The business logic is the same
+`apps-script/*.gs` code, bundled by `tools/build-cf.py` and run inside the Worker (`cloudflare/`).
+Google Sheets is no longer the database (v9 → Cloudflare migration keeps every row; the old Apps Script
+deployment still works as a fallback by pointing `tools/api-url.txt` back at it).
 
-> **[▶ App (GitHub Pages PWA)](https://maxondelberthakim-lgtm.github.io/ipc-mvp/app/)** — static frontend on GitHub Pages, calls Apps Script as a JSON API (`doPost {fn,args}`), Google Sheet as database. Installable, no Google sign-in; name + PIN only.
+> **[▶ App (GitHub Pages PWA)](https://maxondelberthakim-lgtm.github.io/ipc-mvp/app/)** — static frontend, calls the
+> Worker as a JSON API (`POST {fn,args,idKlien}`). Installable, no Google sign-in; name + PIN only. ~50 ms per call.
 >
-> **[▶ Offline demo](https://maxondelberthakim-lgtm.github.io/ipc-mvp/)** — real backend
-> logic running in the browser on sample data. Nothing you do there is saved (refresh = reset).
+> **[▶ Offline demo](https://maxondelberthakim-lgtm.github.io/ipc-mvp/)** — the real backend logic running in the
+> browser on sample data. Nothing you do there is saved (refresh = reset).
 >
-> Demo sign-in (name · PIN): **Admin** 1234 · **Direktur** 2468 · **Manager** 1357 · **Staff Gudang** 1111
+> Demo sign-in (name · PIN): **Admin** 1234 · **Direktur** 2468 · **Manager** 1357 · **Manager Produksi** 1122 ·
+> **Sales Manager** 3344 · **Staff Gudang** 1111
 
-## What it does
+## Production flow (v10)
+
+There are no per-job records and no approvals on the production floor — the system must never slow production down.
+
+| Step | Who | What is entered | Stock effect |
+|---|---|---|---|
+| **Blowing** shift report | Manager Produksi | shift (1/2/3), operators, pellets taken from the warehouse (per SKU, kg), **roll** made per grade (KW / Super / Super Plus), **BS** (scrap) per grade | pellets −, roll +, BS + |
+| **Cutting** shift report | Manager Produksi | shift, operators, **polybag** made per grade, BS per grade — roll consumed is automatic (= polybag + BS per grade); cutting takes nothing from raw-material stock | roll −, polybag +, BS + |
+| Month-end stock count | Manager | physical kg per item | adjustment |
+| **Close the month** | Manager (reopen: Admin) | one tap — snapshot of COGS, gross profit, shrinkage; transactions dated in that month become read-only | — |
+
+- **Shrinkage is not computed per shift.** It appears at month close: `pellets into blowing − polybag made − BS − Δroll stock`,
+  plus negative stock-count differences. Reports show it per month next to the COGS.
+- **BS is a real SKU per grade** (`SCR-BS-KW`, `SCR-BS-SUP`, `SCR-BS-SPL`), counted at both machines, sold or sent to the
+  crusher (chassen) and received back as recycled pellets (`RM-BP-DU`). BS is valued at 0; its value comes back through
+  the crushing fee.
+- **Costing is moving weighted average** (`METODE_HPP=RATA`): pellets from purchase prices (PO / invoice), roll =
+  (pellets taken + `BIAYA_PROSES_PER_KG` × kg) ÷ kg roll, polybag = roll consumed ÷ kg polybag, recycled pellets =
+  (BS value + fee) ÷ kg. FIFO batches are gone.
+- **Gross profit is periodic** (Reports → Laba bulan):
+  `COGS = opening stock value + purchases − supplier returns + crushing fees + process cost − closing stock value`,
+  `gross profit = sales at SO prices − COGS`. Stock value per category (raw material, roll, polybag, BS) is shown for
+  the opening and closing of the month. Closing the month stores the snapshot in `Tutup_Bulan`.
+- **Sales orders** require customer, ship date, **TOP (payment terms, days)**, items and prices; purchase orders carry TOP
+  too. Due date = ship/arrival date + TOP. Entered by the Sales Manager (any manager account can).
+- **Roles**: STAF (warehouse input, sees no prices) · SUPERVISOR (all managers: production, sales, warehouse — see
+  everything incl. prices/COGS) · ADMIN (plus users, reopen months). Default accounts: Admin, Direktur, Manager,
+  Manager Produksi, Sales Manager, Staff Gudang — **change the PINs**.
+
+## Everything else
 
 | # | Movement | Photo | Delivery note | Stock effect |
 |---|---|---|---|---|
-| PO | Purchase order (manager: item, kg, price, spec, ETA) | — | — | — |
+| PO | Purchase order (manager: item, kg, price, spec, ETA, TOP) | — | — | — |
 | ⓪ | Goods receipt against a PO (supplier → GBJ), QC note | required | required + OCR | GBJ + |
-| 🧾 | Supplier invoice upload → compare with Σ(received × PO price) → validate, correct price | required | — | prices only |
-| ↩ | Return to supplier — only from a recorded receipt ("returnable X kg") | required | — | GBJ − |
+| 🧾 | Supplier invoice → compare with Σ(received × PO price) → validate, correct price (recomputes average cost) | required | — | prices only |
+| ↩ | Return to supplier — only from a recorded receipt | required | — | GBJ − |
 | ⚠ | Damaged goods — reported by staff, approved by manager | optional | — | GBJ − after approval |
-| ① | Job: raw material (from GBJ) → finished goods + scrap (back into GBJ) | optional | — | GBJ: material −, product + scrap + |
-| ♻ | Scrap recycling: scrap sent to another factory's crusher (chassen) → recycled pellets back, with shrinkage & service fee | optional | optional | scrap −, pellets + |
-| SO | Sales order (manager/sales: customer, item, kg, selling price, ship date) | — | — | reserves stock |
+| ♻ | BS recycling: BS sent to a crushing vendor → recycled pellets back, with shrinkage & service fee | optional | optional | BS −, pellets + |
+| SO | Sales order (customer, ship date, TOP, items, prices) | — | — | reserves stock |
 | ④ | Goods out, sold (GBJ → customer), picked from an SO | required | required | GBJ − |
 | ↩ | Return from customer | required | — | GBJ + |
 
-- **Shrinkage (susut)** is computed per job: `in − out − scrap`, in kg, flagged when it
-  exceeds the product's normal range. Reports show total shrinkage and which raw
-  material it came from.
-- **Approve after, not before.** Every movement posts immediately and lands in a review
-  queue where the photo sits next to the typed number. Flagged entries are excluded from
-  stock until corrected.
-- **Stock ledger per item** — two blocks (warehouse, production), every line signed, ending
-  in the balance. Tap an item to see where its number comes from.
-- **Activity calendar** on the home screen — colour dots per day, tap a date for the full log.
-- **Review = Approve / Flag / Cancel.** Flag archives an entry to revise later (still counted);
-  Cancel voids it (not counted).
-- **COGS (HPP) is FIFO**: every receipt is a batch priced from its PO/invoice; transfers, jobs, sales and
-  damage consume the oldest batch first; finished goods become a batch at the job's COGS/kg. Reports: COGS per
-  job / per kg, stock value per batch, rupiah value of shrinkage and of approved damage. Visible to supervisors
-  only; the server never sends prices to warehouse staff. `METODE_HPP=MASTER` falls back to master prices.
-- **Shrinkage standard per product** from real data (mean, median, min–max, σ, weighted) with a one-tap
-  "set as standard" that writes to `Master_Standar_Susut`.
-- **Staff edits/cancels become requests** that a supervisor approves (Review → Usulan); transaction date
-  defaults to today but can be back-dated (max `MAKS_MUNDUR_HARI`). Available stock at the source location
-  is shown while picking an item.
-- **Per-user PIN sign-in** — every entry is attributable to one person. Roles: STAF / SUPERVISOR / ADMIN.
-- **Admin menu**: stock count (opname) that writes adjustments instead of overwriting; SKU add / edit / delete
-  from the phone; per-staff activity; user management (admin only).
-- **Scrap is a real SKU** — `SCR-<product>` created automatically per product, so scrap stock is visible
-  per product and can be sold like any other item.
-- **Input history + edit** under every form; tap any row (or any calendar event) to open it full-screen.
-  Staff edit or cancel their own entries directly while they are pending; once a supervisor has reviewed
-  an entry it is view-only for staff. Supervisors can edit anything. Nobody can edit entries older than
-  `MAKS_EDIT_HARI` (30 days — the period is closed). Every change is logged (`Log_Edit`), status is
-  untouched, and editing a closed job recomputes shrinkage and COGS.
-- **Home screen that answers "what today?"** — the stat tiles are buttons (tap "kg out today" to see
-  the entries behind it), *Ship today* lists sales orders due today or overdue (staff tap → shipping
-  form pre-filled from the SO), *Incoming* lists open POs with ETA, and a ↻ button / return-to-tab
-  auto-refresh keeps every phone in sync.
-- **When to buy** (Reports → Perlu beli): average daily usage over the last 30 days vs stock on hand and
-  open POs; `LEAD_TIME_HARI` decides how early "buy now" fires, with a suggested quantity and a one-tap PO.
-- **Sales orders**: status TERBUKA → SEBAGIAN → SELESAI, reserved quantity shown next to available stock,
-  shipping quantity cannot exceed the SO balance. Selling prices are visible to Manager/Admin only —
-  the server never sends SO prices or COGS to warehouse staff.
-- **One warehouse (v9)**: the separate production store (GP) is gone — jobs consume raw material straight from GBJ and
-  their output lands straight back in GBJ. No transfers to log; stock = one number per item.
-- **Search bars instead of dropdowns (v9)**: every supplier / customer / item field is a search box; a name that does
-  not exist yet can be added on the spot (`+ Tambah baru`) by any role — codes are generated automatically
-  (`SUP-005`, `CUS-005`, `RM-…`/`FG-…`), duplicates (case-insensitive) are reused.
-- **Scrap recycling (v9)**: scrap is sent to a crushing vendor (the plant has no chassen of its own), comes back as
-  recycled pellets — a raw-material SKU. Shrinkage at the crusher = sent − received, flagged against
-  `SUSUT_CHASSEN_PERSEN` ± `TOLERANSI_CHASSEN_PERSEN`; the service fee (Manager/Admin only, can be entered later)
-  becomes the pellets' FIFO cost: `(scrap value + fee) ÷ kg received`, which then flows into job COGS.
-- **Monthly finance export** (Reports → Ekspor, Manager/Admin): seven CSV files for one month — summary,
-  purchases (with PO/invoice numbers), sales (with SO price, COGS, gross profit), production, damage,
-  recycling (scrap, pellets, fee, cost/kg), month-end FIFO stock value.
-- **Automatic backup**: a time trigger copies the Sheet to a Drive folder "IPC Backup" every night
-  (last 30 kept); status visible under Admin → Backup.
-- UI in **Bahasa Indonesia / English** (toggle); sheet & column names in Indonesian.
-- All quantities in **kilograms**.
+- **Approve after, not before.** Warehouse movements post immediately and land in a review queue (photo next to the
+  typed number). Flag archives an entry to revise later (still counted); Cancel voids it.
+- **Stock ledger per item** — every line signed (bought, returned, sold, taken by blowing, made, roll used, BS sent,
+  pellets back, damage, count adjustment), ending in the balance.
+- **Activity calendar** on the home screen — shift reports, receipts, shipments, recycling per day.
+- **Search bars with "+ add new"** for supplier / customer / item / operator; codes are generated automatically.
+- **Input history + edit** under every form; staff edit their own pending entries, supervisors edit anything; nothing
+  older than `MAKS_EDIT_HARI` or inside a closed month can be changed. Every change is logged.
+- **When to buy** (Reports → Perlu beli): average pellets taken per day over 30 days vs stock and open POs.
+- **Monthly finance export** (Reports → Ekspor): seven CSV files — summary (COGS, gross profit, shrinkage), purchases,
+  sales, production (per shift, per grade), damage, recycling, month-end stock value at average cost.
+- **Daily backup** of the whole database to Cloudflare KV (02:00 WIB, 35 days kept), export/import via admin routes.
+- UI in **Bahasa Indonesia / English**; all quantities in **kilograms**.
 
 ## Repository layout
 
 ```
-apps-script/     the app — paste these into a Google Sheet's Apps Script editor
-  Config.gs      sheet schema, enums, dummy master data, setupSistem()
-  Server.gs      purchases, sales, returns, transfers, jobs, shrinkage, reports, JSON API (doPost)
-  Pembelian.gs   v7: schema migration, purchase orders, invoices, FIFO engine, damage, shrinkage standards
-  Media.gs       photo upload to Drive + delivery-note OCR
-  Index.html     screens
-  Styles.html    CSS
-  Script.html    front-end logic + i18n
-  appsscript.json
-docs/index.html  offline demo (served by GitHub Pages)
-docs/app/        the real app: PWA frontend (built by tools/build-app.py from apps-script/)
-tests/           Node test suite — runs the real .gs files against an in-memory sheet
-tools/           demo shim, seed data, build script
-PANDUAN-SETUP.md deployment guide (Indonesian) — start here
+apps-script/     business logic + UI (also still pasteable into Apps Script)
+  Config.gs      schema, enums, default master data (SKUs per grade), settings
+  Server.gs      receipts, shipments, review, stock, reports, users, SKU, opname, JSON API (doPost)
+  Pembelian.gs   schema migration (v9→v10), purchase orders, invoices, average-cost engine, damage, reorder prediction
+  Penjualan.gs   sales orders (TOP), monthly CSV export
+  DaurUlang.gs   BS recycling (chassen)
+  Produksi.gs    v10: shift reports (blowing / cutting), production report
+  TutupBulan.gs  v10: monthly close — COGS, gross profit, shrinkage, lock / reopen
+  Media.gs       photo upload + delivery-note OCR
+  Index.html / Styles.html / Script.html   PWA frontend + i18n
+cloudflare/      Worker + Durable Object runtime (src/), deploy.sh, README.md, DEPLOY.md
+docs/app/        the real app (built by tools/build-app.py); docs/index.html = offline demo (tools/build-demo.py)
+tests/           Node test suites — the real .gs files against an in-memory sheet AND against the Cloudflare engine
+tools/           build-cf.py (Worker bundle), build-app.py, build-demo.py, seed.js, api-url.txt
 ```
 
-## Deploy (≈15 min)
+## Deploy / update the backend
 
-Full steps in **[PANDUAN-SETUP.md](PANDUAN-SETUP.md)**. Short version:
-
-1. New Google Sheet → **Extensions → Apps Script**
-2. Paste the nine files from `apps-script/` (names must match: `Config`, `Server`, `Media`, `Pembelian`, `Penjualan`, `DaurUlang`, `Index`, `Styles`, `Script`)
-3. **Services → + Drive API (v2)** — enables OCR
-4. Run `setupSistem()` once, grant permissions; run `pasangBackupHarian()` once to install the nightly backup
-5. Change the four default PINs (Admin → Pengguna). Everyone — the sheet owner included — logs in with name + PIN (`PAKSA_LOGIN_MANUAL=YA`); unregistered names are refused (`AKSES_TERBUKA=TIDAK`)
-6. **Deploy → Web app** — execute as *Me*, access **Anyone** (this is the JSON API endpoint)
-7. Put the `/exec` URL in `tools/api-url.txt`, run `python3 tools/build-app.py`, commit `docs/app/` — staff open `https://<owner>.github.io/<repo>/app/` and add it to their home screen. Master data: run `resetUntukGoLive()` once from the editor to clear test rows and load the SKU list in `DUMMY_ITEM`.
+See **[cloudflare/DEPLOY.md](cloudflare/DEPLOY.md)**. Short version: on the owner's Mac,
+`cd "Claude Co Work/ipc-cloudflare" && bash deploy.sh` (downloads a portable Node, `wrangler deploy`, sets the admin
+key). The v10 schema migration runs itself on the first request after deploy: archives `Pekerjaan*` /
+`Master_Standar_Susut` as `*_lama`, adds the `Kualitas` column and the per-grade roll / polybag / BS SKUs, deactivates
+the old `RM-BS-*` raw-material SKUs, switches `METODE_HPP` to `RATA`, adds the Manager Produksi / Sales Manager accounts.
 
 ## Development
 
 ```bash
-cd tests && npm test          # 494 checks: stock math, shrinkage, permissions, FIFO, SO, export, backup, v9 migration, recycling
-python3 tools/build-demo.py   # rebuild docs/index.html after editing apps-script/
-python3 tools/build-app.py    # rebuild docs/app/ (PWA); API URL comes from tools/api-url.txt
+cd tests && npm test          # ~900 checks: 621 on the sheet harness + 287 on the Cloudflare engine (incl. live-data migration)
+python3 tools/build-cf.py     # bundle apps-script/*.gs → cloudflare/src/backend.js
+python3 tools/build-app.py    # rebuild docs/app/ (PWA); API URL from tools/api-url.txt
+python3 tools/build-demo.py   # rebuild docs/index.html
+cd cloudflare && npx wrangler dev --port 8787 --local   # local Worker for the Playwright e2e
 ```
-
-The tests run the actual Apps Script code under Node with `SpreadsheetApp`, `DriveApp`
-etc. stubbed by an in-memory sheet (`tests/harness.js`), so backend logic is verified
-before anything is pasted into Google.
-
-## Not yet
-
-Offline mode · barcode scanning · more than one warehouse · push notifications · receivables / payment tracking.
 
 ## Status
 
-v9 live (GitHub Pages app + Apps Script JSON API). 494 automated checks (`cd tests && npm test`).
-Upgrading from v8: the schema migration runs itself on the first request (merges `Stok_Awal_GP` into `Stok_Awal`,
-archives the old `Transfer` sheet as `Transfer_lama`, adds the `Daur_Ulang` sheets and settings).
-Built for a pilot on one warehouse. Shrinkage thresholds in
-`Master_Standar_Susut` should be set from real pilot data, not guessed.
+v10 (production revamp) — shift reports replace jobs, average costing replaces FIFO, monthly close with COGS /
+gross profit / shrinkage, SO & PO with TOP. Backend on Cloudflare (free plan). Not yet: offline mode, barcode
+scanning, receivables / payment tracking beyond the due date.
