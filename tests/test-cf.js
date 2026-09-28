@@ -113,6 +113,41 @@ console.log('— 5. Zona waktu Asia/Jakarta di Utilities.formatDate (Worker berj
   ok('tglStr_ memakai zona aplikasi', F.m.fns.tglStr_(d) === '2026-09-24');
   F.db.close();
 }
+console.log('— 6. Migrasi v9 → v10 di atas data sungguhan (cloudflare/ipc-live.json, kalau ada) —');
+{
+  const live = path.join(__dirname, '..', 'cloudflare', 'ipc-live.json');
+  if (!fs.existsSync(live)) console.log('  (dilewati: ipc-live.json tidak ada)');
+  else {
+    const G6 = bukaMesin();
+    const data = JSON.parse(fs.readFileSync(live, 'utf8'));
+    const hasil = G6.m.imporSemua(data);
+    ok('impor data v9 jalan', hasil.some((x) => /^Master_Item:/.test(x)), hasil);
+    const ADM6 = { nama: 'Admin', pin: String(data.Master_Pengguna.find((r) => r[1] === 'Admin')[4]) };
+    const k = JSON.parse(G6.m.panggil('getKonteks', [ADM6], 'mig-1'));
+    ok('getKonteks setelah migrasi ok (versi 10)', k.ok && k.data.app.versi === '10.0.0', k.error);
+    ok('peta kualitas lengkap (roll/polybag/BS ditambahkan)', k.data.kualitas.length === 3 && k.data.kualitas.every((q) => q.biji && q.roll && q.jadi && q.bs), k.data.kualitas);
+    ok('RM-BS-* lama dinonaktifkan, SCR-BS-* aktif', !k.data.items.some((i) => /^RM-BS-/.test(i.kode)) && k.data.items.some((i) => i.kode === 'SCR-BS-KW' && i.kategori === 'SCRAP'));
+    ok('item lama (FG-PB-HP, RM-BIJI-PLASTIK-DAUR-UL) tetap ada', k.data.items.some((i) => i.kode === 'FG-PB-HP') && k.data.items.some((i) => i.kode === 'RM-BIJI-PLASTIK-DAUR-UL'));
+    ok('sheet Pekerjaan diarsipkan, Laporan_Shift dibuat', !G6.m.SS.sheets['Pekerjaan'] && !!G6.m.SS.sheets['Pekerjaan_lama'] && !!G6.m.SS.sheets['Laporan_Shift'] && !!G6.m.SS.sheets['Tutup_Bulan']);
+    const pengguna = JSON.parse(G6.m.panggil('daftarPengguna', [ADM6], 'mig-2'));
+    ok('akun Manager Produksi & Sales Manager ditambahkan', pengguna.ok && pengguna.data.some((u) => u.nama === 'Manager Produksi') && pengguna.data.some((u) => u.nama === 'Sales Manager'), pengguna.error);
+    ok('METODE_HPP FIFO → RATA', G6.m.fns.getSetting_('METODE_HPP') === 'RATA');
+    const stok = JSON.parse(G6.m.panggil('laporanStok', [ADM6], 'mig-3'));
+    ok('laporan stok jalan (data lama pekerjaan tidak dihitung, tidak error)', stok.ok && stok.data.daftar.length >= 0, stok.error);
+    const nilai = JSON.parse(G6.m.panggil('laporanNilaiStok', [ADM6], 'mig-4'));
+    ok('nilai stok rata-rata jalan di data lama', nilai.ok && nilai.data.metode === 'RATA', nilai.error);
+    const bulanLalu = G6.m.fns.bulanSebelum_(G6.m.fns.tglStr_(new Date()).slice(0, 7));
+    const lb = JSON.parse(G6.m.panggil('laporanBulanan', [bulanLalu, ADM6], 'mig-5'));
+    ok('laporan bulanan jalan di data lama', lb.ok && typeof lb.data.cogs === 'number', lb.error);
+    const cfg = JSON.parse(G6.m.panggil('konfigurasiShift', [ADM6], 'mig-6'));
+    ok('konfigurasi shift: tidak ada SKU yang kurang', cfg.ok && cfg.data.kurang.length === 0, cfg.ok ? cfg.data.kurang : cfg.error);
+    const sh = JSON.parse(G6.m.panggil('simpanLaporanShift', [{ shift: '1', mesin: 'BLOWING', operator: 'Operator Uji', ambil: [{ kode: 'RM-BP-KW', qty: 1 }], hasil: [{ kualitas: 'KW', qty: 0.9 }] }, ADM6], 'mig-7'));
+    ok('laporan shift bisa disimpan di data hasil migrasi', sh.ok && /^SHF-/.test(sh.data.id), sh.error);
+    const eks = JSON.parse(G6.m.panggil('eksporBulanan', [G6.m.fns.tglStr_(new Date()).slice(0, 7), ADM6], 'mig-8'));
+    ok('ekspor bulanan jalan', eks.ok && eks.data.files.length === 7, eks.error);
+    G6.db.close();
+  }
+}
 try { fs.unlinkSync(file); } catch (e) {}
 console.log('\n================ ' + pass + ' lulus, ' + fail + ' gagal ================');
 process.exit(fail ? 1 : 0);

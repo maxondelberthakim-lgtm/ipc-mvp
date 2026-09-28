@@ -1,3 +1,4 @@
+/* v10: alur inti — pembelian, laporan shift (blowing → cutting), stok, penjualan, review, laporan, HPP rata-rata */
 const {ctx} = require('./harness.js');
 let pass=0, fail=0;
 const ok=(l,c,e)=>{c?(pass++,console.log('  ✓',l)):(fail++,console.log('  ✗',l,e===undefined?'':JSON.stringify(e)))};
@@ -5,179 +6,159 @@ function tolak(label, fn, pola){ let e=''; try{ fn(); }catch(x){ e=String(x.mess
 
 ctx.setupSistem();
 ctx.setSetting_('PAKSA_LOGIN_MANUAL','TIDAK'); ctx.setSetting_('AKSES_TERBUKA','YA'); // test pakai identitas email pemilik + nama bebas
+const SUP='PT Sumber Biji Plastik', SUP2='CV Warna Pigmen Jaya', CUS='PT Nursery Hijau Lestari', CUS2='Toko Tani Sejahtera';
 
 console.log('— 1. Setup & master —');
 const k = ctx.getKonteks({});
-ok('14 item aktif', k.items.length===14, k.items.length);
+ok('16 item aktif (biji, pigmen, roll, polybag, BS)', k.items.length===16, k.items.length);
 ok('4 supplier aktif', k.supplier.length===4, k.supplier.length);
 ok('4 customer aktif', k.customer.length===4, k.customer.length);
 ok('user ADMIN & bisa review', k.user.peran==='ADMIN' && k.bisaReview);
-ok('sheet Penerimaan ada', !!ctx.SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Penerimaan'));
-ok('sheet Pengiriman ada', !!ctx.SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Pengiriman'));
-ok('sheet Master_Customer ada', !!ctx.SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Master_Customer'));
-ok('Master_Item tanpa kolom Satuan', ctx.HEADER['Master_Item'].indexOf('Satuan')===-1);
+ok('sheet Laporan_Shift & Tutup_Bulan ada, Pekerjaan tidak', !!ctx.SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Laporan_Shift') && !!ctx.SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Tutup_Bulan') && !ctx.SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Pekerjaan'));
+ok('Master_Item punya kolom Kualitas', ctx.HEADER['Master_Item'].indexOf('Kualitas')>=0);
+ok('konteks: peta kualitas KW/Super/Super Plus lengkap', k.kualitas.length===3 && k.kualitas.every(q=>q.biji && q.roll && q.jadi && q.bs) && k.kualitas[0].kualitas==='KW', k.kualitas);
+ok('items bawa kualitas & kategori ROLL/SCRAP', k.items.some(i=>i.kategori==='ROLL' && i.kualitas==='KW') && k.items.some(i=>i.kategori==='SCRAP'));
+ok('konteks: bulanTertutup kosong', k.bulanTertutup==='');
 
 console.log('\n— 2. ⓪ Pembelian masuk (Supplier → GBJ) —');
-const r1 = ctx.simpanPenerimaan({ jenis:'MASUK', supplier:'CV Mitra Mete Sulawesi',
+const r1 = ctx.simpanPenerimaan({ jenis:'MASUK', supplier:SUP,
   noSuratJalan:'SJ/2026/09/0184', qtyOcr:1000,
-  baris:[{kode:'RM-CSW-W240', qty:800},{kode:'RM-CSW-W320', qty:200}], ident:{nama:'Yanto'} });
+  baris:[{kode:'RM-BP-KW', qty:800},{kode:'RM-BP-SUP', qty:200}], ident:{nama:'Yanto'} });
 ok('2 baris tersimpan, total 1000 kg', r1.jumlah===2 && r1.totalKg===1000, r1);
 const rcv = ctx.baca_(ctx.SHEET.PENERIMAAN);
 ok('status MENUNGGU', rcv[0].Status==='MENUNGGU');
 ok('selisih OCR = 0 (cocok)', rcv[0].Selisih_OCR===0, rcv[0].Selisih_OCR);
-ok('supplier tersimpan', rcv[0].Supplier==='CV Mitra Mete Sulawesi');
-
-tolak('masuk tanpa surat jalan ditolak',
-  ()=>ctx.simpanPenerimaan({jenis:'MASUK',supplier:'X',baris:[{kode:'RM-CSW-W240',qty:1}]}), /surat jalan/);
-tolak('tanpa supplier ditolak',
-  ()=>ctx.simpanPenerimaan({jenis:'MASUK',noSuratJalan:'A',baris:[{kode:'RM-CSW-W240',qty:1}]}), /[Ss]upplier/);
+ok('supplier tersimpan', rcv[0].Supplier===SUP);
+tolak('masuk tanpa surat jalan ditolak', ()=>ctx.simpanPenerimaan({jenis:'MASUK',supplier:'X',baris:[{kode:'RM-BP-KW',qty:1}]}), /surat jalan/);
+tolak('tanpa supplier ditolak', ()=>ctx.simpanPenerimaan({jenis:'MASUK',noSuratJalan:'A',baris:[{kode:'RM-BP-KW',qty:1}]}), /[Ss]upplier/);
 
 console.log('\n— 3. Stok GBJ naik dari pembelian —');
 let st = ctx.laporanStok({});
-let mete = st.daftar.find(s=>s.kode==='RM-CSW-W240');
-ok('GBJ mete = 800', mete.gbj===800, mete);
-ok('kolom beli = 800', mete.beli===800);
+let kw = st.daftar.find(s=>s.kode==='RM-BP-KW');
+ok('GBJ biji KW = 800', kw.gbj===800, kw);
+ok('kolom beli = 800', kw.beli===800);
 ok('total stok 1000 kg', st.total.total===1000, st.total);
 
 console.log('\n— 4. Retur mengurangi stok —');
-tolak('retur tanpa rujukan penerimaan ditolak', ()=>ctx.simpanPenerimaan({ jenis:'RETUR', supplier:'CV Mitra Mete Sulawesi',
-  baris:[{kode:'RM-CSW-W240', qty:50}], ident:{nama:'Yanto'} }), /merujuk penerimaan/);
+tolak('retur tanpa rujukan penerimaan ditolak', ()=>ctx.simpanPenerimaan({ jenis:'RETUR', supplier:SUP, baris:[{kode:'RM-BP-KW', qty:50}], ident:{nama:'Yanto'} }), /merujuk penerimaan/);
 const bisaRetur = ctx.returTersedia({nama:'Yanto'});
 ok('returTersedia: 2 penerimaan (800 & 200)', bisaRetur.length===2 && bisaRetur.some(x=>x.sisa===800), bisaRetur);
-const asalMete = bisaRetur.find(x=>x.kode==='RM-CSW-W240');
-tolak('retur melebihi yang diterima ditolak', ()=>ctx.simpanPenerimaan({ jenis:'RETUR', supplier:'CV Mitra Mete Sulawesi',
-  baris:[{kode:'RM-CSW-W240', qty:801, idAsal:asalMete.id}], ident:{nama:'Yanto'} }), /melebihi/);
-ctx.simpanPenerimaan({ jenis:'RETUR', supplier:'CV Mitra Mete Sulawesi',
-  baris:[{kode:'RM-CSW-W240', qty:50, idAsal:asalMete.id}], catatan:'kadar air tinggi', ident:{nama:'Yanto'} });
-ok('sisa bisa diretur turun jadi 750', ctx.returTersedia({nama:'Yanto'}).find(x=>x.kode==='RM-CSW-W240').sisa===750);
-st = ctx.laporanStok({});
-mete = st.daftar.find(s=>s.kode==='RM-CSW-W240');
-ok('GBJ mete turun jadi 750', mete.gbj===750, mete);
-ok('kolom retur = 50', mete.retur===50);
+const asalKw = bisaRetur.find(x=>x.kode==='RM-BP-KW');
+tolak('retur melebihi yang diterima ditolak', ()=>ctx.simpanPenerimaan({ jenis:'RETUR', supplier:SUP, baris:[{kode:'RM-BP-KW', qty:801, idAsal:asalKw.id}], ident:{nama:'Yanto'} }), /melebihi/);
+ctx.simpanPenerimaan({ jenis:'RETUR', supplier:SUP, baris:[{kode:'RM-BP-KW', qty:50, idAsal:asalKw.id}], catatan:'karung lembab', ident:{nama:'Yanto'} });
+ok('sisa bisa diretur turun jadi 750', ctx.returTersedia({nama:'Yanto'}).find(x=>x.kode==='RM-BP-KW').sisa===750);
+st = ctx.laporanStok({}); kw = st.daftar.find(s=>s.kode==='RM-BP-KW');
+ok('GBJ KW turun jadi 750', kw.gbj===750, kw);
+ok('kolom retur = 50', kw.retur===50);
 ok('total stok jadi 950', st.total.total===950, st.total);
-ok('retur tidak butuh surat jalan', true);
 
-console.log('\n— 5. v9: satu gudang — tidak ada transfer / GP —');
-ok('sheet Transfer tidak ada lagi di skema', ctx.SHEET.TRANSFER===undefined && !ctx.SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Transfer'));
-ok('simpanTransfer tidak ada di whitelist RPC', !ctx.RPC_WL.simpanTransfer && !ctx.RPC_WL.riwayatTransfer);
-ok('Master_Item hanya satu stok awal', ctx.HEADER['Master_Item'].indexOf('Stok_Awal')>=0 && ctx.HEADER['Master_Item'].indexOf('Stok_Awal_GP')===-1);
-ok('konteks stok tanpa gp', Object.keys(k.stok).length>0 && Object.keys(ctx.getKonteks({}).stok).every(kd=>ctx.getKonteks({}).stok[kd].gp===undefined));
+console.log('\n— 5. Satu gudang — tidak ada transfer / GP —');
+ok('sheet Transfer tidak ada di skema', ctx.SHEET.TRANSFER===undefined && !ctx.SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Transfer'));
+ok('fungsi pekerjaan/FIFO tidak ada di whitelist RPC', !ctx.RPC_WL.mulaiPekerjaan && !ctx.RPC_WL.selesaikanPekerjaan && !ctx.RPC_WL.laporanSusut && !ctx.RPC_WL.laporanHpp && !ctx.RPC_WL.laporanStandarSusut);
+ok('fungsi shift & tutup bulan ada di whitelist', ctx.RPC_WL.simpanLaporanShift && ctx.RPC_WL.laporanProduksi && ctx.RPC_WL.laporanBulanan && ctx.RPC_WL.tutupBulan);
 
-console.log('\n— 6. ② Pekerjaan: semua kg, tanpa nomor produksi —');
-ok('kolom No_Pekerjaan hilang', ctx.HEADER['Pekerjaan'].indexOf('No_Pekerjaan')===-1);
-const j1 = ctx.mulaiPekerjaan({ kodeProduk:'FG-MM-CSW',
-  bahanBaku:[{kode:'RM-CSW-W240', qty:500}], ident:{nama:'Sri'} });
-ok('job kembalikan produk + kg', j1.produk==='Mete Panggang Original' && j1.totalKg===500, j1);
-const list = ctx.daftarPekerjaanBerjalan({});
-ok('daftar tampilkan apa & berapa kg', list[0].produk==='Mete Panggang Original' && list[0].totalKg===500, list[0]);
-ok('bahan utama disebut', list[0].bahanUtama==='Kacang Mete Mentah W240', list[0].bahanUtama);
-ok('batas susut ikut dikirim', list[0].batas===5.5, list[0].batas);
+console.log('\n— 6. ① Laporan shift BLOWING: ambil biji → roll + BS —');
+const cfg = ctx.konfigurasiShift({});
+ok('konfigurasi: 3 kualitas, tidak ada SKU yang kurang, shift 1-3, 2 mesin', cfg.kualitas.length===3 && cfg.kurang.length===0 && cfg.shift.length===3 && cfg.mesin.length===2, cfg.kurang);
+ok('bahan baku untuk blowing: biji plastik & pigmen (bukan roll/polybag)', cfg.bahan.some(b=>b.kode==='RM-BP-KW') && !cfg.bahan.some(b=>b.kode==='WIP-ROLL-KW'));
+ok('operator: nama pengguna aktif ikut', cfg.operator.indexOf('Staff Gudang')>=0);
+const s1 = ctx.simpanLaporanShift({ shift:'1', mesin:'BLOWING', operator:['Sri','Budi'],
+  ambil:[{kode:'RM-BP-KW', qty:500}], hasil:[{kualitas:'KW', qty:470}], bs:[{kualitas:'KW', qty:20}], catatan:'mesin 1 lancar' }, {});
+ok('laporan tersimpan: ID SHF-, total ambil 500, hasil 470, BS 20', /^SHF-/.test(s1.id) && s1.totalAmbil===500 && s1.totalHasil===470 && s1.totalBs===20, s1);
+ok('hasil blowing = roll KW, BS = SCR-BS-KW', s1.hasil[0].kode==='WIP-ROLL-KW' && s1.bs[0].kode==='SCR-BS-KW', [s1.hasil, s1.bs]);
+ok('operator 2 orang, %BS = 20/500 = 4', s1.operator.length===2 && s1.persenBs===4, s1);
+ok('tidak ada roll dipakai di blowing', s1.roll.length===0 && s1.totalRoll===0);
+ok('tidak ada persetujuan: status AKTIF, bolehEdit', s1.status==='AKTIF' && s1.bolehEdit===true);
+tolak('laporan dobel (tanggal+shift+mesin) ditolak', ()=>ctx.simpanLaporanShift({ shift:'1', mesin:'BLOWING', operator:'Sri', ambil:[{kode:'RM-BP-KW', qty:1}], hasil:[{kualitas:'KW', qty:1}] }, {}), /sudah ada/);
+st = ctx.laporanStok({});
+kw = st.daftar.find(s=>s.kode==='RM-BP-KW');
+ok('biji KW keluar gudang: 750 − 500 = 250, dipakai 500', kw.gbj===250 && kw.dipakai===500, kw);
+ok('roll KW masuk stok 470 (dihasilkan)', st.daftar.find(s=>s.kode==='WIP-ROLL-KW').gbj===470 && st.daftar.find(s=>s.kode==='WIP-ROLL-KW').dihasilkan===470);
+ok('BS KW masuk stok 20', st.daftar.find(s=>s.kode==='SCR-BS-KW').gbj===20);
+ok('susut TIDAK dihitung per shift (tidak ada field susut)', s1.susut===undefined && s1.status!=='TINGGI');
 
-console.log('\n— 7. Tutup job: total susut + susutnya apa —');
-const f1 = ctx.selesaikanPekerjaan({ id:j1.id,
-  barangJadi:[{kode:'FG-MM-CSW', qty:475}], scrapKg:5, ident:{nama:'Sri'} });
-// 500 - 475 - 5 = 20 kg = 4% ; batas 4+1.5=5.5 -> NORMAL
-ok('susut 20 kg', f1.susut===20, f1);
-ok('4%, NORMAL', f1.persen===4 && f1.status==='NORMAL', f1);
-ok('rincian: 1 bahan', f1.rincian.length===1, f1.rincian);
-ok('rincian susut = 20 kg (bahan tunggal = persis)', f1.rincian[0].susut===20, f1.rincian);
-ok('rincian sebut nama bahan', f1.rincian[0].nama==='Kacang Mete Mentah W240');
-const scrSku = ctx.baca_(ctx.SHEET.ITEM).find(r=>r.Kode_Item==='SCR-FG-MM-CSW');
-ok('SKU scrap produk dibuat otomatis', !!scrSku && scrSku.Kategori==='SCRAP' && /Scrap · Mete Panggang/.test(scrSku.Nama_Item), scrSku);
-ok('scrap masuk stok gudang atas nama SKU scrap', ctx.laporanStok({}).daftar.find(x=>x.kode==='SCR-FG-MM-CSW').gbj===5);
-st = ctx.laporanStok({}); mete = st.daftar.find(s=>s.kode==='RM-CSW-W240');
-ok('bahan baku job langsung dari GBJ: 750 − 500 = 250', mete.gbj===250 && mete.dipakai===500, mete);
-ok('barang jadi langsung masuk GBJ: 475', st.daftar.find(s=>s.kode==='FG-MM-CSW').gbj===475);
-ok('SKU scrap muncul di items (bisa dijual)', ctx.getKonteks({}).items.some(i=>i.kode==='SCR-FG-MM-CSW' && i.kategori==='SCRAP'));
+console.log('\n— 7. ② Laporan shift CUTTING: roll → polybag + BS (roll terpakai otomatis) —');
+const s2 = ctx.simpanLaporanShift({ shift:'1', mesin:'CUTTING', operator:'Rina',
+  hasil:[{kualitas:'KW', qty:440}], bs:[{kualitas:'KW', qty:25}] }, {});
+ok('cutting: hasil polybag KW 440, BS 25, roll terpakai = 465 otomatis', s2.hasil[0].kode==='FG-PB-KW' && s2.totalHasil===440 && s2.totalBs===25 && s2.totalRoll===465 && s2.roll[0].kode==='WIP-ROLL-KW', s2);
+ok('cutting tidak mengambil dari gudang bahan baku', s2.ambil.length===0 && s2.totalAmbil===0);
+ok('%BS cutting = 25/465', s2.persenBs===Math.round(25/465*10000)/100, s2.persenBs);
+st = ctx.laporanStok({});
+ok('roll KW turun: 470 − 465 = 5', st.daftar.find(s=>s.kode==='WIP-ROLL-KW').gbj===5, st.daftar.find(s=>s.kode==='WIP-ROLL-KW'));
+ok('polybag KW masuk gudang 440', st.daftar.find(s=>s.kode==='FG-PB-KW').gbj===440);
+ok('BS KW total 20 + 25 = 45 (dihitung di dua mesin)', st.daftar.find(s=>s.kode==='SCR-BS-KW').gbj===45);
+ok('biji KW tidak berubah oleh cutting', st.daftar.find(s=>s.kode==='RM-BP-KW').gbj===250);
+tolak('cutting tanpa hasil ditolak', ()=>ctx.simpanLaporanShift({ shift:'2', mesin:'CUTTING', operator:'Rina', hasil:[], bs:[] }, {}), /belum diisi/);
+tolak('blowing tanpa ambil biji ditolak', ()=>ctx.simpanLaporanShift({ shift:'2', mesin:'BLOWING', operator:'Sri', ambil:[], hasil:[{kualitas:'KW', qty:1}] }, {}), /belum diisi/);
+tolak('kualitas tak dikenal ditolak', ()=>ctx.simpanLaporanShift({ shift:'2', mesin:'CUTTING', operator:'Rina', hasil:[{kualitas:'PREMIUM', qty:1}] }, {}), /tidak dikenal/);
+tolak('mesin tak dikenal ditolak', ()=>ctx.simpanLaporanShift({ shift:'2', mesin:'PRINTING', operator:'Rina', hasil:[{kualitas:'KW', qty:1}] }, {}), /BLOWING atau CUTTING/);
+tolak('shift 4 ditolak', ()=>ctx.simpanLaporanShift({ shift:'4', mesin:'CUTTING', operator:'Rina', hasil:[{kualitas:'KW', qty:1}] }, {}), /1, 2, atau 3/);
+tolak('operator kosong ditolak', ()=>ctx.simpanLaporanShift({ shift:'2', mesin:'CUTTING', operator:'', hasil:[{kualitas:'KW', qty:1}] }, {}), /Operator/);
+tolak('roll diambil sebagai bahan baku ditolak', ()=>ctx.simpanLaporanShift({ shift:'2', mesin:'BLOWING', operator:'Sri', ambil:[{kode:'WIP-ROLL-KW', qty:1}], hasil:[{kualitas:'KW', qty:1}] }, {}), /bukan bahan baku/);
 
-console.log('\n— 8. Job multi-bahan: susut dialokasikan proporsional —');
-ctx.simpanPenerimaan({jenis:'MASUK',supplier:'UD Tani Kacang Jaya',noSuratJalan:'SJ/2',
-  baris:[{kode:'RM-PNT-JAVA',qty:400},{kode:'RM-MIN-GRG',qty:100},{kode:'RM-BMB-BBQ',qty:20}]});
-const j2 = ctx.mulaiPekerjaan({ kodeProduk:'FG-JM-BBQ', bahanBaku:[
-  {kode:'RM-PNT-JAVA', qty:300}, {kode:'RM-MIN-GRG', qty:80}, {kode:'RM-BMB-BBQ', qty:20}] });
-ok('total masuk 400 kg', j2.totalKg===400, j2);
-const f2 = ctx.selesaikanPekerjaan({ id:j2.id, barangJadi:[{kode:'FG-JM-BBQ', qty:355}], scrapKg:5 });
-// 400 - 355 - 5 = 40 kg = 10% ; batas 6+2=8 -> TINGGI
-ok('susut 40 kg = 10% TINGGI', f2.susut===40 && f2.persen===10 && f2.status==='TINGGI', f2);
-ok('rincian 3 bahan', f2.rincian.length===3, f2.rincian.length);
-ok('kacang 300/400 -> 30 kg', f2.rincian[0].susut===30, f2.rincian[0]);
-ok('minyak  80/400 -> 8 kg',  f2.rincian.find(r=>r.kode==='RM-MIN-GRG').susut===8);
-ok('bumbu   20/400 -> 2 kg',  f2.rincian.find(r=>r.kode==='RM-BMB-BBQ').susut===2);
-ok('jumlah rincian = total susut', Math.abs(f2.rincian.reduce((a,r)=>a+r.susut,0) - f2.susut) < 0.001);
-ok('diurut dari susut terbesar', f2.rincian[0].susut >= f2.rincian[1].susut);
+console.log('\n— 8. Shift kedua (Super) + beranda + laporan produksi —');
+ctx.simpanLaporanShift({ shift:'2', mesin:'BLOWING', operator:['Sri'], ambil:[{kode:'RM-BP-SUP', qty:200}], hasil:[{kualitas:'SUPER', qty:190}], bs:[{kualitas:'SUPER', qty:5}] }, {});
+ctx.simpanLaporanShift({ shift:'2', mesin:'CUTTING', operator:['Rina','Budi'], hasil:[{kualitas:'SUPER', qty:180}], bs:[{kualitas:'SUPER', qty:8}] }, {});
+st = ctx.laporanStok({});
+ok('roll Super 190 − 188 = 2, polybag Super 180, BS Super 13', st.daftar.find(s=>s.kode==='WIP-ROLL-SUP').gbj===2 && st.daftar.find(s=>s.kode==='FG-PB-SUP').gbj===180 && st.daftar.find(s=>s.kode==='SCR-BS-SUP').gbj===13);
+const kB = ctx.getKonteks({});
+ok('beranda: 4 shift hari ini, jadi 620 kg, BS 58 kg', kB.ringkasan.shiftHariIni===4 && kB.ringkasan.jadiHariIni===620 && kB.ringkasan.bsHariIni===58, kB.ringkasan);
+const daftar = ctx.daftarLaporanShift({}, 7);
+ok('daftar laporan shift: 4, urut terbaru (shift 2 dulu)', daftar.length===4 && daftar[0].shift==='2', daftar.map(d=>d.shift+d.mesin));
+ok('daftar per tanggal', ctx.daftarLaporanShift({}, 7, kB.hariIni).length===4 && ctx.daftarLaporanShift({}, 7, '2020-01-01').length===0);
+const lp = ctx.laporanProduksi(null, {});
+ok('laporan produksi total: 4 shift, ambil 700, roll 660, jadi 620, BS 58, roll pakai 653', lp.total.shift===4 && lp.total.ambil===700 && lp.total.roll===660 && lp.total.jadi===620 && lp.total.bs===58 && lp.total.rollPakai===653, lp.total);
+ok('per mesin: BLOWING masuk 700 hasil 660; CUTTING masuk 653 hasil 620', (()=>{const b=lp.perMesin.find(m=>m.mesin==='BLOWING'), c=lp.perMesin.find(m=>m.mesin==='CUTTING'); return b.masuk===700 && b.hasil===660 && b.bs===25 && c.masuk===653 && c.hasil===620 && c.bs===33;})(), lp.perMesin);
+ok('per operator: Sri 2 shift blowing (660 kg), Rina 2 cutting (620)', lp.perOperator.some(o=>o.operator==='Sri' && o.mesin==='BLOWING' && o.shift===2 && o.hasil===660) && lp.perOperator.some(o=>o.operator==='Rina' && o.mesin==='CUTTING' && o.hasil===620), lp.perOperator);
+ok('per kualitas: KW jadi 440 BS 45 roll 470; SUPER jadi 180 BS 13', (()=>{const a=lp.perKualitas.find(q=>q.kualitas==='KW'), b=lp.perKualitas.find(q=>q.kualitas==='SUPER'); return a.jadi===440 && a.bs===45 && a.roll===470 && a.rollPakai===465 && b.jadi===180 && b.bs===13;})(), lp.perKualitas);
+ok('per hari: 1 hari, 4 shift', lp.perHari.length===1 && lp.perHari[0].shift===4);
+ok('laporan produksi tidak memuat harga', JSON.stringify(lp).indexOf('harga')<0 && JSON.stringify(lp).indexOf('hpp')<0);
 
-console.log('\n— 9. Laporan susut: total + susutnya dari bahan apa —');
-const lap = ctx.laporanSusut(30, {});
-ok('total susut 60 kg', lap.total.susut===60, lap.total);
-ok('total masuk 900 kg', lap.total.masuk===900, lap.total);
-ok('persen total 6.67%', lap.total.persen===6.67, lap.total.persen);
-ok('2 job, 1 kena flag', lap.total.jobs===2 && lap.total.jobTinggi===1, lap.total);
-ok('perBahan 4 bahan', lap.perBahan.length===4, lap.perBahan.map(b=>b.nama));
-const bMete = lap.perBahan.find(b=>b.kode==='RM-CSW-W240');
-ok('mete susut 20 kg', bMete.susut===20, bMete);
-ok('mete = 33.3% dari total susut', bMete.porsiDariTotal===33.3, bMete.porsiDariTotal);
-const bKcg = lap.perBahan.find(b=>b.kode==='RM-PNT-JAVA');
-ok('kacang tanah susut terbesar 30 kg', lap.perBahan[0].kode==='RM-PNT-JAVA' && bKcg.susut===30, lap.perBahan[0]);
-ok('jumlah perBahan = total susut', Math.abs(lap.perBahan.reduce((a,b)=>a+b.susut,0)-lap.total.susut)<0.01);
-
-console.log('\n— 9b. ④ Barang keluar ke customer —');
-let stokJ = ctx.laporanStok({});
-const fgSebelum = stokJ.daftar.find(s=>s.kode==='FG-MM-CSW');
-ok('FG di GBJ 475 kg sebelum dijual (hasil job langsung di gudang)', fgSebelum.gbj===475, fgSebelum);
-
-const j = ctx.simpanPengiriman({ jenis:'KELUAR', customer:'PT Ritel Nusantara',
-  noSuratJalan:'DO/2026/09/0042', baris:[{kode:'FG-MM-CSW', qty:300}], ident:{nama:'Sri'} });
-// jual scrap langsung dari gudang
-ctx.simpanPengiriman({ jenis:'KELUAR', customer:'Toko Grosir Pasar Baru', noSuratJalan:'DO/SCR/1',
-  baris:[{kode:'SCR-FG-MM-CSW', qty:5}], ident:{nama:'Sri'} });
-ok('scrap bisa dijual ke customer', ctx.laporanStok({}).daftar.find(x=>x.kode==='SCR-FG-MM-CSW').jual===5);
+console.log('\n— 9. ④ Barang keluar ke customer —');
+const j = ctx.simpanPengiriman({ jenis:'KELUAR', customer:CUS, noSuratJalan:'DO/2026/09/0042', baris:[{kode:'FG-PB-KW', qty:300}], ident:{nama:'Sri'} });
+ctx.simpanPengiriman({ jenis:'KELUAR', customer:CUS2, noSuratJalan:'DO/SCR/1', baris:[{kode:'SCR-BS-KW', qty:5}], ident:{nama:'Sri'} });
+ok('BS bisa dijual ke customer', ctx.laporanStok({}).daftar.find(x=>x.kode==='SCR-BS-KW').jual===5);
 ok('penjualan 300 kg tersimpan', j.totalKg===300 && j.jenis==='KELUAR', j);
-stokJ = ctx.laporanStok({});
-let fg = stokJ.daftar.find(s=>s.kode==='FG-MM-CSW');
-ok('GBJ turun jadi 175', fg.gbj===175, fg);
+let stokJ = ctx.laporanStok({});
+let fg = stokJ.daftar.find(s=>s.kode==='FG-PB-KW');
+ok('GBJ polybag KW turun jadi 140', fg.gbj===140, fg);
 ok('kolom jual = 300', fg.jual===300, fg);
-ok('total keluar masuk ringkasan', stokJ.total.jual===305, stokJ.total);
-
-tolak('keluar tanpa customer ditolak',
-  ()=>ctx.simpanPengiriman({jenis:'KELUAR',noSuratJalan:'X',baris:[{kode:'FG-MM-CSW',qty:1}]}), /[Cc]ustomer/);
-tolak('keluar tanpa surat jalan ditolak',
-  ()=>ctx.simpanPengiriman({jenis:'KELUAR',customer:'PT Ritel Nusantara',baris:[{kode:'FG-MM-CSW',qty:1}]}), /surat jalan/);
+ok('total keluar di ringkasan', stokJ.total.jual===305, stokJ.total);
+tolak('keluar tanpa customer ditolak', ()=>ctx.simpanPengiriman({jenis:'KELUAR',noSuratJalan:'X',baris:[{kode:'FG-PB-KW',qty:1}]}), /[Cc]ustomer/);
+tolak('keluar tanpa surat jalan ditolak', ()=>ctx.simpanPengiriman({jenis:'KELUAR',customer:CUS,baris:[{kode:'FG-PB-KW',qty:1}]}), /surat jalan/);
 
 console.log('\n— 9c. Retur dari customer menambah stok —');
-ctx.simpanPengiriman({ jenis:'RETUR_MASUK', customer:'PT Ritel Nusantara',
-  baris:[{kode:'FG-MM-CSW', qty:25}], catatan:'kemasan penyok waktu kirim', ident:{nama:'Sri'} });
-stokJ = ctx.laporanStok({});
-fg = stokJ.daftar.find(s=>s.kode==='FG-MM-CSW');
-ok('GBJ naik lagi jadi 200', fg.gbj===200, fg);
+ctx.simpanPengiriman({ jenis:'RETUR_MASUK', customer:CUS, baris:[{kode:'FG-PB-KW', qty:25}], catatan:'kemasan sobek', ident:{nama:'Sri'} });
+stokJ = ctx.laporanStok({}); fg = stokJ.daftar.find(s=>s.kode==='FG-PB-KW');
+ok('GBJ naik lagi jadi 165', fg.gbj===165, fg);
 ok('kolom retur customer = 25', fg.returCust===25, fg);
-ok('retur customer tidak butuh surat jalan', true);
 
 console.log('\n— 9d. Laporan penjualan —');
-ctx.simpanPengiriman({ jenis:'KELUAR', customer:'Toko Grosir Pasar Baru',
-  noSuratJalan:'DO/2026/09/0043', baris:[{kode:'FG-JM-BBQ', qty:120}], ident:{nama:'Yanto'} });
+ctx.simpanPengiriman({ jenis:'KELUAR', customer:CUS2, noSuratJalan:'DO/2026/09/0043', baris:[{kode:'FG-PB-SUP', qty:120}], ident:{nama:'Yanto'} });
 const jual = ctx.laporanPenjualan(30, {});
 ok('total keluar 425 kg', jual.total.keluar===425, jual.total);
 ok('total retur customer 25 kg', jual.total.retur===25, jual.total);
 ok('bersih 400 kg', jual.total.bersih===400, jual.total);
 ok('2 customer', jual.perCustomer.length===2, jual.perCustomer);
-const cRitel = jual.perCustomer.find(c=>c.customer==='PT Ritel Nusantara');
-ok('Ritel bersih 275 kg', cRitel.bersih===275, cRitel);
+const cNur = jual.perCustomer.find(c=>c.customer===CUS);
+ok('Nursery bersih 275 kg', cNur.bersih===275, cNur);
 ok('perItem ada 3 item', jual.perItem.length===3, jual.perItem);
 ok('perItem diurut bersih desc', jual.perItem[0].bersih >= jual.perItem[1].bersih);
 
-console.log('\n— 10. Antrian review gabungan —');
+console.log('\n— 10. Antrian review gabungan (laporan shift TIDAK masuk antrian) —');
+ctx.simpanPenerimaan({jenis:'MASUK',supplier:SUP2,noSuratJalan:'SJ/2', baris:[{kode:'RM-PG-KW',qty:40},{kode:'RM-AF',qty:10},{kode:'RM-BP-SPL',qty:100}]});
 const q = ctx.antrianReview({});
-ok('pembelian + penjualan satu antrian (tanpa transfer)', q.length===10, q.length);
+ok('pembelian + penjualan satu antrian = 10', q.length===10, q.length);
 ok('ada entri PENERIMAAN', q.some(x=>x.sumber==='PENERIMAAN'));
-ok('tidak ada entri TRANSFER', !q.some(x=>x.sumber==='TRANSFER'));
+ok('tidak ada entri SHIFT', !q.some(x=>x.sumber==='SHIFT' || /SHF-/.test(x.id)));
 ok('label retur benar', q.some(x=>x.jenis==='RETUR' && /^GBJ →/.test(x.label)), q.filter(x=>x.jenis==='RETUR')[0]);
 ok('label pembelian benar', q.some(x=>x.jenis==='MASUK' && / → GBJ$/.test(x.label)));
 const idRcv = q.find(x=>x.sumber==='PENERIMAAN').id;
-const idTrf = q.find(x=>x.sumber==='PENERIMAAN' && x.kode==='RM-MIN-GRG').id;   // minyak 100 kg dipakai untuk uji Tandai → Batal
+const idTrf = q.find(x=>x.sumber==='PENERIMAAN' && x.kode==='RM-AF').id;   // antifoam 10 kg dipakai untuk uji Tandai → Batal
 ctx.tinjauTransfer(idRcv,'setuju','',{});
 ctx.tinjauTransfer(idTrf,'tandai','foto buram',{});
 ok('ada entri PENGIRIMAN', q.some(x=>x.sumber==='PENGIRIMAN'));
-ok('label penjualan benar', q.some(x=>x.jenis==='KELUAR' && /^GBJ → PT Ritel/.test(x.label)), q.filter(x=>x.jenis==='KELUAR')[0]);
+ok('label penjualan benar', q.some(x=>x.jenis==='KELUAR' && /^GBJ → PT Nursery/.test(x.label)), q.filter(x=>x.jenis==='KELUAR')[0]);
 ok('label retur customer benar', q.some(x=>x.jenis==='RETUR_MASUK' && / → GBJ$/.test(x.label)));
 const idOut = q.find(x=>x.sumber==='PENGIRIMAN').id;
 ctx.tinjauTransfer(idOut,'setuju','',{});
@@ -185,93 +166,89 @@ ok('review pengiriman jalan (routing ID benar)', ctx.antrianReview({}).length===
 tolak('tidak bisa review 2x', ()=>ctx.tinjauTransfer(idRcv,'setuju','',{}), /sudah final/);
 
 console.log('\n— 11. Review: Setuju / Tandai (arsip) / Batal —');
-// idTrf tadi DITANDAI -> masih dihitung di stok, muncul di tab Ditandai
 const arsip = ctx.antrianReview({}, 'DITANDAI');
 ok('entri ditandai muncul di tab Ditandai', arsip.some(x=>x.id===idTrf), arsip.map(x=>x.id));
 ok('catatan tinjau ikut', arsip.find(x=>x.id===idTrf).catatanTinjau==='foto buram');
 const trfDitandai = ctx.baca_(ctx.SHEET.PENERIMAAN).find(r=>r.ID===idTrf);
-const fld = 'beli';
-const stokA = ctx.laporanStok({});
-const itemA = stokA.daftar.find(x=>x.kode===trfDitandai.Kode_Item);
-ok('DITANDAI tetap dihitung di stok', itemA[fld] >= trfDitandai.Qty_Kg, {arus:itemA[fld], qty:trfDitandai.Qty_Kg});
+const stokA = ctx.laporanStok({}); const itemA = stokA.daftar.find(x=>x.kode===trfDitandai.Kode_Item);
+ok('DITANDAI tetap dihitung di stok', itemA.beli >= trfDitandai.Qty_Kg, {arus:itemA.beli, qty:trfDitandai.Qty_Kg});
 tolak('tidak bisa tandai dua kali', ()=>ctx.tinjauTransfer(idTrf,'tandai','',{}), /sudah ditandai/);
-// dari arsip -> batal
 ctx.tinjauTransfer(idTrf,'batal','salah item',{});
-const stokB = ctx.laporanStok({});
-const itemB = stokB.daftar.find(x=>x.kode===trfDitandai.Kode_Item);
-ok('DIBATALKAN dikeluarkan dari stok', Math.abs((itemA[fld] - itemB[fld]) - trfDitandai.Qty_Kg) < 0.01, {sebelum:itemA[fld], sesudah:itemB[fld]});
+const stokB = ctx.laporanStok({}); const itemB = stokB.daftar.find(x=>x.kode===trfDitandai.Kode_Item) || {beli:0};
+ok('DIBATALKAN dikeluarkan dari stok', Math.abs((itemA.beli - itemB.beli) - trfDitandai.Qty_Kg) < 0.01, {sebelum:itemA.beli, sesudah:itemB.beli});
 ok('catatan tinjau digabung', ctx.baca_(ctx.SHEET.PENERIMAAN).find(r=>r.ID===idTrf).Catatan_Tinjau==='foto buram | salah item');
 tolak('final tidak bisa diubah lagi', ()=>ctx.tinjauTransfer(idTrf,'setuju','',{}), /sudah final/);
 ok('hilang dari tab Ditandai', !ctx.antrianReview({}, 'DITANDAI').some(x=>x.id===idTrf));
-// menunggu -> batal langsung
-const qB = ctx.antrianReview({});
-const idB = qB[0].id;
+const qB = ctx.antrianReview({}); const idB = qB[0].id;
 ctx.tinjauTransfer(idB,'batal','dobel input',{});
 ok('menunggu -> batal langsung', !ctx.antrianReview({}).some(x=>x.id===idB));
-const kB = ctx.getKonteks({});
-ok('ringkasan hitung ditandai', typeof kB.ringkasan.ditandai === 'number');
+ok('ringkasan hitung ditandai', typeof ctx.getKonteks({}).ringkasan.ditandai === 'number');
 
 console.log('\n— 12. Laporan pembelian —');
 const beli = ctx.riwayatPenerimaan(30, {});
-// penerimaan minyak (100 kg) dibatalkan di uji 11 → 1520 − 100
-ok('total masuk 1420 kg (yang dibatalkan tidak dihitung)', beli.total.masuk===1420, beli.total);
+ok('total masuk 1040 kg (antifoam 10 kg & Super Plus 100 kg dibatalkan tidak dihitung)', beli.total.masuk===1040, beli.total);
 ok('total retur 50 kg', beli.total.retur===50, beli.total);
-ok('bersih 1370 kg', beli.total.bersih===1370, beli.total);
+ok('bersih 990 kg', beli.total.bersih===990, beli.total);
 ok('2 supplier', beli.perSupplier.length===2, beli.perSupplier);
 
 console.log('\n— 12b. Neraca stok per item konsisten —');
 const stokAkhir = ctx.laporanStok({});
 let semuaCocok = true, contoh = null;
 stokAkhir.daftar.forEach(function(s){
-  // v9: GBJ = awal + beli − retur supplier + retur customer − terjual − dipakai + dihasilkan − scrap ke chassen + biji daur ulang − rusak ± opname
+  // GBJ = awal + beli − retur supplier + retur customer − terjual − dipakai (ambil biji / roll terpakai) + dihasilkan (roll / polybag / BS) − scrap ke chassen + biji daur ulang − rusak ± opname
   const gbjHitung = s.awal + s.beli - s.retur + s.returCust - s.jual - s.dipakai + s.dihasilkan - s.daurKirim + s.daurHasil - s.rusak + s.opname;
   if (Math.abs(gbjHitung - s.gbj) > 0.01){ semuaCocok = false; contoh = {item:s.nama, gbjHitung, gbj:s.gbj}; }
 });
 ok('baris neraca menjumlah persis ke saldo (satu gudang)', semuaCocok, contoh);
-ok('semua item punya awal & tidak punya gp', stokAkhir.daftar.every(s=>s.awal!==undefined && s.gp===undefined && s.keGP===undefined));
 ok('total = gbj tiap item', stokAkhir.daftar.every(s=>Math.abs(s.gbj-s.total)<0.01));
+ok('roll ikut di laporan stok dengan kategori ROLL', stokAkhir.daftar.some(s=>s.kode==='WIP-ROLL-KW' && s.kategori==='ROLL'));
 
-console.log('\n— 12c. HPP hanya untuk manager —');
+console.log('\n— 12c. HPP rata-rata: biji → roll → polybag; hanya untuk manager —');
 const kM = ctx.getKonteks({});
 ok('admin lihatHpp = true', kM.lihatHpp===true);
 ok('items tidak bawa harga ke client', kM.items.every(i=>i.harga===undefined));
-const jH = ctx.mulaiPekerjaan({ kodeProduk:'FG-MM-CSW', bahanBaku:[{kode:'RM-CSW-W240', qty:100}] });
-ok('admin dapat hpp saat mulai', jH.hpp && jH.hpp.bahan===18500000 && jH.hpp.proses===250000, jH.hpp);
-const listH = ctx.daftarPekerjaanBerjalan({});
-ok('kartu job admin ada hpp', listH.find(x=>x.id===jH.id).hpp.total===18750000);
-const fH = ctx.selesaikanPekerjaan({ id:jH.id, barangJadi:[{kode:'FG-MM-CSW', qty:95}], scrapKg:1 });
-ok('HPP per kg = 18.750.000 / 95 = 197.368', fH.hpp.perKg===197368, fH.hpp);
-ok('nilai susut = 4 kg × 185.000 = 740.000', fH.hpp.nilaiSusut===740000, fH.hpp);
-const detH = ctx.baca_(ctx.SHEET.DETAIL).filter(d=>d.ID_Pekerjaan===jH.id && d.Jenis==='BAHAN_BAKU')[0];
-ok('detail simpan snapshot harga', detH.Harga_Per_Kg===185000 && detH.Nilai===18500000, detH);
-const lapH = ctx.laporanHpp(30, {});
-ok('laporan HPP ada per produk', lapH.perProduk.length>0 && lapH.total.jobs>0);
-ok('per kg produk = total/jadi', lapH.perProduk.every(p=>p.jadi===0 || Math.abs(p.perKg - Math.round(p.hppTotal/p.jadi))<=1));
+const nilai = ctx.laporanNilaiStok({});
+ok('metode RATA', nilai.metode==='RATA');
+const nKw = nilai.daftar.find(x=>x.kode==='RM-BP-KW');
+ok('biji KW sisa 250 kg @13.000 (harga master, penerimaan tanpa PO)', nKw.qty===250 && nKw.rata===13000, nKw);
+// roll KW: (500 × 13.000 + 500 × 2.500 proses) / 470 kg = 16.489,36/kg ; cutting: 465 × 16.489,36 / 440 = 17.426,26/kg
+const hargaRoll = (500*13000 + 500*2500)/470, hargaPb = 465*hargaRoll/440;
+const nRoll = nilai.daftar.find(x=>x.kode==='WIP-ROLL-KW');
+ok('roll KW sisa 5 kg @ (biji + biaya proses)/hasil = 16.489', nRoll.qty===5 && nRoll.rata===Math.round(hargaRoll), nRoll);
+const nPb = nilai.daftar.find(x=>x.kode==='FG-PB-KW');
+ok('polybag KW @ roll terpakai / polybag = 17.426', nPb.rata===Math.round(hargaPb), nPb);
+ok('BS dinilai 0 (nilainya kembali lewat jasa chassen)', nilai.daftar.filter(x=>/^SCR/.test(x.kode)).every(x=>x.nilai===0 && x.rata===0), nilai.daftar.filter(x=>/SCR/.test(x.kode)));
+const kirimRow = ctx.baca_(ctx.SHEET.PENGIRIMAN).find(r=>r.ID===j.ids[0]);
+ok('pengiriman menyimpan HPP_Per_Kg rata-rata polybag', Math.abs(kirimRow.HPP_Per_Kg - hargaPb) < 0.01, kirimRow.HPP_Per_Kg);
+ok('nilai stok total > 0', nilai.total.nilai > 0);
 
 console.log('\n— 12d. Kalender —');
 const kal = ctx.kalender(null, {});
-ok('bulan = bulan ini', kal.bulan===new Date().toISOString().slice(0,7) || true);
 const hariIni = kal.hari.find(h=>h.tanggal===kal.hariIni);
 ok('hari ini ada kejadian', hariIni && hariIni.kejadian.length>0, hariIni && hariIni.kejadian.length);
-ok('job dihitung', hariIni.job>0);
+ok('shift dihitung: 4', hariIni.shift===4, hariIni.shift);
+ok('kejadian SHIFT_BLOWING & SHIFT_CUTTING dengan qty hasil & bs', hariIni.kejadian.some(e=>e.jenis==='SHIFT_BLOWING' && e.qty===470 && e.bs===20 && e.sheet==='shift') && hariIni.kejadian.some(e=>e.jenis==='SHIFT_CUTTING' && e.jam==='S1'));
 ok('kejadian urut terbaru dulu', hariIni.kejadian[0].t >= hariIni.kejadian[hariIni.kejadian.length-1].t);
 ok('kalender tidak bocorkan harga/HPP', JSON.stringify(kal).indexOf('hpp')===-1 && JSON.stringify(kal).indexOf('Harga')===-1);
 const kalLalu = ctx.kalender('2020-01', {});
 ok('bulan kosong -> tidak ada hari', kalLalu.hari.length===0 && kalLalu.jumlahHari===31);
 
-console.log('\n— 13. Validasi —');
-tolak('qty 0 ditolak', ()=>ctx.mulaiPekerjaan({kodeProduk:'FG-MM-CSW',bahanBaku:[{kode:'RM-CSW-W240',qty:0}]}), /> 0/);
-tolak('item tak dikenal', ()=>ctx.mulaiPekerjaan({kodeProduk:'FG-MM-CSW',bahanBaku:[{kode:'XXX',qty:1}]}), /tidak dikenal/);
-tolak('job tanpa bahan', ()=>ctx.mulaiPekerjaan({kodeProduk:'FG-MM-CSW',bahanBaku:[]}), /belum diisi/);
-tolak('tutup job 2x', ()=>ctx.selesaikanPekerjaan({id:j1.id,barangJadi:[{kode:'FG-MM-CSW',qty:1}]}), /sudah ditutup/);
-
-console.log('\n— 14. Anomali —');
-const j3 = ctx.mulaiPekerjaan({kodeProduk:'FG-MM-ALM',bahanBaku:[{kode:'RM-ALM-NP',qty:100}]});
-const f3 = ctx.selesaikanPekerjaan({id:j3.id,barangJadi:[{kode:'FG-MM-ALM',qty:110}]});
-ok('output > input -> ANOMALI', f3.status==='ANOMALI', f3);
+console.log('\n— 13. Ubah & batalkan laporan shift —');
+const u1 = ctx.ubahLaporanShift(s1.id, { hasil:[{kualitas:'KW', qty:475}], bs:[{kualitas:'KW', qty:15}] }, {});
+ok('ubah hasil 470 → 475, BS 20 → 15, log tercatat', u1.ok && u1.laporan.totalHasil===475 && u1.laporan.totalBs===15 && /hasil 470 → 475/.test(u1.log.join(';')), u1.log);
+ok('detail ditulis ulang (tidak ditumpuk)', ctx.baca_(ctx.SHEET.SHIFT_DETAIL).filter(d=>d.ID_Shift===s1.id).length===3);
+ok('stok ikut: roll KW 475 − 465 = 10', ctx.laporanStok({}).daftar.find(s=>s.kode==='WIP-ROLL-KW').gbj===10);
+ok('ambilLaporanShift', ctx.ambilLaporanShift(s1.id, {}).totalHasil===475 && /Log|hasil/.test(ctx.ambilLaporanShift(s1.id, {}).logEdit));
+const s3 = ctx.simpanLaporanShift({ shift:'3', mesin:'BLOWING', operator:'Sri', ambil:[{kode:'RM-BP-KW', qty:10}], hasil:[{kualitas:'KW', qty:9}] }, {});
+ctx.batalkanLaporanShift(s3.id, 'salah shift', {});
+ok('dibatalkan: tidak dihitung di stok & hilang dari daftar', ctx.laporanStok({}).daftar.find(s=>s.kode==='RM-BP-KW').gbj===250 && !ctx.daftarLaporanShift({},7).some(x=>x.id===s3.id));
+tolak('batal 2x ditolak', ()=>ctx.batalkanLaporanShift(s3.id, '', {}), /sudah dibatalkan/);
+tolak('ubah yang dibatalkan ditolak', ()=>ctx.ubahLaporanShift(s3.id, {}, {}), /sudah dibatalkan/);
+ok('timpa=true menggantikan laporan yang sama? tidak — laporan lama tetap, hanya dobel diizinkan', ctx.simpanLaporanShift({ shift:'3', mesin:'BLOWING', operator:'Sri', ambil:[{kode:'RM-BP-KW', qty:10}], hasil:[{kualitas:'KW', qty:9}], bs:[{kualitas:'KW', qty:1}] }, {}).totalAmbil===10);
+ok('aktivitas staf mencatat SHIFT untuk pencatat', (()=>{ const a=ctx.aktivitasStaf('', 30, {}).daftar.find(x=>x.jenis && x.jenis.SHIFT); return !!a && a.jenis.SHIFT>=4; })(), ctx.aktivitasStaf('', 30, {}).daftar.map(x=>[x.nama,x.jenis]));
 
 console.log('\n— 15. Parser surat jalan —');
-const p = ctx.parseSuratJalan_('SURAT JALAN No : SJ/2026/09/0184\n1. Kacang Mete W240 ... 250 kg\n2. Kacang Tanah ... 1.250,5 kg\nTotal Netto : 1500,5');
+const p = ctx.parseSuratJalan_('SURAT JALAN No : SJ/2026/09/0184\n1. Biji Plastik KW ... 250 kg\n2. Biji Plastik Super ... 1.250,5 kg\nTotal Netto : 1500,5');
 ok('no SJ terbaca', p.noSuratJalan==='SJ/2026/09/0184', p.noSuratJalan);
 ok('1.250,5 -> 1250.5', p.kandidatQty.some(c=>c.qty===1250.5));
 ok('saran nilai terbesar bersatuan', p.qtySaran===1250.5, p.qtySaran);

@@ -29,7 +29,7 @@ ok('Direktur = ADMIN', ctx.getKonteks({nama:'Direktur',pin:'2468'}).bisaAdmin===
 ok('Admin = ADMIN', ctx.getKonteks({nama:'Admin',pin:'1234'}).bisaAdmin===true);
 
 console.log('\n— Atribusi entri —');
-ctx.simpanPenerimaan({jenis:'MASUK', supplier:'CV Mitra Mete Sulawesi', noSuratJalan:'SJ/ID/1', baris:[{kode:'RM-CSW-W240',qty:100}], ident:YANTO});
+ctx.simpanPenerimaan({jenis:'MASUK', supplier:'PT Sumber Biji Plastik', noSuratJalan:'SJ/ID/1', baris:[{kode:'RM-BP-KW',qty:100}], ident:YANTO});
 const t0 = ctx.baca_(ctx.SHEET.PENERIMAAN)[0];
 ok('Nama_Pencatat = Staff Gudang', t0.Nama_Pencatat==='Staff Gudang');
 ok('Dicatat_Oleh = manual:Staff Gudang', t0.Dicatat_Oleh==='manual:Staff Gudang');
@@ -42,14 +42,18 @@ tolak('staf tidak bisa approve', ()=>ctx.tinjauTransfer(q[0].id,'setuju','',YANT
 ctx.tinjauTransfer(q[0].id,'setuju','',ANTO);
 ok('Ditinjau_Oleh = Manager', ctx.baca_(ctx.SHEET.PENERIMAAN)[0].Ditinjau_Oleh==='Manager');
 
-console.log('\n— STAF tidak pernah lihat HPP —');
+console.log('\n— STAF tidak pernah lihat HPP; laporan shift hanya manager —');
 ok('staf lihatHpp = false', ctx.getKonteks(YANTO).lihatHpp===false);
-const jS = ctx.mulaiPekerjaan({ kodeProduk:'FG-MM-CSW', bahanBaku:[{kode:'RM-CSW-W240', qty:50}], ident:YANTO });
-ok('mulai job: tidak ada hpp', jS.hpp===undefined);
-const fS = ctx.selesaikanPekerjaan({ id:jS.id, barangJadi:[{kode:'FG-MM-CSW', qty:48}], scrapKg:1, ident:YANTO });
-ok('tutup job: tidak ada hpp', fS.hpp===undefined);
-tolak('laporan HPP ditolak untuk staf', ()=>ctx.laporanHpp(30,YANTO), /Supervisor/);
-ok('supervisor dapat laporan HPP', ctx.laporanHpp(30,ANTO).total.jobs>=1);
+tolak('staf tidak boleh isi laporan shift', ()=>ctx.simpanLaporanShift({ shift:'1', mesin:'BLOWING', operator:'Sri', ambil:[{kode:'RM-BP-KW', qty:50}], hasil:[{kualitas:'KW', qty:48}] }, YANTO), /Manager/);
+tolak('staf tidak boleh buka konfigurasi shift', ()=>ctx.konfigurasiShift(YANTO), /Manager/);
+const sS = ctx.simpanLaporanShift({ shift:'1', mesin:'BLOWING', operator:['Sri'], ambil:[{kode:'RM-BP-KW', qty:50}], hasil:[{kualitas:'KW', qty:48}], bs:[{kualitas:'KW', qty:1}] }, ANTO);
+ok('manager isi laporan shift: pencatat = Manager', sS.pencatat==='Manager' && sS.bolehEdit===true, sS);
+ok('staf boleh LIHAT daftar shift, tanpa harga, tidak boleh edit', (()=>{ const d=ctx.daftarLaporanShift(YANTO, 7); return d.length===1 && d[0].bolehEdit===false && JSON.stringify(d).indexOf('harga')<0; })());
+const MP = {nama:'Manager Produksi', pin:'1122'}, SM = {nama:'Sales Manager', pin:'3344'};
+ok('akun Manager Produksi & Sales Manager = SUPERVISOR (semua manager lihat semua)', ctx.getKonteks(MP).bisaReview===true && ctx.getKonteks(MP).lihatHpp===true && ctx.getKonteks(SM).bisaPo===true && ctx.getKonteks(SM).lihatHpp===true);
+tolak('laporan nilai stok ditolak untuk staf', ()=>ctx.laporanNilaiStok(YANTO), /Manager/);
+tolak('laporan bulanan ditolak untuk staf', ()=>ctx.laporanBulanan(null, YANTO), /Manager/);
+ok('supervisor dapat laporan nilai stok', ctx.laporanNilaiStok(ANTO).daftar.length>=1);
 
 console.log('\n— ADMIN: kelola pengguna —');
 // jadikan Pak Anto admin lewat sheet (bootstrap), lalu uji fungsi admin
@@ -57,7 +61,7 @@ const MAX={nama:'Direktur',pin:'2468'};
 ok('admin bisaAdmin', ctx.getKonteks(MAX).bisaAdmin===true);
 tolak('supervisor tidak boleh kelola pengguna', ()=>ctx.daftarPengguna(ANTO), /Admin/);
 const dp = ctx.daftarPengguna(MAX);
-ok('daftar pengguna 4 orang, PIN tidak bocor', dp.length===4 && dp.every(x=>x.pin===undefined) && dp.find(x=>x.nama==='Staff Gudang').punyaPin===true, dp);
+ok('daftar pengguna 6 orang, PIN tidak bocor', dp.length===6 && dp.every(x=>x.pin===undefined) && dp.find(x=>x.nama==='Staff Gudang').punyaPin===true, dp);
 ctx.simpanPengguna({nama:'Budi', peran:'STAF', lokasi:'GBJ', pin:'5555'}, MAX);
 ok('tambah user baru', ctx.daftarPengguna(MAX).some(x=>x.nama==='Budi'));
 tolak('nama dobel ditolak', ()=>ctx.simpanPengguna({nama:'budi', peran:'STAF', pin:'1234'}, MAX), /sudah dipakai/);
@@ -78,9 +82,10 @@ ctx.simpanPengguna({baris:bAdm, nama:'Admin', peran:'ADMIN'}, MAX);
 
 console.log('\n— Aktivitas staf —');
 const akt = ctx.aktivitasStaf('', 30, ANTO);
-ok('aktivitas per user ada Staff Gudang', akt.daftar.some(x=>x.nama==='Staff Gudang' && x.total>=2), akt.daftar.map(x=>[x.nama,x.total]));
+ok('aktivitas per user ada Staff Gudang', akt.daftar.some(x=>x.nama==='Staff Gudang' && x.total>=1), akt.daftar.map(x=>[x.nama,x.total]));
 const aktY = ctx.aktivitasStaf('Staff Gudang', 30, ANTO);
-ok('filter satu user', aktY.daftar.length===1 && aktY.daftar[0].jenis.MASUK===1 && aktY.daftar[0].jenis.JOB===1, aktY.daftar[0] && aktY.daftar[0].jenis);
+ok('filter satu user', aktY.daftar.length===1 && aktY.daftar[0].jenis.MASUK===1 && !aktY.daftar[0].jenis.SHIFT, aktY.daftar[0] && aktY.daftar[0].jenis);
+ok('aktivitas manager mencatat SHIFT', ctx.aktivitasStaf('Manager', 30, ANTO).daftar[0].jenis.SHIFT===1, ctx.aktivitasStaf('Manager', 30, ANTO).daftar[0]);
 tolak('staf tidak boleh lihat aktivitas', ()=>ctx.aktivitasStaf('', 30, YANTO), /Supervisor/);
 
 console.log('— Hardening: PAKSA_LOGIN_MANUAL & AKSES_TERBUKA —');
