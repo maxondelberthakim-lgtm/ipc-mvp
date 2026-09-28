@@ -8,7 +8,7 @@ memanggil fungsi RPC yang sama persis dengan yang dipakai di Apps Script."""
 import os, re
 root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 A = os.path.join(root, 'apps-script')
-FILES = ['Config.gs', 'Server.gs', 'Media.gs', 'Pembelian.gs', 'Penjualan.gs', 'DaurUlang.gs']
+FILES = ['Config.gs', 'Server.gs', 'Media.gs', 'Pembelian.gs', 'Penjualan.gs', 'DaurUlang.gs', 'Produksi.gs', 'TutupBulan.gs']
 SERVICES = ['SpreadsheetApp', 'LockService', 'Utilities', 'Session', 'DriveApp', 'PropertiesService',
             'CacheService', 'ScriptApp', 'HtmlService', 'ContentService', 'DocumentApp', 'Logger', 'Sheets']
 

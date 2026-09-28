@@ -16,13 +16,15 @@ med    = rd(os.path.join(A, 'Media.gs'))
 pem    = rd(os.path.join(A, 'Pembelian.gs'))
 pjl    = rd(os.path.join(A, 'Penjualan.gs'))
 dur    = rd(os.path.join(A, 'DaurUlang.gs'))
+prd    = rd(os.path.join(A, 'Produksi.gs'))
+ttp    = rd(os.path.join(A, 'TutupBulan.gs'))
 shim   = rd(os.path.join(root, 'tools', 'shim.js'))
 seed   = rd(os.path.join(root, 'tools', 'seed.js'))
 fixture= rd(os.path.join(root, 'tools', 'fixture-master.js'))  # supplier/customer contoh khusus demo
 
 html = idx.replace("<?!= include('Styles'); ?>", styles).replace("<?!= include('Script'); ?>", "__S__")
 html = html.replace("<script>var BAHASA_AWAL = '<?= bahasaAwal ?>';</script>", "<script>var BAHASA_AWAL = 'id';</script>")
-backend = ("<script>\n" + shim + "\n</script>\n<script>\n" + cfg + "\n" + srv + "\n" + med + "\n" + pem + "\n" + pjl + "\n" + dur +
+backend = ("<script>\n" + shim + "\n</script>\n<script>\n" + cfg + "\n" + srv + "\n" + med + "\n" + pem + "\n" + pjl + "\n" + dur + "\n" + prd + "\n" + ttp +
            "\n</script>\n<script>\n" + fixture + "\n" + seed + "\n</script>\n")
 html = html.replace("__S__", backend + script)
 
@@ -30,8 +32,8 @@ banner = '''
 <div id="demoBanner" style="background:#b45309;color:#fff7ed;font:12.5px/1.5 -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;padding:9px 14px;border-bottom:3px solid #f59e0b">
   <div style="display:flex;gap:10px;align-items:flex-start">
     <span style="flex:1"><b style="color:#fff;font-size:13.5px">⚠️ INI DEMO — BUKAN APLIKASI SUNGGUHAN.</b> Data contoh hanya di browser ini; refresh = reset; akun tidak sinkron antar HP.
-      Aplikasi sungguhan (data bersama, tersimpan di Google Sheet): <a href="./app/" style="color:#fff;font-weight:800;text-decoration:underline">buka di sini →</a><br>
-      Login demo: <b style="color:#fff">Admin</b> 1234 · <b style="color:#fff">Direktur</b> 2468 · <b style="color:#fff">Manager</b> 1357 · <b style="color:#fff">Staff Gudang</b> 1111 · <b style="color:#fff">Yanto</b> 2222
+      Aplikasi sungguhan (data bersama, tersimpan di server Cloudflare): <a href="./app/" style="color:#fff;font-weight:800;text-decoration:underline">buka di sini →</a><br>
+      Login demo: <b style="color:#fff">Admin</b> 1234 · <b style="color:#fff">Direktur</b> 2468 · <b style="color:#fff">Manager</b> 1357 · <b style="color:#fff">Manager Produksi</b> 1122 · <b style="color:#fff">Sales Manager</b> 3344 · <b style="color:#fff">Staff Gudang</b> 1111 · <b style="color:#fff">Yanto</b> 2222
       <span style="opacity:.8">(ganti akun: Beranda → Ganti nama / PIN)</span></span>
     <button onclick="document.getElementById('demoBanner').hidden=true" style="background:rgba(255,255,255,.18);color:#fff;border:0;border-radius:7px;padding:5px 10px;font-size:11.5px;font-weight:700;cursor:pointer;flex:0 0 auto">Tutup</button>
   </div>
