@@ -3,6 +3,7 @@
 #   cd "$HOME/Claude Co Work/ipc-cloudflare" && bash deploy.sh
 # Tidak butuh instal apa pun: kalau Node.js belum ada, diunduh ke folder ini (node-local/).
 set -e
+# Bisa juga dijalankan dengan klik dua kali deploy-v10.command di Finder.
 cd "$(dirname "$0")"
 export PATH="$PWD/node-local/bin:$HOME/homebrew/bin:/opt/homebrew/bin:/usr/local/bin:$PATH"
 if ! command -v node >/dev/null 2>&1 || [ "$(node -v | cut -c2-3)" -lt 18 ]; then
@@ -17,7 +18,11 @@ npx wrangler whoami >/dev/null 2>&1 || npx wrangler login
 echo "== 3/5 Deploy Worker + Durable Object + KV + cron"; npx wrangler deploy
 echo "== 4/5 Kunci admin (dipakai untuk impor/ekspor/reset lewat /admin/*)"
 if [ -f ADMIN_KEY.txt ]; then KEY=$(cat ADMIN_KEY.txt); else KEY=$(openssl rand -hex 20); echo "$KEY" > ADMIN_KEY.txt; fi
-echo "$KEY" | npx wrangler secret put ADMIN_KEY
+if [ -f .sudah-impor ]; then
+  echo "   kunci sudah terpasang di Worker (deploy sebelumnya) — dilewati"
+else
+  echo "$KEY" | npx wrangler secret put ADMIN_KEY || echo "   (secret put gagal non-interaktif — jalankan manual: npx wrangler secret put ADMIN_KEY)"
+fi
 echo "   kunci tersimpan di ADMIN_KEY.txt (jangan dibagikan / di-commit)"
 URL=$(cat workers-dev-url.txt)
 echo "== 5/5 Impor data Google Sheet (ipc-live.json) → $URL"
