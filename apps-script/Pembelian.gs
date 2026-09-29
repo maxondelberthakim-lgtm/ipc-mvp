@@ -15,6 +15,7 @@ function migrasiSkema() {
   var ss = ss_();
   migrasiV9_(ss);
   migrasiV10_(ss);
+  migrasiV10_1_(ss);
   Object.keys(SHEET).forEach(function (k) {
     var nama = SHEET[k], head = HEADER[nama];
     var sh = ss.getSheetByName(nama);
@@ -126,6 +127,63 @@ function migrasiV10_(ss) {
 }
 
 /** Dipanggil di awal tiap request: migrasi hanya kalau versi skema berubah (1 property read). */
+/**
+ * v10.1: Laporan_Shift dari "satu baris per mesin" (kolom Mesin + Operator) → "satu baris per shift" (Operator_Blowing / Operator_Cutting,
+ * total per mesin). Detail mendapat kolom Mesin. Sheet lama diarsipkan sebagai *_lama. Aman diulang.
+ */
+function migrasiV10_1_(ss) {
+  var sh = ss.getSheetByName(SHEET.SHIFT); if (!sh) return;
+  var head = sh.getRange(1, 1, 1, sh.getMaxColumns()).getValues()[0].map(String);
+  if (head.indexOf('Mesin') < 0) return;   // sudah format v10.1 (atau sheet kosong baru)
+  lupakanMemo_();
+  /* baca_() memakai HEADER v10.1 → sheet lama dibaca dengan header barisnya sendiri */
+  function bacaLama(sheet) {
+    if (!sheet || sheet.getLastRow() < 2) return [];
+    var h = sheet.getRange(1, 1, 1, sheet.getMaxColumns()).getValues()[0].map(String);
+    return sheet.getRange(2, 1, sheet.getLastRow() - 1, h.length).getValues().filter(function (v) { return v.join('') !== ''; }).map(function (v) {
+      var o = {}; h.forEach(function (k, i) { if (!k) return; var x = v[i]; if (KOLOM_TANGGAL_.test(k) && Object.prototype.toString.call(x) === '[object Date]') x = tglStr_(x); o[k] = x; }); return o;
+    });
+  }
+  var shD = ss.getSheetByName(SHEET.SHIFT_DETAIL);
+  var lama = bacaLama(sh), detLama = bacaLama(shD);
+  if (!ss.getSheetByName(SHEET.SHIFT + '_lama')) sh.setName(SHEET.SHIFT + '_lama'); else sh.setName(SHEET.SHIFT + '_lama2');
+  if (shD) { if (!ss.getSheetByName(SHEET.SHIFT_DETAIL + '_lama')) shD.setName(SHEET.SHIFT_DETAIL + '_lama'); else shD.setName(SHEET.SHIFT_DETAIL + '_lama2'); }
+  lupakanMemo_();
+  [SHEET.SHIFT, SHEET.SHIFT_DETAIL].forEach(function (n) {
+    var s2 = ss.insertSheet(n); s2.getRange(1, 1, 1, HEADER[n].length).setValues([HEADER[n]]); s2.setFrozenRows(1);
+  });
+  lupakanMemo_();
+  /* gabungkan per tanggal+shift (yang AKTIF); yang dibatalkan dibiarkan di arsip */
+  var grup = {}, urut = [];
+  lama.forEach(function (r) {
+    if (r.Status === STATUS_SHIFT.DIBATALKAN) return;
+    var k = String(r.Tanggal) + '|' + String(r.Shift);
+    if (!grup[k]) { grup[k] = { rows: [] }; urut.push(k); }
+    grup[k].rows.push(r);
+  });
+  var detPer = {}; detLama.forEach(function (d) { (detPer[d.ID_Shift] = detPer[d.ID_Shift] || []).push(d); });
+  urut.forEach(function (k) {
+    var rows = grup[k], r0 = rows.rows[0], id = buatId_('SHF');
+    var o = { ID: id, Waktu: r0.Waktu, Tanggal: r0.Tanggal, Shift: String(r0.Shift), Operator_Blowing: '', Operator_Cutting: '',
+              Total_Ambil_Kg: 0, Total_Roll_Kg: 0, Total_BS_Blowing_Kg: 0, Total_Roll_Pakai_Kg: 0, Total_Polybag_Kg: 0, Total_BS_Cutting_Kg: 0,
+              Dicatat_Oleh: r0.Dicatat_Oleh, Nama_Pencatat: r0.Nama_Pencatat, Foto_URL: r0.Foto_URL || '', Catatan: '', Log_Edit: '', Status: STATUS_SHIFT.AKTIF };
+    var catatan = [], log = [];
+    rows.rows.forEach(function (r) {
+      var mesin = r.Mesin === MESIN.CUTTING ? MESIN.CUTTING : MESIN.BLOWING;
+      if (mesin === MESIN.BLOWING) { o.Operator_Blowing = r.Operator; o.Total_Ambil_Kg += angka_(r.Total_Ambil_Kg); o.Total_Roll_Kg += angka_(r.Total_Hasil_Kg); o.Total_BS_Blowing_Kg += angka_(r.Total_BS_Kg); }
+      else { o.Operator_Cutting = r.Operator; o.Total_Roll_Pakai_Kg += angka_(r.Total_Roll_Pakai_Kg); o.Total_Polybag_Kg += angka_(r.Total_Hasil_Kg); o.Total_BS_Cutting_Kg += angka_(r.Total_BS_Kg); }
+      if (r.Catatan) catatan.push(r.Catatan); if (r.Log_Edit) log.push(r.Log_Edit);
+      (detPer[r.ID] || []).forEach(function (d) {
+        tambah_(SHEET.SHIFT_DETAIL, { ID: buatId_('SDT'), ID_Shift: id, Mesin: mesin, Jenis: d.Jenis, Kode_Item: d.Kode_Item, Nama_Item: d.Nama_Item, Kualitas: d.Kualitas || '', Qty_Kg: angka_(d.Qty_Kg), Waktu: d.Waktu || r0.Waktu });
+      });
+    });
+    o.Catatan = catatan.join(' | '); o.Log_Edit = log.join('\n');
+    tambah_(SHEET.SHIFT, o);
+  });
+  lupakanMemo_();
+  catatLog_('MIGRASI_V10_1', '', urut.length + ' laporan shift digabung per shift');
+}
+
 function pastikanSkema_() {
   if (typeof PropertiesService === 'undefined') return;
   try {
@@ -527,21 +585,26 @@ function hitungRata_(sampaiTanggal) {
         else if (d < 0) biaya[r.ID] = keluar(r.Kode_Item, -d);
         break;
       case 'SHIFT':
-        var det = detShift[r.ID] || [], nilaiMasuk = 0, kgHasil = 0, kgAmbil = 0;
-        det.forEach(function (x) {
-          var q = angka_(x.Qty_Kg);
-          if (x.Jenis === JENIS_SHIFT.AMBIL) { nilaiMasuk += keluar(x.Kode_Item, q); kgAmbil += q; }
-          else if (x.Jenis === JENIS_SHIFT.PAKAI_ROLL) nilaiMasuk += keluar(x.Kode_Item, q);
-          else if (x.Jenis === JENIS_SHIFT.HASIL) kgHasil += q;
+        /* v10.1: satu laporan = dua mesin. Blowing: biji keluar (rata-rata) + biaya proses → roll. Cutting: roll keluar (rata-rata) → polybag. BS dinilai 0. */
+        var det = detShift[r.ID] || [], totalNilai = 0, totalProses = 0;
+        [MESIN.BLOWING, MESIN.CUTTING].forEach(function (mesin) {
+          var dm = det.filter(function (x) { return (x.Mesin || (x.Jenis === JENIS_SHIFT.PAKAI_ROLL ? MESIN.CUTTING : MESIN.BLOWING)) === mesin; });
+          var nilaiMasuk = 0, kgHasil = 0, kgAmbil = 0;
+          dm.forEach(function (x) {
+            var q = angka_(x.Qty_Kg);
+            if (x.Jenis === JENIS_SHIFT.AMBIL || x.Jenis === JENIS_SHIFT.PAKAI_ROLL) { nilaiMasuk += keluar(x.Kode_Item, q); if (x.Jenis === JENIS_SHIFT.AMBIL) kgAmbil += q; }
+            else if (x.Jenis === JENIS_SHIFT.HASIL) kgHasil += q;
+          });
+          var pr = mesin === MESIN.BLOWING ? kgAmbil * biayaProses : 0;
+          var hargaHasil = kgHasil > 0 ? (nilaiMasuk + pr) / kgHasil : 0;
+          dm.forEach(function (x) {
+            var q = angka_(x.Qty_Kg);
+            if (x.Jenis === JENIS_SHIFT.HASIL) masuk(x.Kode_Item, q, hargaHasil);
+            else if (x.Jenis === JENIS_SHIFT.BS) masuk(x.Kode_Item, q, 0);   // BS dinilai 0 — nilainya muncul lagi lewat jasa chassen
+          });
+          totalNilai += nilaiMasuk; totalProses += pr;
         });
-        var pr = r.Mesin === MESIN.BLOWING ? kgAmbil * biayaProses : 0;
-        proses[r.ID] = pr; biaya[r.ID] = nilaiMasuk;
-        var hargaHasil = kgHasil > 0 ? (nilaiMasuk + pr) / kgHasil : 0;
-        det.forEach(function (x) {
-          var q = angka_(x.Qty_Kg);
-          if (x.Jenis === JENIS_SHIFT.HASIL) masuk(x.Kode_Item, q, hargaHasil);
-          else if (x.Jenis === JENIS_SHIFT.BS) masuk(x.Kode_Item, q, 0);   // BS dinilai 0 — nilainya muncul lagi lewat jasa chassen
-        });
+        proses[r.ID] = totalProses; biaya[r.ID] = totalNilai;
         break;
       case 'DAUR_KIRIM':
         var ns = 0;

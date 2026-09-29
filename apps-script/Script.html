@@ -14,7 +14,7 @@ var T = {
     a5t:'Retur ke supplier', a5s:'GBJ → supplier · mengurangi stok',
     a6t:'Barang keluar (terjual)', a6s:'GBJ → customer · mengurangi stok',
     a7t:'Retur dari customer', a7s:'Customer → GBJ · menambah stok',
-    a2t:'Laporan shift produksi', a2s:'Per shift per mesin: operator · biji plastik diambil · roll / polybag jadi per kualitas · BS',
+    a2t:'Laporan shift produksi', a2s:'2 shift × 12 jam. Blowing: operator · biji plastik diambil · roll jadi · BS. Cutting: operator · roll dipakai · polybag jadi · BS.',
     a11t:'Daur ulang BS', a11s:'BS → mesin chassen (pabrik lain) → biji plastik daur ulang · susut & jasa',
     a4t:'Antrian review', a4s:'Foto di sebelah angka · setuju / tandai',
     lblSupplier:'Supplier', lblCustomer:'Customer', lblFotoSJ:'Foto surat jalan', fotoHintSJ:'Bukti silang untuk angka yang diketik',
@@ -119,7 +119,7 @@ var T = {
     hariKosong:'Tidak ada kejadian di hari ini.', kejadian:'kejadian', hariIni:'hari ini',
     evMASUK:'Penerimaan barang', evRETUR_SUPPLIER:'Retur ke supplier', evKELUAR:'Barang keluar',
     evRETUR_CUSTOMER:'Retur dari customer', evDAUR_KIRIM:'Scrap ke chassen', evDAUR_TERIMA:'Biji plastik dari chassen',
-    evSHIFT_BLOWING:'Shift blowing', evSHIFT_CUTTING:'Shift cutting', evOPNAME:'Stock opname',
+    evOPNAME:'Stock opname',
     bulan:['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'],
     hariSingkat:['Min','Sen','Sel','Rab','Kam','Jum','Sab'],
     /* review */
@@ -169,7 +169,7 @@ var T = {
     diubah:'diubah',
     identPin:'PIN', identPinHint:'PIN kamu dari admin. Kalau belum punya, kosongkan.',
     /* admin */
-    navAdmin:'Admin', segOpname:'Opname', segAkt:'Aktivitas', segUser:'Pengguna',
+    navAdmin:'Admin', segOpname:'Opname gudang', segAkt:'Aktivitas', segUser:'Pengguna',
     opT:'Stock opname', opS:'Hitung fisik, isi angkanya. Kosongkan yang tidak dihitung. Selisih jadi penyesuaian stok.',
     opSistem:'Sistem', opFisik:'Fisik', opItem:'Item',
     opSimpan:'Simpan opname', opRingkas:'item dihitung', opLebih:'lebih', opKurang:'kurang',
@@ -212,16 +212,31 @@ var T = {
     statDaur:'kg scrap di chassen',
     /* v10: laporan shift, tutup bulan, TOP */
     segShiftList:'Laporan', segShiftNew:'+ Isi laporan', segShiftRep:'Rekap bulan', shift14:'14 hari',
-    shiftFormT:'Laporan shift', shiftFormS:'Satu laporan per shift per mesin. Tidak perlu persetujuan — stok langsung ikut.',
+    shiftFormT:'Laporan shift', shiftFormS:'Satu laporan per shift (12 jam). Operator blowing dan cutting dicatat terpisah. Tidak perlu persetujuan — stok langsung ikut.',
     shiftEditT:'Ubah laporan shift', shiftDetailT:'Detail laporan shift', lblShift:'Shift', lblMesin:'Mesin', shiftKe:'Shift',
-    lblOperator:'Operator (bisa lebih dari satu)', hintOperator:'Ketik nama lalu pilih / Enter. Nama baru langsung boleh.', ketikOperator:'ketik nama operator…', belumAdaOperator:'Belum ada operator.',
-    hintBlowing:'Blowing: biji plastik diambil dari gudang → keluar roll per kualitas + BS.', hintCutting:'Cutting: roll dipotong jadi polybag per kualitas + BS. Roll yang terpakai dihitung otomatis (polybag + BS), tidak ambil dari gudang bahan baku.',
-    secAmbil:'Biji plastik diambil dari gudang', secAmbilS:'Biji plastik masuk', secHasilRoll:'Roll jadi per kualitas', secHasilPolybag:'Polybag jadi per kualitas', secBs:'BS (scrap) per kualitas',
-    rollJadi:'roll jadi', polybagJadi:'polybag jadi', rollPakai:'roll dipakai', rollPakaiOtomatis:'Roll dipakai otomatis (polybag + BS) / stok roll', hasil:'Hasil',
+    mesinBlowingT:'Mesin blowing', mesinCuttingT:'Mesin cutting', mesinJalan:'jalan', mesinTidakJalan:'Mesin tidak jalan di shift ini — tidak dicatat.', mesinTidakJalanS:'tidak jalan',
+    lblOperatorBlowing:'Operator blowing (bisa lebih dari satu)', lblOperatorCutting:'Operator cutting (bisa lebih dari satu)', hintOperator:'Ketik nama lalu pilih / Enter. Nama baru langsung boleh.', ketikOperator:'ketik nama operator…', belumAdaOperator:'Belum ada operator.',
+    hintBlowing:'Biji plastik diambil dari gudang → roll per kualitas + BS. Operator ini yang bertanggung jawab atas biji yang diambil.', hintCutting:'Roll diambil dari tumpukan (boleh dari shift sebelumnya) → polybag per kualitas + BS. Tidak terkait angka blowing — isi sendiri roll yang dipakai.',
+    secAmbil:'Biji plastik diambil dari gudang', secAmbilS:'Biji plastik masuk', secHasilRoll:'Roll jadi per kualitas', secHasilPolybag:'Polybag jadi per kualitas', secRollPakai:'Roll diambil untuk dipotong per kualitas',
+    secBsBlowing:'BS blowing per kualitas', secBsCutting:'BS cutting per kualitas', secBs:'BS (scrap) per kualitas',
+    rollJadi:'roll jadi', polybagJadi:'polybag jadi', rollPakai:'roll dipakai', hasil:'Hasil', lebihDariAmbil:'roll + BS lebih besar dari biji yang diambil', lebihDariRoll:'polybag + BS lebih besar dari roll yang dipakai', rollKurangStok:'roll dipakai melebihi stok roll',
+    shiftHariIniLengkap:'Kedua shift hari ini sudah ada laporannya — ubah lewat daftar, atau pilih tanggal lain.',
     kualKW:'KW', kualSUPER:'Super', kualSUPER_PLUS:'Super Plus', kualitasKosong:'SKU per kualitas belum lengkap — cek Admin → SKU (roll, polybag, BS per kualitas).',
     btnSimpanShift:'Simpan laporan', btnBatalShift:'Batalkan laporan', shiftTersimpan:'Laporan shift tersimpan', shiftDibatalkan:'Laporan shift dibatalkan — stok disesuaikan',
     konfirmBatalShift:'Batalkan laporan shift ini? Stok akan disesuaikan.', hanyaManagerShift:'Hanya manager yang bisa mengubah laporan shift.',
-    wajibOperator:'Isi operator dulu.', wajibAmbil:'Isi biji plastik yang diambil dari gudang.', wajibHasil:'Isi hasil produksi (atau BS).',
+    wajibSatuMesin:'Minimal satu mesin harus diisi (blowing atau cutting).', wajibOperatorBlowing:'Isi operator blowing dulu.', wajibOperatorCutting:'Isi operator cutting dulu.',
+    wajibIsiBlowing:'Blowing: isi biji plastik yang diambil dan/atau roll jadi.', wajibIsiCutting:'Cutting: isi roll yang diambil dan/atau polybag jadi.',
+    segOpprod:'Opname produksi', segRekon:'Rekonsiliasi', opprodT:'Opname produksi (hitung fisik bulanan)', opprodS:'Hitung dan timbang yang ada di area produksi, isi angkanya — sistem hanya menjumlahkan. Hentikan mesin sebentar, keluarkan plastik yang sedang diproses dan timbang juga.',
+    opprodBulan:'Bulan yang dihitung', opprodPolybag:'Polybag yang dihasilkan bulan ini', opprodBs:'BS yang dihasilkan bulan ini', opprodBiji:'Biji plastik yang masih ada di area produksi', opprodRoll:'Roll yang belum dipotong', opprodWip:'Plastik di dalam mesin (sedang diproses)',
+    opprodTotal:'Total hitungan', opprodSimpan:'Simpan opname produksi', opprodTersimpan:'Opname produksi tersimpan — total {t} kg', opprodRiwayat:'Riwayat opname produksi', opprodKosong:'Belum ada opname produksi.', opprodGanti:'Opname bulan yang sama akan menggantikan yang lama (riwayat tetap tersimpan).', opprodDiganti:'diganti',
+    opprodCatatan:'Catatan (siapa yang ikut menghitung, kondisi mesin, dll.)', opprodWajib:'Isi minimal satu angka.',
+    rekonT:'Rekonsiliasi produksi bulanan', rekonS:'Hanya Admin. Angka ini tidak ditampilkan ke pengisi opname supaya hitungan tetap jujur.',
+    rekonRumus:'Bahan keluar gudang = stok awal bulan + pembelian (+ retur customer, hasil daur ulang) − retur supplier − jual − rusak − kirim chassen − stok akhir bulan',
+    rekonKeluar:'Bahan keluar gudang ke produksi (neraca)', rekonAwalProd:'+ bahan yang sudah di area produksi awal bulan (opname bulan lalu)', rekonSeharusnya:'= yang seharusnya ada / dihasilkan', rekonDihitung:'Hitungan fisik manager (opname produksi)',
+    rekonSelisih:'Selisih (seharusnya − dihitung)', rekonBelumOpname:'Belum ada opname produksi bulan ini. Minta manager mengisi Admin → Opname produksi.', rekonTanpaOpnameLalu:'Tidak ada opname produksi bulan lalu — bahan di area produksi awal bulan dianggap 0.',
+    rekonPerItem:'Per bahan baku', rekonMenurutShift:'menurut laporan shift', rekonBandingShift:'Dibandingkan laporan shift', rekonPolybagShift:'Polybag: opname vs laporan shift', rekonBsShift:'BS: opname vs laporan shift', rekonRollShift:'Roll belum dipotong: opname vs sisa menurut laporan (roll jadi − roll dipakai)',
+    rekonOk:'Cocok', rekonHilang:'lebih sedikit dari seharusnya (susut / tidak tercatat)', rekonLebih:'lebih banyak dari seharusnya (ada yang tidak tercatat masuk)',
+    thStokAwal:'Awal', thBeli:'Beli', thLainMasuk:'Masuk lain', thLainKeluar:'Keluar lain', thOpnameGudang:'Selisih opname', thStokAkhir:'Akhir', thKeluarProd:'Ke produksi',
     kosongShift:'Belum ada laporan shift 14 hari terakhir.', kosongShiftHari:'Belum ada laporan shift di tanggal ini.', laporanShift:'laporan shift',
     perMesin:'Per mesin', perKualitas:'Per kualitas', perOperator:'Per operator', perHari:'Per hari', blowing:'blowing', cutting:'cutting',
     bulananS:'Laba kotor dihitung periodik: COGS = nilai stok awal + pembelian − retur + jasa chassen + biaya proses − nilai stok akhir (harga rata-rata). Susut kelihatan di sini, bukan per shift.',
@@ -248,7 +263,7 @@ var T = {
     a5t:'Return to supplier', a5s:'GBJ → supplier · reduces stock',
     a6t:'Goods out (sold)', a6s:'GBJ → customer · reduces stock',
     a7t:'Return from customer', a7s:'Customer → GBJ · adds stock',
-    a2t:'Production shift report', a2s:'Per shift per machine: operators · pellets taken · roll / polybag made per grade · scrap (BS)',
+    a2t:'Production shift report', a2s:'2 shifts × 12 h. Blowing: operators · pellets taken · roll made · BS. Cutting: operators · roll used · polybag made · BS.',
     a11t:'Scrap (BS) recycling', a11s:'BS → crusher (another factory) → recycled pellets · shrinkage & fee',
     a4t:'Review queue', a4s:'Photo next to the typed number · approve / flag',
     lblSupplier:'Supplier', lblCustomer:'Customer', lblFotoSJ:'Delivery-note photo', fotoHintSJ:'Cross-checks the number you typed',
@@ -352,7 +367,7 @@ var T = {
     hariKosong:'Nothing happened on this day.', kejadian:'events', hariIni:'today',
     evMASUK:'Goods receipt', evRETUR_SUPPLIER:'Return to supplier', evKELUAR:'Goods out',
     evRETUR_CUSTOMER:'Return from customer', evDAUR_KIRIM:'Scrap sent to crusher', evDAUR_TERIMA:'Pellets back from crusher',
-    evSHIFT_BLOWING:'Blowing shift', evSHIFT_CUTTING:'Cutting shift', evOPNAME:'Stock count',
+    evOPNAME:'Stock count',
     bulan:['January','February','March','April','May','June','July','August','September','October','November','December'],
     hariSingkat:['Sun','Mon','Tue','Wed','Thu','Fri','Sat'],
     segMenunggu:'Pending', segDitandai:'Flagged',
@@ -397,7 +412,7 @@ var T = {
     alasanBatalSendiri:'Why cancel?', konfirmBatal:'Cancel this entry? Stock will be adjusted.',
     diubah:'edited',
     identPin:'PIN', identPinHint:'Your PIN from the admin. Leave blank if you have none.',
-    navAdmin:'Admin', segOpname:'Count', segAkt:'Activity', segUser:'Users',
+    navAdmin:'Admin', segOpname:'Warehouse count', segAkt:'Activity', segUser:'Users',
     opT:'Stock count (opname)', opS:'Count what is physically there, type it in. Leave uncounted items blank. The difference becomes a stock adjustment.',
     opSistem:'System', opFisik:'Counted', opItem:'Item',
     opSimpan:'Save count', opRingkas:'items counted', opLebih:'over', opKurang:'short',
@@ -438,16 +453,31 @@ var T = {
     perVendor:'By crushing vendor', batchSelesai:'batches done', sedangDiChassen:'at crusher', vendor:'Vendor', thHasil:'Pellets',
     statDaur:'kg scrap at crusher',
     segShiftList:'Reports', segShiftNew:'+ New report', segShiftRep:'Monthly recap', shift14:'14 days',
-    shiftFormT:'Shift report', shiftFormS:'One report per shift per machine. No approval needed — stock updates immediately.',
+    shiftFormT:'Shift report', shiftFormS:'One report per 12-hour shift. Blowing and cutting operators are recorded separately. No approval needed — stock updates immediately.',
     shiftEditT:'Edit shift report', shiftDetailT:'Shift report details', lblShift:'Shift', lblMesin:'Machine', shiftKe:'Shift',
-    lblOperator:'Operators (one or more)', hintOperator:'Type a name then pick / Enter. New names are fine.', ketikOperator:'type operator name…', belumAdaOperator:'No operator yet.',
-    hintBlowing:'Blowing: pellets taken from the warehouse → roll per grade + BS.', hintCutting:'Cutting: roll cut into polybags per grade + BS. Roll used is computed automatically (polybag + BS); nothing is taken from raw-material stock.',
-    secAmbil:'Pellets taken from warehouse', secAmbilS:'Pellets in', secHasilRoll:'Roll made per grade', secHasilPolybag:'Polybag made per grade', secBs:'BS (scrap) per grade',
-    rollJadi:'roll made', polybagJadi:'polybag made', rollPakai:'roll used', rollPakaiOtomatis:'Roll used automatically (polybag + BS) / roll stock', hasil:'Output',
+    mesinBlowingT:'Blowing machine', mesinCuttingT:'Cutting machine', mesinJalan:'running', mesinTidakJalan:'Machine not running this shift — nothing recorded.', mesinTidakJalanS:'not running',
+    lblOperatorBlowing:'Blowing operators (one or more)', lblOperatorCutting:'Cutting operators (one or more)', hintOperator:'Type a name then pick / Enter. New names are fine.', ketikOperator:'type operator name…', belumAdaOperator:'No operator yet.',
+    hintBlowing:'Pellets taken from the warehouse → roll per grade + BS. These operators are responsible for the pellets taken.', hintCutting:'Roll taken from the pile (possibly from earlier shifts) → polybag per grade + BS. Not linked to the blowing figures — enter the roll used yourself.',
+    secAmbil:'Pellets taken from warehouse', secAmbilS:'Pellets in', secHasilRoll:'Roll made per grade', secHasilPolybag:'Polybag made per grade', secRollPakai:'Roll taken to cut, per grade',
+    secBsBlowing:'Blowing BS per grade', secBsCutting:'Cutting BS per grade', secBs:'BS (scrap) per grade',
+    rollJadi:'roll made', polybagJadi:'polybag made', rollPakai:'roll used', hasil:'Output', lebihDariAmbil:'roll + BS exceed the pellets taken', lebihDariRoll:'polybag + BS exceed the roll used', rollKurangStok:'roll used exceeds roll stock',
+    shiftHariIniLengkap:'Both shifts today already have a report — edit from the list, or pick another date.',
     kualKW:'KW', kualSUPER:'Super', kualSUPER_PLUS:'Super Plus', kualitasKosong:'Grade SKUs incomplete — check Admin → SKU (roll, polybag, BS per grade).',
     btnSimpanShift:'Save report', btnBatalShift:'Cancel report', shiftTersimpan:'Shift report saved', shiftDibatalkan:'Shift report cancelled — stock adjusted',
     konfirmBatalShift:'Cancel this shift report? Stock will be adjusted.', hanyaManagerShift:'Only managers can change shift reports.',
-    wajibOperator:'Enter an operator first.', wajibAmbil:'Enter the pellets taken from the warehouse.', wajibHasil:'Enter the output (or BS).',
+    wajibSatuMesin:'At least one machine must be filled in (blowing or cutting).', wajibOperatorBlowing:'Enter the blowing operator first.', wajibOperatorCutting:'Enter the cutting operator first.',
+    wajibIsiBlowing:'Blowing: enter the pellets taken and/or the roll made.', wajibIsiCutting:'Cutting: enter the roll taken and/or the polybag made.',
+    segOpprod:'Production count', segRekon:'Reconciliation', opprodT:'Production count (monthly physical count)', opprodS:'Count and weigh what is in the production area and type it in — the system only adds it up. Pause the machines, take out the plastic being processed and weigh it too.',
+    opprodBulan:'Month counted', opprodPolybag:'Polybag produced this month', opprodBs:'BS produced this month', opprodBiji:'Pellets still in the production area', opprodRoll:'Roll not yet cut', opprodWip:'Plastic inside the machines (in process)',
+    opprodTotal:'Counted total', opprodSimpan:'Save production count', opprodTersimpan:'Production count saved — total {t} kg', opprodRiwayat:'Production count history', opprodKosong:'No production count yet.', opprodGanti:'A count for the same month replaces the previous one (history is kept).', opprodDiganti:'replaced',
+    opprodCatatan:'Notes (who counted, machine condition, etc.)', opprodWajib:'Enter at least one figure.',
+    rekonT:'Monthly production reconciliation', rekonS:'Admin only. These figures are hidden from whoever fills in the count so the count stays honest.',
+    rekonRumus:'Material out of warehouse = opening stock + purchases (+ customer returns, recycled pellets) − supplier returns − sales − damage − sent to crusher − closing stock',
+    rekonKeluar:'Material out of warehouse to production (ledger)', rekonAwalProd:'+ material already in production at month start (last month\'s count)', rekonSeharusnya:'= what should be there / produced', rekonDihitung:'Manager\'s physical count (production count)',
+    rekonSelisih:'Difference (expected − counted)', rekonBelumOpname:'No production count for this month yet. Ask the manager to fill in Admin → Production count.', rekonTanpaOpnameLalu:'No production count last month — material in production at month start is taken as 0.',
+    rekonPerItem:'Per raw material', rekonMenurutShift:'per shift reports', rekonBandingShift:'Compared with shift reports', rekonPolybagShift:'Polybag: count vs shift reports', rekonBsShift:'BS: count vs shift reports', rekonRollShift:'Uncut roll: count vs remaining per reports (roll made − roll used)',
+    rekonOk:'Matches', rekonHilang:'less than expected (shrinkage / unrecorded)', rekonLebih:'more than expected (something unrecorded came in)',
+    thStokAwal:'Opening', thBeli:'Bought', thLainMasuk:'Other in', thLainKeluar:'Other out', thOpnameGudang:'Count diff.', thStokAkhir:'Closing', thKeluarProd:'To production',
     kosongShift:'No shift reports in the last 14 days.', kosongShiftHari:'No shift reports on this date.', laporanShift:'shift reports',
     perMesin:'By machine', perKualitas:'By grade', perOperator:'By operator', perHari:'By day', blowing:'blowing', cutting:'cutting',
     bulananS:'Gross profit is computed periodically: COGS = opening stock value + purchases − returns + crushing fees + process cost − closing stock value (average cost). Shrinkage shows here, not per shift.',
@@ -502,7 +532,7 @@ var S = {
   poTerbuka:[], returSisa:[], poTab:'aktif', poDetail:null,
   soTerbuka:[], soTab:'aktif', soCache:null, soAuto:null,
   daurTab:'list', daurAktif:null,
-  edit:null, edJob:null, admTab:'opname', opname:null, sku:null, userEdit:null,
+  edit:null, edJob:null, admTab:'opname', opname:null, opprod:null, rekonBulan:null, sku:null, userEdit:null,
   ocr:null, modeExt:'BELI_MASUK',
   cal:{ bulan:null, data:null, hari:null }, revTab:'MENUNGGU'
 };
@@ -575,7 +605,7 @@ function keluar(){
   $('hdrUser').textContent = '';
   /* v9: kosongkan layar hasil/daftar yang mungkin memuat harga — supaya akun berikutnya di HP yang sama tidak melihat sisa tampilan akun sebelumnya */
   ['daurHasil','repBody','admBody','poBody','soBody','daurDone','daurList','daurDetailBody','revList','shiftRows','shiftRep','daurFinHead'].forEach(function(id){ var el=$(id); if (el) el.innerHTML=''; });
-  S.daurCache = null; S.daurCacheDone = null; S.soCache = null; S.poCache = null; S.ekspor = null; S.shiftCache = null; S.shiftCfg = null; S.shiftEdit = null; STOK_CACHE = {};
+  S.daurCache = null; S.daurCacheDone = null; S.soCache = null; S.poCache = null; S.ekspor = null; S.shiftCache = null; S.shiftCfg = null; S.shiftEdit = null; S.opprod = null; S.rekonBulan = null; STOK_CACHE = {};
   ['nav-review','nav-admin'].forEach(function(id){ var el=$(id); if(el) el.classList.add('hide'); });
   tampil('ident');
 }
@@ -659,6 +689,7 @@ function muatKonteks(diam){
     gambarKirimHariIni(c.soHariIni || []);
     S.terakhirSegar = Date.now();
     $('segAdmUser').classList.toggle('hide', !c.bisaAdmin);
+    $('segAdmRekon').classList.toggle('hide', !c.bisaAdmin);
     var cm = $('cntMenunggu'), cd = $('cntDitandai'), cu = $('cntUsulan');
     if (cm) cm.textContent = c.ringkasan.menungguReview || '';
     if (cd) cd.textContent = c.ringkasan.ditandai || '';
@@ -727,8 +758,8 @@ function cocokFilter(e){
   if (f === 'masuk')    return e.jenis === 'MASUK' || e.jenis === 'RETUR_CUSTOMER';
   if (f === 'keluar')   return e.jenis === 'KELUAR' || e.jenis === 'RETUR_SUPPLIER';
   if (f === 'menunggu') return e.status === 'MENUNGGU';
-  if (f === 'jadi')     return e.jenis === 'SHIFT_CUTTING';
-  if (f === 'bs')       return e.jenis === 'SHIFT_BLOWING' || e.jenis === 'SHIFT_CUTTING';
+  if (f === 'jadi')     return e.jenis === 'SHIFT';
+  if (f === 'bs')       return e.jenis === 'SHIFT';
   return true;
 }
 function segarkan(){
@@ -803,7 +834,7 @@ function pilihHari(tgl){ S.cal.hari = tgl; gambarKalender(); }
 function warnaEv(j){
   if (j==='MASUK'||j==='RETUR_CUSTOMER') return 'var(--ok)';
   if (j==='KELUAR'||j==='RETUR_SUPPLIER') return 'var(--warn)';
-  if (j==='SHIFT_BLOWING'||j==='SHIFT_CUTTING') return '#4338ca';
+  if (j==='SHIFT') return '#4338ca';
   if (j==='OPNAME') return '#0e7490';
   if (j==='DAUR_KIRIM'||j==='DAUR_TERIMA') return '#b45309';
   return '#9aa3ad';
@@ -834,7 +865,7 @@ function gambarHari(){
       else if (e.status==='DITANDAI') st = ' <span class="pill n">'+esc(t('segDitandai'))+'</span>';
       var sub = e.item ? esc(e.item)+' · '+esc(e.label) : esc(e.label);
       if (e.jenis==='DAUR_TERIMA') sub += ' · '+esc(t('susut'))+' '+n2(e.susut)+' kg ('+n2(e.persen)+'%)';
-      if (e.jenis==='SHIFT_BLOWING' || e.jenis==='SHIFT_CUTTING') sub += ' · BS '+n2(e.bs||0)+' kg';
+      if (e.jenis==='SHIFT') sub += ' · BS '+n2(e.bs||0)+' kg';
       var klik = e.id ? ' class="ev tap" onclick="bukaKejadian(\''+esc(e.sheet)+'\',\''+esc(e.id)+'\')"' : ' class="ev"';
       return '<div'+klik+'><span class="jm">'+esc(e.jam)+'</span><span class="tp" style="background:'+warnaEv(e.jenis)+'"></span>' +
         '<span class="tx"><b>'+esc(t('ev'+e.jenis))+'</b>'+st+'<small>'+sub+' · '+esc(e.oleh)+'</small></span>' +
@@ -1344,7 +1375,8 @@ function pakaiOcr(q){
 }
 
 /* =================================================================
-   ①  LAPORAN SHIFT PRODUKSI (v10) — blowing / cutting, per shift per mesin
+   ①  LAPORAN SHIFT PRODUKSI (v10.1) — satu laporan per shift (12 jam),
+       mesin blowing & cutting dicatat terpisah (operator masing-masing)
    ================================================================= */
 function segShift(tab){
   S.shiftTab = tab;
@@ -1368,6 +1400,7 @@ function geserHariShift(n){
   S.shiftSemua = false; $('shiftTglFilter').value = s; muatShift();
 }
 function semuaHariShift(){ S.shiftSemua = true; $('shiftTglFilter').value = ''; muatShift(); }
+function jamShift(n){ var j = S.shiftCfg && S.shiftCfg.jamShift && S.shiftCfg.jamShift[n]; return j || (n==='1' ? '08.00–20.00' : '20.00–08.00'); }
 
 function muatShift(){
   var el = $('shiftRows'); el.innerHTML = '<div class="load">…</div>';
@@ -1380,153 +1413,170 @@ function muatShift(){
         (S.ctx && S.ctx.bisaReview ? '<button class="btn" onclick="segShift(\'new\')">'+esc(t('segShiftNew'))+'</button>' : '');
       return;
     }
-    /* kelompokkan per tanggal → per shift */
     var perTgl = {}, urut = [];
     rows.forEach(function(r){ if (!perTgl[r.tanggal]){ perTgl[r.tanggal] = []; urut.push(r.tanggal); } perTgl[r.tanggal].push(r); });
     el.innerHTML = urut.map(function(tg){
-      var list = perTgl[tg].slice().sort(function(a,b){ return (a.shift+a.mesin).localeCompare(b.shift+b.mesin); });
+      var list = perTgl[tg].slice().sort(function(a,b){ return a.shift.localeCompare(b.shift); });
       var jadi = 0, roll = 0, bs = 0, ambil = 0;
-      list.forEach(function(r){ if (r.mesin==='BLOWING'){ roll += r.totalHasil; ambil += r.totalAmbil; } else jadi += r.totalHasil; bs += r.totalBs; });
+      list.forEach(function(r){ roll += r.blowing.totalHasil; ambil += r.blowing.totalAmbil; jadi += r.cutting.totalHasil; bs += r.totalBs; });
       var dd = new Date(tg+'T00:00:00');
       return '<div class="dayhead" style="margin-top:6px"><b>'+esc(dd.getDate()+' '+t('bulan')[dd.getMonth()]+' '+dd.getFullYear())+(tg===hariIniStr()?' · '+esc(t('hariIni')):'')+'</b>' +
-        '<span>'+n2(ambil)+' → '+n2(roll)+' → '+n2(jadi)+' kg · BS '+n2(bs)+'</span></div>' +
+        '<span>'+esc(t('secAmbilS'))+' '+n2(ambil)+' · roll '+n2(roll)+' · polybag '+n2(jadi)+' kg · BS '+n2(bs)+'</span></div>' +
         list.map(kartuShift).join('');
     }).join('');
   }).catch(function(e){ el.innerHTML = '<div class="banner bad">'+esc(e.message)+'</div>'; });
 }
 function labelMesin(m){ return m==='BLOWING' ? '🌬️ Blowing' : '✂️ Cutting'; }
+function perKualTxt(list){ return list.length ? list.map(function(h){ return esc(t('kual'+h.kualitas))+' <b>'+n2(h.qty)+'</b>'; }).join(' · ') : '—'; }
+function pillBs(p){ return '<span class="pill '+(p>10?'bad':p>5?'warn':'ok')+'" style="margin-left:6px">'+n2(p)+'% BS</span>'; }
 function kartuShift(r){
-  var blow = r.mesin==='BLOWING';
-  var hasil = r.hasil.map(function(h){ return esc(t('kual'+h.kualitas))+' <b>'+n2(h.qty)+'</b>'; }).join(' · ');
-  var bs = r.bs.length ? r.bs.map(function(h){ return esc(t('kual'+h.kualitas))+' <b>'+n2(h.qty)+'</b>'; }).join(' · ') : '—';
-  var ambil = blow ? r.ambil.map(function(a){ return esc(a.nama)+' <b>'+n2(a.qty)+'</b>'; }).join(' · ') : (esc(t('rollPakai'))+' <b>'+n2(r.totalRoll)+' kg</b>');
-  return '<div class="job" onclick="bukaEditShift(\''+esc(r.id)+'\')" style="cursor:pointer">' +
+  var b = r.blowing, c = r.cutting;
+  var h = '<div class="job" onclick="bukaEditShift(\''+esc(r.id)+'\')" style="cursor:pointer">' +
     '<div style="display:flex;align-items:flex-start;gap:10px">' +
-      '<div style="flex:1;min-width:0"><b>'+esc(t('shiftKe'))+' '+esc(r.shift)+' · '+labelMesin(r.mesin)+'</b>' +
-        '<div class="m">'+esc(r.operator.join(', '))+' · '+esc(r.pencatat)+(r.logEdit?' · <i>'+esc(t('diubah'))+'</i>':'')+'</div></div>' +
-      '<div style="text-align:right;flex:0 0 auto"><div class="big" style="font-size:24px">'+n2(r.totalHasil)+'<span class="u">kg</span></div>' +
-        '<div class="m" style="margin-top:1px">'+esc(blow ? t('rollJadi') : t('polybagJadi'))+'</div></div></div>' +
-    '<div class="bb">' +
-      '<div>'+esc(blow ? t('secAmbilS') : t('rollPakai'))+': '+ambil+'</div>' +
-      '<div style="margin-top:3px">'+esc(t('hasil'))+': '+hasil+'</div>' +
-      '<div style="margin-top:3px">BS: '+bs+' <span class="pill '+(r.persenBs>10?'bad':r.persenBs>5?'warn':'ok')+'" style="margin-left:6px">'+n2(r.persenBs)+'% BS</span></div>' +
-      (r.catatan ? '<div style="margin-top:3px;color:var(--muted)">'+esc(r.catatan)+'</div>' : '') +
-    '</div></div>';
+      '<div style="flex:1;min-width:0"><b>'+esc(t('shiftKe'))+' '+esc(r.shift)+' <small style="font-weight:500;color:var(--muted)">'+esc(r.jam || jamShift(r.shift))+'</small></b>' +
+        '<div class="m">'+esc(r.pencatat)+(r.logEdit?' · <i>'+esc(t('diubah'))+'</i>':'')+'</div></div>' +
+      '<div style="text-align:right;flex:0 0 auto"><div class="big" style="font-size:24px">'+n2(c.totalHasil)+'<span class="u">kg</span></div>' +
+        '<div class="m" style="margin-top:1px">'+esc(t('polybagJadi'))+'</div></div></div>' +
+    '<div class="bb">';
+  if (b.aktif) h += '<div><b>'+labelMesin('BLOWING')+'</b> · 👷 '+esc(b.operator.join(', '))+'<br>' +
+      esc(t('secAmbilS'))+': '+(b.ambil.map(function(a){ return esc(a.nama)+' <b>'+n2(a.qty)+'</b>'; }).join(' · ') || '—')+'<br>' +
+      esc(t('rollJadi'))+': '+perKualTxt(b.hasil)+' · BS: '+perKualTxt(b.bs)+pillBs(b.persenBs)+'</div>';
+  else h += '<div style="color:var(--muted)">'+labelMesin('BLOWING')+' · '+esc(t('mesinTidakJalanS'))+'</div>';
+  if (c.aktif) h += '<div style="margin-top:6px"><b>'+labelMesin('CUTTING')+'</b> · 👷 '+esc(c.operator.join(', '))+'<br>' +
+      esc(t('rollPakai'))+': '+perKualTxt(c.rollPakai)+'<br>' +
+      esc(t('polybagJadi'))+': '+perKualTxt(c.hasil)+' · BS: '+perKualTxt(c.bs)+pillBs(c.persenBs)+'</div>';
+  else h += '<div style="margin-top:6px;color:var(--muted)">'+labelMesin('CUTTING')+' · '+esc(t('mesinTidakJalanS'))+'</div>';
+  if (r.catatan) h += '<div style="margin-top:4px;color:var(--muted)">'+esc(r.catatan)+'</div>';
+  return h + '</div></div>';
 }
 
 /* ---------- form ---------- */
 function kualitasList(){ return (S.ctx && S.ctx.kualitas) || []; }
+function shiftKosong(){ return { shift:'1', blowing:{ aktif:true, operator:[], hasil:{}, bs:{} }, cutting:{ aktif:true, operator:[], roll:{}, hasil:{}, bs:{} } }; }
 function shiftFormBaru(){
   S.shiftEdit = null;
-  S.shift = { shift:'1', mesin:'BLOWING', operator:[], hasil:{}, bs:{} };
+  S.shift = shiftKosong();
   S.baris.ambil = [{ kode:'', qty:'' }];
   S.foto.shift = null; hapusFoto('shift');
   $('shiftCatatan').value = '';
   $('shiftFormT').textContent = t('shiftFormT'); $('shiftFormS').textContent = t('shiftFormS');
   $('shiftInfo').classList.add('hide'); $('shiftLog').classList.add('hide');
-  $('btnBatalShift').classList.add('hide');
+  $('btnBatalShift').classList.add('hide'); $('btnSimpanShift').classList.remove('hide');
   setTanggal('shiftTanggal');
-  /* shift berikutnya dari laporan hari ini */
+  /* shift berikutnya: yang belum diisi hari ini */
   var hariIni = (S.shiftCache || []).filter(function(r){ return r.tanggal === hariIniStr(); });
-  if (hariIni.length){
-    var maks = '1'; hariIni.forEach(function(r){ if (r.shift > maks) maks = r.shift; });
-    var lengkap = hariIni.some(function(r){ return r.shift===maks && r.mesin==='BLOWING'; }) && hariIni.some(function(r){ return r.shift===maks && r.mesin==='CUTTING'; });
-    S.shift.shift = lengkap && maks < '3' ? String(parseInt(maks,10)+1) : maks;
-    if (!lengkap) S.shift.mesin = hariIni.some(function(r){ return r.shift===maks && r.mesin==='BLOWING'; }) ? 'CUTTING' : 'BLOWING';
-  }
+  var ada = {}; hariIni.forEach(function(r){ ada[r.shift] = true; });
+  S.shift.shift = !ada['1'] ? '1' : !ada['2'] ? '2' : '1';
+  if (ada['1'] && ada['2']){ var info = $('shiftInfo'); info.classList.remove('hide'); info.textContent = t('shiftHariIniLengkap'); }
+  setBacaSaja(['shiftTanggal','blowingOperator','cuttingOperator','shiftCatatan'], false);
+  $('shiftForm').querySelectorAll('input, button').forEach(function(x){ x.disabled = false; });
   gambarShiftForm();
 }
 function gambarShiftForm(){
   var d = S.shift;
-  ['1','2','3'].forEach(function(n){ $('shiftP'+n).classList.toggle('on', d.shift===n); });
-  var blow = d.mesin==='BLOWING';
-  $('mesinBlowing').classList.toggle('on', blow); $('mesinCutting').classList.toggle('on', !blow);
-  $('mesinHint').textContent = blow ? t('hintBlowing') : t('hintCutting');
-  $('ambilWrap').classList.toggle('hide', !blow);
-  $('hasilJudul').innerHTML = esc(blow ? t('secHasilRoll') : t('secHasilPolybag')) + ' <span class="unit">kg</span>';
-  gambarOpChips();
-  pasangCombo($('shiftOperator'), { daftar: function(){ var ada = S.shift.operator.map(function(o){ return o.toLowerCase(); }); return ((S.shiftCfg && S.shiftCfg.operator) || []).filter(function(n){ return ada.indexOf(n.toLowerCase()) < 0; }).map(function(n){ return { kode:n, nama:n }; }); },
-    onPilih: function(it){ tambahOperator(it.nama); }, sub: function(){ return ''; } });
-  $('shiftOperator').placeholder = t('ketikOperator');
-  $('shiftOperator').onkeydown = function(ev){
-    if (ev.key === 'Enter' || ev.key === ','){ ev.preventDefault(); tambahOperator($('shiftOperator').value); }
-  };
-  $('shiftOperator').onblur = function(){ setTimeout(function(){ if ($('shiftOperator').value.trim()) tambahOperator($('shiftOperator').value); }, 200); };
+  ['1','2'].forEach(function(n){ $('shiftP'+n).classList.toggle('on', d.shift===n); $('shiftP'+n).innerHTML = n+' <small>'+esc(jamShift(n).replace(/\.00/g,''))+'</small>'; });
+  ['blowing','cutting'].forEach(function(m){
+    var on = d[m].aktif;
+    $(m+'Aktif').checked = on;
+    $(m+'Body').classList.toggle('hide', !on);
+    $(m+'Off').classList.toggle('hide', on);
+    $(m==='blowing'?'secBlowing':'secCutting').classList.toggle('off', !on);
+    gambarOpChips(m);
+    pasangCombo($(m+'Operator'), { daftar: function(){
+        var ada = S.shift[m].operator.map(function(o){ return o.toLowerCase(); });
+        var src = (S.shiftCfg && S.shiftCfg.operator && S.shiftCfg.operator[m.toUpperCase()]) || [];
+        return src.filter(function(n){ return ada.indexOf(n.toLowerCase()) < 0; }).map(function(n){ return { kode:n, nama:n }; });
+      }, onPilih: function(it){ tambahOperator(m, it.nama); }, sub: function(){ return ''; } });
+    $(m+'Operator').placeholder = t('ketikOperator');
+    $(m+'Operator').onkeydown = function(ev){ if (ev.key === 'Enter' || ev.key === ','){ ev.preventDefault(); tambahOperator(m, $(m+'Operator').value); } };
+    $(m+'Operator').onblur = function(){ setTimeout(function(){ if ($(m+'Operator').value.trim()) tambahOperator(m, $(m+'Operator').value); }, 200); };
+  });
   gambarBaris('ambil');
   gambarHasilBs();
   ringkasShift();
 }
 function pilihShift(n){ S.shift.shift = n; gambarShiftForm(); }
-function pilihMesin(m){ S.shift.mesin = m; gambarShiftForm(); }
-function tambahOperator(nama){
+function toggleMesin(m, on){ S.shift[m].aktif = !!on; gambarShiftForm(); }
+function tambahOperator(m, nama){
   nama = String(nama||'').replace(/\s+/g,' ').trim(); if (!nama) return;
-  var ada = S.shift.operator.some(function(o){ return o.toLowerCase() === nama.toLowerCase(); });
-  if (!ada) S.shift.operator.push(nama);
-  $('shiftOperator').value = ''; delete $('shiftOperator').dataset.kode;
-  gambarOpChips();
+  var ada = S.shift[m].operator.some(function(o){ return o.toLowerCase() === nama.toLowerCase(); });
+  if (!ada) S.shift[m].operator.push(nama);
+  $(m+'Operator').value = ''; delete $(m+'Operator').dataset.kode;
+  gambarOpChips(m);
 }
-function hapusOperator(i){ S.shift.operator.splice(i,1); gambarOpChips(); }
-function gambarOpChips(){
-  $('shiftOpChips').innerHTML = S.shift.operator.map(function(o, i){
-    return '<span class="chip" style="margin-right:6px">👷 '+esc(o)+' <button type="button" onclick="hapusOperator('+i+')">✕</button></span>';
+function hapusOperator(m, i){ S.shift[m].operator.splice(i,1); gambarOpChips(m); }
+function gambarOpChips(m){
+  $(m+'OpChips').innerHTML = S.shift[m].operator.map(function(o, i){
+    return '<span class="chip" style="margin-right:6px">👷 '+esc(o)+' <button type="button" onclick="hapusOperator(\''+m+'\','+i+')">✕</button></span>';
   }).join('') || '<div class="p2" style="font-size:12px;color:var(--muted)">'+esc(t('belumAdaOperator'))+'</div>';
 }
-function gambarHasilBs(){
-  var d = S.shift, blow = d.mesin==='BLOWING', ks = kualitasList();
-  function baris(jenis, q){
-    var sku = jenis==='hasil' ? (blow ? q.roll : q.jadi) : q.bs;
-    var nama = sku ? namaItem(sku) : '—';
-    var v = d[jenis][q.kualitas] || '';
-    var st = sku && S.ctx && S.ctx.stok && S.ctx.stok[sku] ? S.ctx.stok[sku].gbj : null;
-    var stokTxt = st !== null ? '<small style="color:var(--muted)">'+esc(t('stokGBJ'))+' '+n2(st)+' kg</small>' : '';
-    return '<div class="line" style="padding:8px 10px"><div class="row" style="align-items:center">' +
-      '<div style="flex:1;min-width:0"><b style="font-size:13.5px">'+esc(t('kual'+q.kualitas))+'</b><br><small style="color:var(--muted)">'+esc(nama)+'</small>'+(stokTxt?'<br>'+stokTxt:'')+'</div>' +
-      '<div class="w90"><input type="number" inputmode="decimal" step="any" min="0" placeholder="0" value="'+esc(v)+'" oninput="ubahHasilBs(\''+jenis+'\',\''+esc(q.kualitas)+'\',this.value)"></div>' +
-      '<div style="flex:0 0 auto;font-weight:650;font-size:12px">kg</div></div></div>';
-  }
-  $('hasilLines').innerHTML = ks.map(function(q){ return baris('hasil', q); }).join('') || '<div class="banner warn">'+esc(t('kualitasKosong'))+'</div>';
-  $('bsLines').innerHTML = ks.map(function(q){ return baris('bs', q); }).join('');
+function barisKual(m, jenis, q, sku){
+  var nama = sku ? namaItem(sku) : '—';
+  var v = S.shift[m][jenis][q.kualitas] || '';
+  var st = sku && S.ctx && S.ctx.stok && S.ctx.stok[sku] ? S.ctx.stok[sku].gbj : null;
+  var stokTxt = st !== null ? '<small style="color:var(--muted)">'+esc(t('stokGBJ'))+' '+n2(st)+' kg</small>' : '';
+  return '<div class="line" style="padding:8px 10px"><div class="row" style="align-items:center">' +
+    '<div style="flex:1;min-width:0"><b style="font-size:13.5px">'+esc(t('kual'+q.kualitas))+'</b><br><small style="color:var(--muted)">'+esc(nama)+'</small>'+(stokTxt?'<br>'+stokTxt:'')+'</div>' +
+    '<div class="w90"><input type="number" inputmode="decimal" step="any" min="0" placeholder="0" value="'+esc(v)+'" oninput="ubahNilai(\''+m+'\',\''+jenis+'\',\''+esc(q.kualitas)+'\',this.value)"></div>' +
+    '<div style="flex:0 0 auto;font-weight:650;font-size:12px">kg</div></div></div>';
 }
-function ubahHasilBs(jenis, kual, v){ S.shift[jenis][kual] = v; ringkasShift(); }
+function gambarHasilBs(){
+  var ks = kualitasList();
+  if (!ks.length){ ['blowingHasilLines','cuttingRollLines','cuttingHasilLines'].forEach(function(id){ $(id).innerHTML = '<div class="banner warn">'+esc(t('kualitasKosong'))+'</div>'; }); $('blowingBsLines').innerHTML = $('cuttingBsLines').innerHTML = ''; return; }
+  $('blowingHasilLines').innerHTML = ks.map(function(q){ return barisKual('blowing','hasil', q, q.roll); }).join('');
+  $('blowingBsLines').innerHTML    = ks.map(function(q){ return barisKual('blowing','bs', q, q.bs); }).join('');
+  $('cuttingRollLines').innerHTML  = ks.map(function(q){ return barisKual('cutting','roll', q, q.roll); }).join('');
+  $('cuttingHasilLines').innerHTML = ks.map(function(q){ return barisKual('cutting','hasil', q, q.jadi); }).join('');
+  $('cuttingBsLines').innerHTML    = ks.map(function(q){ return barisKual('cutting','bs', q, q.bs); }).join('');
+}
+function ubahNilai(m, jenis, kual, v){ S.shift[m][jenis][kual] = v; ringkasShift(); }
 function totalObj(o){ var n = 0; Object.keys(o).forEach(function(k){ var q = parseFloat(o[k]); if (!isNaN(q)) n += q; }); return n; }
 function ringkasShift(){
-  var d = S.shift, el = $('shiftRingkas'); if (!d || !el) return;
-  var blow = d.mesin==='BLOWING';
-  var hasil = totalObj(d.hasil), bs = totalObj(d.bs), ambil = blow ? totalBaris('ambil') : 0;
-  var dasar = blow ? ambil : hasil + bs;
-  var persen = dasar > 0 ? bs/dasar*100 : 0;
-  var h = '<div class="bigrow"><span class="big">'+n2(hasil)+'<span class="u">kg</span></span><span style="font-size:12.5px">'+esc(blow ? t('rollJadi') : t('polybagJadi'))+'</span>' +
-    '<span style="margin-left:auto;font-size:12.5px">BS <b>'+n2(bs)+' kg</b> ('+n2(persen)+'%)</span></div>';
-  if (blow) h += '<div style="font-size:12px;margin-top:4px">'+esc(t('secAmbilS'))+' <b>'+n2(ambil)+' kg</b> → '+esc(t('rollJadi'))+' '+n2(hasil)+' + BS '+n2(bs)+'</div>';
-  else {
-    var rincian = kualitasList().map(function(q){
-      var pakai = (parseFloat(d.hasil[q.kualitas])||0) + (parseFloat(d.bs[q.kualitas])||0); if (!pakai) return '';
-      var st = q.roll && S.ctx.stok && S.ctx.stok[q.roll] ? S.ctx.stok[q.roll].gbj : null;
-      var kurang = st !== null && pakai > st + 0.0001;
-      return esc(t('kual'+q.kualitas))+' <b'+(kurang?' style="color:var(--danger)"':'')+'>'+n2(pakai)+'</b>'+(st!==null?' / '+n2(st):'');
-    }).filter(Boolean).join(' · ');
-    h += '<div style="font-size:12px;margin-top:4px">'+esc(t('rollPakaiOtomatis'))+': '+(rincian || '—')+'</div>';
-  }
-  el.innerHTML = h;
+  var d = S.shift; if (!d) return;
+  var b = d.blowing, c = d.cutting;
+  var ambil = totalBaris('ambil'), roll = totalObj(b.hasil), bsB = totalObj(b.bs);
+  var pB = ambil > 0 ? bsB/ambil*100 : 0;
+  $('blowingRingkas').innerHTML = '<div class="bigrow"><span class="big">'+n2(roll)+'<span class="u">kg</span></span><span style="font-size:12.5px">'+esc(t('rollJadi'))+'</span>' +
+    '<span style="margin-left:auto;font-size:12.5px">BS <b>'+n2(bsB)+' kg</b> ('+n2(pB)+'%)</span></div>' +
+    '<div style="font-size:12px;margin-top:4px">'+esc(t('secAmbilS'))+' <b>'+n2(ambil)+' kg</b> → '+esc(t('rollJadi'))+' '+n2(roll)+' + BS '+n2(bsB)+
+    (ambil > 0 && roll + bsB > ambil + 0.0001 ? ' <span style="color:var(--danger)">('+esc(t('lebihDariAmbil'))+')</span>' : '')+'</div>';
+  var rollPakai = totalObj(c.roll), pb = totalObj(c.hasil), bsC = totalObj(c.bs);
+  var pC = rollPakai > 0 ? bsC/rollPakai*100 : 0;
+  var kurang = kualitasList().filter(function(q){
+    var pakai = parseFloat(c.roll[q.kualitas]) || 0; var st = q.roll && S.ctx.stok && S.ctx.stok[q.roll] ? S.ctx.stok[q.roll].gbj : null;
+    return st !== null && pakai > st + 0.0001;
+  }).map(function(q){ return t('kual'+q.kualitas); });
+  $('cuttingRingkas').innerHTML = '<div class="bigrow"><span class="big">'+n2(pb)+'<span class="u">kg</span></span><span style="font-size:12.5px">'+esc(t('polybagJadi'))+'</span>' +
+    '<span style="margin-left:auto;font-size:12.5px">BS <b>'+n2(bsC)+' kg</b> ('+n2(pC)+'%)</span></div>' +
+    '<div style="font-size:12px;margin-top:4px">'+esc(t('rollPakai'))+' <b>'+n2(rollPakai)+' kg</b> → '+esc(t('polybagJadi'))+' '+n2(pb)+' + BS '+n2(bsC)+
+    (rollPakai > 0 && pb + bsC > rollPakai + 0.0001 ? ' <span style="color:var(--danger)">('+esc(t('lebihDariRoll'))+')</span>' : '')+
+    (kurang.length ? '<br><span style="color:var(--danger)">'+esc(t('rollKurangStok'))+': '+esc(kurang.join(', '))+'</span>' : '')+'</div>';
 }
 function kumpulShift(){
   var d = S.shift, ks = kualitasList();
   function list(o){ return ks.filter(function(q){ return parseFloat(o[q.kualitas]) > 0; }).map(function(q){ return { kualitas:q.kualitas, qty: parseFloat(o[q.kualitas]) }; }); }
-  return { tanggal: ambilTanggal('shiftTanggal'), shift: d.shift, mesin: d.mesin, operator: d.operator.slice(),
-           ambil: d.mesin==='BLOWING' ? ambilBaris('ambil') : [], hasil: list(d.hasil), bs: list(d.bs),
+  return { tanggal: ambilTanggal('shiftTanggal'), shift: d.shift,
+           blowing: d.blowing.aktif ? { operator: d.blowing.operator.slice(), ambil: ambilBaris('ambil'), hasil: list(d.blowing.hasil), bs: list(d.blowing.bs) } : null,
+           cutting: d.cutting.aktif ? { operator: d.cutting.operator.slice(), rollPakai: list(d.cutting.roll), hasil: list(d.cutting.hasil), bs: list(d.cutting.bs) } : null,
            catatan: $('shiftCatatan').value, foto: S.foto.shift };
 }
 function simpanShiftUI(){
   var p = kumpulShift();
-  if (!p.operator.length){ toast(t('wajibOperator'),'bad'); return; }
-  if (p.mesin==='BLOWING' && !p.ambil.length){ toast(t('wajibAmbil'),'bad'); return; }
-  if (!p.hasil.length && !p.bs.length){ toast(t('wajibHasil'),'bad'); return; }
+  if (!p.blowing && !p.cutting){ toast(t('wajibSatuMesin'),'bad'); return; }
+  if (p.blowing){
+    if (!p.blowing.operator.length){ toast(t('wajibOperatorBlowing'),'bad'); return; }
+    if (!p.blowing.ambil.length && !p.blowing.hasil.length && !p.blowing.bs.length){ toast(t('wajibIsiBlowing'),'bad'); return; }
+  }
+  if (p.cutting){
+    if (!p.cutting.operator.length){ toast(t('wajibOperatorCutting'),'bad'); return; }
+    if (!p.cutting.rollPakai.length && !p.cutting.hasil.length && !p.cutting.bs.length){ toast(t('wajibIsiCutting'),'bad'); return; }
+  }
   var b = $('btnSimpanShift'); sibuk(b, true);
   var janji = S.shiftEdit ? panggil('ubahLaporanShift',[S.shiftEdit.id, p, S.ident]) : panggil('simpanLaporanShift',[p, S.ident]);
   janji.then(function(r){
     sibuk(b,false,t('btnSimpanShift'));
     var lap = r.laporan || r;
-    toast((S.shiftEdit ? t('tersimpanEdit') : t('shiftTersimpan'))+' · '+esc(t('shiftKe'))+' '+lap.shift+' '+labelMesin(lap.mesin)+' · '+kg(lap.totalHasil), 'ok');
+    toast((S.shiftEdit ? t('tersimpanEdit') : t('shiftTersimpan'))+' · '+esc(t('shiftKe'))+' '+lap.shift+' · roll '+kg(lap.blowing.totalHasil)+' · polybag '+kg(lap.cutting.totalHasil), 'ok');
     S.shiftEdit = null; S.shiftSemua = false; $('shiftTglFilter').value = p.tanggal || hariIniStr();
     segShift('list'); muatKonteks(true);
   }).catch(function(e){ sibuk(b,false,t('btnSimpanShift')); toast(e.message,'bad'); });
@@ -1534,10 +1584,15 @@ function simpanShiftUI(){
 function bukaEditShift(id){
   panggil('ambilLaporanShift',[id, S.ident]).then(function(r){
     S.shiftEdit = r;
-    S.shift = { shift: r.shift, mesin: r.mesin, operator: r.operator.slice(), hasil:{}, bs:{} };
-    r.hasil.forEach(function(h){ S.shift.hasil[h.kualitas] = h.qty; });
-    r.bs.forEach(function(h){ S.shift.bs[h.kualitas] = h.qty; });
-    S.baris.ambil = r.ambil.length ? r.ambil.map(function(a){ return { kode:a.kode, qty:a.qty }; }) : [{ kode:'', qty:'' }];
+    S.shift = shiftKosong(); S.shift.shift = r.shift;
+    S.shift.blowing.aktif = r.blowing.aktif; S.shift.blowing.operator = r.blowing.operator.slice();
+    r.blowing.hasil.forEach(function(h){ S.shift.blowing.hasil[h.kualitas] = h.qty; });
+    r.blowing.bs.forEach(function(h){ S.shift.blowing.bs[h.kualitas] = h.qty; });
+    S.shift.cutting.aktif = r.cutting.aktif; S.shift.cutting.operator = r.cutting.operator.slice();
+    r.cutting.rollPakai.forEach(function(h){ S.shift.cutting.roll[h.kualitas] = h.qty; });
+    r.cutting.hasil.forEach(function(h){ S.shift.cutting.hasil[h.kualitas] = h.qty; });
+    r.cutting.bs.forEach(function(h){ S.shift.cutting.bs[h.kualitas] = h.qty; });
+    S.baris.ambil = r.blowing.ambil.length ? r.blowing.ambil.map(function(a){ return { kode:a.kode, qty:a.qty }; }) : [{ kode:'', qty:'' }];
     S.foto.shift = null; hapusFoto('shift');
     $('shiftCatatan').value = r.catatan || '';
     setTanggal('shiftTanggal'); $('shiftTanggal').value = r.tanggal;
@@ -1553,10 +1608,10 @@ function bukaEditShift(id){
     S.shiftTab = 'new';
     $('segShiftList').classList.remove('on'); $('segShiftNew').classList.add('on'); $('segShiftRep').classList.remove('on');
     $('shiftList').classList.add('hide'); $('shiftRep').classList.add('hide'); $('shiftForm').classList.remove('hide');
+    $('shiftForm').querySelectorAll('input, button').forEach(function(x){ x.disabled = false; });
     gambarShiftForm();
-    var kunci = ['shiftTanggal','shiftOperator','shiftCatatan'];
-    setBacaSaja(kunci, baca);
-    $('shiftForm').querySelectorAll('input[type=number], #ambilLines input, #shiftPilihWrap button, #mesinBlowing, #mesinCutting').forEach(function(x){ x.disabled = baca; });
+    setBacaSaja(['shiftTanggal','blowingOperator','cuttingOperator','shiftCatatan'], baca);
+    if (baca) $('shiftForm').querySelectorAll('input[type=number], input[type=checkbox], #ambilLines input, #ambilLines button, #shiftPilihWrap button, .chip button, #shiftForm .btn.sm').forEach(function(x){ x.disabled = true; });
     if (r.foto){ var fb = $('shiftPhoto'); fb.innerHTML = '<img src="'+esc(r.foto)+'">'; fb.className = 'photo filled'; }
     window.scrollTo(0,0);
   }).catch(function(e){ toast(e.message,'bad'); });
@@ -1571,7 +1626,7 @@ function batalShiftUI(){
 }
 function muatKonfigShift(){
   if (!S.ctx || !S.ctx.bisaReview) return;
-  panggil('konfigurasiShift',[S.ident]).then(function(c){ S.shiftCfg = c; if (S.view==='shift' && S.shiftTab==='new') gambarOpChips(); }).catch(function(){});
+  panggil('konfigurasiShift',[S.ident]).then(function(c){ S.shiftCfg = c; if (S.view==='shift' && S.shiftTab==='new' && S.shift){ gambarOpChips('blowing'); gambarOpChips('cutting'); } }).catch(function(){});
 }
 
 /* ---------- rekap produksi per bulan (semua peran, tanpa harga) ---------- */
@@ -1830,21 +1885,139 @@ function batalkanEntriUI(){
    ================================================================= */
 function segAdm(tab){
   S.admTab = tab;
-  ['opname','sku','akt','user','backup'].forEach(function(x){
+  ['opname','opprod','rekon','sku','akt','user','backup'].forEach(function(x){
     var id = 'segAdm' + x.charAt(0).toUpperCase() + x.slice(1);
     var el = $(id); if (el) el.classList.toggle('on', x===tab);
   });
   $('admBody').innerHTML = '<div class="load">…</div>';
   if (tab==='opname') admOpname();
+  if (tab==='opprod') admOpprod();
+  if (tab==='rekon')  admRekon();
   if (tab==='sku')    admSku();
   if (tab==='akt')    admAkt();
   if (tab==='user')   admUser();
   if (tab==='backup') admBackup();
 }
 
+/* ---------- opname produksi (v10.1) — hitungan buta: sistem hanya menjumlahkan ---------- */
+function admOpprod(){
+  if (!S.opprod) S.opprod = { bulan: bulanStr(new Date()), polybag:{}, bs:{}, roll:{}, biji:{}, wip:'' };
+  var o = S.opprod, ks = kualitasList();
+  function barisK(jenis, q){
+    return '<div class="oprow two"><div class="nm">'+esc(t('kual'+q.kualitas))+'<small>'+esc(q.kualitas)+'</small></div>' +
+      '<input type="number" inputmode="decimal" step="any" min="0" placeholder="0" value="'+esc(o[jenis][q.kualitas]||'')+'" oninput="opprodIsi(\''+jenis+'\',\''+esc(q.kualitas)+'\',this.value)"></div>';
+  }
+  var bahan = itemsFilter('bahan');
+  var h = '<div class="card"><h2>'+esc(t('opprodT'))+'</h2><div class="sub">'+esc(t('opprodS'))+'</div>' +
+    '<div class="field"><label>'+esc(t('opprodBulan'))+'</label><input type="month" id="opprodBulan" value="'+esc(o.bulan)+'" max="'+esc(bulanStr(new Date()))+'" onchange="S.opprod.bulan=this.value"></div>' +
+    '<h3 class="sec">'+esc(t('opprodPolybag'))+' <span class="unit">kg</span></h3>' + ks.map(function(q){ return barisK('polybag', q); }).join('') +
+    '<h3 class="sec">'+esc(t('opprodBs'))+' <span class="unit">kg</span></h3>' + ks.map(function(q){ return barisK('bs', q); }).join('') +
+    '<h3 class="sec">'+esc(t('opprodBiji'))+' <span class="unit">kg</span></h3>' + bahan.map(function(i){
+      return '<div class="oprow two"><div class="nm">'+esc(i.nama)+'<small>'+esc(i.kode)+'</small></div>' +
+        '<input type="number" inputmode="decimal" step="any" min="0" placeholder="0" value="'+esc(o.biji[i.kode]||'')+'" oninput="opprodIsi(\'biji\',\''+esc(i.kode)+'\',this.value)"></div>';
+    }).join('') +
+    '<h3 class="sec">'+esc(t('opprodRoll'))+' <span class="unit">kg</span></h3>' + ks.map(function(q){ return barisK('roll', q); }).join('') +
+    '<h3 class="sec">'+esc(t('opprodWip'))+' <span class="unit">kg</span></h3>' +
+    '<div class="oprow two"><div class="nm">'+esc(t('opprodWip'))+'</div><input type="number" inputmode="decimal" step="any" min="0" placeholder="0" value="'+esc(o.wip||'')+'" oninput="S.opprod.wip=this.value;opprodRingkas()"></div>' +
+    '<div class="field" style="margin-top:12px"><label>'+esc(t('opprodCatatan'))+'</label><input id="opprodCatatan"></div>' +
+    '<div class="banner n" id="opprodRingkas"></div>' +
+    '<div class="hint" style="margin-bottom:10px">'+esc(t('opprodGanti'))+'</div>' +
+    '<button class="btn ok" id="btnOpprod" onclick="simpanOpprodUI()">'+esc(t('opprodSimpan'))+'</button>' +
+    '</div>' +
+    '<div class="card"><h2>'+esc(t('opprodRiwayat'))+'</h2><div id="opprodRiwayat"><div class="load">…</div></div></div>';
+  $('admBody').innerHTML = h;
+  opprodRingkas();
+  muatRiwayatOpprod();
+}
+function opprodIsi(jenis, k, v){ S.opprod[jenis][k] = v; opprodRingkas(); }
+function opprodTotal(){
+  var o = S.opprod, tot = { polybag: totalObj(o.polybag), bs: totalObj(o.bs), biji: totalObj(o.biji), roll: totalObj(o.roll), wip: parseFloat(o.wip)||0 };
+  tot.total = tot.polybag + tot.bs + tot.biji + tot.roll + tot.wip; return tot;
+}
+function opprodRingkas(){
+  var el = $('opprodRingkas'); if (!el) return;
+  var tt = opprodTotal();
+  el.innerHTML = '<div class="bigrow"><span class="big">'+n2(tt.total)+'<span class="u">kg</span></span><span style="font-size:12.5px">'+esc(t('opprodTotal'))+'</span></div>' +
+    '<div style="font-size:12px;margin-top:4px">Polybag '+n2(tt.polybag)+' + BS '+n2(tt.bs)+' + '+esc(t('katBahan').toLowerCase())+' '+n2(tt.biji)+' + roll '+n2(tt.roll)+' + '+esc(t('opprodWip').toLowerCase())+' '+n2(tt.wip)+'</div>';
+}
+function simpanOpprodUI(){
+  var o = S.opprod, ks = kualitasList();
+  function list(m){ return ks.filter(function(q){ return parseFloat(m[q.kualitas]) > 0; }).map(function(q){ return { kualitas:q.kualitas, qty: parseFloat(m[q.kualitas]) }; }); }
+  var p = { bulan: ($('opprodBulan').value || o.bulan), polybag: list(o.polybag), bs: list(o.bs), roll: list(o.roll),
+            biji: Object.keys(o.biji).filter(function(k){ return parseFloat(o.biji[k]) > 0; }).map(function(k){ return { kode:k, qty: parseFloat(o.biji[k]) }; }),
+            wipMesin: parseFloat(o.wip)||0, catatan: $('opprodCatatan').value };
+  if (opprodTotal().total <= 0){ toast(t('opprodWajib'),'bad'); return; }
+  var b = $('btnOpprod'); sibuk(b, true);
+  panggil('simpanOpnameProduksi',[p, S.ident]).then(function(r){
+    sibuk(b,false,t('opprodSimpan'));
+    toast(t('opprodTersimpan').replace('{t}', n2(r.totalKg)),'ok');
+    S.opprod = null; admOpprod();
+  }).catch(function(e){ sibuk(b,false,t('opprodSimpan')); toast(e.message,'bad'); });
+}
+function muatRiwayatOpprod(){
+  panggil('daftarOpnameProduksi',[S.ident]).then(function(rows){
+    var el = $('opprodRiwayat'); if (!el) return;
+    if (!rows.length){ el.innerHTML = '<div style="font-size:12.5px;color:var(--muted)">'+esc(t('opprodKosong'))+'</div>'; return; }
+    el.innerHTML = rows.map(function(r){
+      var y = parseInt(r.bulan.slice(0,4),10), m = parseInt(r.bulan.slice(5,7),10)-1;
+      return '<div class="listrow"><div style="display:flex;align-items:baseline;gap:9px"><b style="flex:1;font-size:14px">'+esc(t('bulan')[m]+' '+y)+(r.status==='DIBATALKAN'?' <span class="pill n">'+esc(t('opprodDiganti'))+'</span>':'')+'</b>' +
+        '<span style="font-size:17px;font-weight:700;font-variant-numeric:tabular-nums">'+n2(r.totalKg)+' kg</span></div>' +
+        '<div style="font-size:11.5px;color:var(--muted)">'+esc(r.tanggal)+' '+esc(r.waktu)+' · '+esc(r.pencatat)+' · polybag '+n2(r.polybagKg)+' · BS '+n2(r.bsKg)+' · '+esc(t('katBahan').toLowerCase())+' '+n2(r.bijiProduksiKg)+' · roll '+n2(r.rollKg)+' · '+esc(t('opprodWip').toLowerCase())+' '+n2(r.wipMesinKg)+(r.catatan?' · '+esc(r.catatan):'')+'</div></div>';
+    }).join('');
+  }).catch(function(e){ var el = $('opprodRiwayat'); if (el) el.innerHTML = '<div class="banner bad">'+esc(e.message)+'</div>'; });
+}
+
+/* ---------- rekonsiliasi produksi (ADMIN saja) ---------- */
+function admRekon(bulan){
+  var bl = bulan || S.rekonBulan || bulanStr(new Date());
+  $('admBody').innerHTML = '<div class="load">…</div>';
+  panggil('rekonsiliasiProduksi',[bl, S.ident]).then(function(r){
+    if (S.admTab !== 'rekon') return;
+    S.rekonBulan = r.bulan;
+    var y = parseInt(r.bulan.slice(0,4),10), m = parseInt(r.bulan.slice(5,7),10)-1;
+    var h = '<div class="calhead" style="margin-bottom:10px"><button class="calnav" onclick="geserRekon(-1)">‹</button><div class="caltitle">'+esc(t('bulan')[m]+' '+y)+'</div><button class="calnav" onclick="geserRekon(1)"'+(r.bulan >= bulanStr(new Date()) ? ' disabled' : '')+'>›</button></div>';
+    h += '<div class="card"><h2>'+esc(t('rekonT'))+'</h2><div class="sub">'+esc(t('rekonS'))+'</div>';
+    var g = r.keluarGudang, op = r.opname;
+    if (op){
+      var warna = Math.abs(r.selisihKg) < 0.5 ? 'var(--ok)' : r.selisihKg > 0 ? 'var(--danger)' : 'var(--warn)';
+      var ket = Math.abs(r.selisihKg) < 0.5 ? t('rekonOk') : r.selisihKg > 0 ? t('rekonHilang') : t('rekonLebih');
+      h += '<div class="bigrow"><span class="selisih" style="color:'+warna+'">'+(r.selisihKg>0?'−':r.selisihKg<0?'+':'')+n2(Math.abs(r.selisihKg))+' <span style="font-size:14px">kg</span></span>' +
+        '<span style="font-size:13px;color:'+warna+';font-weight:650">'+n2(Math.abs(r.selisihPersen))+'% · '+esc(ket)+'</span></div>';
+    } else h += '<div class="banner warn">'+esc(t('rekonBelumOpname'))+'</div>';
+    h += '<div class="kv"><span>'+esc(t('rekonKeluar'))+'</span><b>'+n2(g.total)+' kg</b></div>' +
+      '<div class="kv"><span>'+esc(t('rekonAwalProd'))+'</span><b>'+n2(r.awalProduksi)+' kg</b></div>' +
+      '<div class="kv" style="font-size:14px"><span><b>'+esc(t('rekonSeharusnya'))+'</b></span><b>'+n2(r.seharusnyaKg)+' kg</b></div>' +
+      (op ? '<div class="kv" style="font-size:14px"><span><b>'+esc(t('rekonDihitung'))+'</b> · '+esc(op.tanggal)+' · '+esc(op.pencatat)+'</span><b>'+n2(op.totalKg)+' kg</b></div>' +
+            '<div class="kv"><span>&nbsp;&nbsp;polybag</span><b>'+n2(op.polybagKg)+'</b></div><div class="kv"><span>&nbsp;&nbsp;BS</span><b>'+n2(op.bsKg)+'</b></div>' +
+            '<div class="kv"><span>&nbsp;&nbsp;'+esc(t('opprodBiji'))+'</span><b>'+n2(op.bijiProduksiKg)+'</b></div><div class="kv"><span>&nbsp;&nbsp;'+esc(t('opprodRoll'))+'</span><b>'+n2(op.rollKg)+'</b></div>' +
+            '<div class="kv"><span>&nbsp;&nbsp;'+esc(t('opprodWip'))+'</span><b>'+n2(op.wipMesinKg)+'</b></div>' +
+            '<div class="kv" style="font-size:14px"><span><b>'+esc(t('rekonSelisih'))+'</b></span><b>'+n2(r.selisihKg)+' kg</b></div>' : '') +
+      (!r.adaOpnameLalu ? '<div class="hint" style="margin-top:8px">'+esc(t('rekonTanpaOpnameLalu'))+'</div>' : '') +
+      '<div class="hint" style="margin-top:6px">'+esc(t('rekonRumus'))+'</div></div>';
+    var ls = r.laporanShift;
+    h += '<div class="card"><h2>'+esc(t('rekonBandingShift'))+'</h2>' +
+      '<div class="kv"><span>'+esc(t('secAmbilS'))+' '+esc(t('rekonMenurutShift'))+'</span><b>'+n2(ls.ambil)+' kg</b></div>' +
+      '<div class="kv"><span>'+esc(t('rekonKeluar'))+'</span><b>'+n2(g.total)+' kg</b></div>' +
+      '<div class="kv"><span>'+esc(t('rollJadi'))+' / '+esc(t('rollPakai'))+' '+esc(t('rekonMenurutShift'))+'</span><b>'+n2(ls.roll)+' / '+n2(ls.rollPakai)+' kg</b></div>' +
+      '<div class="kv"><span>'+esc(t('polybagJadi'))+' / BS '+esc(t('rekonMenurutShift'))+'</span><b>'+n2(ls.polybag)+' / '+n2(ls.bs)+' kg</b></div>' +
+      (r.bandingShift ? '<div class="kv"><span>'+esc(t('rekonPolybagShift'))+'</span><b>'+n2(op.polybagKg)+' vs '+n2(ls.polybag)+' ('+(r.bandingShift.polybag>=0?'+':'')+n2(r.bandingShift.polybag)+')</b></div>' +
+        '<div class="kv"><span>'+esc(t('rekonBsShift'))+'</span><b>'+n2(op.bsKg)+' vs '+n2(ls.bs)+' ('+(r.bandingShift.bs>=0?'+':'')+n2(r.bandingShift.bs)+')</b></div>' +
+        '<div class="kv"><span>'+esc(t('rekonRollShift'))+'</span><b>'+n2(op.rollKg)+' vs '+n2(ls.rollSisa)+' ('+(r.bandingShift.roll>=0?'+':'')+n2(r.bandingShift.roll)+')</b></div>' : '') +
+      '</div>';
+    h += '<div class="card"><h2>'+esc(t('rekonPerItem'))+'</h2><div class="sub">'+esc(t('geserTabel'))+'</div><div class="tblwrap"><table>' +
+      '<tr><th>Item</th><th class="num">'+esc(t('thStokAwal'))+'</th><th class="num">'+esc(t('thBeli'))+'</th><th class="num">'+esc(t('thLainMasuk'))+'</th><th class="num">'+esc(t('thLainKeluar'))+'</th><th class="num">'+esc(t('thOpnameGudang'))+'</th><th class="num">'+esc(t('thStokAkhir'))+'</th><th class="num">'+esc(t('thKeluarProd'))+'</th><th class="num">Shift</th></tr>' +
+      g.daftar.map(function(d){ return '<tr><td>'+esc(d.nama)+'</td><td class="num">'+n2(d.stokAwal)+'</td><td class="num">'+n2(d.pembelian)+'</td><td class="num">'+n2(d.lainMasuk)+'</td><td class="num">'+n2(d.lainKeluar)+'</td><td class="num">'+n2(d.opname)+'</td><td class="num">'+n2(d.stokAkhir)+'</td><td class="num" style="font-weight:700">'+n2(d.keluarKeProduksi)+'</td><td class="num">'+n2(d.menurutShift)+'</td></tr>'; }).join('') +
+      '<tr><td><b>Total</b></td><td></td><td></td><td></td><td></td><td></td><td></td><td class="num" style="font-weight:700">'+n2(g.total)+'</td><td class="num">'+n2(g.totalMenurutShift)+'</td></tr>' +
+      '</table></div></div>';
+    $('admBody').innerHTML = h;
+  }).catch(function(e){ $('admBody').innerHTML = '<div class="banner bad">'+esc(e.message)+'</div>'; });
+}
+function geserRekon(n){ var b = new Date((S.rekonBulan || bulanStr(new Date()))+'-01T00:00:00'); b.setMonth(b.getMonth()+n); admRekon(bulanStr(b)); }
+
 /* ---------- opname ---------- */
 function admOpname(){
   panggil('siapkanOpname',[S.ident]).then(function(d){
+    if (S.admTab !== 'opname') return;
     S.opname = { lokasi:d.lokasi, items:d.items, fisik:{} };
     var h = '<div class="card">' +
       '<h2>'+esc(t('opT'))+'</h2><div class="sub">'+esc(t('opS'))+'</div>' +
@@ -1914,6 +2087,7 @@ function muatRiwayatOpname(){
 /* ---------- SKU ---------- */
 function admSku(){
   panggil('daftarSku',[S.ident]).then(function(rows){
+    if (S.admTab !== 'sku') return;
     S.sku = rows;
     var h = '<div class="card"><div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">' +
       '<h2 style="flex:1">'+esc(t('skuT'))+' <span class="chip">'+rows.length+'</span></h2>' +
@@ -1972,6 +2146,7 @@ function hapusSkuUI(){
 /* ---------- aktivitas ---------- */
 function admAkt(nama){
   panggil('aktivitasStaf',[nama || '', 30, S.ident]).then(function(r){
+    if (S.admTab !== 'akt') return;
     var h = '<div class="card"><h2>'+esc(t('aktT'))+'</h2><div class="sub">'+esc(t('aktS'))+'</div>';
     if (!r.daftar.length){ h += '<div style="font-size:12.5px;color:var(--muted)">'+esc(t('aktKosong'))+'</div></div>'; $('admBody').innerHTML = h; return; }
     h += r.daftar.map(function(x, i){
@@ -1991,6 +2166,7 @@ function admAkt(nama){
 /* ---------- pengguna (ADMIN) ---------- */
 function admUser(){
   panggil('daftarPengguna',[S.ident]).then(function(rows){
+    if (S.admTab !== 'user') return;
     S.users = rows;
     var h = '<div class="card"><div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">' +
       '<h2 style="flex:1">'+esc(t('userT'))+' <span class="chip">'+rows.length+'</span></h2>' +

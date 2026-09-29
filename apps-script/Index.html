@@ -296,45 +296,69 @@
     <div id="shiftForm" class="hide">
       <div class="card">
         <h2 id="shiftFormT" data-i18n="shiftFormT">Laporan shift</h2>
-        <div class="sub" id="shiftFormS" data-i18n="shiftFormS">Satu laporan per shift per mesin. Tidak perlu persetujuan — stok langsung ikut.</div>
+        <div class="sub" id="shiftFormS" data-i18n="shiftFormS">Satu laporan per shift (12 jam). Operator blowing dan cutting dicatat terpisah. Tidak perlu persetujuan — stok langsung ikut.</div>
         <div class="banner warn hide" id="shiftInfo"></div>
         <div class="row">
           <div class="field" style="flex:1"><label data-i18n="lblTanggal">Tanggal transaksi</label><input type="date" id="shiftTanggal"></div>
-          <div class="field" style="flex:1"><label data-i18n="lblShift">Shift</label>
+          <div class="field" style="flex:1.3"><label data-i18n="lblShift">Shift</label>
             <div class="seg" style="margin:0" id="shiftPilihWrap">
-              <button type="button" id="shiftP1" onclick="pilihShift('1')">1</button>
-              <button type="button" id="shiftP2" onclick="pilihShift('2')">2</button>
-              <button type="button" id="shiftP3" onclick="pilihShift('3')">3</button>
+              <button type="button" id="shiftP1" onclick="pilihShift('1')">1 <small>08–20</small></button>
+              <button type="button" id="shiftP2" onclick="pilihShift('2')">2 <small>20–08</small></button>
             </div>
           </div>
         </div>
-        <div class="field"><label data-i18n="lblMesin">Mesin</label>
-          <div class="seg" style="margin:0">
-            <button type="button" id="mesinBlowing" onclick="pilihMesin('BLOWING')">🌬️ Blowing</button>
-            <button type="button" id="mesinCutting" onclick="pilihMesin('CUTTING')">✂️ Cutting</button>
-          </div>
-          <div class="hint" id="mesinHint"></div>
-        </div>
-        <div class="field">
-          <label data-i18n="lblOperator">Operator (bisa lebih dari satu)</label>
-          <div id="shiftOpChips"></div>
-          <div class="combo"><input id="shiftOperator" autocomplete="off"><div class="combo-list hide"></div></div>
-          <div class="hint" data-i18n="hintOperator">Ketik nama lalu pilih / Enter. Nama baru langsung boleh.</div>
-        </div>
+      </div>
 
-        <div id="ambilWrap">
+      <!-- MESIN BLOWING -->
+      <div class="card mesin" id="secBlowing">
+        <div class="mesinhead">
+          <div style="flex:1;min-width:0"><b>🌬️ <span data-i18n="mesinBlowingT">Mesin blowing</span></b><div class="hint" style="margin:2px 0 0" data-i18n="hintBlowing">Biji plastik diambil dari gudang → roll per kualitas + BS.</div></div>
+          <label class="switch"><input type="checkbox" id="blowingAktif" checked onchange="toggleMesin('blowing', this.checked)"><span></span><small data-i18n="mesinJalan">jalan</small></label>
+        </div>
+        <div id="blowingBody">
+          <div class="field">
+            <label data-i18n="lblOperatorBlowing">Operator blowing (bisa lebih dari satu)</label>
+            <div id="blowingOpChips"></div>
+            <div class="combo"><input id="blowingOperator" autocomplete="off"><div class="combo-list hide"></div></div>
+            <div class="hint" data-i18n="hintOperator">Ketik nama lalu pilih / Enter. Nama baru langsung boleh.</div>
+          </div>
           <h3 class="sec" data-i18n="secAmbil">Biji plastik diambil dari gudang <span class="unit">kg</span></h3>
           <div id="ambilLines"></div>
           <button class="btn sec sm" onclick="tambahBaris('ambil')" data-i18n="btnTambahBahan">+ Tambah bahan</button>
+          <h3 class="sec" data-i18n="secHasilRoll">Roll jadi per kualitas <span class="unit">kg</span></h3>
+          <div id="blowingHasilLines"></div>
+          <h3 class="sec" data-i18n="secBsBlowing">BS blowing per kualitas <span class="unit">kg</span></h3>
+          <div id="blowingBsLines"></div>
+          <div class="banner n" id="blowingRingkas" style="margin:12px 0 0"></div>
         </div>
+        <div class="hint hide" id="blowingOff" data-i18n="mesinTidakJalan">Mesin tidak jalan di shift ini — tidak dicatat.</div>
+      </div>
 
-        <h3 class="sec" id="hasilJudul" data-i18n="secHasilRoll">Roll jadi per kualitas <span class="unit">kg</span></h3>
-        <div id="hasilLines"></div>
-        <h3 class="sec" data-i18n="secBs">BS (scrap) per kualitas <span class="unit">kg</span></h3>
-        <div id="bsLines"></div>
+      <!-- MESIN CUTTING -->
+      <div class="card mesin" id="secCutting">
+        <div class="mesinhead">
+          <div style="flex:1;min-width:0"><b>✂️ <span data-i18n="mesinCuttingT">Mesin cutting</span></b><div class="hint" style="margin:2px 0 0" data-i18n="hintCutting">Roll diambil dari tumpukan (bisa dari shift sebelumnya) → polybag per kualitas + BS. Tidak terkait angka blowing.</div></div>
+          <label class="switch"><input type="checkbox" id="cuttingAktif" checked onchange="toggleMesin('cutting', this.checked)"><span></span><small data-i18n="mesinJalan">jalan</small></label>
+        </div>
+        <div id="cuttingBody">
+          <div class="field">
+            <label data-i18n="lblOperatorCutting">Operator cutting (bisa lebih dari satu)</label>
+            <div id="cuttingOpChips"></div>
+            <div class="combo"><input id="cuttingOperator" autocomplete="off"><div class="combo-list hide"></div></div>
+            <div class="hint" data-i18n="hintOperator">Ketik nama lalu pilih / Enter. Nama baru langsung boleh.</div>
+          </div>
+          <h3 class="sec" data-i18n="secRollPakai">Roll diambil untuk dipotong per kualitas <span class="unit">kg</span></h3>
+          <div id="cuttingRollLines"></div>
+          <h3 class="sec" data-i18n="secHasilPolybag">Polybag jadi per kualitas <span class="unit">kg</span></h3>
+          <div id="cuttingHasilLines"></div>
+          <h3 class="sec" data-i18n="secBsCutting">BS cutting per kualitas <span class="unit">kg</span></h3>
+          <div id="cuttingBsLines"></div>
+          <div class="banner n" id="cuttingRingkas" style="margin:12px 0 0"></div>
+        </div>
+        <div class="hint hide" id="cuttingOff" data-i18n="mesinTidakJalan">Mesin tidak jalan di shift ini — tidak dicatat.</div>
+      </div>
 
-        <div class="banner n" id="shiftRingkas" style="margin-top:14px"></div>
-
+      <div class="card">
         <div class="field">
           <label data-i18n="lblFotoOpsi">Foto (opsional)</label>
           <div class="photo" id="shiftPhoto" onclick="pilihFoto('shift')"><div class="p1">📷 <span data-i18n="fotoAmbil">Ambil foto</span></div></div>
@@ -531,7 +555,9 @@
   <!-- ============ ADMIN ============ -->
   <section id="v-admin" class="hide">
     <div class="seg">
-      <button id="segAdmOpname" class="on" onclick="segAdm('opname')" data-i18n="segOpname">Opname</button>
+      <button id="segAdmOpname" class="on" onclick="segAdm('opname')" data-i18n="segOpname">Opname gudang</button>
+      <button id="segAdmOpprod" onclick="segAdm('opprod')" data-i18n="segOpprod">Opname produksi</button>
+      <button id="segAdmRekon" class="hide" onclick="segAdm('rekon')" data-i18n="segRekon">Rekonsiliasi</button>
       <button id="segAdmSku" onclick="segAdm('sku')">SKU</button>
       <button id="segAdmAkt" onclick="segAdm('akt')" data-i18n="segAkt">Aktivitas</button>
       <button id="segAdmUser" class="hide" onclick="segAdm('user')" data-i18n="segUser">Pengguna</button>

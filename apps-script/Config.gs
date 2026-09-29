@@ -10,7 +10,7 @@
 
 var APP = {
   nama: 'IPC — Inventory & Production Control',
-  versi: '10.0.0',
+  versi: '10.1.0',
   zona: 'Asia/Jakarta',
   satuan: 'kg',
   folderFoto: 'IPC Foto Bukti'
@@ -26,9 +26,10 @@ var SHEET = {
   PENGGUNA   : 'Master_Pengguna',
   PENERIMAAN : 'Penerimaan',        // ⓪ pembelian masuk & retur ke supplier
   PENGIRIMAN : 'Pengiriman',        // ④ penjualan keluar & retur dari customer
-  SHIFT      : 'Laporan_Shift',     // v10: laporan produksi per shift per mesin (blowing / cutting), diisi manager produksi
+  SHIFT      : 'Laporan_Shift',     // v10.1: satu laporan per shift (blowing + cutting, operator terpisah), diisi manager produksi
   SHIFT_DETAIL: 'Laporan_Shift_Detail',
   TUTUP      : 'Tutup_Bulan',       // v10: penutupan bulan — nilai stok awal/akhir, COGS, laba kotor, susut
+  OPNAME_PROD: 'Opname_Produksi',   // v10.1: hitungan fisik produksi bulanan oleh manager (buta — target tidak ditampilkan)
   OPNAME     : 'Stock_Opname',      // hitung fisik → penyesuaian stok
   PERMINTAAN : 'Permintaan_Ubah',   // usulan edit/batal dari staf → butuh persetujuan supervisor
   PO         : 'Pesanan_Pembelian', // PO dari manager: apa yang akan datang, qty, harga, spesifikasi
@@ -79,16 +80,24 @@ HEADER[SHEET.PENGIRIMAN] = [
   'ID_SO'        // v8: baris sales order yang dipenuhi pengiriman ini
 ];
 
-/* v10: laporan shift. Satu baris per shift per mesin. Tidak perlu persetujuan.
-   BLOWING : ambil biji plastik dari gudang (AMBIL) → hasil roll per kualitas (HASIL) + BS per kualitas (BS)
-   CUTTING : hasil polybag per kualitas (HASIL) + BS per kualitas (BS); roll yang terpakai = hasil + BS (PAKAI_ROLL, otomatis) */
+/* v10.1: laporan shift. SATU baris per shift (2 shift × 12 jam), memuat dua mesin dengan operator terpisah.
+   BLOWING : operator, biji plastik diambil dari gudang (AMBIL) → roll per kualitas (HASIL) + BS per kualitas (BS)
+   CUTTING : operator, roll yang diambil/dipakai per kualitas (PAKAI_ROLL, diisi manual) → polybag per kualitas (HASIL) + BS (BS)
+   Tidak ada hubungan otomatis antar mesin — roll boleh menumpuk dari shift sebelumnya. Rekonsiliasi di akhir bulan. */
 HEADER[SHEET.SHIFT] = [
-  'ID','Waktu','Tanggal','Shift','Mesin','Operator',
-  'Total_Ambil_Kg','Total_Hasil_Kg','Total_BS_Kg','Total_Roll_Pakai_Kg',
+  'ID','Waktu','Tanggal','Shift','Operator_Blowing','Operator_Cutting',
+  'Total_Ambil_Kg','Total_Roll_Kg','Total_BS_Blowing_Kg','Total_Roll_Pakai_Kg','Total_Polybag_Kg','Total_BS_Cutting_Kg',
   'Dicatat_Oleh','Nama_Pencatat','Foto_URL','Catatan','Log_Edit','Status'
 ];
 HEADER[SHEET.SHIFT_DETAIL] = [
-  'ID','ID_Shift','Jenis','Kode_Item','Nama_Item','Kualitas','Qty_Kg','Waktu'
+  'ID','ID_Shift','Mesin','Jenis','Kode_Item','Nama_Item','Kualitas','Qty_Kg','Waktu'
+];
+/* v10.1: opname produksi bulanan — manager menghitung fisik (polybag jadi, BS, biji plastik di area produksi, roll, isi mesin).
+   Sistem hanya menampilkan jumlah hitungannya; angka pembanding (biji keluar gudang menurut neraca) hanya untuk ADMIN. */
+HEADER[SHEET.OPNAME_PROD] = [
+  'ID','Bulan','Waktu','Tanggal','Dicatat_Oleh','Nama_Pencatat',
+  'Polybag_Kg','BS_Kg','Biji_Produksi_Kg','Roll_Kg','WIP_Mesin_Kg','Total_Hitung_Kg',
+  'Detail_JSON','Catatan','Status'
 ];
 /* v10: tutup bulan — snapshot untuk pelaporan (COGS periodik = awal + pembelian + jasa + proses − akhir) */
 HEADER[SHEET.TUTUP] = [
@@ -178,10 +187,12 @@ var STATUS_TRANSFER = {
 };
 
 var MESIN        = { BLOWING: 'BLOWING', CUTTING: 'CUTTING' };                       // v10
-var JENIS_SHIFT  = { AMBIL: 'AMBIL', HASIL: 'HASIL', BS: 'BS', PAKAI_ROLL: 'PAKAI_ROLL' }; // v10: baris detail laporan shift
+var JENIS_SHIFT  = { AMBIL: 'AMBIL', HASIL: 'HASIL', BS: 'BS', PAKAI_ROLL: 'PAKAI_ROLL' }; // v10: baris detail laporan shift (per mesin)
 var STATUS_SHIFT = { AKTIF: 'AKTIF', DIBATALKAN: 'DIBATALKAN' };
 var STATUS_TUTUP = { DITUTUP: 'DITUTUP', DIBUKA: 'DIBUKA' };
-var DAFTAR_SHIFT = ['1', '2', '3'];
+var DAFTAR_SHIFT = ['1', '2'];                                                        // v10.1: 2 shift × 12 jam
+var JAM_SHIFT    = { '1': '08.00–20.00', '2': '20.00–08.00' };
+var STATUS_OPNAME_PROD = { AKTIF: 'AKTIF', DIBATALKAN: 'DIBATALKAN' };
 var STATUS_DAUR      = { BERJALAN: 'BERJALAN', SELESAI: 'SELESAI', DIBATALKAN: 'DIBATALKAN' };   // v9
 var JENIS_DAUR_DETAIL = { SCRAP: 'SCRAP', HASIL: 'HASIL' };                                       // v9: scrap keluar / biji plastik masuk
 
@@ -342,7 +353,7 @@ function seedJika(ss, nama, rows) {
 function seedUlangMaster() {
   lupakanMemo_();
   var ss = SpreadsheetApp.getActiveSpreadsheet();
-  [SHEET.PENERIMAAN, SHEET.PENGIRIMAN, SHEET.SHIFT, SHEET.OPNAME, SHEET.PO, SHEET.KERUSAKAN, SHEET.DAUR].forEach(function (n) {
+  [SHEET.PENERIMAAN, SHEET.PENGIRIMAN, SHEET.SHIFT, SHEET.OPNAME, SHEET.PO, SHEET.KERUSAKAN, SHEET.DAUR, SHEET.OPNAME_PROD].forEach(function (n) {
     var sh = ss.getSheetByName(n);
     if (sh && sh.getLastRow() >= 2) throw new Error('Sudah ada transaksi di ' + n + '. Ubah SKU lewat menu Admin > SKU, jangan seed ulang.');
   });
@@ -365,7 +376,7 @@ function resetUntukGoLive() {
   lupakanMemo_();
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   [SHEET.PENERIMAAN, SHEET.PENGIRIMAN, SHEET.SHIFT, SHEET.SHIFT_DETAIL, SHEET.OPNAME,
-   SHEET.PERMINTAAN, SHEET.PO, SHEET.INVOICE, SHEET.KERUSAKAN, SHEET.SO, SHEET.DAUR, SHEET.DAUR_DETAIL, SHEET.TUTUP].forEach(function (n) {
+   SHEET.PERMINTAAN, SHEET.PO, SHEET.INVOICE, SHEET.KERUSAKAN, SHEET.SO, SHEET.DAUR, SHEET.DAUR_DETAIL, SHEET.TUTUP, SHEET.OPNAME_PROD].forEach(function (n) {
     var sh = ss.getSheetByName(n);
     if (sh && sh.getLastRow() >= 2) sh.deleteRows(2, sh.getLastRow() - 1);
   });

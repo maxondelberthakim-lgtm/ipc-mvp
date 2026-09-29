@@ -21,11 +21,16 @@
    STATUS TUTUP — baris terakhir per bulan yang berlaku
    ================================================================= */
 
+/** Kolom Bulan selalu 'YYYY-MM' (Sheets kadang mengubah teks jadi Date). */
+function bulanStr_(v) {
+  if (Object.prototype.toString.call(v) === '[object Date]') return tglStr_(v).slice(0, 7);
+  return String(v || '').slice(0, 7);
+}
 function petaTutup_() {
   var m = {};
   var rows = [];
   try { rows = baca_(SHEET.TUTUP); } catch (e) { rows = []; }   // sebelum migrasi: belum ada sheet
-  rows.forEach(function (r) { m[String(r.Bulan)] = r; });        // urutan baris = urutan waktu → terakhir menang
+  rows.forEach(function (r) { m[bulanStr_(r.Bulan)] = r; });     // urutan baris = urutan waktu → terakhir menang
   return m;
 }
 function bulanTertutup_(tanggal) {
@@ -115,12 +120,13 @@ function laporanBulanan_(bulan, rataAkhir) {
   baca_(SHEET.SHIFT).forEach(function (r) {
     if (r.Status === STATUS_SHIFT.DIBATALKAN || !dalamBulan_(r.Tanggal, bulan)) return;
     pr.shift++; pr.proses += angka_(rAkhir.proses[r.ID]); pr.nilaiBahan += angka_(rAkhir.biaya[r.ID]);
-    var hasil = angka_(r.Total_Hasil_Kg), bs = angka_(r.Total_BS_Kg);
-    if (r.Mesin === MESIN.BLOWING) { pr.blowing++; pr.ambilKg += angka_(r.Total_Ambil_Kg); pr.rollKg += hasil; pr.bsBlowingKg += bs; }
-    else { pr.cutting++; pr.rollPakaiKg += angka_(r.Total_Roll_Pakai_Kg); pr.jadiKg += hasil; pr.bsCuttingKg += bs; }
+    if (r.Operator_Blowing || angka_(r.Total_Ambil_Kg) || angka_(r.Total_Roll_Kg)) pr.blowing++;
+    if (r.Operator_Cutting || angka_(r.Total_Roll_Pakai_Kg) || angka_(r.Total_Polybag_Kg)) pr.cutting++;
+    pr.ambilKg += angka_(r.Total_Ambil_Kg); pr.rollKg += angka_(r.Total_Roll_Kg); pr.bsBlowingKg += angka_(r.Total_BS_Blowing_Kg);
+    pr.rollPakaiKg += angka_(r.Total_Roll_Pakai_Kg); pr.jadiKg += angka_(r.Total_Polybag_Kg); pr.bsCuttingKg += angka_(r.Total_BS_Cutting_Kg);
     (detShift[r.ID] || []).forEach(function (x) {
       var k = x.Kualitas || '-', q = angka_(x.Qty_Kg);
-      if (x.Jenis === JENIS_SHIFT.HASIL && r.Mesin === MESIN.CUTTING) jadiPerKualitas[k] = (jadiPerKualitas[k] || 0) + q;
+      if (x.Jenis === JENIS_SHIFT.HASIL && x.Mesin === MESIN.CUTTING) jadiPerKualitas[k] = (jadiPerKualitas[k] || 0) + q;
       else if (x.Jenis === JENIS_SHIFT.BS) bsPerKualitas[k] = (bsPerKualitas[k] || 0) + q;
     });
   });

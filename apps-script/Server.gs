@@ -45,7 +45,8 @@ var RPC_WL = {
   ubahDaurUlang:1, batalkanDaurUlang:1, laporanDaurUlang:1,
   /* v10: laporan shift produksi, laporan produksi, tutup bulan (COGS periodik) */
   konfigurasiShift:1, simpanLaporanShift:1, daftarLaporanShift:1, ambilLaporanShift:1, ubahLaporanShift:1, batalkanLaporanShift:1,
-  laporanProduksi:1, laporanBulanan:1, tutupBulan:1, bukaBulan:1, daftarTutupBulan:1
+  laporanProduksi:1, laporanBulanan:1, tutupBulan:1, bukaBulan:1, daftarTutupBulan:1,
+  simpanOpnameProduksi:1, daftarOpnameProduksi:1, rekonsiliasiProduksi:1
 };
 
 function doPost(e) {
@@ -239,9 +240,11 @@ function tglValid_(s) {
   return s;
 }
 
+var ID_URUT_ = Math.floor(Math.random() * 900);
 function buatId_(prefix) {
-  return prefix + '-' + Utilities.formatDate(new Date(), APP.zona, 'yyMMdd-HHmmss') + '-' +
-         Math.floor(Math.random() * 900 + 100);
+  /* acak + berurutan: dua ID dalam detik yang sama tidak pernah sama (sampai 900 ID/detik) */
+  ID_URUT_ = (ID_URUT_ + 1) % 900;
+  return prefix + '-' + Utilities.formatDate(new Date(), APP.zona, 'yyMMdd-HHmmss') + '-' + (100 + ID_URUT_);
 }
 
 function angka_(v) {
@@ -440,8 +443,8 @@ function getKonteks(ident) {
   var shiftHariIni = 0, jadiHariIni = 0, bsHariIni = 0;
   baca_(SHEET.SHIFT).forEach(function (r) {
     if (r.Status === STATUS_SHIFT.DIBATALKAN || String(r.Tanggal) !== hariIni) return;
-    shiftHariIni++; bsHariIni += angka_(r.Total_BS_Kg);
-    if (r.Mesin === MESIN.CUTTING) jadiHariIni += angka_(r.Total_Hasil_Kg);
+    shiftHariIni++; bsHariIni += angka_(r.Total_BS_Blowing_Kg) + angka_(r.Total_BS_Cutting_Kg);
+    jadiHariIni += angka_(r.Total_Polybag_Kg);
   });
 
   var masukHariIni = rcv.filter(function (r) {
@@ -1406,7 +1409,7 @@ function aktivitasStaf(nama, hari, ident) {
   });
   baca_(SHEET.SHIFT).forEach(function (r) {
     if (r.Status === STATUS_SHIFT.DIBATALKAN || new Date(r.Waktu) < batas) return;
-    tambah(r.Nama_Pencatat, 'SHIFT', angka_(r.Total_Hasil_Kg), r.Waktu, r.Mesin + ' S' + r.Shift + ' · ' + r.Operator);
+    tambah(r.Nama_Pencatat, 'SHIFT', angka_(r.Total_Polybag_Kg), r.Waktu, 'S' + r.Shift + ' · blowing: ' + (r.Operator_Blowing || '—') + ' · cutting: ' + (r.Operator_Cutting || '—'));
   });
   baca_(SHEET.OPNAME).forEach(function (r) {
     if (new Date(r.Waktu) < batas) return;
@@ -1697,10 +1700,13 @@ function kalender(bulan, ident) {
     var ds = new Date(String(r.Tanggal) + 'T12:00:00'); if (isNaN(ds.getTime())) ds = new Date(r.Waktu);
     if (!dalam(ds)) return;
     var x = h(ds); x.shift++;
-    var blow = r.Mesin === MESIN.BLOWING;
+    var bagian = [];
+    if (r.Operator_Blowing || angka_(r.Total_Roll_Kg)) bagian.push('Blowing (' + (r.Operator_Blowing || '—') + ') roll ' + bulat_(angka_(r.Total_Roll_Kg), 1) + ' kg');
+    if (r.Operator_Cutting || angka_(r.Total_Polybag_Kg)) bagian.push('Cutting (' + (r.Operator_Cutting || '—') + ') polybag ' + bulat_(angka_(r.Total_Polybag_Kg), 1) + ' kg');
     pushK(ds, { t: new Date(r.Waktu).getTime(), jam: 'S' + r.Shift,
-      jenis: blow ? 'SHIFT_BLOWING' : 'SHIFT_CUTTING', label: (blow ? 'Blowing' : 'Cutting') + ' · ' + r.Operator,
-      item: blow ? 'roll' : 'polybag', qty: angka_(r.Total_Hasil_Kg), bs: angka_(r.Total_BS_Kg),
+      jenis: 'SHIFT', label: bagian.join(' · '),
+      item: 'polybag', qty: angka_(r.Total_Polybag_Kg), roll: angka_(r.Total_Roll_Kg), ambil: angka_(r.Total_Ambil_Kg),
+      bs: angka_(r.Total_BS_Blowing_Kg) + angka_(r.Total_BS_Cutting_Kg),
       status: '', oleh: r.Nama_Pencatat, id: r.ID, sheet: 'shift' });
   });
 

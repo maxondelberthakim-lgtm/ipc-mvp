@@ -258,21 +258,23 @@ function eksporBulanan(bulan, ident) {
     if (r.Status === STATUS_SHIFT.DIBATALKAN || !dalamBulan_(r.Tanggal, bulan)) return;
     var per = {};
     (detShift[r.ID] || []).forEach(function (x) {
-      var k = x.Jenis + ':' + (x.Kualitas || '');
+      var k = x.Mesin + ':' + x.Jenis + ':' + (x.Kualitas || '');
       if (x.Jenis === JENIS_SHIFT.AMBIL) k = 'AMBIL:' + x.Nama_Item;
       per[k] = (per[k] || 0) + angka_(x.Qty_Kg);
     });
     var ambilTxt = Object.keys(per).filter(function (k) { return k.indexOf('AMBIL:') === 0; }).map(function (k) { return k.slice(6) + ' ' + bulat_(per[k], 2); }).join(', ');
-    function q(j, kual) { return bulat_(per[j + ':' + kual] || 0, 2); }
+    function q(m, j, kual) { return bulat_(per[m + ':' + j + ':' + kual] || 0, 2); }
     var bahan = angka_(rataBulan.biaya[r.ID]), proses = angka_(rataBulan.proses[r.ID]);
-    prod.push([r.Tanggal, r.Shift, r.Mesin, r.ID, r.Operator, ambilTxt, angka_(r.Total_Ambil_Kg), angka_(r.Total_Roll_Pakai_Kg),
-               q(JENIS_SHIFT.HASIL, KUALITAS.KW), q(JENIS_SHIFT.HASIL, KUALITAS.SUPER), q(JENIS_SHIFT.HASIL, KUALITAS.SUPER_PLUS), angka_(r.Total_Hasil_Kg),
-               q(JENIS_SHIFT.BS, KUALITAS.KW), q(JENIS_SHIFT.BS, KUALITAS.SUPER), q(JENIS_SHIFT.BS, KUALITAS.SUPER_PLUS), angka_(r.Total_BS_Kg),
+    var bsB = angka_(r.Total_BS_Blowing_Kg), bsC = angka_(r.Total_BS_Cutting_Kg);
+    prod.push([r.Tanggal, r.Shift, r.ID, r.Operator_Blowing, ambilTxt, angka_(r.Total_Ambil_Kg),
+               q('BLOWING', JENIS_SHIFT.HASIL, KUALITAS.KW), q('BLOWING', JENIS_SHIFT.HASIL, KUALITAS.SUPER), q('BLOWING', JENIS_SHIFT.HASIL, KUALITAS.SUPER_PLUS), angka_(r.Total_Roll_Kg), bsB,
+               r.Operator_Cutting, angka_(r.Total_Roll_Pakai_Kg),
+               q('CUTTING', JENIS_SHIFT.HASIL, KUALITAS.KW), q('CUTTING', JENIS_SHIFT.HASIL, KUALITAS.SUPER), q('CUTTING', JENIS_SHIFT.HASIL, KUALITAS.SUPER_PLUS), angka_(r.Total_Polybag_Kg), bsC,
                bulat_(bahan, 0), bulat_(proses, 0), r.Nama_Pencatat, r.Catatan || '']);
-    tot.shift++; tot.ambilKg += angka_(r.Total_Ambil_Kg); tot.jadiKg += angka_(r.Total_Hasil_Kg); tot.bsKg += angka_(r.Total_BS_Kg);
+    tot.shift++; tot.ambilKg += angka_(r.Total_Ambil_Kg); tot.jadiKg += angka_(r.Total_Polybag_Kg); tot.bsKg += bsB + bsC;
     tot.hppBahan += bahan; tot.hppProses += proses;
-    if (r.Mesin === MESIN.BLOWING) { tot.rollKg += angka_(r.Total_Hasil_Kg); tot.bsBlowingKg += angka_(r.Total_BS_Kg); }
-    else { tot.rollPakaiKg += angka_(r.Total_Roll_Pakai_Kg); tot.fgKg += angka_(r.Total_Hasil_Kg); tot.bsCuttingKg += angka_(r.Total_BS_Kg); }
+    tot.rollKg += angka_(r.Total_Roll_Kg); tot.bsBlowingKg += bsB;
+    tot.rollPakaiKg += angka_(r.Total_Roll_Pakai_Kg); tot.fgKg += angka_(r.Total_Polybag_Kg); tot.bsCuttingKg += bsC;
   });
 
   /* --- barang rusak disetujui --- */
@@ -337,7 +339,7 @@ function eksporBulanan(bulan, ident) {
       { nama: 'ringkasan_' + bulan + '.csv', csv: csv_(['Keterangan', 'Nilai'], ringkasan) },
       { nama: 'pembelian_' + bulan + '.csv', csv: csv_(['Tanggal', 'ID', 'Jenis', 'Supplier', 'No_PO', 'No_Invoice', 'No_Surat_Jalan', 'Kode_Item', 'Nama_Item', 'Qty_Kg', 'Harga_Per_Kg', 'Nilai', 'Status', 'Pencatat', 'Catatan_QC'], beli) },
       { nama: 'penjualan_' + bulan + '.csv', csv: csv_(['Tanggal', 'ID', 'Jenis', 'Customer', 'No_SO', 'No_Surat_Jalan', 'Kode_Item', 'Nama_Item', 'Qty_Kg', 'Harga_Jual_Per_Kg', 'Nilai_Jual', 'HPP_Per_Kg', 'Nilai_HPP', 'Laba_Kotor', 'Status', 'Pencatat'], jual) },
-      { nama: 'produksi_' + bulan + '.csv', csv: csv_(['Tanggal', 'Shift', 'Mesin', 'ID', 'Operator', 'Ambil_Gudang', 'Ambil_Kg', 'Roll_Pakai_Kg', 'Hasil_KW_Kg', 'Hasil_Super_Kg', 'Hasil_Super_Plus_Kg', 'Hasil_Kg', 'BS_KW_Kg', 'BS_Super_Kg', 'BS_Super_Plus_Kg', 'BS_Kg', 'Nilai_Bahan', 'Biaya_Proses', 'Pencatat', 'Catatan'], prod) },
+      { nama: 'produksi_' + bulan + '.csv', csv: csv_(['Tanggal', 'Shift', 'ID', 'Operator_Blowing', 'Ambil_Gudang', 'Ambil_Kg', 'Roll_KW_Kg', 'Roll_Super_Kg', 'Roll_Super_Plus_Kg', 'Roll_Kg', 'BS_Blowing_Kg', 'Operator_Cutting', 'Roll_Pakai_Kg', 'Polybag_KW_Kg', 'Polybag_Super_Kg', 'Polybag_Super_Plus_Kg', 'Polybag_Kg', 'BS_Cutting_Kg', 'Nilai_Bahan', 'Biaya_Proses', 'Pencatat', 'Catatan'], prod) },
       { nama: 'rusak_' + bulan + '.csv', csv: csv_(['Tanggal', 'ID', 'Lokasi', 'Kode_Item', 'Nama_Item', 'Qty_Kg', 'Nilai_Kerugian', 'Penyebab', 'Pencatat', 'Disetujui_Oleh'], rusak) },
       { nama: 'daur_ulang_' + bulan + '.csv', csv: csv_(['Tanggal_Kirim', 'Tanggal_Terima', 'ID', 'Vendor_Chassen', 'No_Surat_Jalan', 'Scrap_Kg', 'Hasil_Kg', 'Susut_Kg', 'Susut_Persen', 'Status_Susut', 'Nilai_Scrap', 'Biaya_Jasa', 'HPP_Total', 'HPP_Per_Kg', 'Pengirim', 'Penerima'], daur) },
       { nama: 'nilai_stok_' + bulan + '.csv', csv: csv_(['Kode_Item', 'Nama_Item', 'Kategori', 'Qty_Kg', 'Harga_Rata', 'Nilai'], stokRows) }

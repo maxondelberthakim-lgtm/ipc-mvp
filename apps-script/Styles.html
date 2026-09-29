@@ -318,4 +318,20 @@ details summary::-webkit-details-marker{display:none}
 input:disabled,select:disabled,textarea:disabled{background:#f3f4f6;color:#374151;opacity:1;-webkit-text-fill-color:#374151}
 .chip{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;padding:4px 10px;border-radius:999px;background:var(--surface-2);border:1px solid var(--line);margin:6px 0}
 .chip button{border:0;background:none;font-size:13px;cursor:pointer;padding:0 2px;color:var(--danger)}
+.mesin{border-left:4px solid #4338ca}
+.mesin#secCutting{border-left-color:#0e7490}
+.mesinhead{display:flex;align-items:flex-start;gap:10px;margin-bottom:6px}
+.mesinhead b{font-size:15px}
+.switch{display:inline-flex;align-items:center;gap:6px;cursor:pointer;flex:0 0 auto;margin-top:2px}
+.switch input{position:absolute;opacity:0;width:0;height:0}
+.switch span{width:40px;height:23px;border-radius:999px;background:#cbd2da;position:relative;transition:background .15s}
+.switch span::after{content:"";position:absolute;top:2px;left:2px;width:19px;height:19px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.25);transition:left .15s}
+.switch input:checked+span{background:var(--ok)}
+.switch input:checked+span::after{left:19px}
+.switch small{font-size:11.5px;font-weight:650;color:var(--muted)}
+.mesin.off{opacity:.75;background:var(--surface-2)}
+.seg button small{font-weight:500;color:var(--muted);font-size:10.5px;margin-left:2px}
+.seg button.on small{color:var(--ink)}
+.oprow.two{grid-template-columns:1fr 96px}
+.selisih{font-size:26px;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
 </style>
