@@ -23,9 +23,8 @@ const po = ctx.simpanPo({supplier:SUP, tanggal:tB(9), topHari:30, baris:[{kode:K
 ok('PO oleh Sales Manager (SUPERVISOR) dengan TOP', po.ok && ctx.baca_(ctx.SHEET.PO)[0].TOP_Hari===30);
 const rc = ctx.simpanPenerimaan({jenis:'MASUK', supplier:SUP, tanggal:tB(10), noSuratJalan:'SJ/B/1', baris:[{kode:KW, qty:1000, idPo:po.ids[0]}], ident:STAF});
 ctx.tinjauTransfer(rc.ids[0], 'setuju', '', SPV);
-const shB = ctx.simpanLaporanShift({tanggal:tB(10), shift:'1', mesin:'BLOWING', operator:['Sri','Budi'], ambil:[{kode:KW, qty:600}], hasil:[{kualitas:'KW', qty:580}], bs:[{kualitas:'KW', qty:10}]}, MP);
-const shC = ctx.simpanLaporanShift({tanggal:tB(10), shift:'1', mesin:'CUTTING', operator:'Rina', hasil:[{kualitas:'KW', qty:560}], bs:[{kualitas:'KW', qty:15}]}, MP);
-ok('Manager Produksi mengisi 2 laporan shift bulan lalu', shB.pencatat==='Manager Produksi' && shC.totalRoll===575);
+const shB = ctx.simpanLaporanShift({tanggal:tB(10), shift:'1', blowing:{operator:['Sri','Budi'], ambil:[{kode:KW, qty:600}], hasil:[{kualitas:'KW', qty:580}], bs:[{kualitas:'KW', qty:10}]}, cutting:{operator:'Rina', rollPakai:[{kualitas:'KW', qty:575}], hasil:[{kualitas:'KW', qty:560}], bs:[{kualitas:'KW', qty:15}]}}, MP);
+ok('Manager Produksi mengisi laporan shift bulan lalu (blowing + cutting)', shB.pencatat==='Manager Produksi' && shB.cutting.totalRoll===575 && shB.blowing.totalHasil===580);
 const so = ctx.simpanSo({customer:CUS, tanggal:tB(11), tanggalKirim:tB(12), topHari:14, baris:[{kode:FG, qty:300, harga:25000}]}, SM);
 ok('SO oleh Sales Manager: customer, TOP 14, tanggal kirim, item, harga', so.ok && ctx.baca_(ctx.SHEET.SO)[0].Jatuh_Tempo===ctx.jatuhTempo_(tB(12),14));
 const kirim = ctx.simpanPengiriman({jenis:'KELUAR', customer:CUS, tanggal:tB(12), noSuratJalan:'DO/B/1', baris:[{kode:FG, qty:300, idSo:so.ids[0]}], ident:STAF});
@@ -89,10 +88,10 @@ ok('daftarTutupBulan: 1 bulan, terakhirTertutup', dt.daftar.length===1 && dt.daf
 tolak('staf tidak boleh lihat daftar tutup bulan', ()=>ctx.daftarTutupBulan(STAF), /Manager/);
 
 console.log('\n— Bulan tertutup terkunci —');
-tolak('laporan shift bertanggal bulan tertutup ditolak', ()=>ctx.simpanLaporanShift({tanggal:tB(20), shift:'2', mesin:'BLOWING', operator:'Sri', ambil:[{kode:KW, qty:1}], hasil:[{kualitas:'KW', qty:1}]}, MP), /sudah ditutup/);
+tolak('laporan shift bertanggal bulan tertutup ditolak', ()=>ctx.simpanLaporanShift({tanggal:tB(20), shift:'2', blowing:{operator:'Sri', ambil:[{kode:KW, qty:1}], hasil:[{kualitas:'KW', qty:1}]}}, MP), /sudah ditutup/);
 tolak('penerimaan bertanggal bulan tertutup ditolak', ()=>ctx.simpanPenerimaan({jenis:'MASUK', supplier:SUP, tanggal:tB(20), noSuratJalan:'SJ/X', baris:[{kode:KW, qty:1}], ident:STAF}), /sudah ditutup/);
 tolak('pengiriman bertanggal bulan tertutup ditolak', ()=>ctx.simpanPengiriman({jenis:'KELUAR', customer:CUS, tanggal:tB(20), noSuratJalan:'DO/X', baris:[{kode:FG, qty:1}], ident:STAF}), /sudah ditutup/);
-tolak('ubah laporan shift bulan tertutup ditolak', ()=>ctx.ubahLaporanShift(shB.id, {hasil:[{kualitas:'KW', qty:1}]}, MP), /sudah ditutup/);
+tolak('ubah laporan shift bulan tertutup ditolak', ()=>ctx.ubahLaporanShift(shB.id, {blowing:{operator:'Sri', hasil:[{kualitas:'KW', qty:1}]}}, MP), /sudah ditutup/);
 tolak('batalkan laporan shift bulan tertutup ditolak', ()=>ctx.batalkanLaporanShift(shB.id, 'x', MP), /sudah ditutup/);
 tolak('edit penerimaan bulan tertutup ditolak (manager pun)', ()=>ctx.simpanEditEntri(rc.ids[0], {qty:999}, SPV), /sudah ditutup/);
 ok('riwayat input: kunci BULAN_TUTUP', ctx.riwayatInput('BELI_MASUK', 60, SPV).find(x=>x.id===rc.ids[0]).kunci==='BULAN_TUTUP');
@@ -100,7 +99,7 @@ tolak('batalkan pengiriman bulan tertutup ditolak', ()=>ctx.tinjauTransfer(kirim
 tolak('ubah batch daur ulang bulan tertutup ditolak', ()=>ctx.ubahDaurUlang(du.id, {biayaJasa:1}, SPV), /sudah ditutup/);
 tolak('batalkan batch daur ulang bulan tertutup ditolak', ()=>ctx.batalkanDaurUlang(du.id, 'x', SPV), /sudah ditutup/);
 ok('laporan shift bulan tertutup: bolehEdit false', ctx.ambilLaporanShift(shB.id, MP).bolehEdit===false);
-ok('transaksi bulan ini tetap bisa', ctx.simpanLaporanShift({shift:'1', mesin:'BLOWING', operator:'Sri', ambil:[{kode:KW, qty:100}], hasil:[{kualitas:'KW', qty:96}], bs:[{kualitas:'KW', qty:2}]}, MP).totalAmbil===100);
+ok('transaksi bulan ini tetap bisa', ctx.simpanLaporanShift({shift:'1', blowing:{operator:'Sri', ambil:[{kode:KW, qty:100}], hasil:[{kualitas:'KW', qty:96}], bs:[{kualitas:'KW', qty:2}]}}, MP).blowing.totalAmbil===100);
 ctx.simpanPengiriman({jenis:'KELUAR', customer:CUS, noSuratJalan:'DO/N/1', baris:[{kode:FG, qty:20}], ident:STAF});
 ok('laporan bulan lalu tidak berubah oleh transaksi bulan ini', ctx.laporanBulanan(B, SPV).cogs===lb.cogs && ctx.laporanBulanan(B, SPV).nilaiStokAkhir===lb.nilaiStokAkhir);
 ok('nilai stok awal bulan ini = nilai stok akhir bulan lalu', ctx.laporanBulanan(N, SPV).nilaiStokAwal===lb.nilaiStokAkhir, [ctx.laporanBulanan(N, SPV).nilaiStokAwal, lb.nilaiStokAkhir]);
@@ -118,14 +117,51 @@ tolak('bulan yang tidak tertutup', ()=>ctx.bukaBulan(N, 'x', ADM), /tidak dalam 
 const bk = ctx.bukaBulan(B, 'ada laporan shift yang terlewat', ADM);
 ok('bulan dibuka: status DIBUKA, catatan & log', bk.ok && ctx.baca_(ctx.SHEET.TUTUP).find(r=>r.ID===tb.id).Status==='DIBUKA' && /dibuka .* oleh Admin: ada laporan/.test(ctx.baca_(ctx.SHEET.TUTUP).find(r=>r.ID===tb.id).Catatan) && ctx.baca_(ctx.SHEET.LOG).some(r=>r.Aksi==='BUKA_BULAN'));
 ok('konteks: bulanTertutup kosong lagi', ctx.getKonteks(STAF).bulanTertutup==='');
-const shTambah = ctx.simpanLaporanShift({tanggal:tB(20), shift:'2', mesin:'BLOWING', operator:'Sri', ambil:[{kode:KW, qty:50}], hasil:[{kualitas:'KW', qty:48}], bs:[{kualitas:'KW', qty:1}]}, MP);
-ok('laporan shift yang terlewat bisa ditambah', shTambah.totalAmbil===50);
+const shTambah = ctx.simpanLaporanShift({tanggal:tB(20), shift:'2', blowing:{operator:'Sri', ambil:[{kode:KW, qty:50}], hasil:[{kualitas:'KW', qty:48}], bs:[{kualitas:'KW', qty:1}]}}, MP);
+ok('laporan shift yang terlewat bisa ditambah', shTambah.blowing.totalAmbil===50);
 const lb3 = ctx.laporanBulanan(B, SPV);
 ok('laporan bulanan ikut laporan baru: masuk 650, proses 1,625 jt, stok akhir +125rb (nilai tetap di roll → COGS sama)', lb3.produksi.masukProduksiKg===650 && lb3.biayaProses===1625000 && lb3.nilaiStokAkhir===lb.nilaiStokAkhir+125000 && lb3.cogs===lb.cogs, [lb3.produksi.masukProduksiKg, lb3.biayaProses, lb3.nilaiStokAkhir-lb.nilaiStokAkhir]);
 const tb2 = ctx.tutupBulan(B, 'tutup ulang', SPV);
 ok('tutup ulang: baris baru, yang lama tetap DIBUKA (riwayat)', tb2.ok && tb2.id!==tb.id && ctx.baca_(ctx.SHEET.TUTUP).length===2 && ctx.baca_(ctx.SHEET.TUTUP).find(r=>r.ID===tb.id).Status==='DIBUKA');
 ok('daftarTutupBulan: baris terakhir per bulan yang berlaku', ctx.daftarTutupBulan(SPV).daftar.length===1 && ctx.daftarTutupBulan(SPV).daftar[0].id===tb2.id && ctx.daftarTutupBulan(SPV).daftar[0].cogs===lb3.cogs);
 tolak('hanya bulan tertutup terakhir yang bisa dibuka', ()=>ctx.bukaBulan(ctx.bulanSebelum_(B), 'x', ADM), /tidak dalam keadaan tertutup/);
+
+console.log('\n— v10.1: Opname produksi (buta) + rekonsiliasi Admin —');
+ok('RPC: simpanOpnameProduksi, daftarOpnameProduksi, rekonsiliasiProduksi ada di whitelist', ctx.RPC_WL.simpanOpnameProduksi && ctx.RPC_WL.daftarOpnameProduksi && ctx.RPC_WL.rekonsiliasiProduksi);
+tolak('staf tidak boleh isi opname produksi', ()=>ctx.simpanOpnameProduksi({bulan:N, polybag:[{kualitas:'KW', qty:1}]}, STAF), /Manager/);
+tolak('bulan tertutup ditolak', ()=>ctx.simpanOpnameProduksi({bulan:B, polybag:[{kualitas:'KW', qty:1}]}, SPV), /sudah ditutup/);
+tolak('bulan depan ditolak', ()=>ctx.simpanOpnameProduksi({bulan:'2099-01', polybag:[{kualitas:'KW', qty:1}]}, SPV), /belum berjalan/);
+tolak('angka negatif ditolak', ()=>ctx.simpanOpnameProduksi({bulan:N, polybag:[{kualitas:'KW', qty:-1}]}, SPV), /negatif/);
+tolak('kosong ditolak', ()=>ctx.simpanOpnameProduksi({bulan:N, polybag:[], bs:[]}, SPV), /Belum ada angka/);
+tolak('kualitas tak dikenal ditolak', ()=>ctx.simpanOpnameProduksi({bulan:N, polybag:[{kualitas:'X', qty:1}]}, SPV), /tidak dikenal/);
+const op1 = ctx.simpanOpnameProduksi({bulan:N, polybag:[{kualitas:'KW', qty:80}], bs:[{kualitas:'KW', qty:2}], biji:[{kode:KW, qty:5}], roll:[{kualitas:'KW', qty:3}], wipMesin:2, catatan:'hitung 30/9'}, SPV);
+ok('manager isi opname: total dihitung sistem = 80+2+5+3+2 = 92', op1.ok && /^OPP-/.test(op1.id) && op1.totalKg===92 && op1.polybagKg===80 && op1.bijiProduksiKg===5 && op1.wipMesinKg===2, op1);
+ok('balasan ke pengisi TIDAK memuat angka pembanding (seharusnya / keluar gudang / selisih)', !/seharusnya|keluar|selisih|menurut|shift/i.test(JSON.stringify(op1)), op1);
+const dOp = ctx.daftarOpnameProduksi(SPV, N);
+ok('riwayat opname produksi: 1 aktif, tanpa angka pembanding', dOp.length===1 && dOp[0].status==='AKTIF' && dOp[0].detail.polybag[0].qty===80 && !/seharusnya|selisih/i.test(JSON.stringify(dOp)), dOp);
+tolak('manager (SUPERVISOR) tidak boleh lihat rekonsiliasi', ()=>ctx.rekonsiliasiProduksi(N, SPV), /Admin/);
+tolak('Manager Produksi juga tidak boleh', ()=>ctx.rekonsiliasiProduksi(N, MP), /Admin/);
+tolak('staf tidak boleh', ()=>ctx.rekonsiliasiProduksi(N, STAF), /Admin/);
+const rk = ctx.rekonsiliasiProduksi(N, ADM);
+ok('Admin: keluar gudang ke produksi bulan ini (neraca) = 100 kg = menurut laporan shift', rk.keluarGudang.total===100 && rk.keluarGudang.totalMenurutShift===100 && rk.keluarGudang.daftar.find(x=>x.kode===KW).keluarKeProduksi===100, rk.keluarGudang);
+ok('Admin: seharusnya 100 (tanpa opname bulan lalu), dihitung 92 → selisih 8 kg (8%)', rk.awalProduksi===0 && rk.adaOpnameLalu===false && rk.seharusnyaKg===100 && rk.opname.totalKg===92 && rk.selisihKg===8 && rk.selisihPersen===8, rk);
+ok('Admin: banding laporan shift — polybag 80 vs 0 dilaporkan (+80), roll fisik 3 vs sisa roll laporan 96', rk.laporanShift.ambil===100 && rk.laporanShift.rollSisa===96 && rk.bandingShift.polybag===80 && rk.bandingShift.roll===3-96, rk.bandingShift);
+const op2 = ctx.simpanOpnameProduksi({bulan:N, polybag:[{kualitas:'KW', qty:85}], bs:[{kualitas:'KW', qty:2}], biji:[{kode:KW, qty:5}], roll:[{kualitas:'KW', qty:3}], wipMesin:2}, SPV);
+ok('opname ulang bulan yang sama: yang lama DIBATALKAN otomatis, yang baru dipakai (selisih 3)', ctx.daftarOpnameProduksi(SPV, N).length===2 && ctx.daftarOpnameProduksi(SPV, N).find(o=>o.id===op1.id).status==='DIBATALKAN' && ctx.rekonsiliasiProduksi(N, ADM).selisihKg===3, ctx.daftarOpnameProduksi(SPV, N).map(o=>[o.id,o.status]));
+/* bahan yang sudah ada di area produksi awal bulan (opname bulan lalu) ikut dihitung sebagai "seharusnya" */
+ctx.bukaBulan(B, 'isi opname produksi', ADM);
+const opB = ctx.simpanOpnameProduksi({bulan:B, polybag:[{kualitas:'KW', qty:600}], bs:[{kualitas:'KW', qty:26}], biji:[{kode:KW, qty:10}], roll:[{kualitas:'KW', qty:5}], wipMesin:1}, SPV);
+ok('opname bulan lalu tersimpan setelah bulan dibuka', opB.ok && opB.totalKg===642);
+const rk2 = ctx.rekonsiliasiProduksi(N, ADM);
+ok('awal produksi bulan ini = biji 10 + roll 5 + isi mesin 1 = 16 → seharusnya 116, selisih 19', rk2.adaOpnameLalu===true && rk2.awalProduksi===16 && rk2.seharusnyaKg===116 && rk2.selisihKg===19, rk2);
+const rkB = ctx.rekonsiliasiProduksi(B, ADM);
+ok('rekonsiliasi bulan lalu: keluar gudang menurut neraca 654 (shift 650 + opname gudang −4), dihitung 642, selisih 12', rkB.keluarGudang.total===654 && rkB.keluarGudang.totalMenurutShift===650 && rkB.keluarGudang.daftar.find(x=>x.kode===KW).opname===-4 && rkB.opname.totalKg===642 && rkB.selisihKg===12, rkB.keluarGudang);
+ctx.tutupBulan(B, 'tutup lagi', SPV);
+ok('bulan lalu ditutup lagi; opname produksi bulan lalu tetap terbaca', ctx.getKonteks(STAF).bulanTertutup===B && ctx.daftarOpnameProduksi(SPV, B).length===1);
+{
+  const semuaMgr = JSON.stringify([ctx.daftarOpnameProduksi(SPV), ctx.getKonteks(SPV), ctx.getKonteks(MP)]);
+  ok('tidak ada angka "seharusnya"/rekonsiliasi di balasan untuk manager', !/seharusnya|selisihKg|keluarGudang/.test(semuaMgr));
+}
 
 console.log('\n— Harga tidak bocor ke STAF —');
 {

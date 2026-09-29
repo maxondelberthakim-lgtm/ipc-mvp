@@ -84,9 +84,9 @@ const kemarin = c2.tglStr_(new Date(Date.now()-864e5));
 const rK = c2.simpanPenerimaan({jenis:'MASUK',supplier:'PT Sumber Biji Plastik',noSuratJalan:'SJ/K',baris:[{kode:'RM-BP-KW',qty:10}],tanggal:kemarin,ident:STAF});
 ok('tanggal kemarin tersimpan', c2.baca_(c2.SHEET.PENERIMAAN).find(r=>r.ID===rK.ids[0]).Tanggal===kemarin);
 ok('default = hari ini', c2.baca_(c2.SHEET.PENERIMAAN).find(r=>r.ID===idM).Tanggal===hariIni);
-tolak('tanggal masa depan ditolak', ()=>c2.simpanLaporanShift({shift:'1',mesin:'BLOWING',operator:'Sri',ambil:[{kode:'RM-BP-KW',qty:1}],hasil:[{kualitas:'KW',qty:1}],tanggal:'2099-01-01'}, SPV), /masa depan/);
-tolak('tanggal terlalu lama ditolak', ()=>c2.simpanLaporanShift({shift:'1',mesin:'BLOWING',operator:'Sri',ambil:[{kode:'RM-BP-KW',qty:1}],hasil:[{kualitas:'KW',qty:1}],tanggal:'2020-01-01'}, SPV), /terlalu lama/);
-tolak('format salah ditolak', ()=>c2.simpanLaporanShift({shift:'1',mesin:'BLOWING',operator:'Sri',ambil:[{kode:'RM-BP-KW',qty:1}],hasil:[{kualitas:'KW',qty:1}],tanggal:'16/09/2026'}, SPV), /YYYY-MM-DD/);
+tolak('tanggal masa depan ditolak', ()=>c2.simpanLaporanShift({shift:'1',blowing:{operator:'Sri',ambil:[{kode:'RM-BP-KW',qty:1}],hasil:[{kualitas:'KW',qty:1}]},tanggal:'2099-01-01'}, SPV), /masa depan/);
+tolak('tanggal terlalu lama ditolak', ()=>c2.simpanLaporanShift({shift:'1',blowing:{operator:'Sri',ambil:[{kode:'RM-BP-KW',qty:1}],hasil:[{kualitas:'KW',qty:1}]},tanggal:'2020-01-01'}, SPV), /terlalu lama/);
+tolak('format salah ditolak', ()=>c2.simpanLaporanShift({shift:'1',blowing:{operator:'Sri',ambil:[{kode:'RM-BP-KW',qty:1}],hasil:[{kualitas:'KW',qty:1}]},tanggal:'16/09/2026'}, SPV), /YYYY-MM-DD/);
 ok('kg masuk hari ini pakai Tanggal (kemarin tidak ikut)', c2.getKonteks(SPV).ringkasan.masukHariIni===520);
 ok('supervisor ubah tanggal entri', /tanggal: /.test(c2.simpanEditEntri(rK.ids[0],{tanggal:hariIni},SPV).log.join()));
 
@@ -97,20 +97,20 @@ ok('hariIni & maksMundurHari dikirim', kS.hariIni===hariIni && kS.maksMundurHari
 
 console.log('\n— Edit laporan shift: manager saja, detail ditulis ulang, tanggal mundur —');
 const kemarin2 = c2.tglStr_(new Date(Date.now()-864e5));
-const sh = c2.simpanLaporanShift({tanggal:kemarin2, shift:'2', mesin:'BLOWING', operator:['Sri','Budi'], ambil:[{kode:'RM-BP-KW',qty:300}], hasil:[{kualitas:'KW',qty:285}], bs:[{kualitas:'KW',qty:3}]}, SPV);
-ok('laporan bertanggal kemarin tersimpan', sh.tanggal===kemarin2 && sh.totalAmbil===300, sh);
+const sh = c2.simpanLaporanShift({tanggal:kemarin2, shift:'2', blowing:{operator:['Sri','Budi'], ambil:[{kode:'RM-BP-KW',qty:300}], hasil:[{kualitas:'KW',qty:285}], bs:[{kualitas:'KW',qty:3}]}}, SPV);
+ok('laporan bertanggal kemarin tersimpan', sh.tanggal===kemarin2 && sh.blowing.totalAmbil===300, sh);
 ok('staf lihat laporan tapi tidak boleh edit', c2.daftarLaporanShift(STAF, 7)[0].bolehEdit===false);
-tolak('staf ditolak ubah laporan shift', ()=>c2.ubahLaporanShift(sh.id, {hasil:[{kualitas:'KW',qty:1}]}, STAF), /Manager|Admin/);
+tolak('staf ditolak ubah laporan shift', ()=>c2.ubahLaporanShift(sh.id, {blowing:{operator:'Sri', hasil:[{kualitas:'KW',qty:1}]}}, STAF), /Manager|Admin/);
 tolak('staf ditolak batalkan laporan shift', ()=>c2.batalkanLaporanShift(sh.id, 'x', STAF), /Manager|Admin/);
 tolak('simpanEditEntri untuk ID SHF- diarahkan ke ubahLaporanShift', ()=>c2.simpanEditEntri(sh.id, {qty:1}, SPV), /ubahLaporanShift/);
 const detSebelum = c2.baca_(c2.SHEET.SHIFT_DETAIL).filter(d=>d.ID_Shift===sh.id).length;
 // salah ketik: hasil 285 → 275, BS 3 → 5, operator ganti
-const e3 = c2.ubahLaporanShift(sh.id, {hasil:[{kualitas:'KW',qty:275}], bs:[{kualitas:'KW',qty:5}], operator:['Sri']}, SPV);
-ok('manager: langsung diterapkan, log hasil & BS & operator', e3.ok && /hasil 285 → 275/.test(e3.log.join(';')) && /BS 3 → 5/.test(e3.log.join(';')) && /operator: Sri/.test(e3.log.join(';')), e3.log);
+const e3 = c2.ubahLaporanShift(sh.id, {blowing:{operator:['Sri'], ambil:[{kode:'RM-BP-KW',qty:300}], hasil:[{kualitas:'KW',qty:275}], bs:[{kualitas:'KW',qty:5}]}}, SPV);
+ok('manager: langsung diterapkan, log roll & BS & operator', e3.ok && /roll jadi 285 → 275/.test(e3.log.join(';')) && /BS blowing 3 → 5/.test(e3.log.join(';')) && /operator blowing: Sri/.test(e3.log.join(';')), e3.log);
 const detSesudah = c2.baca_(c2.SHEET.SHIFT_DETAIL).filter(d=>d.ID_Shift===sh.id);
 ok('baris detail diganti, bukan ditumpuk', detSesudah.length===detSebelum && detSesudah.length===3, detSesudah.length);
 const rowS = c2.baca_(c2.SHEET.SHIFT).find(r=>r.ID===sh.id);
-ok('total di header ikut & Log_Edit mencatat Manager', rowS.Total_Hasil_Kg===275 && rowS.Total_BS_Kg===5 && rowS.Operator==='Sri' && /Manager/.test(rowS.Log_Edit), rowS.Log_Edit);
+ok('total di header ikut & Log_Edit mencatat Manager', rowS.Total_Roll_Kg===275 && rowS.Total_BS_Blowing_Kg===5 && rowS.Operator_Blowing==='Sri' && rowS.Operator_Cutting==='' && /Manager/.test(rowS.Log_Edit), rowS);
 ok('ubah tanggal laporan ke hari ini', /tanggal/.test(c2.ubahLaporanShift(sh.id, {tanggal:hariIni}, SPV).log.join()) && c2.baca_(c2.SHEET.SHIFT).find(r=>r.ID===sh.id).Tanggal===hariIni);
 tolak('ubah ke tanggal masa depan ditolak', ()=>c2.ubahLaporanShift(sh.id, {tanggal:'2099-01-01'}, SPV), /masa depan/);
 ok('stok gudang ikut angka terbaru: roll KW 275', c2.laporanStok(SPV).daftar.find(s=>s.kode==='WIP-ROLL-KW').gbj===275);

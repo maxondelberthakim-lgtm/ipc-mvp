@@ -57,61 +57,70 @@ ok('sheet Transfer tidak ada di skema', ctx.SHEET.TRANSFER===undefined && !ctx.S
 ok('fungsi pekerjaan/FIFO tidak ada di whitelist RPC', !ctx.RPC_WL.mulaiPekerjaan && !ctx.RPC_WL.selesaikanPekerjaan && !ctx.RPC_WL.laporanSusut && !ctx.RPC_WL.laporanHpp && !ctx.RPC_WL.laporanStandarSusut);
 ok('fungsi shift & tutup bulan ada di whitelist', ctx.RPC_WL.simpanLaporanShift && ctx.RPC_WL.laporanProduksi && ctx.RPC_WL.laporanBulanan && ctx.RPC_WL.tutupBulan);
 
-console.log('\n— 6. ① Laporan shift BLOWING: ambil biji → roll + BS —');
+console.log('\n— 6. ① Laporan shift (v10.1): satu laporan per tanggal+shift, blowing & cutting terpisah —');
 const cfg = ctx.konfigurasiShift({});
-ok('konfigurasi: 3 kualitas, tidak ada SKU yang kurang, shift 1-3, 2 mesin', cfg.kualitas.length===3 && cfg.kurang.length===0 && cfg.shift.length===3 && cfg.mesin.length===2, cfg.kurang);
+ok('konfigurasi: 3 kualitas, tidak ada SKU yang kurang, shift 1-2 (12 jam), operator per mesin', cfg.kualitas.length===3 && cfg.kurang.length===0 && cfg.shift.length===2 && /08/.test(cfg.jamShift['1']) && /20/.test(cfg.jamShift['2']) && Array.isArray(cfg.operator.BLOWING) && Array.isArray(cfg.operator.CUTTING), cfg);
 ok('bahan baku untuk blowing: biji plastik & pigmen (bukan roll/polybag)', cfg.bahan.some(b=>b.kode==='RM-BP-KW') && !cfg.bahan.some(b=>b.kode==='WIP-ROLL-KW'));
-ok('operator: nama pengguna aktif ikut', cfg.operator.indexOf('Staff Gudang')>=0);
-const s1 = ctx.simpanLaporanShift({ shift:'1', mesin:'BLOWING', operator:['Sri','Budi'],
-  ambil:[{kode:'RM-BP-KW', qty:500}], hasil:[{kualitas:'KW', qty:470}], bs:[{kualitas:'KW', qty:20}], catatan:'mesin 1 lancar' }, {});
-ok('laporan tersimpan: ID SHF-, total ambil 500, hasil 470, BS 20', /^SHF-/.test(s1.id) && s1.totalAmbil===500 && s1.totalHasil===470 && s1.totalBs===20, s1);
-ok('hasil blowing = roll KW, BS = SCR-BS-KW', s1.hasil[0].kode==='WIP-ROLL-KW' && s1.bs[0].kode==='SCR-BS-KW', [s1.hasil, s1.bs]);
-ok('operator 2 orang, %BS = 20/500 = 4', s1.operator.length===2 && s1.persenBs===4, s1);
-ok('tidak ada roll dipakai di blowing', s1.roll.length===0 && s1.totalRoll===0);
+const s1 = ctx.simpanLaporanShift({ shift:'1',
+  blowing:{ operator:['Sri','Budi'], ambil:[{kode:'RM-BP-KW', qty:500}], hasil:[{kualitas:'KW', qty:470}], bs:[{kualitas:'KW', qty:20}] },
+  cutting:{ operator:'Rina', rollPakai:[{kualitas:'KW', qty:465}], hasil:[{kualitas:'KW', qty:440}], bs:[{kualitas:'KW', qty:25}] },
+  catatan:'mesin 1 lancar' }, {});
+ok('laporan tersimpan: ID SHF-, blowing ambil 500 roll 470 BS 20', /^SHF-/.test(s1.id) && s1.blowing.totalAmbil===500 && s1.blowing.totalHasil===470 && s1.blowing.totalBs===20, s1);
+ok('cutting: roll dipakai 465 (diisi, BUKAN otomatis), polybag 440, BS 25', s1.cutting.totalRoll===465 && s1.cutting.totalHasil===440 && s1.cutting.totalBs===25 && s1.cutting.rollPakai[0].kode==='WIP-ROLL-KW', s1.cutting);
+ok('hasil blowing = roll KW, hasil cutting = polybag KW, BS = SCR-BS-KW', s1.blowing.hasil[0].kode==='WIP-ROLL-KW' && s1.cutting.hasil[0].kode==='FG-PB-KW' && s1.blowing.bs[0].kode==='SCR-BS-KW' && s1.cutting.bs[0].kode==='SCR-BS-KW');
+ok('operator terpisah per mesin: blowing Sri+Budi, cutting Rina', s1.blowing.operator.length===2 && s1.cutting.operator.length===1 && s1.cutting.operator[0]==='Rina', [s1.blowing.operator, s1.cutting.operator]);
+ok('%BS blowing 20/500 = 4, %BS cutting 25/465', s1.blowing.persenBs===4 && s1.cutting.persenBs===Math.round(25/465*10000)/100, [s1.blowing.persenBs, s1.cutting.persenBs]);
+ok('jam shift 1 = 08.00–20.00, total BS 45', /08/.test(s1.jam) && s1.totalBs===45);
 ok('tidak ada persetujuan: status AKTIF, bolehEdit', s1.status==='AKTIF' && s1.bolehEdit===true);
-tolak('laporan dobel (tanggal+shift+mesin) ditolak', ()=>ctx.simpanLaporanShift({ shift:'1', mesin:'BLOWING', operator:'Sri', ambil:[{kode:'RM-BP-KW', qty:1}], hasil:[{kualitas:'KW', qty:1}] }, {}), /sudah ada/);
+tolak('laporan dobel (tanggal+shift) ditolak', ()=>ctx.simpanLaporanShift({ shift:'1', blowing:{ operator:'Sri', ambil:[{kode:'RM-BP-KW', qty:1}] } }, {}), /sudah ada/);
 st = ctx.laporanStok({});
 kw = st.daftar.find(s=>s.kode==='RM-BP-KW');
 ok('biji KW keluar gudang: 750 − 500 = 250, dipakai 500', kw.gbj===250 && kw.dipakai===500, kw);
-ok('roll KW masuk stok 470 (dihasilkan)', st.daftar.find(s=>s.kode==='WIP-ROLL-KW').gbj===470 && st.daftar.find(s=>s.kode==='WIP-ROLL-KW').dihasilkan===470);
-ok('BS KW masuk stok 20', st.daftar.find(s=>s.kode==='SCR-BS-KW').gbj===20);
-ok('susut TIDAK dihitung per shift (tidak ada field susut)', s1.susut===undefined && s1.status!=='TINGGI');
-
-console.log('\n— 7. ② Laporan shift CUTTING: roll → polybag + BS (roll terpakai otomatis) —');
-const s2 = ctx.simpanLaporanShift({ shift:'1', mesin:'CUTTING', operator:'Rina',
-  hasil:[{kualitas:'KW', qty:440}], bs:[{kualitas:'KW', qty:25}] }, {});
-ok('cutting: hasil polybag KW 440, BS 25, roll terpakai = 465 otomatis', s2.hasil[0].kode==='FG-PB-KW' && s2.totalHasil===440 && s2.totalBs===25 && s2.totalRoll===465 && s2.roll[0].kode==='WIP-ROLL-KW', s2);
-ok('cutting tidak mengambil dari gudang bahan baku', s2.ambil.length===0 && s2.totalAmbil===0);
-ok('%BS cutting = 25/465', s2.persenBs===Math.round(25/465*10000)/100, s2.persenBs);
-st = ctx.laporanStok({});
-ok('roll KW turun: 470 − 465 = 5', st.daftar.find(s=>s.kode==='WIP-ROLL-KW').gbj===5, st.daftar.find(s=>s.kode==='WIP-ROLL-KW'));
+ok('roll KW: dihasilkan 470, dipakai 465 → sisa 5', st.daftar.find(s=>s.kode==='WIP-ROLL-KW').gbj===5 && st.daftar.find(s=>s.kode==='WIP-ROLL-KW').dihasilkan===470, st.daftar.find(s=>s.kode==='WIP-ROLL-KW'));
 ok('polybag KW masuk gudang 440', st.daftar.find(s=>s.kode==='FG-PB-KW').gbj===440);
 ok('BS KW total 20 + 25 = 45 (dihitung di dua mesin)', st.daftar.find(s=>s.kode==='SCR-BS-KW').gbj===45);
-ok('biji KW tidak berubah oleh cutting', st.daftar.find(s=>s.kode==='RM-BP-KW').gbj===250);
-tolak('cutting tanpa hasil ditolak', ()=>ctx.simpanLaporanShift({ shift:'2', mesin:'CUTTING', operator:'Rina', hasil:[], bs:[] }, {}), /belum diisi/);
-tolak('blowing tanpa ambil biji ditolak', ()=>ctx.simpanLaporanShift({ shift:'2', mesin:'BLOWING', operator:'Sri', ambil:[], hasil:[{kualitas:'KW', qty:1}] }, {}), /belum diisi/);
-tolak('kualitas tak dikenal ditolak', ()=>ctx.simpanLaporanShift({ shift:'2', mesin:'CUTTING', operator:'Rina', hasil:[{kualitas:'PREMIUM', qty:1}] }, {}), /tidak dikenal/);
-tolak('mesin tak dikenal ditolak', ()=>ctx.simpanLaporanShift({ shift:'2', mesin:'PRINTING', operator:'Rina', hasil:[{kualitas:'KW', qty:1}] }, {}), /BLOWING atau CUTTING/);
-tolak('shift 4 ditolak', ()=>ctx.simpanLaporanShift({ shift:'4', mesin:'CUTTING', operator:'Rina', hasil:[{kualitas:'KW', qty:1}] }, {}), /1, 2, atau 3/);
-tolak('operator kosong ditolak', ()=>ctx.simpanLaporanShift({ shift:'2', mesin:'CUTTING', operator:'', hasil:[{kualitas:'KW', qty:1}] }, {}), /Operator/);
-tolak('roll diambil sebagai bahan baku ditolak', ()=>ctx.simpanLaporanShift({ shift:'2', mesin:'BLOWING', operator:'Sri', ambil:[{kode:'WIP-ROLL-KW', qty:1}], hasil:[{kualitas:'KW', qty:1}] }, {}), /bukan bahan baku/);
+ok('susut TIDAK dihitung per shift (tidak ada field susut)', s1.susut===undefined && s1.status!=='TINGGI');
+
+console.log('\n— 7. Validasi laporan shift —');
+tolak('kedua mesin kosong ditolak', ()=>ctx.simpanLaporanShift({ shift:'2', blowing:null, cutting:null }, {}), /minimal satu mesin/);
+tolak('cutting: operator ada tapi tanpa roll/polybag ditolak', ()=>ctx.simpanLaporanShift({ shift:'2', cutting:{ operator:'Rina', rollPakai:[], hasil:[], bs:[] } }, {}), /Cutting: isi/);
+tolak('blowing: operator ada tapi tanpa ambil/roll ditolak', ()=>ctx.simpanLaporanShift({ shift:'2', blowing:{ operator:'Sri', ambil:[], hasil:[] } }, {}), /Blowing: isi/);
+tolak('kualitas tak dikenal ditolak', ()=>ctx.simpanLaporanShift({ shift:'2', cutting:{ operator:'Rina', hasil:[{kualitas:'PREMIUM', qty:1}] } }, {}), /tidak dikenal/);
+tolak('shift 3 ditolak (hanya 2 shift × 12 jam)', ()=>ctx.simpanLaporanShift({ shift:'3', cutting:{ operator:'Rina', hasil:[{kualitas:'KW', qty:1}] } }, {}), /1 atau 2/);
+tolak('operator cutting kosong ditolak', ()=>ctx.simpanLaporanShift({ shift:'2', cutting:{ operator:'', hasil:[{kualitas:'KW', qty:1}] } }, {}), /Operator cutting/);
+tolak('operator blowing kosong ditolak', ()=>ctx.simpanLaporanShift({ shift:'2', blowing:{ operator:[], ambil:[{kode:'RM-BP-KW', qty:1}] } }, {}), /Operator blowing/);
+tolak('roll diambil sebagai bahan baku ditolak', ()=>ctx.simpanLaporanShift({ shift:'2', blowing:{ operator:'Sri', ambil:[{kode:'WIP-ROLL-KW', qty:1}], hasil:[{kualitas:'KW', qty:1}] } }, {}), /bukan bahan baku/);
+ok('polybag 235 kg TIDAK mengubah roll jadi (roll dipakai diisi sendiri)', (()=>{
+  const r = ctx.simpanLaporanShift({ tanggal: ctx.tglStr_(new Date(Date.now()-86400000)), shift:'2',
+    blowing:{ operator:'Sri', ambil:[{kode:'RM-BP-KW', qty:250}], hasil:[{kualitas:'KW', qty:240}], bs:[{kualitas:'KW', qty:20}] },
+    cutting:{ operator:'Rina', rollPakai:[{kualitas:'KW', qty:200}], hasil:[{kualitas:'KW', qty:235}] } }, {});
+  const okk = r.blowing.totalHasil===240 && r.cutting.totalRoll===200 && r.cutting.totalHasil===235;
+  ctx.batalkanLaporanShift(r.id, 'uji', {});
+  return okk; })());
+ok('cutting boleh tanpa blowing (mesin blowing tidak jalan)', (()=>{
+  const r = ctx.simpanLaporanShift({ tanggal: ctx.tglStr_(new Date(Date.now()-86400000)), shift:'2', cutting:{ operator:'Rina', rollPakai:[{kualitas:'KW', qty:3}], hasil:[{kualitas:'KW', qty:3}] } }, {});
+  const okk = r.blowing.aktif===false && r.blowing.operator.length===0 && r.cutting.aktif===true;
+  ctx.batalkanLaporanShift(r.id, 'uji', {});
+  return okk; })());
 
 console.log('\n— 8. Shift kedua (Super) + beranda + laporan produksi —');
-ctx.simpanLaporanShift({ shift:'2', mesin:'BLOWING', operator:['Sri'], ambil:[{kode:'RM-BP-SUP', qty:200}], hasil:[{kualitas:'SUPER', qty:190}], bs:[{kualitas:'SUPER', qty:5}] }, {});
-ctx.simpanLaporanShift({ shift:'2', mesin:'CUTTING', operator:['Rina','Budi'], hasil:[{kualitas:'SUPER', qty:180}], bs:[{kualitas:'SUPER', qty:8}] }, {});
+ctx.simpanLaporanShift({ shift:'2',
+  blowing:{ operator:['Sri'], ambil:[{kode:'RM-BP-SUP', qty:200}], hasil:[{kualitas:'SUPER', qty:190}], bs:[{kualitas:'SUPER', qty:5}] },
+  cutting:{ operator:['Rina','Budi'], rollPakai:[{kualitas:'SUPER', qty:188}], hasil:[{kualitas:'SUPER', qty:180}], bs:[{kualitas:'SUPER', qty:8}] } }, {});
 st = ctx.laporanStok({});
 ok('roll Super 190 − 188 = 2, polybag Super 180, BS Super 13', st.daftar.find(s=>s.kode==='WIP-ROLL-SUP').gbj===2 && st.daftar.find(s=>s.kode==='FG-PB-SUP').gbj===180 && st.daftar.find(s=>s.kode==='SCR-BS-SUP').gbj===13);
 const kB = ctx.getKonteks({});
-ok('beranda: 4 shift hari ini, jadi 620 kg, BS 58 kg', kB.ringkasan.shiftHariIni===4 && kB.ringkasan.jadiHariIni===620 && kB.ringkasan.bsHariIni===58, kB.ringkasan);
+ok('beranda: 2 shift hari ini, jadi 620 kg, BS 58 kg', kB.ringkasan.shiftHariIni===2 && kB.ringkasan.jadiHariIni===620 && kB.ringkasan.bsHariIni===58, kB.ringkasan);
 const daftar = ctx.daftarLaporanShift({}, 7);
-ok('daftar laporan shift: 4, urut terbaru (shift 2 dulu)', daftar.length===4 && daftar[0].shift==='2', daftar.map(d=>d.shift+d.mesin));
-ok('daftar per tanggal', ctx.daftarLaporanShift({}, 7, kB.hariIni).length===4 && ctx.daftarLaporanShift({}, 7, '2020-01-01').length===0);
+ok('daftar laporan shift: 2, urut terbaru (shift 2 dulu)', daftar.length===2 && daftar[0].shift==='2', daftar.map(d=>d.tanggal+' S'+d.shift));
+ok('daftar per tanggal', ctx.daftarLaporanShift({}, 7, kB.hariIni).length===2 && ctx.daftarLaporanShift({}, 7, '2020-01-01').length===0);
 const lp = ctx.laporanProduksi(null, {});
-ok('laporan produksi total: 4 shift, ambil 700, roll 660, jadi 620, BS 58, roll pakai 653', lp.total.shift===4 && lp.total.ambil===700 && lp.total.roll===660 && lp.total.jadi===620 && lp.total.bs===58 && lp.total.rollPakai===653, lp.total);
+ok('laporan produksi total: 2 shift, ambil 700, roll 660, jadi 620, BS 58, roll pakai 653', lp.total.shift===2 && lp.total.ambil===700 && lp.total.roll===660 && lp.total.jadi===620 && lp.total.bs===58 && lp.total.rollPakai===653, lp.total);
+ok('roll sisa menurut laporan = 660 − 653 = 7', lp.rollSisaMenurutLaporan===7);
 ok('per mesin: BLOWING masuk 700 hasil 660; CUTTING masuk 653 hasil 620', (()=>{const b=lp.perMesin.find(m=>m.mesin==='BLOWING'), c=lp.perMesin.find(m=>m.mesin==='CUTTING'); return b.masuk===700 && b.hasil===660 && b.bs===25 && c.masuk===653 && c.hasil===620 && c.bs===33;})(), lp.perMesin);
-ok('per operator: Sri 2 shift blowing (660 kg), Rina 2 cutting (620)', lp.perOperator.some(o=>o.operator==='Sri' && o.mesin==='BLOWING' && o.shift===2 && o.hasil===660) && lp.perOperator.some(o=>o.operator==='Rina' && o.mesin==='CUTTING' && o.hasil===620), lp.perOperator);
+ok('per operator per mesin: Sri 2 shift blowing (660 kg), Rina 2 cutting (620), Budi 1 blowing + 1 cutting', lp.perOperator.some(o=>o.operator==='Sri' && o.mesin==='BLOWING' && o.shift===2 && o.hasil===660) && lp.perOperator.some(o=>o.operator==='Rina' && o.mesin==='CUTTING' && o.hasil===620) && lp.perOperator.filter(o=>o.operator==='Budi').length===2, lp.perOperator);
 ok('per kualitas: KW jadi 440 BS 45 roll 470; SUPER jadi 180 BS 13', (()=>{const a=lp.perKualitas.find(q=>q.kualitas==='KW'), b=lp.perKualitas.find(q=>q.kualitas==='SUPER'); return a.jadi===440 && a.bs===45 && a.roll===470 && a.rollPakai===465 && b.jadi===180 && b.bs===13;})(), lp.perKualitas);
-ok('per hari: 1 hari, 4 shift', lp.perHari.length===1 && lp.perHari[0].shift===4);
+ok('per hari: 1 hari, 2 shift', lp.perHari.length===1 && lp.perHari[0].shift===2);
 ok('laporan produksi tidak memuat harga', JSON.stringify(lp).indexOf('harga')<0 && JSON.stringify(lp).indexOf('hpp')<0);
 
 console.log('\n— 9. ④ Barang keluar ke customer —');
@@ -226,26 +235,30 @@ console.log('\n— 12d. Kalender —');
 const kal = ctx.kalender(null, {});
 const hariIni = kal.hari.find(h=>h.tanggal===kal.hariIni);
 ok('hari ini ada kejadian', hariIni && hariIni.kejadian.length>0, hariIni && hariIni.kejadian.length);
-ok('shift dihitung: 4', hariIni.shift===4, hariIni.shift);
-ok('kejadian SHIFT_BLOWING & SHIFT_CUTTING dengan qty hasil & bs', hariIni.kejadian.some(e=>e.jenis==='SHIFT_BLOWING' && e.qty===470 && e.bs===20 && e.sheet==='shift') && hariIni.kejadian.some(e=>e.jenis==='SHIFT_CUTTING' && e.jam==='S1'));
+ok('shift dihitung: 2', hariIni.shift===2, hariIni.shift);
+ok('kejadian SHIFT dengan polybag, roll, ambil & bs', hariIni.kejadian.some(e=>e.jenis==='SHIFT' && e.qty===440 && e.roll===470 && e.ambil===500 && e.bs===45 && e.sheet==='shift' && e.jam==='S1' && /Blowing/.test(e.label) && /Cutting/.test(e.label)), hariIni.kejadian.filter(e=>e.jenis==='SHIFT'));
 ok('kejadian urut terbaru dulu', hariIni.kejadian[0].t >= hariIni.kejadian[hariIni.kejadian.length-1].t);
 ok('kalender tidak bocorkan harga/HPP', JSON.stringify(kal).indexOf('hpp')===-1 && JSON.stringify(kal).indexOf('Harga')===-1);
 const kalLalu = ctx.kalender('2020-01', {});
 ok('bulan kosong -> tidak ada hari', kalLalu.hari.length===0 && kalLalu.jumlahHari===31);
 
 console.log('\n— 13. Ubah & batalkan laporan shift —');
-const u1 = ctx.ubahLaporanShift(s1.id, { hasil:[{kualitas:'KW', qty:475}], bs:[{kualitas:'KW', qty:15}] }, {});
-ok('ubah hasil 470 → 475, BS 20 → 15, log tercatat', u1.ok && u1.laporan.totalHasil===475 && u1.laporan.totalBs===15 && /hasil 470 → 475/.test(u1.log.join(';')), u1.log);
-ok('detail ditulis ulang (tidak ditumpuk)', ctx.baca_(ctx.SHEET.SHIFT_DETAIL).filter(d=>d.ID_Shift===s1.id).length===3);
+const u1 = ctx.ubahLaporanShift(s1.id, { blowing:{ operator:['Sri','Budi'], ambil:[{kode:'RM-BP-KW', qty:500}], hasil:[{kualitas:'KW', qty:475}], bs:[{kualitas:'KW', qty:15}] } }, {});
+ok('ubah roll 470 → 475, BS blowing 20 → 15, log tercatat', u1.ok && u1.laporan.blowing.totalHasil===475 && u1.laporan.blowing.totalBs===15 && /roll jadi 470 → 475/.test(u1.log.join(';')), u1.log);
+ok('cutting tidak ikut berubah (bagian yang tidak dikirim tetap)', u1.laporan.cutting.totalRoll===465 && u1.laporan.cutting.totalHasil===440 && u1.laporan.cutting.operator[0]==='Rina');
+ok('detail ditulis ulang (tidak ditumpuk): 3 blowing + 3 cutting', ctx.baca_(ctx.SHEET.SHIFT_DETAIL).filter(d=>d.ID_Shift===s1.id).length===6);
 ok('stok ikut: roll KW 475 − 465 = 10', ctx.laporanStok({}).daftar.find(s=>s.kode==='WIP-ROLL-KW').gbj===10);
-ok('ambilLaporanShift', ctx.ambilLaporanShift(s1.id, {}).totalHasil===475 && /Log|hasil/.test(ctx.ambilLaporanShift(s1.id, {}).logEdit));
-const s3 = ctx.simpanLaporanShift({ shift:'3', mesin:'BLOWING', operator:'Sri', ambil:[{kode:'RM-BP-KW', qty:10}], hasil:[{kualitas:'KW', qty:9}] }, {});
+ok('ambilLaporanShift', ctx.ambilLaporanShift(s1.id, {}).blowing.totalHasil===475 && /Log|roll/.test(ctx.ambilLaporanShift(s1.id, {}).logEdit));
+const u2 = ctx.ubahLaporanShift(s1.id, { cutting:{ operator:'Dewi', rollPakai:[{kualitas:'KW', qty:465}], hasil:[{kualitas:'KW', qty:440}], bs:[{kualitas:'KW', qty:25}] } }, {});
+ok('ganti operator cutting → Dewi, blowing tetap Sri+Budi', u2.laporan.cutting.operator[0]==='Dewi' && u2.laporan.blowing.operator.length===2 && /operator cutting: Dewi/.test(u2.log.join(';')), u2.log);
+const kemarinT = ctx.tglStr_(new Date(Date.now()-86400000));
+const s3 = ctx.simpanLaporanShift({ tanggal:kemarinT, shift:'1', blowing:{ operator:'Sri', ambil:[{kode:'RM-BP-KW', qty:10}], hasil:[{kualitas:'KW', qty:9}] } }, {});
 ctx.batalkanLaporanShift(s3.id, 'salah shift', {});
 ok('dibatalkan: tidak dihitung di stok & hilang dari daftar', ctx.laporanStok({}).daftar.find(s=>s.kode==='RM-BP-KW').gbj===250 && !ctx.daftarLaporanShift({},7).some(x=>x.id===s3.id));
 tolak('batal 2x ditolak', ()=>ctx.batalkanLaporanShift(s3.id, '', {}), /sudah dibatalkan/);
 tolak('ubah yang dibatalkan ditolak', ()=>ctx.ubahLaporanShift(s3.id, {}, {}), /sudah dibatalkan/);
-ok('timpa=true menggantikan laporan yang sama? tidak — laporan lama tetap, hanya dobel diizinkan', ctx.simpanLaporanShift({ shift:'3', mesin:'BLOWING', operator:'Sri', ambil:[{kode:'RM-BP-KW', qty:10}], hasil:[{kualitas:'KW', qty:9}], bs:[{kualitas:'KW', qty:1}] }, {}).totalAmbil===10);
-ok('aktivitas staf mencatat SHIFT untuk pencatat', (()=>{ const a=ctx.aktivitasStaf('', 30, {}).daftar.find(x=>x.jenis && x.jenis.SHIFT); return !!a && a.jenis.SHIFT>=4; })(), ctx.aktivitasStaf('', 30, {}).daftar.map(x=>[x.nama,x.jenis]));
+ok('setelah dibatalkan, tanggal+shift yang sama boleh diisi lagi', ctx.simpanLaporanShift({ tanggal:kemarinT, shift:'1', blowing:{ operator:'Sri', ambil:[{kode:'RM-BP-KW', qty:10}], hasil:[{kualitas:'KW', qty:9}], bs:[{kualitas:'KW', qty:1}] } }, {}).blowing.totalAmbil===10);
+ok('aktivitas staf mencatat SHIFT untuk pencatat', (()=>{ const a=ctx.aktivitasStaf('', 30, {}).daftar.find(x=>x.jenis && x.jenis.SHIFT); return !!a && a.jenis.SHIFT>=3; })(), ctx.aktivitasStaf('', 30, {}).daftar.map(x=>[x.nama,x.jenis]));
 
 console.log('\n— 15. Parser surat jalan —');
 const p = ctx.parseSuratJalan_('SURAT JALAN No : SJ/2026/09/0184\n1. Biji Plastik KW ... 250 kg\n2. Biji Plastik Super ... 1.250,5 kg\nTotal Netto : 1500,5');

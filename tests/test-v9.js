@@ -45,7 +45,7 @@ console.log('— Migrasi v8 → v9: Stok_Awal_GP digabung, kolom dihapus, sheet 
   ctx.lupakanMemo_();
 }
 ctx.setupSistem();
-ok('versi 10.0.0', ctx.APP.versi==='10.0.0');
+ok('versi 10.1.0', ctx.APP.versi==='10.1.0');
 ok('stok awal 0 di seed → laporan stok kosong (belum ada transaksi)', ctx.laporanStok(SPV).daftar.length===0);
 
 console.log('\n— Tambah master dari form (semua peran) —');
@@ -82,8 +82,7 @@ const SUP='PT Sumber Biji Plastik', VENDOR='PT Chassen Jaya', KW='RM-BP-KW';
 const po = ctx.simpanPo({supplier:SUP, baris:[{kode:KW, qty:1000, harga:12000}]}, SPV);
 const poLine = ctx.poTerbuka(STAF)[0];
 ctx.simpanPenerimaan({jenis:'MASUK',supplier:SUP,noSuratJalan:'SJ/1',baris:[{kode:KW,qty:1000,idPo:poLine.id}],ident:STAF});
-const shB = ctx.simpanLaporanShift({shift:'1',mesin:'BLOWING',operator:'Sri',ambil:[{kode:KW,qty:500}],hasil:[{kualitas:'KW',qty:470}],bs:[{kualitas:'KW',qty:12}]}, SPV);
-ctx.simpanLaporanShift({shift:'1',mesin:'CUTTING',operator:'Rina',hasil:[{kualitas:'KW',qty:462}],bs:[{kualitas:'KW',qty:8}]}, SPV);
+const shB = ctx.simpanLaporanShift({shift:'1',blowing:{operator:'Sri',ambil:[{kode:KW,qty:500}],hasil:[{kualitas:'KW',qty:470}],bs:[{kualitas:'KW',qty:12}]},cutting:{operator:'Rina',rollPakai:[{kualitas:'KW',qty:470}],hasil:[{kualitas:'KW',qty:462}],bs:[{kualitas:'KW',qty:8}]}}, SPV);
 const SCR='SCR-BS-KW', DU='RM-BIJI-PLASTIK-DAUR-UL';
 ok('BS KW 20 kg ada di gudang (12 blowing + 8 cutting)', ctx.getKonteks(STAF).stok[SCR].gbj===20);
 tolak('bahan baku biasa tidak bisa dikirim ke chassen', ()=>ctx.mulaiDaurUlang({vendor:VENDOR, scrap:[{kode:KW,qty:5}], ident:STAF}), /bukan scrap/);
@@ -119,7 +118,7 @@ ok('kolom HPP terisi & log edit tercatat', row1b.HPP_Total===70000 && row1b.HPP_
 ok('detail HASIL dapat harga 5.000', ctx.baca_(ctx.SHEET.DAUR_DETAIL).find(d=>d.ID_Daur===d1.id && d.Jenis==='HASIL').Harga_Per_Kg===5000);
 const nilai = ctx.laporanNilaiStok(SPV).daftar.find(x=>x.kode===DU);
 ok('nilai stok rata-rata: 14 kg @5.000', nilai.qty===14 && nilai.rata===5000, nilai);
-const shDu = ctx.simpanLaporanShift({shift:'2',mesin:'BLOWING',operator:'Sri',ambil:[{kode:DU,qty:10}],hasil:[{kualitas:'KW',qty:9.5}]}, SPV);
+const shDu = ctx.simpanLaporanShift({shift:'2',blowing:{operator:'Sri',ambil:[{kode:DU,qty:10}],hasil:[{kualitas:'KW',qty:9.5}]}}, SPV);
 ok('shift memakai biji daur ulang @5.000 (rata-rata), bukan harga master', ctx.hitungRata_().biaya[shDu.id]===50000, ctx.hitungRata_().biaya[shDu.id]);
 ok('daftar SELESAI (manager) tampilkan hpp', ctx.daftarDaurUlang(SPV,'SELESAI')[0].hpp.perKg===5000 && ctx.daftarDaurUlang(SPV,'SELESAI')[0].hpp.jasaKosong===false);
 ok('ambilDaurUlang staf: tanpa hpp, ada scrap & hasil', (()=>{ const a=ctx.ambilDaurUlang(d1.id, STAF); return a.hpp===undefined && a.scrap.length===1 && a.hasil.length===1 && a.bolehUbah===false; })());

@@ -25,8 +25,7 @@ console.log('\n— Stok awal: beli & produksi (shift) —');
 const po = ctx.simpanPo({supplier:SUP, topHari:14, baris:[{kode:KW, qty:1000, harga:12000}]}, SPV);
 const poLine = ctx.poTerbuka(STAF)[0];
 ctx.simpanPenerimaan({jenis:'MASUK',supplier:SUP,noSuratJalan:'SJ/1',baris:[{kode:KW,qty:600,idPo:poLine.id}],ident:STAF});
-ctx.simpanLaporanShift({shift:'1',mesin:'BLOWING',operator:'Sri',ambil:[{kode:KW,qty:300}],hasil:[{kualitas:'KW',qty:292}],bs:[{kualitas:'KW',qty:3}]}, SPV);
-ctx.simpanLaporanShift({shift:'1',mesin:'CUTTING',operator:'Rina',hasil:[{kualitas:'KW',qty:285}],bs:[{kualitas:'KW',qty:4}]}, SPV);
+ctx.simpanLaporanShift({shift:'1',blowing:{operator:'Sri',ambil:[{kode:KW,qty:300}],hasil:[{kualitas:'KW',qty:292}],bs:[{kualitas:'KW',qty:3}]},cutting:{operator:'Rina',rollPakai:[{kualitas:'KW',qty:289}],hasil:[{kualitas:'KW',qty:285}],bs:[{kualitas:'KW',qty:4}]}}, SPV);
 ok('polybag KW 285 kg di GBJ (hasil cutting langsung di gudang)', ctx.getKonteks(STAF).stok[FG].gbj===285);
 
 console.log('\n— Sales order —');
@@ -89,7 +88,7 @@ ok('roll & polybag tidak masuk prediksi beli (bukan bahan baku)', !pr.some(x=>/^
 ok('item tak dipakai = TIDAK_DIPAKAI & diurut belakang', pr[pr.length-1].status==='TIDAK_DIPAKAI');
 // habiskan stok W240 supaya PERLU_BELI: selesaikan sisa PO dulu supaya tidak ada PO
 ctx.simpanPenerimaan({jenis:'MASUK',supplier:SUP,noSuratJalan:'SJ/2',baris:[{kode:KW,qty:400,idPo:poLine.id}],ident:STAF});
-ctx.simpanLaporanShift({shift:'2',mesin:'BLOWING',operator:'Sri',ambil:[{kode:KW,qty:650}],hasil:[{kualitas:'KW',qty:640}]}, SPV);
+ctx.simpanLaporanShift({shift:'2',blowing:{operator:'Sri',ambil:[{kode:KW,qty:650}],hasil:[{kualitas:'KW',qty:640}]}}, SPV);
 pr = ctx.prediksiBeli(SPV, 30);
 const w2 = pr.find(x=>x.kode===KW);
 ok('setelah dipakai 950 kg: 31,67/hari, stok 50 → 1,6 hari, PERLU_BELI', w2.status==='PERLU_BELI' && w2.sisaHari<7 && w2.poSisa===0, w2);
@@ -109,10 +108,10 @@ ok('pembelian: 2 penerimaan dengan harga PO 12000', beliCsv.split('\r\n').length
 const jualCsv = ex.files.find(f=>f.nama.indexOf('penjualan')===0).csv;
 ok('penjualan: 1 pengiriman aktif dengan harga SO & HPP & laba', jualCsv.split('\r\n').length===2 && /;60;25500;1530000;/.test(jualCsv), jualCsv.split('\r\n')[1]);
 const prodCsv = ex.files.find(f=>f.nama.indexOf('produksi')===0).csv.split('\r\n');
-ok('produksi: 3 laporan shift, kolom per kualitas, tanpa susut per shift', prodCsv.length===4 && /Hasil_KW_Kg;Hasil_Super_Kg/.test(prodCsv[0]) && prodCsv[0].indexOf('Susut')<0 && /BLOWING/.test(prodCsv[1]) , prodCsv);
+ok('produksi: 2 laporan shift (1 baris per shift), kolom blowing & cutting terpisah per kualitas, tanpa susut per shift', prodCsv.length===3 && /Operator_Blowing;.*Roll_KW_Kg;Roll_Super_Kg.*Operator_Cutting;Roll_Pakai_Kg;Polybag_KW_Kg/.test(prodCsv[0]) && prodCsv[0].indexOf('Susut')<0 && /;Sri;.*;Rina;289;285;/.test(prodCsv[1]) , prodCsv);
 const ring = Object.fromEntries(ex.ringkasan);
 ok('ringkasan: penjualan 1,53 jt, HPP terjual > 0, laba per pengiriman', ring['Penjualan (nilai, dari harga SO)']===1530000 && ring['HPP barang terjual (semua pengiriman)']>0 && ring['Laba kotor (penjualan − HPP, hanya yang ada harga SO)']===1530000-ring['HPP barang terjual (yang ada harga SO)'] && ring['Penjualan tanpa SO / tanpa harga (kg)']===0, ring);
-ok('ringkasan: pembelian 12 jt, 3 laporan shift, biji masuk blowing 950, polybag jadi 285, BS 7', ring['Pembelian (nilai)']===12000000 && ring['Laporan shift']===3 && ring['Biji plastik masuk blowing (kg)']===950 && ring['Polybag jadi (kg)']===285 && ring['BS total (kg)']===7, ring);
+ok('ringkasan: pembelian 12 jt, 3 laporan shift, biji masuk blowing 950, polybag jadi 285, BS 7', ring['Pembelian (nilai)']===12000000 && ring['Laporan shift']===2 && ring['Biji plastik masuk blowing (kg)']===950 && ring['Polybag jadi (kg)']===285 && ring['BS total (kg)']===7, ring);
 ok('ringkasan: COGS bulan = stok awal + pembelian − retur + jasa + proses − stok akhir; laba kotor = penjualan − COGS', ring['COGS bulan (stok awal + pembelian − retur + jasa chassen + biaya proses − stok akhir)']===Math.round(ring['Nilai stok awal bulan (rata-rata)'] + 12000000 - 0 + 0 + 950*2500 - ring['Nilai stok akhir bulan (rata-rata)']) && ring['Laba kotor bulan (penjualan dari harga SO − COGS)']===1530000-ring['COGS bulan (stok awal + pembelian − retur + jasa chassen + biaya proses − stok akhir)'], ring);
 ok('ringkasan: susut produksi = 950 − 285 − 7 − Δroll(932−289) = 15', ring['Susut produksi (kg, biji masuk − polybag − BS − perubahan roll)']===15, ring['Susut produksi (kg, biji masuk − polybag − BS − perubahan roll)']);
 const stokCsv = ex.files.find(f=>f.nama.indexOf('nilai_stok')===0).csv;

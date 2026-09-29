@@ -124,7 +124,7 @@ console.log('— 6. Migrasi v9 → v10 di atas data sungguhan (cloudflare/ipc-li
     ok('impor data v9 jalan', hasil.some((x) => /^Master_Item:/.test(x)), hasil);
     const ADM6 = { nama: 'Admin', pin: String(data.Master_Pengguna.find((r) => r[1] === 'Admin')[4]) };
     const k = JSON.parse(G6.m.panggil('getKonteks', [ADM6], 'mig-1'));
-    ok('getKonteks setelah migrasi ok (versi 10)', k.ok && k.data.app.versi === '10.0.0', k.error);
+    ok('getKonteks setelah migrasi ok (versi 10.1)', k.ok && k.data.app.versi === '10.1.0', k.error);
     ok('peta kualitas lengkap (roll/polybag/BS ditambahkan)', k.data.kualitas.length === 3 && k.data.kualitas.every((q) => q.biji && q.roll && q.jadi && q.bs), k.data.kualitas);
     ok('RM-BS-* lama dinonaktifkan, SCR-BS-* aktif', !k.data.items.some((i) => /^RM-BS-/.test(i.kode)) && k.data.items.some((i) => i.kode === 'SCR-BS-KW' && i.kategori === 'SCRAP'));
     ok('item lama (FG-PB-HP, RM-BIJI-PLASTIK-DAUR-UL) tetap ada', k.data.items.some((i) => i.kode === 'FG-PB-HP') && k.data.items.some((i) => i.kode === 'RM-BIJI-PLASTIK-DAUR-UL'));
@@ -141,12 +141,57 @@ console.log('— 6. Migrasi v9 → v10 di atas data sungguhan (cloudflare/ipc-li
     ok('laporan bulanan jalan di data lama', lb.ok && typeof lb.data.cogs === 'number', lb.error);
     const cfg = JSON.parse(G6.m.panggil('konfigurasiShift', [ADM6], 'mig-6'));
     ok('konfigurasi shift: tidak ada SKU yang kurang', cfg.ok && cfg.data.kurang.length === 0, cfg.ok ? cfg.data.kurang : cfg.error);
-    const sh = JSON.parse(G6.m.panggil('simpanLaporanShift', [{ shift: '1', mesin: 'BLOWING', operator: 'Operator Uji', ambil: [{ kode: 'RM-BP-KW', qty: 1 }], hasil: [{ kualitas: 'KW', qty: 0.9 }] }, ADM6], 'mig-7'));
+    const sh = JSON.parse(G6.m.panggil('simpanLaporanShift', [{ shift: '1', blowing: { operator: 'Operator Uji', ambil: [{ kode: 'RM-BP-KW', qty: 1 }], hasil: [{ kualitas: 'KW', qty: 0.9 }] } }, ADM6], 'mig-7'));
     ok('laporan shift bisa disimpan di data hasil migrasi', sh.ok && /^SHF-/.test(sh.data.id), sh.error);
     const eks = JSON.parse(G6.m.panggil('eksporBulanan', [G6.m.fns.tglStr_(new Date()).slice(0, 7), ADM6], 'mig-8'));
     ok('ekspor bulanan jalan', eks.ok && eks.data.files.length === 7, eks.error);
     G6.db.close();
   }
+}
+console.log('— 7. Migrasi v10 → v10.1: laporan shift per mesin digabung per tanggal+shift, operator terpisah —');
+{
+  const H = bukaMesin();
+  const ADM7 = { nama: 'Admin', pin: '1234' };
+  JSON.parse(H.m.panggil('getKonteks', [ADM7], 'm71'));
+  const dump = JSON.parse(JSON.stringify(H.m.eksporSemua()));
+  const tgl = H.m.fns.tglStr_(new Date()), now = new Date().toISOString();
+  /* bentuk v10: satu baris per mesin, kolom Mesin/Operator/Total_Hasil_Kg/Total_BS_Kg, detail tanpa Mesin */
+  dump.Laporan_Shift = [
+    ['ID','Waktu','Tanggal','Shift','Mesin','Operator','Total_Ambil_Kg','Total_Roll_Pakai_Kg','Total_Hasil_Kg','Total_BS_Kg','Dicatat_Oleh','Nama_Pencatat','Foto_URL','Catatan','Log_Edit','Status'],
+    ['SHF-A', now, tgl, '1', 'BLOWING', 'Sri, Budi', 250, 0, 240, 20, 'Admin', 'Admin', '', 'blowing lancar', '', 'AKTIF'],
+    ['SHF-B', now, tgl, '1', 'CUTTING', 'Rina', 0, 240, 235, 5, 'Admin', 'Admin', '', '', '', 'AKTIF'],
+    ['SHF-C', now, tgl, '3', 'BLOWING', 'Yanto', 10, 0, 9, 0, 'Admin', 'Admin', '', '', '', 'DIBATALKAN'],
+  ];
+  dump.Laporan_Shift_Detail = [
+    ['ID','ID_Shift','Jenis','Kode_Item','Nama_Item','Kualitas','Qty_Kg','Waktu'],
+    ['SDT-1', 'SHF-A', 'AMBIL', 'RM-BP-KW', 'Biji Plastik KW', 'KW', 250, now],
+    ['SDT-2', 'SHF-A', 'HASIL', 'WIP-ROLL-KW', 'Roll KW', 'KW', 240, now],
+    ['SDT-3', 'SHF-A', 'BS', 'SCR-BS-KW', 'BS KW', 'KW', 20, now],
+    ['SDT-4', 'SHF-B', 'PAKAI_ROLL', 'WIP-ROLL-KW', 'Roll KW', 'KW', 240, now],
+    ['SDT-5', 'SHF-B', 'HASIL', 'FG-PB-KW', 'Polybag KW', 'KW', 235, now],
+    ['SDT-6', 'SHF-B', 'BS', 'SCR-BS-KW', 'BS KW', 'KW', 5, now],
+    ['SDT-7', 'SHF-C', 'AMBIL', 'RM-BP-KW', 'Biji Plastik KW', 'KW', 10, now],
+  ];
+  H.db.close();
+  const I = bukaMesin();
+  I.m.imporSemua(dump);
+  ok('sheet lama diarsipkan (Laporan_Shift_lama), sheet baru berkepala v10.1', !!I.m.SS.sheets['Laporan_Shift_lama'] && !!I.m.SS.sheets['Laporan_Shift_Detail_lama'] && I.m.SS.sheets['Laporan_Shift'].rows[0].indexOf('Operator_Blowing') >= 0 && I.m.SS.sheets['Laporan_Shift'].rows[0].indexOf('Mesin') < 0);
+  const d = JSON.parse(I.m.panggil('daftarLaporanShift', [ADM7, 7], 'm72'));
+  ok('2 laporan v10 (blowing + cutting, shift 1) → 1 laporan v10.1; yang dibatalkan tidak ikut', d.ok && d.data.length === 1 && d.data[0].shift === '1', d.ok ? d.data.map((x) => x.shift) : d.error);
+  const g = d.data[0];
+  ok('operator terpisah: blowing Sri+Budi, cutting Rina', g.blowing.operator.join(',') === 'Sri,Budi' && g.cutting.operator.join(',') === 'Rina', [g.blowing.operator, g.cutting.operator]);
+  ok('angka per mesin: ambil 250, roll 240, BS blowing 20; roll dipakai 240, polybag 235, BS cutting 5', g.blowing.totalAmbil === 250 && g.blowing.totalHasil === 240 && g.blowing.totalBs === 20 && g.cutting.totalRoll === 240 && g.cutting.totalHasil === 235 && g.cutting.totalBs === 5, g);
+  ok('detail dibawa dengan kolom Mesin (3 blowing + 3 cutting), catatan ikut', g.blowing.ambil.length === 1 && g.blowing.hasil.length === 1 && g.cutting.rollPakai.length === 1 && g.cutting.hasil.length === 1 && g.catatan === 'blowing lancar');
+  const st = JSON.parse(I.m.panggil('laporanStok', [ADM7], 'm73'));
+  ok('stok setelah migrasi: roll KW 240 − 240 = 0, polybag 235, BS 25', st.ok && st.data.daftar.find((x) => x.kode === 'WIP-ROLL-KW').gbj === 0 && st.data.daftar.find((x) => x.kode === 'FG-PB-KW').gbj === 235 && st.data.daftar.find((x) => x.kode === 'SCR-BS-KW').gbj === 25, st.ok ? st.data.daftar.filter((x) => /KW$/.test(x.kode)) : st.error);
+  ok('log MIGRASI_V10_1 tercatat', I.m.fns.baca_(I.m.vars.SHEET.LOG).some((r) => r.Aksi === 'MIGRASI_V10_1'));
+  /* impor ulang data yang sudah v10.1 → tidak digandakan */
+  const dump2 = JSON.parse(JSON.stringify(I.m.eksporSemua()));
+  I.db.close();
+  const J = bukaMesin(); J.m.imporSemua(dump2);
+  const d2 = JSON.parse(J.m.panggil('daftarLaporanShift', [ADM7, 7], 'm74'));
+  ok('migrasi idempoten: impor ulang tetap 1 laporan, tidak ada _lama2', d2.ok && d2.data.length === 1 && !J.m.SS.sheets['Laporan_Shift_lama2'], d2.ok ? d2.data.length : d2.error);
+  J.db.close();
 }
 try { fs.unlinkSync(file); } catch (e) {}
 console.log('\n================ ' + pass + ' lulus, ' + fail + ' gagal ================');

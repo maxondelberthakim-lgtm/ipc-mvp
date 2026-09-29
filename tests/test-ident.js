@@ -44,9 +44,9 @@ ok('Ditinjau_Oleh = Manager', ctx.baca_(ctx.SHEET.PENERIMAAN)[0].Ditinjau_Oleh==
 
 console.log('\n— STAF tidak pernah lihat HPP; laporan shift hanya manager —');
 ok('staf lihatHpp = false', ctx.getKonteks(YANTO).lihatHpp===false);
-tolak('staf tidak boleh isi laporan shift', ()=>ctx.simpanLaporanShift({ shift:'1', mesin:'BLOWING', operator:'Sri', ambil:[{kode:'RM-BP-KW', qty:50}], hasil:[{kualitas:'KW', qty:48}] }, YANTO), /Manager/);
+tolak('staf tidak boleh isi laporan shift', ()=>ctx.simpanLaporanShift({ shift:'1', blowing:{ operator:'Sri', ambil:[{kode:'RM-BP-KW', qty:50}], hasil:[{kualitas:'KW', qty:48}] } }, YANTO), /Manager/);
 tolak('staf tidak boleh buka konfigurasi shift', ()=>ctx.konfigurasiShift(YANTO), /Manager/);
-const sS = ctx.simpanLaporanShift({ shift:'1', mesin:'BLOWING', operator:['Sri'], ambil:[{kode:'RM-BP-KW', qty:50}], hasil:[{kualitas:'KW', qty:48}], bs:[{kualitas:'KW', qty:1}] }, ANTO);
+const sS = ctx.simpanLaporanShift({ shift:'1', blowing:{ operator:['Sri'], ambil:[{kode:'RM-BP-KW', qty:50}], hasil:[{kualitas:'KW', qty:48}], bs:[{kualitas:'KW', qty:1}] } }, ANTO);
 ok('manager isi laporan shift: pencatat = Manager', sS.pencatat==='Manager' && sS.bolehEdit===true, sS);
 ok('staf boleh LIHAT daftar shift, tanpa harga, tidak boleh edit', (()=>{ const d=ctx.daftarLaporanShift(YANTO, 7); return d.length===1 && d[0].bolehEdit===false && JSON.stringify(d).indexOf('harga')<0; })());
 const MP = {nama:'Manager Produksi', pin:'1122'}, SM = {nama:'Sales Manager', pin:'3344'};

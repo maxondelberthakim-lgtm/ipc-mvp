@@ -82,7 +82,7 @@ tolak('staf tidak boleh lihat nilai stok', ()=>ctx.laporanNilaiStok(STAF), /Mana
 const po3 = ctx.simpanPo({supplier:SUP, baris:[{kode:KW, qty:150, harga:13000}]}, SPV);
 ctx.simpanPenerimaan({jenis:'MASUK',supplier:SUP,noSuratJalan:'SJ/5',baris:[{kode:KW,qty:150,idPo:po3.ids[0]}],ident:STAF});
 ok('rata-rata bergerak: (450×12.000 + 150×13.000)/600 = 12.250', ctx.laporanNilaiStok(SPV).daftar.find(x=>x.kode===KW).rata===12250);
-const s1 = ctx.simpanLaporanShift({shift:'1', mesin:'BLOWING', operator:'Sri', ambil:[{kode:KW, qty:250}], hasil:[{kualitas:'KW', qty:240}], bs:[{kualitas:'KW', qty:2}]}, SPV);
+const s1 = ctx.simpanLaporanShift({shift:'1', blowing:{operator:'Sri', ambil:[{kode:KW, qty:250}], hasil:[{kualitas:'KW', qty:240}], bs:[{kualitas:'KW', qty:2}]}}, SPV);
 const rata = ctx.hitungRata_();
 ok('nilai bahan shift = 250 × 12.250 (rata-rata), proses 250 × 2.500', rata.biaya[s1.id]===250*12250 && rata.proses[s1.id]===250*2500, [rata.biaya[s1.id], rata.proses[s1.id]]);
 const hargaRoll = (250*12250 + 250*2500)/240;
@@ -90,7 +90,7 @@ ok('roll KW dinilai (bahan + proses)/hasil = 13.281', Math.abs(rata.pos['WIP-ROL
 ctx.setSetting_('METODE_HPP','MASTER');
 ok('METODE_HPP=MASTER → nilai stok pakai harga master (13.000)', ctx.hitungRata_().pos[KW].rata!==undefined && ctx.metodeHpp_()==='MASTER');
 ctx.setSetting_('METODE_HPP','RATA');
-const s2 = ctx.simpanLaporanShift({shift:'1', mesin:'CUTTING', operator:'Rina', hasil:[{kualitas:'KW', qty:230}], bs:[{kualitas:'KW', qty:5}]}, SPV);
+const s2 = ctx.ubahLaporanShift(s1.id, {cutting:{operator:'Rina', rollPakai:[{kualitas:'KW', qty:235}], hasil:[{kualitas:'KW', qty:230}], bs:[{kualitas:'KW', qty:5}]}}, SPV).laporan;
 const hargaPb = 235*hargaRoll/230;
 const nilai2 = ctx.laporanNilaiStok(SPV).daftar.find(x=>x.kode==='FG-PB-KW');
 ok('polybag dinilai roll terpakai / polybag', nilai2.qty===230 && Math.abs(nilai2.rata-hargaPb)<=1, nilai2);
@@ -185,7 +185,7 @@ console.log('\n— doPost: idKlien idempoten (ulang kirim tidak dobel) —');
   ok('fungsi di luar daftar putih ditolak', !r4.ok && /tidak dikenal/.test(r4.error));
   const r5 = JSON.parse(ctx.doPost({ postData:{ contents: JSON.stringify({ fn:'simpanPo', idKlien:'x', args:[{supplier:SUP, baris:[]}, SPV] }) } })._t);
   ok('error tidak di-cache (ulang tetap error, bukan hasil lama)', !r5.ok && /Item PO/.test(r5.error) && cacheMap['rq:x']===undefined);
-  const r6 = JSON.parse(ctx.doPost({ postData:{ contents: JSON.stringify({ fn:'simpanLaporanShift', idKlien:'shf-1', args:[{shift:'2', mesin:'BLOWING', operator:'Sri', ambil:[{kode:KW, qty:5}], hasil:[{kualitas:'KW', qty:4}]}, SPV] }) } })._t);
+  const r6 = JSON.parse(ctx.doPost({ postData:{ contents: JSON.stringify({ fn:'simpanLaporanShift', idKlien:'shf-1', args:[{shift:'2', blowing:{operator:'Sri', ambil:[{kode:KW, qty:5}], hasil:[{kualitas:'KW', qty:4}]}}, SPV] }) } })._t);
   ok('laporan shift lewat doPost', r6.ok && /^SHF-/.test(r6.data.id), r6);
 }
 
