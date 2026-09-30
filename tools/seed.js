@@ -96,24 +96,24 @@
       catatan:'harga biji KW naik jadi 13.125?' }, MGR);
   } catch(e) {}
 
-  /* --- ① laporan shift (v10): blowing → roll, cutting → polybag; per shift per mesin --- */
-  function shiftLap(hariMundur, shift, mesin, op, ambil, hasil, bs, catatan){
+  /* --- ① laporan shift (v10.1): satu laporan per shift (2 × 12 jam); blowing & cutting dengan operator terpisah --- */
+  function shiftLap(hariMundur, shift, blowing, cutting, catatan){
     var tgl = tglMundur(60*24*hariMundur);
-    var r = simpanLaporanShift({ tanggal: tgl, shift: shift, mesin: mesin, operator: op, ambil: ambil, hasil: hasil, bs: bs, catatan: catatan || '' }, MP);
+    var r = simpanLaporanShift({ tanggal: tgl, shift: shift, blowing: blowing, cutting: cutting, catatan: catatan || '' }, MP);
     var rows = baca_(SHEET.SHIFT), last = rows[rows.length - 1];
     ubahBaris_(SHEET.SHIFT, last._baris, { Waktu: mundur(60*24*hariMundur + (3-parseInt(shift,10))*60) });   // Tanggal tetap, hanya jam yang digeser
     return r;
   }
-  shiftLap(2,'1','BLOWING',['Sri','Budi'], [{kode:'RM-BP-KW',qty:400},{kode:'RM-PG-KW',qty:8},{kode:'RM-AF',qty:4}], [{kualitas:'KW',qty:392}], [{kualitas:'KW',qty:12}]);
-  shiftLap(2,'1','CUTTING',['Rina'], [], [{kualitas:'KW',qty:370}], [{kualitas:'KW',qty:15}]);
-  shiftLap(2,'2','BLOWING',['Yanto'], [{kode:'RM-BP-SUP',qty:300},{kode:'RM-PG-KW',qty:6},{kode:'RM-AF',qty:3}], [{kualitas:'SUPER',qty:296}], [{kualitas:'SUPER',qty:8}], 'mesin 2 sempat berhenti 20 menit');
-  shiftLap(2,'2','CUTTING',['Rina','Sri'], [], [{kualitas:'SUPER',qty:280}], [{kualitas:'SUPER',qty:10}]);
-  shiftLap(1,'1','BLOWING',['Sri'], [{kode:'RM-BP-KW',qty:400},{kode:'RM-PG-KW',qty:8},{kode:'RM-AF',qty:4}], [{kualitas:'KW',qty:395}], [{kualitas:'KW',qty:9}]);
-  shiftLap(1,'1','CUTTING',['Rina'], [], [{kualitas:'KW',qty:360}], [{kualitas:'KW',qty:14}]);
-  shiftLap(1,'2','BLOWING',['Budi'], [{kode:'RM-BP-SPL',qty:250},{kode:'RM-PG-KW',qty:5},{kode:'RM-AF',qty:2}], [{kualitas:'SUPER_PLUS',qty:245}], [{kualitas:'SUPER_PLUS',qty:6}]);
-  shiftLap(1,'2','CUTTING',['Rina'], [], [{kualitas:'SUPER_PLUS',qty:230}], [{kualitas:'SUPER_PLUS',qty:9}]);
-  shiftLap(0,'1','BLOWING',['Sri','Budi'], [{kode:'RM-BP-KW',qty:300},{kode:'RM-PG-KW',qty:6},{kode:'RM-AF',qty:3}], [{kualitas:'KW',qty:297}], [{kualitas:'KW',qty:7}]);
-  shiftLap(0,'1','CUTTING',['Rina'], [], [{kualitas:'KW',qty:285}], [{kualitas:'KW',qty:10}]);
+  shiftLap(2,'1', { operator:['Sri','Budi'], ambil:[{kode:'RM-BP-KW',qty:400},{kode:'RM-PG-KW',qty:8},{kode:'RM-AF',qty:4}], hasil:[{kualitas:'KW',qty:392}], bs:[{kualitas:'KW',qty:12}] },
+                  { operator:['Rina'], rollPakai:[{kualitas:'KW',qty:385}], hasil:[{kualitas:'KW',qty:370}], bs:[{kualitas:'KW',qty:15}] });
+  shiftLap(2,'2', { operator:['Yanto'], ambil:[{kode:'RM-BP-SUP',qty:300},{kode:'RM-PG-KW',qty:6},{kode:'RM-AF',qty:3}], hasil:[{kualitas:'SUPER',qty:296}], bs:[{kualitas:'SUPER',qty:8}] },
+                  { operator:['Dewi'], rollPakai:[{kualitas:'SUPER',qty:290}], hasil:[{kualitas:'SUPER',qty:280}], bs:[{kualitas:'SUPER',qty:10}] }, 'mesin blowing sempat berhenti 20 menit');
+  shiftLap(1,'1', { operator:['Sri'], ambil:[{kode:'RM-BP-KW',qty:400},{kode:'RM-PG-KW',qty:8},{kode:'RM-AF',qty:4}], hasil:[{kualitas:'KW',qty:395}], bs:[{kualitas:'KW',qty:9}] },
+                  { operator:['Rina'], rollPakai:[{kualitas:'KW',qty:374}], hasil:[{kualitas:'KW',qty:360}], bs:[{kualitas:'KW',qty:14}] });
+  shiftLap(1,'2', { operator:['Budi'], ambil:[{kode:'RM-BP-SPL',qty:250},{kode:'RM-PG-KW',qty:5},{kode:'RM-AF',qty:2}], hasil:[{kualitas:'SUPER_PLUS',qty:245}], bs:[{kualitas:'SUPER_PLUS',qty:6}] },
+                  { operator:['Dewi'], rollPakai:[{kualitas:'SUPER_PLUS',qty:239}], hasil:[{kualitas:'SUPER_PLUS',qty:230}], bs:[{kualitas:'SUPER_PLUS',qty:9}] });
+  shiftLap(0,'1', { operator:['Sri','Budi'], ambil:[{kode:'RM-BP-KW',qty:300},{kode:'RM-PG-KW',qty:6},{kode:'RM-AF',qty:3}], hasil:[{kualitas:'KW',qty:297}], bs:[{kualitas:'KW',qty:7}] },
+                  { operator:['Rina'], rollPakai:[{kualitas:'KW',qty:295}], hasil:[{kualitas:'KW',qty:285}], bs:[{kualitas:'KW',qty:10}] });
 
   /* --- ④ barang keluar ke customer --- */
   function kirim(jenis, customer, sj, baris, menit, orang){
@@ -189,7 +189,7 @@
   /* --- jembatan google.script.run --- */
   window.google = { script: { run: (function(){
     var fns = ['getKonteks','simpanPenerimaan','simpanPengiriman',
-               'konfigurasiShift','simpanLaporanShift','daftarLaporanShift','ambilLaporanShift','ubahLaporanShift','batalkanLaporanShift','laporanProduksi',
+               'konfigurasiShift','simpanLaporanShift','daftarLaporanShift','ambilLaporanShift','ubahLaporanShift','batalkanLaporanShift','laporanProduksi','simpanOpnameProduksi','daftarOpnameProduksi','rekonsiliasiProduksi',
                'laporanBulanan','tutupBulan','bukaBulan','daftarTutupBulan',
                'antrianReview','tinjauTransfer','tinjauMassal',
                'laporanStok','riwayatPenerimaan','laporanPenjualan',
