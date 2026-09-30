@@ -1,4 +1,4 @@
-# IPC — Inventory & Production Control (v10) — Panduan
+# IPC — Inventory & Production Control (v10.1) — Panduan
 
 Aplikasi HP untuk pabrik polybag: setiap kg yang bergerak **supplier → gudang (GBJ) → blowing → cutting → gudang → customer**
 dicatat dengan angka, foto (kalau perlu), dan siapa yang mencatat.
@@ -15,7 +15,7 @@ SUPPLIER ──⓪ beli (PO, TOP)──►  GUDANG (GBJ)
                                    │  biji plastik diambil operator blowing
                                    ▼
                              MESIN BLOWING  ──► roll KW / Super / Super Plus  + BS per kualitas
-                                   │  (roll masuk stok, dipakai otomatis saat cutting)
+                                   │  (roll ditumpuk; operator cutting mengambil sendiri — bisa dari shift sebelumnya)
                                    ▼
                              MESIN CUTTING  ──► polybag KW / Super / Super Plus + BS per kualitas
                                    │
@@ -24,16 +24,33 @@ SUPPLIER ──⓪ beli (PO, TOP)──►  GUDANG (GBJ)
 BS (semua kualitas) ──♻ chassen (pabrik lain) ──► biji plastik daur ulang ──► gudang
 ```
 
-**Tidak ada pekerjaan per pesanan, tidak ada persetujuan di produksi.** Setiap shift, **Manager Produksi** mengisi
-satu laporan per mesin:
+**Tidak ada pekerjaan per pesanan, tidak ada persetujuan di produksi.** Ada **2 shift × 12 jam** (shift 1 = 08.00–20.00,
+shift 2 = 20.00–08.00). Setiap shift, **Manager Produksi** mengisi **satu laporan** yang punya dua bagian:
 
-| Mesin | Diisi | Efek stok |
+| Bagian | Diisi | Efek stok |
 |---|---|---|
-| Blowing | shift (1/2/3) · operator (bisa beberapa) · biji plastik yang diambil dari gudang (SKU + kg) · **roll jadi per kualitas** · **BS per kualitas** | biji −, roll +, BS + |
-| Cutting | shift · operator · **polybag jadi per kualitas** · **BS per kualitas** — roll yang terpakai dihitung otomatis (polybag + BS per kualitas), cutting tidak mengambil dari gudang bahan baku | roll −, polybag +, BS + |
+| 🌬️ Blowing | **operator blowing** (bisa beberapa — merekalah yang bertanggung jawab atas biji yang diambil) · biji plastik yang diambil dari gudang (SKU + kg) · **roll jadi per kualitas** · **BS blowing per kualitas** | biji −, roll +, BS + |
+| ✂️ Cutting | **operator cutting** · **roll yang diambil untuk dipotong per kualitas** (diisi sendiri — boleh dari tumpukan shift sebelumnya, tidak dihitung dari angka blowing) · **polybag jadi per kualitas** · **BS cutting per kualitas** | roll −, polybag +, BS + |
+
+Mesin yang tidak jalan di shift itu dimatikan lewat saklar "jalan" — bagiannya tidak dicatat. Laporan shift hanya untuk
+mencatat: **berapa biji plastik diambil dan siapa yang ambil, siapa mengerjakan apa dan berapa hasilnya, berapa BS.**
+Blowing dan cutting tidak saling terkait per shift; yang dijumlahkan adalah **total roll jadi** dan **total roll dipakai**
+— selisihnya = tumpukan roll yang belum dipotong, dicek saat opname akhir bulan.
 
 Laporan bisa diubah / dibatalkan oleh manager selama bulannya belum ditutup. Staf gudang bisa **melihat** laporan
 (tanpa harga) tapi tidak mengisi.
+
+### Opname produksi & rekonsiliasi (akhir bulan)
+
+1. **Manager** → Admin → **Opname produksi**: hentikan mesin sebentar, timbang dan isi: polybag yang dihasilkan bulan ini,
+   BS yang dihasilkan, biji plastik yang masih ada di area produksi, roll yang belum dipotong, plastik di dalam mesin.
+   Aplikasi hanya **menjumlahkan** — angka pembanding tidak pernah ditampilkan ke pengisi, supaya tidak ada yang bisa
+   "mencocok-cocokkan". Opname bulan yang sama yang diisi ulang menggantikan yang lama (riwayat tetap ada).
+2. **Admin** → Admin → **Rekonsiliasi**:
+   `stok awal bulan + pembelian − stok akhir bulan` (bahan baku, dari neraca — termasuk selisih opname gudang; retur, rusak,
+   jual, kirim chassen dikeluarkan) **+ bahan yang sudah ada di area produksi awal bulan** (opname bulan lalu)
+   **harus sama dengan** hitungan manager. Selisih = susut atau ada yang tidak tercatat. Ditampilkan juga per bahan baku
+   dan dibandingkan dengan laporan shift (polybag, BS, roll belum dipotong = roll jadi − roll dipakai).
 
 ### Susut
 
@@ -91,15 +108,16 @@ ditolak (`AKSES_TERBUKA = TIDAK`).
 2. ④ **Barang keluar**: ketuk SO di *Kirim hari ini* (form terisi) → foto → no. DO → Simpan.
 3. ↩ Retur (ke supplier / dari customer), ⚠ Barang rusak (disetujui manager), ♻ Kirim BS ke chassen & terima biji daur ulang.
 
-**Manager Produksi** — tab **Produksi** → + Isi laporan: tanggal, shift, mesin, operator (ketik → Enter), biji plastik
-diambil (blowing), roll/polybag per kualitas, BS per kualitas → Simpan. Form berikutnya otomatis melompat ke mesin /
-shift yang belum diisi. **Rekap bulan**: per mesin, per kualitas, per operator, per hari, %BS.
+**Manager Produksi** — tab **Produksi** → + Isi laporan: tanggal, shift (1/2), lalu bagian **Blowing** (operator → Enter,
+biji plastik diambil, roll jadi per kualitas, BS) dan bagian **Cutting** (operator, roll diambil per kualitas, polybag jadi,
+BS) → Simpan. Form berikutnya otomatis melompat ke shift yang belum diisi. **Rekap bulan**: per mesin, per kualitas,
+per operator per mesin, per hari, %BS, sisa roll menurut laporan.
 
 **Manager**
 1. **Review**: setujui / tandai / batalkan penerimaan & pengiriman staf (foto di sebelah angka); laporan rusak.
 2. **Laporan**: Produksi · Stok (neraca per item) · Beli · Jual · Daur ulang · **Laba bulan** · Nilai stok · Perlu beli · Ekspor (7 CSV).
-3. **Admin**: Opname akhir bulan · SKU (kategori: bahan baku / roll / polybag / BS, kualitas KW / Super / Super Plus) ·
-   Aktivitas per orang · Pengguna · Backup.
+3. **Admin**: Opname gudang akhir bulan · **Opname produksi** (hitungan buta) · **Rekonsiliasi** (Admin saja) ·
+   SKU (kategori: bahan baku / roll / polybag / BS, kualitas KW / Super / Super Plus) · Aktivitas per orang · Pengguna · Backup.
 
 ## SKU per kualitas
 
@@ -126,9 +144,12 @@ Tambah/ubah lewat Admin → SKU. Kalau satu kualitas belum lengkap, form laporan
 
 Pengaturan diubah lewat rute admin (`cloudflare/README.md`) atau ekspor–impor database.
 
-## Migrasi dari v9
+## Migrasi dari v9 / v10
 
-Otomatis saat request pertama setelah deploy v10: sheet `Pekerjaan`, `Pekerjaan_Detail`, `Master_Standar_Susut`
+**v10 → v10.1** (otomatis): laporan shift lama yang satu baris per mesin digabung jadi satu baris per tanggal+shift
+(operator blowing / cutting terpisah), sheet lama disimpan sebagai `Laporan_Shift_lama`. Shift 3 lama tetap terbaca.
+
+**v9 → v10** (otomatis saat request pertama setelah deploy v10): sheet `Pekerjaan`, `Pekerjaan_Detail`, `Master_Standar_Susut`
 diarsipkan jadi `*_lama` (data lama tidak hilang, tidak dihitung), kolom `Kualitas` + SKU roll/polybag/BS ditambahkan,
 `RM-BS-*` lama dinonaktifkan (BS sekarang `SCR-BS-*`), `METODE_HPP` FIFO → RATA, akun Manager Produksi & Sales Manager
 ditambahkan. Sebelum dipakai sungguhan, Admin menjalankan `resetUntukGoLive` (rute `/admin/jalankan`) untuk membersihkan

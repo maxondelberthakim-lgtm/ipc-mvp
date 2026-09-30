@@ -1,4 +1,4 @@
-# IPC — Inventory & Production Control (v10)
+# IPC — Inventory & Production Control (v10.1)
 
 Mobile web app for a small polybag factory: every kilogram that moves between
 **supplier → warehouse (GBJ) → blowing → cutting → warehouse → customer** is logged with a
@@ -24,11 +24,14 @@ There are no per-job records and no approvals on the production floor — the sy
 
 | Step | Who | What is entered | Stock effect |
 |---|---|---|---|
-| **Blowing** shift report | Manager Produksi | shift (1/2/3), operators, pellets taken from the warehouse (per SKU, kg), **roll** made per grade (KW / Super / Super Plus), **BS** (scrap) per grade | pellets −, roll +, BS + |
-| **Cutting** shift report | Manager Produksi | shift, operators, **polybag** made per grade, BS per grade — roll consumed is automatic (= polybag + BS per grade); cutting takes nothing from raw-material stock | roll −, polybag +, BS + |
-| Month-end stock count | Manager | physical kg per item | adjustment |
+| **Shift report** (one per 12-hour shift: 1 = 08–20, 2 = 20–08) | Manager Produksi | **Blowing section**: its own operators, pellets taken from the warehouse (per SKU, kg), **roll** made per grade (KW / Super / Super Plus), BS per grade. **Cutting section**: its own operators, **roll taken from the pile** per grade (typed, *not* derived — the pile may come from earlier shifts), **polybag** made per grade, BS per grade. Either machine can be marked "not running". | blowing: pellets −, roll +, BS + · cutting: roll −, polybag +, BS + |
+| Month-end warehouse count | Manager | physical kg per item in the warehouse | adjustment |
+| **Production count** (v10.1, blind) | Manager | polybag produced this month, BS produced, pellets still in the production area, uncut roll, plastic inside the machines — the app only adds it up; **the expected figure is never shown to the person counting** | — |
+| **Reconciliation** (v10.1) | Admin only | `opening stock + purchases − ending stock` of raw material (per the ledger, incl. warehouse-count differences) + material already in production at month start **vs** the manager's production count; difference = shrinkage / unrecorded; also compared with shift-report totals (roll made − roll used = uncut roll) | — |
 | **Close the month** | Manager (reopen: Admin) | one tap — snapshot of COGS, gross profit, shrinkage; transactions dated in that month become read-only | — |
 
+- **Blowing and cutting are not linked per shift.** Every roll made is totalled and every roll taken is totalled; the
+  difference is the uncut roll pile, checked against the physical count at month end.
 - **Shrinkage is not computed per shift.** It appears at month close: `pellets into blowing − polybag made − BS − Δroll stock`,
   plus negative stock-count differences. Reports show it per month next to the COGS.
 - **BS is a real SKU per grade** (`SCR-BS-KW`, `SCR-BS-SUP`, `SCR-BS-SPL`), counted at both machines, sold or sent to the
@@ -84,7 +87,7 @@ apps-script/     business logic + UI (also still pasteable into Apps Script)
   Pembelian.gs   schema migration (v9→v10), purchase orders, invoices, average-cost engine, damage, reorder prediction
   Penjualan.gs   sales orders (TOP), monthly CSV export
   DaurUlang.gs   BS recycling (chassen)
-  Produksi.gs    v10: shift reports (blowing / cutting), production report
+  Produksi.gs    v10.1: shift reports (blowing + cutting per shift), production report, blind production count, reconciliation
   TutupBulan.gs  v10: monthly close — COGS, gross profit, shrinkage, lock / reopen
   Media.gs       photo upload + delivery-note OCR
   Index.html / Styles.html / Script.html   PWA frontend + i18n
@@ -98,14 +101,14 @@ tools/           build-cf.py (Worker bundle), build-app.py, build-demo.py, seed.
 
 See **[cloudflare/DEPLOY.md](cloudflare/DEPLOY.md)**. Short version: on the owner's Mac,
 `cd "Claude Co Work/ipc-cloudflare" && bash deploy.sh` (downloads a portable Node, `wrangler deploy`, sets the admin
-key). The v10 schema migration runs itself on the first request after deploy: archives `Pekerjaan*` /
+key), or double-click `deploy-v10.command` in Finder. The schema migration runs itself on the first request after deploy (v10.1: v10 per-machine shift rows are merged into one row per shift, the old sheets are kept as `*_lama`). v10: archives `Pekerjaan*` /
 `Master_Standar_Susut` as `*_lama`, adds the `Kualitas` column and the per-grade roll / polybag / BS SKUs, deactivates
 the old `RM-BS-*` raw-material SKUs, switches `METODE_HPP` to `RATA`, adds the Manager Produksi / Sales Manager accounts.
 
 ## Development
 
 ```bash
-cd tests && npm test          # ~900 checks: 621 on the sheet harness + 287 on the Cloudflare engine (incl. live-data migration)
+cd tests && npm test          # ~960 checks: sheet harness + Cloudflare engine (incl. live-data migration v9→v10→v10.1)
 python3 tools/build-cf.py     # bundle apps-script/*.gs → cloudflare/src/backend.js
 python3 tools/build-app.py    # rebuild docs/app/ (PWA); API URL from tools/api-url.txt
 python3 tools/build-demo.py   # rebuild docs/index.html
@@ -114,6 +117,7 @@ cd cloudflare && npx wrangler dev --port 8787 --local   # local Worker for the P
 
 ## Status
 
-v10 (production revamp) — shift reports replace jobs, average costing replaces FIFO, monthly close with COGS /
-gross profit / shrinkage, SO & PO with TOP. Backend on Cloudflare (free plan). Not yet: offline mode, barcode
+v10.1 — two 12-hour shifts, one report per shift with separate blowing / cutting operators, roll used typed by the
+cutting operator, blind monthly production count + admin-only reconciliation. v10 — shift reports replace jobs, average
+costing replaces FIFO, monthly close with COGS / gross profit / shrinkage, SO & PO with TOP. Backend on Cloudflare (free plan). Not yet: offline mode, barcode
 scanning, receivables / payment tracking beyond the due date.
