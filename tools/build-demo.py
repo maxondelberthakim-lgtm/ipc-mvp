@@ -33,7 +33,7 @@ banner = '''
   <div style="display:flex;gap:10px;align-items:flex-start">
     <span style="flex:1"><b style="color:#fff;font-size:13.5px">⚠️ INI DEMO — BUKAN APLIKASI SUNGGUHAN.</b> Data contoh hanya di browser ini; refresh = reset; akun tidak sinkron antar HP.
       Aplikasi sungguhan (data bersama, tersimpan di server Cloudflare): <a href="./app/" style="color:#fff;font-weight:800;text-decoration:underline">buka di sini →</a><br>
-      Login demo: <b style="color:#fff">Admin</b> 1234 · <b style="color:#fff">Direktur</b> 2468 · <b style="color:#fff">Manager</b> 1357 · <b style="color:#fff">Manager Produksi</b> 1122 · <b style="color:#fff">Sales Manager</b> 3344 · <b style="color:#fff">Staff Gudang</b> 1111 · <b style="color:#fff">Yanto</b> 2222
+      Login demo: <b style="color:#fff">Admin</b> 1234 · <b style="color:#fff">Direktur</b> 2468 · <b style="color:#fff">Manager</b> 1357 · <b style="color:#fff">Yansen</b> 2211 (PO) · <b style="color:#fff">Deny</b> 3322 (SO) · <b style="color:#fff">Bastari</b> 4433 (produksi) · <b style="color:#fff">Staff Gudang</b> 1111 · <b style="color:#fff">Yanto</b> 2222
       <span style="opacity:.8">(ganti akun: Beranda → Ganti nama / PIN)</span></span>
     <button onclick="document.getElementById('demoBanner').hidden=true" style="background:rgba(255,255,255,.18);color:#fff;border:0;border-radius:7px;padding:5px 10px;font-size:11.5px;font-weight:700;cursor:pointer;flex:0 0 auto">Tutup</button>
   </div>

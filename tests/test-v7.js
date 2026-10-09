@@ -114,17 +114,18 @@ const hppBaru = ctx.baca_(ctx.SHEET.PENGIRIMAN).find(r=>r.ID===jual.ids[0]).HPP_
 ok('hitungUlangHpp: HPP pengiriman naik mengikuti harga baru', ulang.diubah>=1 && hppBaru>hppLama, [ulang, hppLama, hppBaru]);
 ok('HPP baru = rata-rata ulang dari mesin', Math.abs(hppBaru - ctx.hitungRata_().biaya[jual.ids[0]]/100) < 0.01);
 
-console.log('\n— Barang rusak —');
-tolak('manager tidak boleh mencatat rusak', ()=>ctx.simpanKerusakan({lokasi:'GBJ',kode:KW,qty:5,penyebab:'basah',ident:SPV}), /STAF/);
+console.log('\n— Barang rusak (v11: langsung final, tanpa persetujuan) —');
 tolak('tanpa penyebab ditolak', ()=>ctx.simpanKerusakan({lokasi:'GBJ',kode:KW,qty:5,ident:STAF}), /Penyebab/);
 const dmg = ctx.simpanKerusakan({lokasi:'GBJ',kode:KW,qty:20,penyebab:'karung bocor kena hujan',ident:STAF});
-ok('laporan rusak tersimpan MENUNGGU', dmg.ok && ctx.daftarKerusakan(STAF)[0].status==='MENUNGGU');
-ok('stok belum berkurang sebelum disetujui (600 − 250 diambil blowing)', ctx.getKonteks(STAF).stok[KW].gbj===350);
-ok('getKonteks spv: 1 laporan rusak menunggu', ctx.getKonteks(SPV).ringkasan.kerusakanMenunggu===1);
-tolak('staf tidak bisa setujui', ()=>ctx.tinjauKerusakan(dmg.id,'setuju','',STAF), /Supervisor/);
-const tk = ctx.tinjauKerusakan(dmg.id,'setuju','dicek langsung',SPV);
-ok('disetujui: nilai kerugian rata-rata > 0', tk.status==='DISETUJUI' && tk.nilaiKerugian>0, tk);
-ok('stok gudang turun 20 → 330', ctx.getKonteks(STAF).stok[KW].gbj===330);
+ok('laporan rusak tersimpan DISETUJUI (otomatis)', dmg.ok && ctx.daftarKerusakan(STAF)[0].status==='DISETUJUI' && ctx.daftarKerusakan(STAF)[0].ditinjau==='otomatis');
+ok('stok langsung turun 20: 600 − 250 diambil blowing − 20 = 330', ctx.getKonteks(STAF).stok[KW].gbj===330);
+ok('getKonteks spv: tidak ada laporan rusak menunggu', ctx.getKonteks(SPV).ringkasan.kerusakanMenunggu===0);
+tolak('setuju sudah tidak ada', ()=>ctx.tinjauKerusakan(dmg.id,'setuju','',SPV), /Tidak ada proses persetujuan/);
+tolak('staf tidak bisa batalkan lewat tinjauKerusakan', ()=>ctx.tinjauKerusakan(dmg.id,'batal','',STAF), /Manager/);
+const tk = { status: 'DISETUJUI', nilaiKerugian: ctx.daftarKerusakan(SPV,'DISETUJUI')[0].nilaiKerugian };
+ok('nilai kerugian rata-rata dihitung saat simpan > 0', tk.nilaiKerugian>0, tk);
+ok('manager juga boleh mencatat rusak (akses gudang)', ctx.simpanKerusakan({lokasi:'GBJ',kode:KW,qty:1,penyebab:'uji manager',ident:SPV}).ok===true);
+ok('manager batalkan laporan rusak → stok kembali', (()=>{ const d=ctx.daftarKerusakan(SPV,'DISETUJUI').find(x=>x.penyebab==='uji manager'); const b=ctx.tinjauKerusakan(d.id,'batal','salah',SPV); return b.status==='DIBATALKAN' && ctx.getKonteks(STAF).stok[KW].gbj===330; })());
 ok('laporanStok punya kolom rusak=20', ctx.laporanStok(SPV).daftar.find(s=>s.kode===KW).rusak===20);
 ok('staf lihat laporannya sendiri (DISETUJUI) tanpa nilai', (()=>{const d=ctx.daftarKerusakan(STAF,'DISETUJUI')[0]; return d && d.nilaiKerugian===undefined;})());
 ok('spv lihat nilai kerugian', ctx.daftarKerusakan(SPV,'DISETUJUI')[0].nilaiKerugian===tk.nilaiKerugian);

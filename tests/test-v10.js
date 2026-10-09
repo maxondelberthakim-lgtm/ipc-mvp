@@ -8,7 +8,7 @@ let pass=0,fail=0;
 const ok=(l,c,e)=>{c?(pass++,console.log('  ✓',l)):(fail++,console.log('  ✗',l,e===undefined?'':JSON.stringify(e)))};
 function tolak(label, fn, pola){ let e=''; try{ fn(); }catch(x){ e=String(x.message||x); } ok(label, pola.test(e), e); }
 ctx.setupSistem();
-const SPV={nama:'Manager',pin:'1357'}, MP={nama:'Manager Produksi',pin:'1122'}, SM={nama:'Sales Manager',pin:'3344'}, STAF={nama:'Staff Gudang',pin:'1111'}, ADM={nama:'Admin',pin:'1234'};
+const SPV={nama:'Manager',pin:'1357'}, MP={nama:'Bastari',pin:'4433'}, SM={nama:'Deny',pin:'3322'}, YS={nama:'Yansen',pin:'2211'}, STAF={nama:'Staff Gudang',pin:'1111'}, ADM={nama:'Admin',pin:'1234'};
 const SUP='PT Sumber Biji Plastik', CUS='PT Nursery Hijau Lestari', VENDOR='UD Daur Ulang Makmur';
 const KW='RM-BP-KW', ROLL='WIP-ROLL-KW', FG='FG-PB-KW', BS='SCR-BS-KW', DU='RM-BP-DU';
 
@@ -19,20 +19,18 @@ const tB = (d)=>B+'-'+String(d).padStart(2,'0');
 const proses = 2500;
 
 console.log('— Transaksi bulan lalu ('+B+') —');
-const po = ctx.simpanPo({supplier:SUP, tanggal:tB(9), topHari:30, baris:[{kode:KW, qty:1000, harga:12000}]}, SM);
-ok('PO oleh Sales Manager (SUPERVISOR) dengan TOP', po.ok && ctx.baca_(ctx.SHEET.PO)[0].TOP_Hari===30);
+const po = ctx.simpanPo({supplier:SUP, tanggal:tB(9), topHari:30, baris:[{kode:KW, qty:1000, harga:12000}]}, YS);
+ok('PO oleh Yansen (modul PO) dengan TOP', po.ok && ctx.baca_(ctx.SHEET.PO)[0].TOP_Hari===30);
 const rc = ctx.simpanPenerimaan({jenis:'MASUK', supplier:SUP, tanggal:tB(10), noSuratJalan:'SJ/B/1', baris:[{kode:KW, qty:1000, idPo:po.ids[0]}], ident:STAF});
-ctx.tinjauTransfer(rc.ids[0], 'setuju', '', SPV);
 const shB = ctx.simpanLaporanShift({tanggal:tB(10), shift:'1', blowing:{operator:['Sri','Budi'], ambil:[{kode:KW, qty:600}], hasil:[{kualitas:'KW', qty:580}], bs:[{kualitas:'KW', qty:10}]}, cutting:{operator:'Rina', rollPakai:[{kualitas:'KW', qty:575}], hasil:[{kualitas:'KW', qty:560}], bs:[{kualitas:'KW', qty:15}]}}, MP);
-ok('Manager Produksi mengisi laporan shift bulan lalu (blowing + cutting)', shB.pencatat==='Manager Produksi' && shB.cutting.totalRoll===575 && shB.blowing.totalHasil===580);
+ok('Bastari (modul PRODUKSI) mengisi laporan shift bulan lalu (blowing + cutting)', shB.pencatat==='Bastari' && shB.cutting.totalRoll===575 && shB.blowing.totalHasil===580);
 const so = ctx.simpanSo({customer:CUS, tanggal:tB(11), tanggalKirim:tB(12), topHari:14, baris:[{kode:FG, qty:300, harga:25000}]}, SM);
-ok('SO oleh Sales Manager: customer, TOP 14, tanggal kirim, item, harga', so.ok && ctx.baca_(ctx.SHEET.SO)[0].Jatuh_Tempo===ctx.jatuhTempo_(tB(12),14));
+ok('SO oleh Deny (modul SO): customer, TOP 14, tanggal kirim, item, harga', so.ok && ctx.baca_(ctx.SHEET.SO)[0].Jatuh_Tempo===ctx.jatuhTempo_(tB(12),14));
 const kirim = ctx.simpanPengiriman({jenis:'KELUAR', customer:CUS, tanggal:tB(12), noSuratJalan:'DO/B/1', baris:[{kode:FG, qty:300, idSo:so.ids[0]}], ident:STAF});
 ctx.simpanPengiriman({jenis:'KELUAR', customer:'Toko Tani Sejahtera', tanggal:tB(12), noSuratJalan:'DO/B/2', baris:[{kode:FG, qty:50}], ident:STAF});   // tanpa SO → tidak ada nilai jual
 const du = ctx.mulaiDaurUlang({vendor:VENDOR, tanggal:tB(13), scrap:[{kode:BS, qty:20}], ident:STAF});
 ctx.selesaikanDaurUlang({id:du.id, tanggalTerima:tB(14), hasil:[{kode:DU, qty:18}], biayaJasa:90000, ident:SPV});
 const rusak = ctx.simpanKerusakan({kode:FG, qty:5, tanggal:tB(11), penyebab:'kena air', ident:STAF});
-ctx.tinjauKerusakan(rusak.id, 'setuju', '', SPV);
 /* opname akhir bulan: biji KW fisik 396 (sistem 400 → kurang 4) — tanggal digeser ke akhir bulan B */
 const op = ctx.simpanOpname({baris:[{kode:KW, fisik:396}], catatan:'opname akhir bulan'}, SPV);
 ctx.baca_(ctx.SHEET.OPNAME).forEach(r=>{ if (r.ID_Sesi===op.idSesi || r.Kode_Item===KW) ctx.ubahBaris_(ctx.SHEET.OPNAME, r._baris, { Tanggal: B_AKHIR }); });
@@ -69,7 +67,7 @@ ok('laporan bulan ini: bolehTutup false (belum selesai)', ctx.laporanBulanan(N, 
 ok('laporanBulanan tanpa argumen = bulan lalu', ctx.laporanBulanan(null, SPV).bulan===B);
 
 console.log('\n— Tutup bulan —');
-tolak('staf tidak boleh', ()=>ctx.tutupBulan(B, '', STAF), /Manager/);
+tolak('staf tidak boleh', ()=>ctx.tutupBulan(B, '', STAF), /Manajemen/);
 tolak('bulan ini belum bisa ditutup', ()=>ctx.tutupBulan(N, '', SPV), /belum selesai/);
 tolak('bulan depan ditolak', ()=>ctx.tutupBulan('2099-01', '', SPV), /belum selesai/);
 const tb = ctx.tutupBulan(B, 'tutup buku '+B, SPV);
@@ -128,7 +126,7 @@ tolak('hanya bulan tertutup terakhir yang bisa dibuka', ()=>ctx.bukaBulan(ctx.bu
 
 console.log('\n— v10.1: Opname produksi (buta) + rekonsiliasi Admin —');
 ok('RPC: simpanOpnameProduksi, daftarOpnameProduksi, rekonsiliasiProduksi ada di whitelist', ctx.RPC_WL.simpanOpnameProduksi && ctx.RPC_WL.daftarOpnameProduksi && ctx.RPC_WL.rekonsiliasiProduksi);
-tolak('staf tidak boleh isi opname produksi', ()=>ctx.simpanOpnameProduksi({bulan:N, polybag:[{kualitas:'KW', qty:1}]}, STAF), /Manager/);
+tolak('staf tidak boleh isi opname produksi', ()=>ctx.simpanOpnameProduksi({bulan:N, polybag:[{kualitas:'KW', qty:1}]}, STAF), /Produksi/);
 tolak('bulan tertutup ditolak', ()=>ctx.simpanOpnameProduksi({bulan:B, polybag:[{kualitas:'KW', qty:1}]}, SPV), /sudah ditutup/);
 tolak('bulan depan ditolak', ()=>ctx.simpanOpnameProduksi({bulan:'2099-01', polybag:[{kualitas:'KW', qty:1}]}, SPV), /belum berjalan/);
 tolak('angka negatif ditolak', ()=>ctx.simpanOpnameProduksi({bulan:N, polybag:[{kualitas:'KW', qty:-1}]}, SPV), /negatif/);
@@ -140,7 +138,7 @@ ok('balasan ke pengisi TIDAK memuat angka pembanding (seharusnya / keluar gudang
 const dOp = ctx.daftarOpnameProduksi(SPV, N);
 ok('riwayat opname produksi: 1 aktif, tanpa angka pembanding', dOp.length===1 && dOp[0].status==='AKTIF' && dOp[0].detail.polybag[0].qty===80 && !/seharusnya|selisih/i.test(JSON.stringify(dOp)), dOp);
 tolak('manager (SUPERVISOR) tidak boleh lihat rekonsiliasi', ()=>ctx.rekonsiliasiProduksi(N, SPV), /Admin/);
-tolak('Manager Produksi juga tidak boleh', ()=>ctx.rekonsiliasiProduksi(N, MP), /Admin/);
+tolak('Bastari (modul PRODUKSI) juga tidak boleh', ()=>ctx.rekonsiliasiProduksi(N, MP), /Admin/);
 tolak('staf tidak boleh', ()=>ctx.rekonsiliasiProduksi(N, STAF), /Admin/);
 const rk = ctx.rekonsiliasiProduksi(N, ADM);
 ok('Admin: keluar gudang ke produksi bulan ini (neraca) = 100 kg = menurut laporan shift', rk.keluarGudang.total===100 && rk.keluarGudang.totalMenurutShift===100 && rk.keluarGudang.daftar.find(x=>x.kode===KW).keluarKeProduksi===100, rk.keluarGudang);

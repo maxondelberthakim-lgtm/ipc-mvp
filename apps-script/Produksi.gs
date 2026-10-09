@@ -61,7 +61,8 @@ function konfigurasiShift(ident) {
   return { kualitas: kualitas, kurang: kurang, bahan: bahan, operator: daftarOperator_(), shift: DAFTAR_SHIFT, jamShift: JAM_SHIFT, hariIni: tglStr_(new Date()) };
 }
 
-function bolehShift_(u) { return bolehReview_(u); }
+function bolehShift_(u) { return bolehReview_(u) && bolehModul_(u, MODUL.PRODUKSI); }
+function bolehOpnameProd_(u) { return bolehReview_(u) && (bolehModul_(u, MODUL.PRODUKSI) || bolehModul_(u, MODUL.MANAJEMEN)); }
 
 /**
  * p = { tanggal, shift,
@@ -348,7 +349,7 @@ function laporanProduksi(bulan, ident) {
  */
 function simpanOpnameProduksi(p, ident) {
   var u = penggunaSaatIni_(ident);
-  if (!bolehReview_(u)) throw new Error('Opname produksi hanya diisi Manager / Admin.');
+  if (!bolehOpnameProd_(u)) throw new Error('Opname produksi hanya diisi akun dengan akses Produksi / Manajemen.');
   p = p || {};
   var bulan = bulanValid_(p.bulan || tglStr_(new Date()).slice(0, 7));
   if (bulan > tglStr_(new Date()).slice(0, 7)) throw new Error('Bulan belum berjalan.');
@@ -394,7 +395,7 @@ function ringkasOpnameProd_(r) {
 /** Riwayat opname produksi (Manager / Admin) — tanpa angka pembanding. */
 function daftarOpnameProduksi(ident, bulan) {
   var u = penggunaSaatIni_(ident);
-  if (!bolehReview_(u)) throw new Error('Hanya Manager / Admin.');
+  if (!bolehOpnameProd_(u)) throw new Error('Hanya akun dengan akses Produksi / Manajemen.');
   return baca_(SHEET.OPNAME_PROD).filter(function (r) { return !bulan || bulanStr_(r.Bulan) === bulan; })
     .map(ringkasOpnameProd_).sort(function (a, b) { return (b.bulan + b.tanggal).localeCompare(a.bulan + a.tanggal); });
 }

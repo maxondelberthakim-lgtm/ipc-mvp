@@ -4,7 +4,7 @@ export function pasangBackend(G) {
   var SpreadsheetApp = G.SpreadsheetApp, LockService = G.LockService, Utilities = G.Utilities, Session = G.Session, DriveApp = G.DriveApp, PropertiesService = G.PropertiesService, CacheService = G.CacheService, ScriptApp = G.ScriptApp, HtmlService = G.HtmlService, ContentService = G.ContentService, DocumentApp = G.DocumentApp, Logger = G.Logger, Sheets = G.Sheets;
   var console = G.console;
   /* doPost() memakai globalThis[fn]; di sini "globalThis" = peta fungsi backend (bukan global Worker) */
-  var globalThis = { setupSistem: setupSistem, seedJika: seedJika, seedUlangMaster: seedUlangMaster, resetUntukGoLive: resetUntukGoLive, ambilAtauBuatFolder_: ambilAtauBuatFolder_, doGet: doGet, include: include, doPost: doPost, jsonOut_: jsonOut_, ss_: ss_, sheet_: sheet_, lupakanMemo_: lupakanMemo_, salinBaris_: salinBaris_, baca_: baca_, offsetZonaMs_: offsetZonaMs_, serialKeDate_: serialKeDate_, bacaSemuaBatch_: bacaSemuaBatch_, bacaSheet_: bacaSheet_, tambah_: tambah_, ubahBaris_: ubahBaris_, getSetting_: getSetting_, setSetting_: setSetting_, catatLog_: catatLog_, emailAktif_: emailAktif_, tglStr_: tglStr_, tglValid_: tglValid_, buatId_: buatId_, angka_: angka_, bulat_: bulat_, jam_: jam_, penggunaSaatIni_: penggunaSaatIni_, bolehReview_: bolehReview_, bolehAdmin_: bolehAdmin_, bolehLihatHpp_: bolehLihatHpp_, dihitung_: dihitung_, biayaProsesPerKg_: biayaProsesPerKg_, mataUang_: mataUang_, petaItem_: petaItem_, tambahMaster: tambahMaster, getKonteks: getKonteks, simpanPenerimaan: simpanPenerimaan, simpanPengiriman: simpanPengiriman, antrianReview: antrianReview, tinjauTransfer: tinjauTransfer, tinjauMassal: tinjauMassal, hitungStokSemua_: hitungStokSemua_, laporanStok: laporanStok, riwayatPenerimaan: riwayatPenerimaan, laporanPenjualan: laporanPenjualan, penandaPencatat_: penandaPencatat_, maksEditHari_: maksEditHari_, umurHari_: umurHari_, dalamBatasEdit_: dalamBatasEdit_, alasanKunci_: alasanKunci_, bolehEditEntri_: bolehEditEntri_, sheetDariId_: sheetDariId_, ringkasEntri_: ringkasEntri_, riwayatInput: riwayatInput, ambilEntri: ambilEntri, susunEdit_: susunEdit_, cariEntri_: cariEntri_, terapkanEdit_: terapkanEdit_, simpanEditEntri: simpanEditEntri, pesanKunci_: pesanKunci_, batalkanEntriSendiri: batalkanEntriSendiri, ajukanPermintaan_: ajukanPermintaan_, permintaanTertunda_: permintaanTertunda_, daftarPermintaan: daftarPermintaan, tinjauPermintaan: tinjauPermintaan, daftarPengguna: daftarPengguna, simpanPengguna: simpanPengguna, aktivitasStaf: aktivitasStaf, daftarSku: daftarSku, skuDipakai_: skuDipakai_, simpanSku: simpanSku, hapusSku: hapusSku, siapkanOpname: siapkanOpname, simpanOpname: simpanOpname, riwayatOpname: riwayatOpname, kalender: kalender, dataUrlKeBlob_: dataUrlKeBlob_, unggahFoto_: unggahFoto_, unggahFoto: unggahFoto, ocrSuratJalan: ocrSuratJalan, parseSuratJalan_: parseSuratJalan_, normalisasiAngka_: normalisasiAngka_, potongSekitar_: potongSekitar_, tesParserSuratJalan: tesParserSuratJalan, migrasiSkema: migrasiSkema, migrasiV9_: migrasiV9_, migrasiV10_: migrasiV10_, migrasiV10_1_: migrasiV10_1_, pastikanSkema_: pastikanSkema_, metodeHpp_: metodeHpp_, wajibPo_: wajibPo_, kunciWaktu_: kunciWaktu_, bolehPo_: bolehPo_, nomorPoBaru_: nomorPoBaru_, simpanPo: simpanPo, ubahPo: ubahPo, batalkanPo: batalkanPo, sinkronPo_: sinkronPo_, ringkasPo_: ringkasPo_, topValid_: topValid_, jatuhTempo_: jatuhTempo_, daftarPo: daftarPo, poTerbuka: poTerbuka, returTersedia: returTersedia, hitungReturSisa_: hitungReturSisa_, ringkasanPo: ringkasanPo, statusPoGabungan_: statusPoGabungan_, ringkasInvoice_: ringkasInvoice_, simpanInvoice: simpanInvoice, validasiInvoice: validasiInvoice, daftarInvoice: daftarInvoice, hitungRata_: hitungRata_, hargaRataItem_: hargaRataItem_, laporanNilaiStok: laporanNilaiStok, hitungUlangHpp: hitungUlangHpp, simpanKerusakan: simpanKerusakan, ringkasKerusakan_: ringkasKerusakan_, daftarKerusakan: daftarKerusakan, tinjauKerusakan: tinjauKerusakan, leadTimeHari_: leadTimeHari_, prediksiBeli: prediksiBeli, diagnosa: diagnosa, nomorSoBaru_: nomorSoBaru_, simpanSo: simpanSo, ubahSo: ubahSo, batalkanSo: batalkanSo, sinkronSo_: sinkronSo_, ringkasSo_: ringkasSo_, daftarSo: daftarSo, soTerbuka: soTerbuka, soKirimHariIni_: soKirimHariIni_, soDipesan_: soDipesan_, csvBaris_: csvBaris_, csv_: csv_, dalamBulan_: dalamBulan_, akhirBulan_: akhirBulan_, eksporBulanan: eksporBulanan, folderBackup_: folderBackup_, backupHarian: backupHarian, pasangBackupHarian: pasangBackupHarian, statusBackup: statusBackup, standarChassen_: standarChassen_, hitungSusutChassen_: hitungSusutChassen_, cariDaur_: cariDaur_, detailDaur_: detailDaur_, mulaiDaurUlang: mulaiDaurUlang, selesaikanDaurUlang: selesaikanDaurUlang, ringkasDaur_: ringkasDaur_, daftarDaurUlang: daftarDaurUlang, ambilDaurUlang: ambilDaurUlang, ubahDaurUlang: ubahDaurUlang, batalkanDaurUlang: batalkanDaurUlang, laporanDaurUlang: laporanDaurUlang, petaKualitas_: petaKualitas_, daftarOperator_: daftarOperator_, konfigurasiShift: konfigurasiShift, bolehShift_: bolehShift_, simpanLaporanShift: simpanLaporanShift, kolomShift_: kolomShift_, operatorStr_: operatorStr_, susunShift_: susunShift_, tulisDetailShift_: tulisDetailShift_, pecahOperator_: pecahOperator_, ringkasShift_: ringkasShift_, daftarLaporanShift: daftarLaporanShift, ambilLaporanShift: ambilLaporanShift, ubahLaporanShift: ubahLaporanShift, batalkanLaporanShift: batalkanLaporanShift, shiftAktif_: shiftAktif_, laporanProduksi: laporanProduksi, simpanOpnameProduksi: simpanOpnameProduksi, ringkasOpnameProd_: ringkasOpnameProd_, daftarOpnameProduksi: daftarOpnameProduksi, keluarGudangKeProduksi_: keluarGudangKeProduksi_, posisiStokTanggal_: posisiStokTanggal_, rekonsiliasiProduksi: rekonsiliasiProduksi, bulanStr_: bulanStr_, petaTutup_: petaTutup_, bulanTertutup_: bulanTertutup_, bulanTerakhirTertutup_: bulanTerakhirTertutup_, bulanSebelum_: bulanSebelum_, bulanValid_: bulanValid_, laporanBulanan_: laporanBulanan_, ringkasTutup_: ringkasTutup_, laporanBulanan: laporanBulanan, tutupBulan: tutupBulan, bukaBulan: bukaBulan, daftarTutupBulan: daftarTutupBulan };
+  var globalThis = { setupSistem: setupSistem, seedJika: seedJika, seedUlangMaster: seedUlangMaster, resetUntukGoLive: resetUntukGoLive, ambilAtauBuatFolder_: ambilAtauBuatFolder_, doGet: doGet, include: include, doPost: doPost, jsonOut_: jsonOut_, ss_: ss_, sheet_: sheet_, lupakanMemo_: lupakanMemo_, salinBaris_: salinBaris_, baca_: baca_, offsetZonaMs_: offsetZonaMs_, serialKeDate_: serialKeDate_, bacaSemuaBatch_: bacaSemuaBatch_, bacaSheet_: bacaSheet_, tambah_: tambah_, ubahBaris_: ubahBaris_, getSetting_: getSetting_, setSetting_: setSetting_, catatLog_: catatLog_, emailAktif_: emailAktif_, tglStr_: tglStr_, tglValid_: tglValid_, buatId_: buatId_, angka_: angka_, bulat_: bulat_, jam_: jam_, penggunaSaatIni_: penggunaSaatIni_, aksesPengguna_: aksesPengguna_, bolehModul_: bolehModul_, wajibModul_: wajibModul_, aksesTeks_: aksesTeks_, bolehReview_: bolehReview_, bolehAdmin_: bolehAdmin_, bolehLihatHpp_: bolehLihatHpp_, dihitung_: dihitung_, biayaProsesPerKg_: biayaProsesPerKg_, mataUang_: mataUang_, petaItem_: petaItem_, tambahMaster: tambahMaster, getKonteks: getKonteks, simpanPenerimaan: simpanPenerimaan, simpanPengiriman: simpanPengiriman, antrianReview: antrianReview, tinjauTransfer: tinjauTransfer, tinjauMassal: tinjauMassal, hitungStokSemua_: hitungStokSemua_, laporanStok: laporanStok, riwayatPenerimaan: riwayatPenerimaan, laporanPenjualan: laporanPenjualan, penandaPencatat_: penandaPencatat_, maksEditHari_: maksEditHari_, umurHari_: umurHari_, dalamBatasEdit_: dalamBatasEdit_, alasanKunci_: alasanKunci_, bolehEditEntri_: bolehEditEntri_, sheetDariId_: sheetDariId_, ringkasEntri_: ringkasEntri_, riwayatInput: riwayatInput, ambilEntri: ambilEntri, susunEdit_: susunEdit_, cariEntri_: cariEntri_, terapkanEdit_: terapkanEdit_, simpanEditEntri: simpanEditEntri, pesanKunci_: pesanKunci_, batalkanEntriSendiri: batalkanEntriSendiri, ajukanPermintaan_: ajukanPermintaan_, permintaanTertunda_: permintaanTertunda_, daftarPermintaan: daftarPermintaan, tinjauPermintaan: tinjauPermintaan, daftarPengguna: daftarPengguna, simpanPengguna: simpanPengguna, aktivitasStaf: aktivitasStaf, daftarSku: daftarSku, skuDipakai_: skuDipakai_, simpanSku: simpanSku, hapusSku: hapusSku, siapkanOpname: siapkanOpname, simpanOpname: simpanOpname, riwayatOpname: riwayatOpname, kalender: kalender, dataUrlKeBlob_: dataUrlKeBlob_, unggahFoto_: unggahFoto_, unggahFoto: unggahFoto, ocrSuratJalan: ocrSuratJalan, parseSuratJalan_: parseSuratJalan_, normalisasiAngka_: normalisasiAngka_, potongSekitar_: potongSekitar_, tesParserSuratJalan: tesParserSuratJalan, migrasiSkema: migrasiSkema, migrasiV9_: migrasiV9_, migrasiV10_: migrasiV10_, migrasiV11_: migrasiV11_, migrasiV10_1_: migrasiV10_1_, pastikanSkema_: pastikanSkema_, metodeHpp_: metodeHpp_, wajibPo_: wajibPo_, kunciWaktu_: kunciWaktu_, bolehPo_: bolehPo_, bolehSo_: bolehSo_, nomorPoBaru_: nomorPoBaru_, simpanPo: simpanPo, ubahPo: ubahPo, batalkanPo: batalkanPo, sinkronPo_: sinkronPo_, ringkasPo_: ringkasPo_, topValid_: topValid_, jatuhTempo_: jatuhTempo_, daftarPo: daftarPo, poTerbuka: poTerbuka, returTersedia: returTersedia, hitungReturSisa_: hitungReturSisa_, ringkasanPo: ringkasanPo, statusPoGabungan_: statusPoGabungan_, ringkasInvoice_: ringkasInvoice_, simpanInvoice: simpanInvoice, validasiInvoice: validasiInvoice, daftarInvoice: daftarInvoice, hitungRata_: hitungRata_, hargaRataItem_: hargaRataItem_, laporanNilaiStok: laporanNilaiStok, hitungUlangHpp: hitungUlangHpp, simpanKerusakan: simpanKerusakan, ringkasKerusakan_: ringkasKerusakan_, daftarKerusakan: daftarKerusakan, tinjauKerusakan: tinjauKerusakan, leadTimeHari_: leadTimeHari_, prediksiBeli: prediksiBeli, diagnosa: diagnosa, nomorSoBaru_: nomorSoBaru_, simpanSo: simpanSo, ubahSo: ubahSo, batalkanSo: batalkanSo, sinkronSo_: sinkronSo_, ringkasSo_: ringkasSo_, daftarSo: daftarSo, soTerbuka: soTerbuka, soKirimHariIni_: soKirimHariIni_, soDipesan_: soDipesan_, csvBaris_: csvBaris_, csv_: csv_, dalamBulan_: dalamBulan_, akhirBulan_: akhirBulan_, eksporBulanan: eksporBulanan, folderBackup_: folderBackup_, backupHarian: backupHarian, pasangBackupHarian: pasangBackupHarian, statusBackup: statusBackup, standarChassen_: standarChassen_, hitungSusutChassen_: hitungSusutChassen_, cariDaur_: cariDaur_, detailDaur_: detailDaur_, mulaiDaurUlang: mulaiDaurUlang, selesaikanDaurUlang: selesaikanDaurUlang, ringkasDaur_: ringkasDaur_, daftarDaurUlang: daftarDaurUlang, ambilDaurUlang: ambilDaurUlang, ubahDaurUlang: ubahDaurUlang, batalkanDaurUlang: batalkanDaurUlang, laporanDaurUlang: laporanDaurUlang, petaKualitas_: petaKualitas_, daftarOperator_: daftarOperator_, konfigurasiShift: konfigurasiShift, bolehShift_: bolehShift_, bolehOpnameProd_: bolehOpnameProd_, simpanLaporanShift: simpanLaporanShift, kolomShift_: kolomShift_, operatorStr_: operatorStr_, susunShift_: susunShift_, tulisDetailShift_: tulisDetailShift_, pecahOperator_: pecahOperator_, ringkasShift_: ringkasShift_, daftarLaporanShift: daftarLaporanShift, ambilLaporanShift: ambilLaporanShift, ubahLaporanShift: ubahLaporanShift, batalkanLaporanShift: batalkanLaporanShift, shiftAktif_: shiftAktif_, laporanProduksi: laporanProduksi, simpanOpnameProduksi: simpanOpnameProduksi, ringkasOpnameProd_: ringkasOpnameProd_, daftarOpnameProduksi: daftarOpnameProduksi, keluarGudangKeProduksi_: keluarGudangKeProduksi_, posisiStokTanggal_: posisiStokTanggal_, rekonsiliasiProduksi: rekonsiliasiProduksi, bulanStr_: bulanStr_, petaTutup_: petaTutup_, bulanTertutup_: bulanTertutup_, bulanTerakhirTertutup_: bulanTerakhirTertutup_, bulanSebelum_: bulanSebelum_, bulanValid_: bulanValid_, laporanBulanan_: laporanBulanan_, ringkasTutup_: ringkasTutup_, laporanBulanan: laporanBulanan, tutupBulan: tutupBulan, bukaBulan: bukaBulan, daftarTutupBulan: daftarTutupBulan };
 /* ==== Config.gs ==== */
 /**********************************************************************
  * IPC — Inventory & Production Control (v9)
@@ -18,7 +18,7 @@ export function pasangBackend(G) {
 
 var APP = {
   nama: 'IPC — Inventory & Production Control',
-  versi: '10.1.0',
+  versi: '11.0.0',
   zona: 'Asia/Jakarta',
   satuan: 'kg',
   folderFoto: 'IPC Foto Bukti'
@@ -66,7 +66,7 @@ HEADER[SHEET.CUSTOMER] = [
 ];
 
 HEADER[SHEET.PENGGUNA] = [
-  'Email','Nama','Peran','Lokasi','PIN','Aktif'
+  'Email','Nama','Peran','Lokasi','PIN','Aktif','Akses'   // v11: Akses = daftar modul (PO,SO,PRODUKSI,GUDANG,MANAJEMEN); kosong = semua modul perannya
 ];
 
 /* ⓪ Pembelian masuk (MASUK) & retur ke supplier (RETUR) — pakai surat jalan */
@@ -223,6 +223,12 @@ var KUALITAS = { KW: 'KW', SUPER: 'SUPER', SUPER_PLUS: 'SUPER_PLUS' };   // v10:
 var NAMA_KUALITAS = { KW: 'KW', SUPER: 'Super', SUPER_PLUS: 'Super Plus' };
 
 var PERAN = { STAF: 'STAF', SUPERVISOR: 'SUPERVISOR', ADMIN: 'ADMIN' };
+/* v11: akses per modul. ADMIN = semua. SUPERVISOR = modul yang tercantum di kolom Akses (kosong = semua).
+   STAF = GUDANG saja. Laporan (termasuk harga/HPP) tetap untuk semua SUPERVISOR/ADMIN. */
+var MODUL = { PO: 'PO', SO: 'SO', PRODUKSI: 'PRODUKSI', GUDANG: 'GUDANG', MANAJEMEN: 'MANAJEMEN' };
+var DAFTAR_MODUL = ['PO', 'SO', 'PRODUKSI', 'GUDANG', 'MANAJEMEN'];
+var NAMA_MODUL = { PO: 'Pesanan pembelian (PO) & invoice', SO: 'Sales order (SO)', PRODUKSI: 'Laporan produksi & opname produksi',
+                   GUDANG: 'Gudang: penerimaan, pengiriman, retur, rusak, daur ulang', MANAJEMEN: 'Manajemen: opname gudang, SKU, tutup bulan, aktivitas, backup' };
 var LOKASI = { GBJ: 'GBJ' };   // v9: satu gudang saja — pekerjaan berjalan di GBJ
 
 var DEFAULT_SUSUT_CHASSEN_PERSEN     = 5.0;   // v9: susut normal scrap → biji plastik di mesin chassen
@@ -270,12 +276,13 @@ var DUMMY_CUSTOMER = [
    SUPERVISOR = review, HPP, opname, SKU, edit semua entri
    STAF       = input pergerakan barang */
 var DUMMY_PENGGUNA = [
-  ['', 'Admin',            PERAN.ADMIN,      'HQ',       '1234', 'YA'],
-  ['', 'Direktur',         PERAN.ADMIN,      'HQ',       '2468', 'YA'],
-  ['', 'Manager',          PERAN.SUPERVISOR, 'GBJ',      '1357', 'YA'],
-  ['', 'Manager Produksi', PERAN.SUPERVISOR, 'Produksi', '1122', 'YA'],   // v10: mengisi laporan shift
-  ['', 'Sales Manager',    PERAN.SUPERVISOR, 'Sales',    '3344', 'YA'],   // v10: SO & PO
-  ['', 'Staff Gudang',     PERAN.STAF,       'GBJ',      '1111', 'YA']
+  ['', 'Admin',        PERAN.ADMIN,      'HQ',       '1234', 'YA', ''],
+  ['', 'Direktur',     PERAN.ADMIN,      'HQ',       '2468', 'YA', ''],
+  ['', 'Manager',      PERAN.SUPERVISOR, 'GBJ',      '1357', 'YA', ''],            // semua modul
+  ['', 'Yansen',       PERAN.SUPERVISOR, 'Purchasing','2211', 'YA', 'PO'],         // v11: pesanan pembelian & invoice
+  ['', 'Deny',         PERAN.SUPERVISOR, 'Sales',    '3322', 'YA', 'SO'],          // v11: sales order
+  ['', 'Bastari',      PERAN.SUPERVISOR, 'Produksi', '4433', 'YA', 'PRODUKSI'],    // v11: laporan shift & opname produksi
+  ['', 'Staff Gudang', PERAN.STAF,       'GBJ',      '1111', 'YA', 'GUDANG']
 ];
 
 var DEFAULT_SETTING = [
@@ -684,13 +691,15 @@ function penggunaSaatIni_(ident) {
       if (String(rows[i].Email).toLowerCase().trim() === email.toLowerCase() &&
           String(rows[i].Aktif).toUpperCase() !== 'TIDAK') {
         return { email: email, nama: rows[i].Nama || email, peran: rows[i].Peran || PERAN.STAF,
-                 lokasi: rows[i].Lokasi || '', terdaftar: true, identitasManual: false };
+                 lokasi: rows[i].Lokasi || '', terdaftar: true, identitasManual: false,
+                 akses: aksesPengguna_(rows[i].Peran || PERAN.STAF, rows[i].Akses) };
       }
     }
     var terbuka = (getSetting_('AKSES_TERBUKA') || 'YA').toUpperCase() === 'YA';
     if (!terbuka) throw new Error('Akses ditolak. Email ' + email + ' belum terdaftar di Master_Pengguna.');
-    return { email: email, nama: email.split('@')[0], peran: getSetting_('PERAN_DEFAULT') || PERAN.STAF,
-             lokasi: '', terdaftar: false, identitasManual: false };
+    var peranT = getSetting_('PERAN_DEFAULT') || PERAN.STAF;
+    return { email: email, nama: email.split('@')[0], peran: peranT,
+             lokasi: '', terdaftar: false, identitasManual: false, akses: aksesPengguna_(peranT, '') };
   }
 
   var nama = String(ident.nama || '').trim();
@@ -698,6 +707,7 @@ function penggunaSaatIni_(ident) {
   var peran = getSetting_('PERAN_DEFAULT') || PERAN.STAF;
   var lokasi = '';
   var terdaftar = false;
+  var aksesTeks = '';
 
   if (nama) {
     var pr = baca_(SHEET.PENGGUNA);
@@ -710,6 +720,7 @@ function penggunaSaatIni_(ident) {
       nama = String(pr[j].Nama);          // pakai ejaan resmi
       peran = pr[j].Peran || peran;
       lokasi = pr[j].Lokasi || '';
+      aksesTeks = pr[j].Akses || '';
       terdaftar = true;
       break;
     }
@@ -722,7 +733,29 @@ function penggunaSaatIni_(ident) {
   }
 
   return { email: '', nama: nama || '(belum diisi)', peran: peran, lokasi: lokasi,
-           terdaftar: terdaftar, identitasManual: true, perluNama: !nama };
+           terdaftar: terdaftar, identitasManual: true, perluNama: !nama, akses: aksesPengguna_(peran, aksesTeks) };
+}
+
+/* v11: akses per modul. ADMIN = semua; STAF = GUDANG; SUPERVISOR = isi kolom Akses (kosong = semua). */
+function aksesPengguna_(peran, teks) {
+  var a = {};
+  if (peran === PERAN.ADMIN) { DAFTAR_MODUL.forEach(function (m) { a[m] = true; }); return a; }
+  if (peran !== PERAN.SUPERVISOR) { a[MODUL.GUDANG] = true; return a; }
+  var list = String(teks || '').toUpperCase().split(/[,;\s]+/).filter(function (m) { return DAFTAR_MODUL.indexOf(m) >= 0; });
+  if (!list.length) list = DAFTAR_MODUL.slice();
+  list.forEach(function (m) { a[m] = true; });
+  return a;
+}
+function bolehModul_(u, m) { return !!(u && u.akses && u.akses[m]); }
+function wajibModul_(u, m) {
+  if (!bolehModul_(u, m)) throw new Error('Akun ' + u.nama + ' tidak punya akses modul: ' + (NAMA_MODUL[m] || m) + '.');
+}
+/** Normalisasi teks Akses untuk disimpan: hanya modul yang dikenal, huruf besar, dipisah koma. */
+function aksesTeks_(v) {
+  var list = Array.isArray(v) ? v : String(v || '').split(/[,;\s]+/);
+  var out = [];
+  list.forEach(function (m) { m = String(m || '').toUpperCase().trim(); if (DAFTAR_MODUL.indexOf(m) >= 0 && out.indexOf(m) < 0) out.push(m); });
+  return out.join(',');
 }
 
 function bolehReview_(u) { return u.peran === PERAN.SUPERVISOR || u.peran === PERAN.ADMIN; }
@@ -885,10 +918,12 @@ function getKonteks(ident) {
     maksMundurHari: MAKS_MUNDUR_HARI,
     maksEditHari: maksEditHari_(),
     stok: stok,
-    bisaReview: bolehReview_(u),
+    bisaReview: bolehReview_(u),          // = tingkat manager (lihat laporan & harga)
     bisaAdmin: bolehAdmin_(u),
     lihatHpp: bolehLihatHpp_(u),
     bisaPo: bolehPo_(u),
+    bisaSo: bolehSo_(u),
+    modul: u.akses,                        // v11: { PO, SO, PRODUKSI, GUDANG, MANAJEMEN }
     metodeHpp: metodeHpp_(),
     kualitas: petaKualitas_().map(function (q) { return { kualitas: q.kualitas, nama: q.nama, biji: q.biji ? q.biji.kode : '', roll: q.roll ? q.roll.kode : '', jadi: q.jadi ? q.jadi.kode : '', bs: q.bs ? q.bs.kode : '' }; }),
     bulanTertutup: bulanTerakhirTertutup_(),
@@ -937,6 +972,7 @@ function getKonteks(ident) {
  */
 function simpanPenerimaan(p) {
   var u = penggunaSaatIni_(p && p.ident);
+  wajibModul_(u, MODUL.GUDANG);
   if (!p || !p.baris || !p.baris.length) throw new Error('Item belum diisi.');
   var jenis = p.jenis === JENIS_PENERIMAAN.RETUR ? JENIS_PENERIMAAN.RETUR : JENIS_PENERIMAAN.MASUK;
   if (!String(p.supplier || '').trim()) throw new Error('Supplier belum dipilih.');
@@ -1001,8 +1037,8 @@ function simpanPenerimaan(p) {
         Selisih_OCR: (i === 0 && qtyOcr) ? bulat_(totalQty - qtyOcr, 3) : '',
         Foto_URL: foto.url, Foto_ID: foto.id,
         Dicatat_Oleh: u.email || ('manual:' + u.nama), Nama_Pencatat: u.nama,
-        Status: STATUS_TRANSFER.MENUNGGU,
-        Ditinjau_Oleh: '', Waktu_Tinjau: '', Catatan_Tinjau: '',
+        Status: STATUS_TRANSFER.DISETUJUI,          // v11: tidak ada review — langsung final
+        Ditinjau_Oleh: 'otomatis', Waktu_Tinjau: now, Catatan_Tinjau: '',
         Catatan: p.catatan || '', Log_Edit: '',
         ID_PO: idPo, Harga_Per_Kg: harga, ID_Penerimaan_Asal: idAsal, Catatan_QC: p.catatanQc || ''
       });
@@ -1027,6 +1063,7 @@ function simpanPenerimaan(p) {
  */
 function simpanPengiriman(p) {
   var u = penggunaSaatIni_(p && p.ident);
+  wajibModul_(u, MODUL.GUDANG);
   if (!p || !p.baris || !p.baris.length) throw new Error('Item belum diisi.');
   var jenis = p.jenis === JENIS_PENGIRIMAN.RETUR_MASUK ? JENIS_PENGIRIMAN.RETUR_MASUK
                                                        : JENIS_PENGIRIMAN.KELUAR;
@@ -1079,8 +1116,8 @@ function simpanPengiriman(p) {
         Kode_Item: it.kode, Nama_Item: it.nama, Qty_Kg: qty,
         Foto_URL: foto.url, Foto_ID: foto.id,
         Dicatat_Oleh: u.email || ('manual:' + u.nama), Nama_Pencatat: u.nama,
-        Status: STATUS_TRANSFER.MENUNGGU,
-        Ditinjau_Oleh: '', Waktu_Tinjau: '', Catatan_Tinjau: '',
+        Status: STATUS_TRANSFER.DISETUJUI,          // v11: tidak ada review — langsung final
+        Ditinjau_Oleh: 'otomatis', Waktu_Tinjau: now, Catatan_Tinjau: '',
         Catatan: p.catatan || '', Log_Edit: '',
         HPP_Per_Kg: rataJual ? bulat_(hargaRataItem_(rataJual, it.kode, peta), 2) : (it.harga || ''),
         ID_SO: idSo
@@ -1155,10 +1192,11 @@ function antrianReview(ident, status) {
  */
 function tinjauTransfer(id, aksi, catatan, ident) {
   var u = penggunaSaatIni_(ident);
-  if (!bolehReview_(u)) throw new Error('Tidak punya izin review.');
-  var status = (aksi === 'setuju') ? STATUS_TRANSFER.DISETUJUI
-             : (aksi === 'batal')  ? STATUS_TRANSFER.DIBATALKAN
-             : STATUS_TRANSFER.DITANDAI;
+  if (!bolehReview_(u)) throw new Error('Hanya Manager / Admin.');
+  wajibModul_(u, MODUL.GUDANG);
+  /* v11: proses review dihapus — entri sudah final saat disimpan; yang tersisa hanya pembatalan. */
+  if (aksi !== 'batal') throw new Error('Tidak ada proses review lagi — entri langsung final saat disimpan. Yang bisa dilakukan: ubah atau batalkan.');
+  var status = STATUS_TRANSFER.DIBATALKAN;
   var nama = sheetDariId_(id);
 
   var lock = LockService.getScriptLock();
@@ -1169,13 +1207,9 @@ function tinjauTransfer(id, aksi, catatan, ident) {
     for (var i = 0; i < rows.length; i++) {
       if (rows[i].ID === id) {
         var skrg = rows[i].Status;
-        if (skrg === STATUS_TRANSFER.DISETUJUI || skrg === STATUS_TRANSFER.DIBATALKAN) {
-          throw new Error('Entri ini sudah final (' + skrg + ').');
-        }
-        if (status === STATUS_TRANSFER.DIBATALKAN && bulanTertutup_(rows[i].Tanggal)) throw new Error(pesanKunci_('BULAN_TUTUP'));
-        if (skrg === STATUS_TRANSFER.DITANDAI && status === STATUS_TRANSFER.DITANDAI) {
-          throw new Error('Entri ini sudah ditandai.');
-        }
+        if (skrg === STATUS_TRANSFER.DIBATALKAN) throw new Error('Entri ini sudah dibatalkan.');
+        if (bulanTertutup_(rows[i].Tanggal)) throw new Error(pesanKunci_('BULAN_TUTUP'));
+        if (!dalamBatasEdit_(rows[i])) throw new Error(pesanKunci_('LEWAT_BATAS'));
         var catatanBaru = [rows[i].Catatan_Tinjau, catatan].filter(String).join(' | ');
         ubahBaris_(nama, rows[i]._baris, {
           Status: status, Ditinjau_Oleh: u.nama, Waktu_Tinjau: new Date(),
@@ -1425,13 +1459,17 @@ function dalamBatasEdit_(r) { return umurHari_(r.Tanggal, r.Waktu) <= maksEditHa
    - STAF: entri sendiri, hanya selama masih MENUNGGU → ubah/batalkan langsung (tanpa usulan). Setelah disetujui: lihat saja.
    - SUPERVISOR/ADMIN: ubah kapan saja (termasuk yang sudah disetujui).
    - Semua: tidak bisa lagi setelah MAKS_EDIT_HARI. */
+/* v11 (tanpa review): STAF boleh ubah/batalkan entri sendiri selama 24 jam sejak dicatat;
+   SUPERVISOR/ADMIN dengan akses GUDANG boleh ubah apa saja sampai MAKS_EDIT_HARI / bulan ditutup. */
+var BATAS_EDIT_STAF_JAM_ = 24;
 function alasanKunci_(u, r) {
   if (r.Status === STATUS_TRANSFER.DIBATALKAN) return 'DIBATALKAN';
   if (bulanTertutup_(r.Tanggal)) return 'BULAN_TUTUP';
   if (!dalamBatasEdit_(r)) return 'LEWAT_BATAS';
-  if (bolehReview_(u)) return '';
+  if (bolehReview_(u)) return bolehModul_(u, MODUL.GUDANG) ? '' : 'BUKAN_MODUL';
   if (r.Dicatat_Oleh !== penandaPencatat_(u)) return 'BUKAN_MILIK';
-  if (r.Status !== STATUS_TRANSFER.MENUNGGU) return 'SUDAH_DITINJAU';
+  var jam = (Date.now() - new Date(r.Waktu).getTime()) / 36e5;
+  if (!(jam <= BATAS_EDIT_STAF_JAM_)) return 'LEWAT_24JAM';
   return '';
 }
 function bolehEditEntri_(u, r) { return alasanKunci_(u, r) === ''; }
@@ -1454,8 +1492,8 @@ function ringkasEntri_(r, nama, u, tertunda) {
     catatanTinjau: r.Catatan_Tinjau || '', logEdit: r.Log_Edit || '',
     idPo: r.ID_PO || '', idAsal: r.ID_Penerimaan_Asal || '', catatanQc: r.Catatan_QC || '', idSo: r.ID_SO || '',
     bolehEdit: bolehEditEntri_(u, r),
-    bolehBatal: bolehEditEntri_(u, r) && (bolehReview_(u) ? (r.Status === STATUS_TRANSFER.MENUNGGU || r.Status === STATUS_TRANSFER.DITANDAI) : true),
-    kunci: alasanKunci_(u, r),            // '' | SUDAH_DITINJAU | LEWAT_BATAS | BUKAN_MILIK | DIBATALKAN
+    bolehBatal: bolehEditEntri_(u, r),
+    kunci: alasanKunci_(u, r),            // '' | LEWAT_24JAM | LEWAT_BATAS | BUKAN_MILIK | BUKAN_MODUL | BULAN_TUTUP | DIBATALKAN
     perluPersetujuan: false,
     usulan: (tertunda && tertunda[r.ID]) || null,
     ditinjauOleh: r.Ditinjau_Oleh || '', lokasi: r.Lokasi || ''
@@ -1584,6 +1622,8 @@ function simpanEditEntri(id, perubahan, ident, alasan) {
 
 function pesanKunci_(kunci) {
   return kunci === 'SUDAH_DITINJAU' ? 'Entri sudah ditinjau supervisor — hanya supervisor/manager yang bisa mengubahnya.'
+       : kunci === 'LEWAT_24JAM' ? 'Entri lebih dari ' + BATAS_EDIT_STAF_JAM_ + ' jam — hanya manager gudang yang bisa mengubahnya.'
+       : kunci === 'BUKAN_MODUL' ? 'Akun ini tidak punya akses modul gudang.'
        : kunci === 'LEWAT_BATAS' ? 'Entri lebih tua dari ' + maksEditHari_() + ' hari — periode sudah ditutup, tidak bisa diubah.'
        : kunci === 'BULAN_TUTUP' ? 'Bulan entri ini sudah ditutup (tutup buku) — tidak bisa diubah.'
        : kunci === 'BUKAN_MILIK' ? 'Hanya entri yang kamu catat sendiri yang bisa diubah.'
@@ -1713,13 +1753,14 @@ function daftarPengguna(ident) {
   return baca_(SHEET.PENGGUNA).map(function (r) {
     return { baris: r._baris, email: r.Email || '', nama: r.Nama, peran: r.Peran || PERAN.STAF,
              lokasi: r.Lokasi || '', punyaPin: !!String(r.PIN || '').trim(),
-             aktif: String(r.Aktif).toUpperCase() !== 'TIDAK' };
+             aktif: String(r.Aktif).toUpperCase() !== 'TIDAK',
+             akses: aksesTeks_(r.Akses), modul: aksesPengguna_(r.Peran || PERAN.STAF, r.Akses) };
   });
 }
 
 /**
  * p = { baris (kosong = tambah baru), nama, email, peran, lokasi, pin (kosong = tidak diubah;
- *       'HAPUS' = kosongkan), aktif }
+ *       'HAPUS' = kosongkan), aktif, akses: ['PO','SO',...] (SUPERVISOR saja; kosong = semua modul) }
  */
 function simpanPengguna(p, ident) {
   var u = penggunaSaatIni_(ident);
@@ -1732,6 +1773,7 @@ function simpanPengguna(p, ident) {
   if (pin !== undefined && pin !== '' && pin !== 'HAPUS' && !/^\d{4,8}$/.test(pin)) {
     throw new Error('PIN harus 4–8 angka.');
   }
+  var akses = peran === PERAN.SUPERVISOR ? aksesTeks_(p.akses) : '';   // ADMIN = semua, STAF = gudang
 
   var lock = LockService.getScriptLock();
   lock.waitLock(20000);
@@ -1758,15 +1800,15 @@ function simpanPengguna(p, ident) {
     var log;
     if (target) {
       var ubah = { Nama: nama, Email: p.email || '', Peran: peran, Lokasi: p.lokasi || '',
-                   Aktif: p.aktif === false ? 'TIDAK' : 'YA' };
+                   Aktif: p.aktif === false ? 'TIDAK' : 'YA', Akses: akses };
       if (pin === 'HAPUS') ubah.PIN = '';
       else if (pin) ubah.PIN = pin;
       ubahBaris_(SHEET.PENGGUNA, target._baris, ubah);
-      log = 'ubah ' + nama + ' → ' + peran + (ubah.Aktif === 'TIDAK' ? ' (nonaktif)' : '') + (pin ? ' (PIN diubah)' : '');
+      log = 'ubah ' + nama + ' → ' + peran + (akses ? ' [' + akses + ']' : '') + (ubah.Aktif === 'TIDAK' ? ' (nonaktif)' : '') + (pin ? ' (PIN diubah)' : '');
     } else {
       tambah_(SHEET.PENGGUNA, { Email: p.email || '', Nama: nama, Peran: peran, Lokasi: p.lokasi || '',
-                                PIN: (pin && pin !== 'HAPUS') ? pin : '', Aktif: p.aktif === false ? 'TIDAK' : 'YA' });
-      log = 'tambah ' + nama + ' (' + peran + ')';
+                                PIN: (pin && pin !== 'HAPUS') ? pin : '', Aktif: p.aktif === false ? 'TIDAK' : 'YA', Akses: akses });
+      log = 'tambah ' + nama + ' (' + peran + (akses ? ' [' + akses + ']' : '') + ')';
     }
     catatLog_('ADMIN_PENGGUNA', nama, log);
     return { ok: true };
@@ -1778,7 +1820,7 @@ function simpanPengguna(p, ident) {
 /** Aktivitas satu pengguna (atau semua kalau nama kosong) dalam N hari. */
 function aktivitasStaf(nama, hari, ident) {
   var u = penggunaSaatIni_(ident);
-  if (!bolehReview_(u)) throw new Error('Hanya Supervisor / Admin.');
+  if (!bolehReview_(u) || !bolehModul_(u, MODUL.MANAJEMEN)) throw new Error('Hanya akun dengan akses Manajemen (Manager / Admin).');
   hari = hari || 30;
   var batas = new Date(); batas.setDate(batas.getDate() - hari);
   var target = String(nama || '').trim().toLowerCase();
@@ -1864,7 +1906,7 @@ function skuDipakai_() {
 /** p = { baris (kosong = baru), kode, nama, kategori, harga, awal, aktif } */
 function simpanSku(p, ident) {
   var u = penggunaSaatIni_(ident);
-  if (!bolehReview_(u)) throw new Error('Hanya Supervisor / Admin.');
+  if (!bolehReview_(u) || !bolehModul_(u, MODUL.MANAJEMEN)) throw new Error('Hanya akun dengan akses Manajemen (Manager / Admin).');
   p = p || {};
   var kode = String(p.kode || '').trim().toUpperCase().replace(/\s+/g, '-');
   var nama = String(p.nama || '').trim();
@@ -1908,7 +1950,7 @@ function simpanSku(p, ident) {
 /** Hapus beneran kalau belum pernah dipakai; kalau sudah, nonaktifkan. */
 function hapusSku(kode, ident) {
   var u = penggunaSaatIni_(ident);
-  if (!bolehReview_(u)) throw new Error('Hanya Supervisor / Admin.');
+  if (!bolehReview_(u) || !bolehModul_(u, MODUL.MANAJEMEN)) throw new Error('Hanya akun dengan akses Manajemen (Manager / Admin).');
   var lock = LockService.getScriptLock();
   lock.waitLock(20000);
   lupakanMemo_();   // di dalam lock: baca ulang dari sheet, jangan pakai memo sebelum lock
@@ -1937,7 +1979,7 @@ function hapusSku(kode, ident) {
  */
 function siapkanOpname(ident) {
   var u = penggunaSaatIni_(ident);
-  if (!bolehReview_(u)) throw new Error('Hanya Supervisor / Admin yang bisa stock opname.');
+  if (!bolehReview_(u) || !bolehModul_(u, MODUL.MANAJEMEN)) throw new Error('Hanya akun dengan akses Manajemen (Manager / Admin).');
   var lokasi = LOKASI.GBJ;
   var stok = {};
   laporanStok(ident).daftar.forEach(function (s) { stok[s.kode] = s; });
@@ -1956,7 +1998,7 @@ function siapkanOpname(ident) {
  */
 function simpanOpname(p, ident) {
   var u = penggunaSaatIni_(ident);
-  if (!bolehReview_(u)) throw new Error('Hanya Supervisor / Admin yang bisa stock opname.');
+  if (!bolehReview_(u) || !bolehModul_(u, MODUL.MANAJEMEN)) throw new Error('Hanya akun dengan akses Manajemen (Manager / Admin).');
   if (!p || !p.baris || !p.baris.length) throw new Error('Belum ada item yang dihitung.');
   var lokasi = LOKASI.GBJ;
 
@@ -2001,7 +2043,7 @@ function simpanOpname(p, ident) {
 
 function riwayatOpname(hari, ident) {
   var u = penggunaSaatIni_(ident);
-  if (!bolehReview_(u)) throw new Error('Hanya Supervisor / Admin.');
+  if (!bolehReview_(u) || !bolehModul_(u, MODUL.MANAJEMEN)) throw new Error('Hanya akun dengan akses Manajemen (Manager / Admin).');
   var batas = new Date(); batas.setDate(batas.getDate() - (hari || 90));
   var sesi = {};
   baca_(SHEET.OPNAME).forEach(function (r) {
@@ -2361,6 +2403,7 @@ function migrasiSkema() {
   migrasiV9_(ss);
   migrasiV10_(ss);
   migrasiV10_1_(ss);
+  migrasiV11_(ss);
   Object.keys(SHEET).forEach(function (k) {
     var nama = SHEET[k], head = HEADER[nama];
     var sh = ss.getSheetByName(nama);
@@ -2465,9 +2508,61 @@ function migrasiV10_(ss) {
     DUMMY_PENGGUNA.forEach(function (d) {
       if (d[3] !== 'Produksi' && d[3] !== 'Sales') return;
       if (adaNama[String(d[1]).toLowerCase()]) return;
-      tambah_(SHEET.PENGGUNA, { Email: d[0], Nama: d[1], Peran: d[2], Lokasi: d[3], PIN: d[4], Aktif: d[5] });
+      tambah_(SHEET.PENGGUNA, { Email: d[0], Nama: d[1], Peran: d[2], Lokasi: d[3], PIN: d[4], Aktif: d[5], Akses: d[6] || '' });
     });
   }
+  lupakanMemo_();
+}
+
+/**
+ * v11 (revamp akses): kolom Akses di Master_Pengguna (modul per akun); proses review dihapus —
+ * entri MENUNGGU yang masih ada jadi DISETUJUI (sudah dihitung di stok sejak awal; laporan rusak MENUNGGU ikut final);
+ * akun Yansen (PO), Deny (SO), Bastari (PRODUKSI) ditambahkan, akun lama Manager Produksi / Sales Manager dinonaktifkan. Aman diulang.
+ */
+function migrasiV11_(ss) {
+  var shP = ss.getSheetByName(SHEET.PENGGUNA); if (!shP) return;
+  var maxKol = shP.getMaxColumns();
+  var head = shP.getRange(1, 1, 1, maxKol).getValues()[0].map(String);
+  var baru = head.indexOf('Akses') < 0;
+  if (baru) {
+    var terakhir = 0; for (var i = head.length - 1; i >= 0; i--) if (head[i]) { terakhir = i + 1; break; }
+    if (terakhir + 1 > maxKol) shP.insertColumnsAfter(Math.max(terakhir, 1), 1);
+    shP.getRange(1, terakhir + 1).setValue('Akses');
+    lupakanMemo_(SHEET.PENGGUNA);
+  }
+  var adaNama = {};
+  baca_(SHEET.PENGGUNA).forEach(function (r) { adaNama[String(r.Nama || '').trim().toLowerCase()] = r; });
+  var ditambah = 0;
+  DUMMY_PENGGUNA.forEach(function (d) {
+    if (!d[6] || d[2] !== PERAN.SUPERVISOR) return;                 // hanya akun modul (Yansen / Deny / Bastari)
+    if (adaNama[String(d[1]).toLowerCase()]) return;
+    tambah_(SHEET.PENGGUNA, { Email: d[0], Nama: d[1], Peran: d[2], Lokasi: d[3], PIN: d[4], Aktif: d[5], Akses: d[6] });
+    ditambah++;
+  });
+  if (ditambah) {                                                    // hanya saat pertama kali: akun lama diganti akun modul
+    ['manager produksi', 'sales manager'].forEach(function (n) {
+      var r = adaNama[n]; if (r && String(r.Aktif).toUpperCase() !== 'TIDAK') ubahBaris_(SHEET.PENGGUNA, r._baris, { Aktif: 'TIDAK' });
+    });
+  }
+  lupakanMemo_(SHEET.PENGGUNA);
+  /* review dihapus: MENUNGGU → DISETUJUI (penerimaan & pengiriman sudah dihitung di stok; rusak MENUNGGU ikut final) */
+  var n = 0, now = new Date();
+  [SHEET.PENERIMAAN, SHEET.PENGIRIMAN, SHEET.KERUSAKAN].forEach(function (nama) {
+    if (!ss.getSheetByName(nama)) return;
+    baca_(nama).forEach(function (r) {
+      if (r.Status !== STATUS_TRANSFER.MENUNGGU) return;
+      ubahBaris_(nama, r._baris, { Status: STATUS_TRANSFER.DISETUJUI, Ditinjau_Oleh: 'sistem (review dihapus v11)', Waktu_Tinjau: now });
+      n++;
+    });
+  });
+  lupakanMemo_();
+  if (n) {
+    var rata = hitungRata_();
+    baca_(SHEET.KERUSAKAN).forEach(function (r) {
+      if (r.Ditinjau_Oleh === 'sistem (review dihapus v11)' && !angka_(r.Nilai_Kerugian)) ubahBaris_(SHEET.KERUSAKAN, r._baris, { Nilai_Kerugian: bulat_(rata.biaya[r.ID] || 0, 0) });
+    });
+  }
+  if (baru || ditambah || n) catatLog_('MIGRASI_V11', '', (ditambah ? ditambah + ' akun modul ditambah; ' : '') + n + ' entri MENUNGGU difinalkan');
   lupakanMemo_();
 }
 
@@ -2555,7 +2650,8 @@ var PRIORITAS_EV_ = { MASUK: 0, RETUR_CUST: 0, DAUR_TERIMA: 0, OPNAME: 1, SHIFT:
    PESANAN PEMBELIAN (PO) — manager
    ================================================================= */
 
-function bolehPo_(u) { return bolehReview_(u); }
+function bolehPo_(u) { return bolehReview_(u) && bolehModul_(u, MODUL.PO); }
+function bolehSo_(u) { return bolehReview_(u) && bolehModul_(u, MODUL.SO); }
 
 function nomorPoBaru_() {
   var tgl = Utilities.formatDate(new Date(), APP.zona, 'yyMMdd');
@@ -2995,7 +3091,8 @@ function laporanNilaiStok(ident) {
 /** Hitung ulang HPP tersimpan (HPP pengiriman, nilai kerugian rusak, HPP daur ulang) dari mesin rata-rata. Manager. */
 function hitungUlangHpp(ident) {
   var u = penggunaSaatIni_(ident);
-  if (!bolehPo_(u)) throw new Error('Hanya Manager / Admin.');
+  if (!bolehReview_(u)) throw new Error('Hanya Manager / Admin.');
+  wajibModul_(u, MODUL.MANAJEMEN);
   var lock = LockService.getScriptLock();
   lock.waitLock(20000);
   lupakanMemo_();
@@ -3034,7 +3131,7 @@ function hitungUlangHpp(ident) {
 /** p = { kode, qty, penyebab, tanggal, foto, catatan, ident } — HANYA STAF. (v9: lokasi selalu GBJ) */
 function simpanKerusakan(p) {
   var u = penggunaSaatIni_(p && p.ident);
-  if (bolehReview_(u)) throw new Error('Laporan barang rusak harus dicatat oleh STAF gudang (bukan manager).');
+  wajibModul_(u, MODUL.GUDANG);          // v11: siapa pun dengan akses gudang; langsung final (tanpa persetujuan)
   if (!p || !p.kode) throw new Error('Item belum dipilih.');
   var lok = LOKASI.GBJ;
   var q = angka_(p.qty); if (q <= 0) throw new Error('Qty harus > 0.');
@@ -3050,10 +3147,13 @@ function simpanKerusakan(p) {
       ID: id, Waktu: new Date(), Tanggal: tglValid_(p.tanggal), Lokasi: lok,
       Kode_Item: it.kode, Nama_Item: it.nama, Qty_Kg: q, Penyebab: p.penyebab,
       Foto_URL: foto.url, Foto_ID: foto.id, Dicatat_Oleh: penandaPencatat_(u), Nama_Pencatat: u.nama,
-      Status: STATUS_TRANSFER.MENUNGGU, Ditinjau_Oleh: '', Waktu_Tinjau: '', Catatan_Tinjau: '',
+      Status: STATUS_TRANSFER.DISETUJUI, Ditinjau_Oleh: 'otomatis', Waktu_Tinjau: new Date(), Catatan_Tinjau: '',
       Nilai_Kerugian: '', Catatan: p.catatan || '', Log_Edit: ''
     });
-    catatLog_('RUSAK_LAPOR', id, it.nama + ' ' + q + ' kg @' + lok + ' — ' + p.penyebab);
+    lupakanMemo_();
+    var nilai = bulat_(hitungRata_().biaya[id] || 0, 0);
+    ubahBaris_(SHEET.KERUSAKAN, cariEntri_(SHEET.KERUSAKAN, id)._baris, { Nilai_Kerugian: nilai });
+    catatLog_('RUSAK_LAPOR', id, it.nama + ' ' + q + ' kg @' + lok + ' — ' + p.penyebab + (nilai ? ' • rugi ' + nilai : ''));
     return { ok: true, id: id, item: it.nama, qty: q };
   } finally { lock.releaseLock(); }
 }
@@ -3071,7 +3171,7 @@ function daftarKerusakan(ident, status, hari) {
   var u = penggunaSaatIni_(ident);
   var spv = bolehReview_(u);
   var batas = new Date(); batas.setDate(batas.getDate() - (hari || 30));
-  status = status || STATUS_TRANSFER.MENUNGGU;
+  status = status || STATUS_TRANSFER.DISETUJUI;
   return baca_(SHEET.KERUSAKAN).filter(function (r) {
     if (!spv && r.Dicatat_Oleh !== penandaPencatat_(u)) return false;
     if (status !== 'SEMUA' && r.Status !== status) return false;
@@ -3082,14 +3182,17 @@ function daftarKerusakan(ident, status, hari) {
 /** aksi: 'setuju' (stok berkurang, nilai kerugian dihitung pada harga rata-rata) | 'batal' */
 function tinjauKerusakan(id, aksi, catatan, ident) {
   var u = penggunaSaatIni_(ident);
-  if (!bolehReview_(u)) throw new Error('Hanya Supervisor / Admin yang bisa meninjau laporan rusak.');
+  if (!bolehReview_(u)) throw new Error('Hanya Manager / Admin yang bisa membatalkan laporan rusak.');
+  wajibModul_(u, MODUL.GUDANG);
+  if (aksi !== 'batal') throw new Error('Tidak ada proses persetujuan lagi — laporan rusak langsung final. Yang bisa dilakukan: batalkan.');
   var lock = LockService.getScriptLock();
   lock.waitLock(20000);
   lupakanMemo_();   // di dalam lock: baca ulang dari sheet, jangan pakai memo sebelum lock
   try {
     var r = cariEntri_(SHEET.KERUSAKAN, id);
-    if (r.Status !== STATUS_TRANSFER.MENUNGGU) throw new Error('Laporan sudah ' + r.Status + '.');
-    var status = aksi === 'setuju' ? STATUS_TRANSFER.DISETUJUI : STATUS_TRANSFER.DIBATALKAN;
+    if (r.Status === STATUS_TRANSFER.DIBATALKAN) throw new Error('Laporan sudah dibatalkan.');
+    if (bulanTertutup_(r.Tanggal)) throw new Error(pesanKunci_('BULAN_TUTUP'));
+    var status = STATUS_TRANSFER.DIBATALKAN;
     ubahBaris_(SHEET.KERUSAKAN, r._baris, { Status: status, Ditinjau_Oleh: u.nama, Waktu_Tinjau: new Date(),
       Catatan_Tinjau: [r.Catatan_Tinjau, catatan].filter(String).join(' | ') });
     var nilai = 0;
@@ -3198,7 +3301,7 @@ function nomorSoBaru_() {
 /** p = { customer, tanggal, tanggalKirim, topHari, baris:[{kode, qty, harga}], catatan } — v10: TOP wajib diisi (0 = tunai). */
 function simpanSo(p, ident) {
   var u = penggunaSaatIni_(ident);
-  if (!bolehPo_(u)) throw new Error('Hanya Manager / Admin yang bisa membuat sales order.');
+  if (!bolehSo_(u)) throw new Error('Hanya akun dengan akses Sales order yang bisa membuat SO.');
   if (!p || !String(p.customer || '').trim()) throw new Error('Customer belum dipilih.');
   if (!p.baris || !p.baris.length) throw new Error('Item SO belum diisi.');
   var kirim = String(p.tanggalKirim || '').trim();
@@ -3234,7 +3337,7 @@ function simpanSo(p, ident) {
 
 function ubahSo(id, perubahan, ident) {
   var u = penggunaSaatIni_(ident);
-  if (!bolehPo_(u)) throw new Error('Hanya Manager / Admin yang bisa mengubah SO.');
+  if (!bolehSo_(u)) throw new Error('Hanya akun dengan akses Sales order yang bisa mengubah SO.');
   perubahan = perubahan || {};
   var lock = LockService.getScriptLock();
   lock.waitLock(20000);
@@ -3270,7 +3373,7 @@ function ubahSo(id, perubahan, ident) {
 
 function batalkanSo(id, alasan, ident) {
   var u = penggunaSaatIni_(ident);
-  if (!bolehPo_(u)) throw new Error('Hanya Manager / Admin yang bisa membatalkan SO.');
+  if (!bolehSo_(u)) throw new Error('Hanya akun dengan akses Sales order yang bisa membatalkan SO.');
   var lock = LockService.getScriptLock();
   lock.waitLock(20000);
   lupakanMemo_();
@@ -3560,7 +3663,7 @@ function pasangBackupHarian() {
 /** Info untuk menu Admin: apakah pemicu terpasang, salinan terakhir. */
 function statusBackup(ident) {
   var u = penggunaSaatIni_(ident);
-  if (!bolehReview_(u)) throw new Error('Hanya Supervisor / Admin.');
+  if (!bolehReview_(u) || !bolehModul_(u, MODUL.MANAJEMEN)) throw new Error('Hanya akun dengan akses Manajemen (Manager / Admin).');
   var terpasang = false;
   try { terpasang = ScriptApp.getProjectTriggers().some(function (t) { return t.getHandlerFunction() === 'backupHarian'; }); } catch (e) {}
   var terakhir = '', jumlah = 0;
@@ -3620,6 +3723,7 @@ function detailDaur_(id, jenis, cache) {
  */
 function mulaiDaurUlang(p) {
   var u = penggunaSaatIni_(p && p.ident);
+  wajibModul_(u, MODUL.GUDANG);
   if (!p || !String(p.vendor || '').trim()) throw new Error('Tempat chassen (vendor) belum dipilih.');
   if (!p.scrap || !p.scrap.length) throw new Error('Scrap yang dikirim belum diisi.');
   var peta = petaItem_();
@@ -3657,6 +3761,7 @@ function mulaiDaurUlang(p) {
  */
 function selesaikanDaurUlang(p) {
   var u = penggunaSaatIni_(p && p.ident);
+  wajibModul_(u, MODUL.GUDANG);
   if (!p || !p.id) throw new Error('ID batch kosong.');
   if (!p.hasil || !p.hasil.length) throw new Error('Biji plastik yang diterima belum diisi.');
   var peta = petaItem_();
@@ -3734,8 +3839,8 @@ function daftarDaurUlang(ident, status, hari) {
     return r.Status === status && new Date(r.Waktu_Kirim) >= batas;
   }).map(function (r) {
     var o = ringkasDaur_(r, lihat, det);
-    o.bolehUbah = bolehReview_(u);
-    o.bolehBatal = (bolehReview_(u) || (r.Status === STATUS_DAUR.BERJALAN && r.Dicatat_Oleh === penandaPencatat_(u))) && r.Status !== STATUS_DAUR.DIBATALKAN;
+    o.bolehUbah = bolehReview_(u) && bolehModul_(u, MODUL.GUDANG);
+    o.bolehBatal = bolehModul_(u, MODUL.GUDANG) && (bolehReview_(u) || (r.Status === STATUS_DAUR.BERJALAN && r.Dicatat_Oleh === penandaPencatat_(u))) && r.Status !== STATUS_DAUR.DIBATALKAN;
     o.batas = standarChassen_().normal + standarChassen_().toleransi;
     return o;
   }).reverse().slice(0, 100);
@@ -3745,8 +3850,8 @@ function ambilDaurUlang(id, ident) {
   var u = penggunaSaatIni_(ident);
   var r = cariDaur_(id);
   var o = ringkasDaur_(r, bolehLihatHpp_(u));
-  o.bolehUbah = bolehReview_(u);
-  o.bolehBatal = (bolehReview_(u) || (r.Status === STATUS_DAUR.BERJALAN && r.Dicatat_Oleh === penandaPencatat_(u))) && r.Status !== STATUS_DAUR.DIBATALKAN;
+  o.bolehUbah = bolehReview_(u) && bolehModul_(u, MODUL.GUDANG);
+  o.bolehBatal = bolehModul_(u, MODUL.GUDANG) && (bolehReview_(u) || (r.Status === STATUS_DAUR.BERJALAN && r.Dicatat_Oleh === penandaPencatat_(u))) && r.Status !== STATUS_DAUR.DIBATALKAN;
   o.batas = standarChassen_().normal + standarChassen_().toleransi;
   return o;
 }
@@ -3754,7 +3859,7 @@ function ambilDaurUlang(id, ident) {
 /** Manager: perubahan = { biayaJasa, vendor, noSuratJalan, catatan }. Biaya jasa diubah → HPP dihitung ulang. */
 function ubahDaurUlang(id, perubahan, ident) {
   var u = penggunaSaatIni_(ident);
-  if (!bolehReview_(u)) throw new Error('Hanya Manager / Admin yang bisa mengubah batch daur ulang.');
+  if (!bolehReview_(u) || !bolehModul_(u, MODUL.GUDANG)) throw new Error('Hanya Manager / Admin dengan akses gudang yang bisa mengubah batch daur ulang.');
   perubahan = perubahan || {};
   var lock = LockService.getScriptLock();
   lock.waitLock(20000);
@@ -3790,6 +3895,7 @@ function ubahDaurUlang(id, perubahan, ident) {
 /** Batal: manager kapan saja; staf hanya batch sendiri yang masih BERJALAN. Stok scrap kembali (batch tidak dihitung). */
 function batalkanDaurUlang(id, alasan, ident) {
   var u = penggunaSaatIni_(ident);
+  wajibModul_(u, MODUL.GUDANG);
   var lock = LockService.getScriptLock();
   lock.waitLock(20000);
   lupakanMemo_();
@@ -3910,7 +4016,8 @@ function konfigurasiShift(ident) {
   return { kualitas: kualitas, kurang: kurang, bahan: bahan, operator: daftarOperator_(), shift: DAFTAR_SHIFT, jamShift: JAM_SHIFT, hariIni: tglStr_(new Date()) };
 }
 
-function bolehShift_(u) { return bolehReview_(u); }
+function bolehShift_(u) { return bolehReview_(u) && bolehModul_(u, MODUL.PRODUKSI); }
+function bolehOpnameProd_(u) { return bolehReview_(u) && (bolehModul_(u, MODUL.PRODUKSI) || bolehModul_(u, MODUL.MANAJEMEN)); }
 
 /**
  * p = { tanggal, shift,
@@ -4197,7 +4304,7 @@ function laporanProduksi(bulan, ident) {
  */
 function simpanOpnameProduksi(p, ident) {
   var u = penggunaSaatIni_(ident);
-  if (!bolehReview_(u)) throw new Error('Opname produksi hanya diisi Manager / Admin.');
+  if (!bolehOpnameProd_(u)) throw new Error('Opname produksi hanya diisi akun dengan akses Produksi / Manajemen.');
   p = p || {};
   var bulan = bulanValid_(p.bulan || tglStr_(new Date()).slice(0, 7));
   if (bulan > tglStr_(new Date()).slice(0, 7)) throw new Error('Bulan belum berjalan.');
@@ -4243,7 +4350,7 @@ function ringkasOpnameProd_(r) {
 /** Riwayat opname produksi (Manager / Admin) — tanpa angka pembanding. */
 function daftarOpnameProduksi(ident, bulan) {
   var u = penggunaSaatIni_(ident);
-  if (!bolehReview_(u)) throw new Error('Hanya Manager / Admin.');
+  if (!bolehOpnameProd_(u)) throw new Error('Hanya akun dengan akses Produksi / Manajemen.');
   return baca_(SHEET.OPNAME_PROD).filter(function (r) { return !bulan || bulanStr_(r.Bulan) === bulan; })
     .map(ringkasOpnameProd_).sort(function (a, b) { return (b.bulan + b.tanggal).localeCompare(a.bulan + a.tanggal); });
 }
@@ -4531,7 +4638,7 @@ function laporanBulanan(bulan, ident) {
   lap.tertutup = !!t && t.Status === STATUS_TUTUP.DITUTUP;
   lap.snapshot = t ? ringkasTutup_(t) : null;
   lap.bulanIni = tglStr_(new Date()).slice(0, 7);
-  lap.bolehTutup = bolehReview_(u) && !lap.tertutup && bulan < lap.bulanIni;
+  lap.bolehTutup = bolehReview_(u) && bolehModul_(u, MODUL.MANAJEMEN) && !lap.tertutup && bulan < lap.bulanIni;
   lap.bolehBuka = bolehAdmin_(u) && lap.tertutup && bulan === bulanTerakhirTertutup_();
   return lap;
 }
@@ -4539,7 +4646,7 @@ function laporanBulanan(bulan, ident) {
 /** Tutup bulan: simpan snapshot, kunci transaksi bulan itu. Hanya bulan yang sudah lewat. */
 function tutupBulan(bulan, catatan, ident) {
   var u = penggunaSaatIni_(ident);
-  if (!bolehReview_(u)) throw new Error('Hanya Manager / Admin yang bisa menutup bulan.');
+  if (!bolehReview_(u) || !bolehModul_(u, MODUL.MANAJEMEN)) throw new Error('Hanya akun dengan akses Manajemen yang bisa menutup bulan.');
   bulan = bulanValid_(bulan);
   var bulanIni = tglStr_(new Date()).slice(0, 7);
   if (bulan >= bulanIni) throw new Error('Bulan ' + bulan + ' belum selesai — tutup buku hanya untuk bulan yang sudah lewat.');
@@ -4598,7 +4705,7 @@ function daftarTutupBulan(ident) {
 
   return {
     fns: globalThis,
-    atur: function (o) { if ('APP' in o) APP = o.APP; if ('SHEET' in o) SHEET = o.SHEET; if ('HEADER' in o) HEADER = o.HEADER; if ('JENIS_PENERIMAAN' in o) JENIS_PENERIMAAN = o.JENIS_PENERIMAAN; if ('JENIS_PENGIRIMAN' in o) JENIS_PENGIRIMAN = o.JENIS_PENGIRIMAN; if ('STATUS_TRANSFER' in o) STATUS_TRANSFER = o.STATUS_TRANSFER; if ('MESIN' in o) MESIN = o.MESIN; if ('JENIS_SHIFT' in o) JENIS_SHIFT = o.JENIS_SHIFT; if ('STATUS_SHIFT' in o) STATUS_SHIFT = o.STATUS_SHIFT; if ('STATUS_TUTUP' in o) STATUS_TUTUP = o.STATUS_TUTUP; if ('DAFTAR_SHIFT' in o) DAFTAR_SHIFT = o.DAFTAR_SHIFT; if ('JAM_SHIFT' in o) JAM_SHIFT = o.JAM_SHIFT; if ('STATUS_OPNAME_PROD' in o) STATUS_OPNAME_PROD = o.STATUS_OPNAME_PROD; if ('STATUS_DAUR' in o) STATUS_DAUR = o.STATUS_DAUR; if ('JENIS_DAUR_DETAIL' in o) JENIS_DAUR_DETAIL = o.JENIS_DAUR_DETAIL; if ('JENIS_PERMINTAAN' in o) JENIS_PERMINTAAN = o.JENIS_PERMINTAAN; if ('STATUS_PERMINTAAN' in o) STATUS_PERMINTAAN = o.STATUS_PERMINTAAN; if ('MAKS_MUNDUR_HARI' in o) MAKS_MUNDUR_HARI = o.MAKS_MUNDUR_HARI; if ('STATUS_PO' in o) STATUS_PO = o.STATUS_PO; if ('STATUS_INVOICE' in o) STATUS_INVOICE = o.STATUS_INVOICE; if ('STATUS_SO' in o) STATUS_SO = o.STATUS_SO; if ('KATEGORI_ITEM' in o) KATEGORI_ITEM = o.KATEGORI_ITEM; if ('KUALITAS' in o) KUALITAS = o.KUALITAS; if ('NAMA_KUALITAS' in o) NAMA_KUALITAS = o.NAMA_KUALITAS; if ('PERAN' in o) PERAN = o.PERAN; if ('LOKASI' in o) LOKASI = o.LOKASI; if ('DEFAULT_SUSUT_CHASSEN_PERSEN' in o) DEFAULT_SUSUT_CHASSEN_PERSEN = o.DEFAULT_SUSUT_CHASSEN_PERSEN; if ('DEFAULT_TOLERANSI_CHASSEN_PERSEN' in o) DEFAULT_TOLERANSI_CHASSEN_PERSEN = o.DEFAULT_TOLERANSI_CHASSEN_PERSEN; if ('DUMMY_ITEM' in o) DUMMY_ITEM = o.DUMMY_ITEM; if ('DUMMY_SUPPLIER' in o) DUMMY_SUPPLIER = o.DUMMY_SUPPLIER; if ('DUMMY_CUSTOMER' in o) DUMMY_CUSTOMER = o.DUMMY_CUSTOMER; if ('DUMMY_PENGGUNA' in o) DUMMY_PENGGUNA = o.DUMMY_PENGGUNA; if ('DEFAULT_SETTING' in o) DEFAULT_SETTING = o.DEFAULT_SETTING; if ('RPC_WL' in o) RPC_WL = o.RPC_WL; if ('KOLOM_TANGGAL_' in o) KOLOM_TANGGAL_ = o.KOLOM_TANGGAL_; if ('MEMO_BACA_' in o) MEMO_BACA_ = o.MEMO_BACA_; if ('BATCH_DICOBA_' in o) BATCH_DICOBA_ = o.BATCH_DICOBA_; if ('KOLOM_WAKTU_' in o) KOLOM_WAKTU_ = o.KOLOM_WAKTU_; if ('SERIAL_EPOCH_' in o) SERIAL_EPOCH_ = o.SERIAL_EPOCH_; if ('ID_URUT_' in o) ID_URUT_ = o.ID_URUT_; if ('JENIS_RIWAYAT' in o) JENIS_RIWAYAT = o.JENIS_RIWAYAT; if ('PRIORITAS_EV_' in o) PRIORITAS_EV_ = o.PRIORITAS_EV_; if ('NAMA_FOLDER_BACKUP_' in o) NAMA_FOLDER_BACKUP_ = o.NAMA_FOLDER_BACKUP_; if ('SIMPAN_BACKUP_' in o) SIMPAN_BACKUP_ = o.SIMPAN_BACKUP_; },
-    vars: function () { return { APP: APP, SHEET: SHEET, HEADER: HEADER, JENIS_PENERIMAAN: JENIS_PENERIMAAN, JENIS_PENGIRIMAN: JENIS_PENGIRIMAN, STATUS_TRANSFER: STATUS_TRANSFER, MESIN: MESIN, JENIS_SHIFT: JENIS_SHIFT, STATUS_SHIFT: STATUS_SHIFT, STATUS_TUTUP: STATUS_TUTUP, DAFTAR_SHIFT: DAFTAR_SHIFT, JAM_SHIFT: JAM_SHIFT, STATUS_OPNAME_PROD: STATUS_OPNAME_PROD, STATUS_DAUR: STATUS_DAUR, JENIS_DAUR_DETAIL: JENIS_DAUR_DETAIL, JENIS_PERMINTAAN: JENIS_PERMINTAAN, STATUS_PERMINTAAN: STATUS_PERMINTAAN, MAKS_MUNDUR_HARI: MAKS_MUNDUR_HARI, STATUS_PO: STATUS_PO, STATUS_INVOICE: STATUS_INVOICE, STATUS_SO: STATUS_SO, KATEGORI_ITEM: KATEGORI_ITEM, KUALITAS: KUALITAS, NAMA_KUALITAS: NAMA_KUALITAS, PERAN: PERAN, LOKASI: LOKASI, DEFAULT_SUSUT_CHASSEN_PERSEN: DEFAULT_SUSUT_CHASSEN_PERSEN, DEFAULT_TOLERANSI_CHASSEN_PERSEN: DEFAULT_TOLERANSI_CHASSEN_PERSEN, DUMMY_ITEM: DUMMY_ITEM, DUMMY_SUPPLIER: DUMMY_SUPPLIER, DUMMY_CUSTOMER: DUMMY_CUSTOMER, DUMMY_PENGGUNA: DUMMY_PENGGUNA, DEFAULT_SETTING: DEFAULT_SETTING, RPC_WL: RPC_WL, KOLOM_TANGGAL_: KOLOM_TANGGAL_, MEMO_BACA_: MEMO_BACA_, BATCH_DICOBA_: BATCH_DICOBA_, KOLOM_WAKTU_: KOLOM_WAKTU_, SERIAL_EPOCH_: SERIAL_EPOCH_, ID_URUT_: ID_URUT_, JENIS_RIWAYAT: JENIS_RIWAYAT, PRIORITAS_EV_: PRIORITAS_EV_, NAMA_FOLDER_BACKUP_: NAMA_FOLDER_BACKUP_, SIMPAN_BACKUP_: SIMPAN_BACKUP_ }; }
+    atur: function (o) { if ('APP' in o) APP = o.APP; if ('SHEET' in o) SHEET = o.SHEET; if ('HEADER' in o) HEADER = o.HEADER; if ('JENIS_PENERIMAAN' in o) JENIS_PENERIMAAN = o.JENIS_PENERIMAAN; if ('JENIS_PENGIRIMAN' in o) JENIS_PENGIRIMAN = o.JENIS_PENGIRIMAN; if ('STATUS_TRANSFER' in o) STATUS_TRANSFER = o.STATUS_TRANSFER; if ('MESIN' in o) MESIN = o.MESIN; if ('JENIS_SHIFT' in o) JENIS_SHIFT = o.JENIS_SHIFT; if ('STATUS_SHIFT' in o) STATUS_SHIFT = o.STATUS_SHIFT; if ('STATUS_TUTUP' in o) STATUS_TUTUP = o.STATUS_TUTUP; if ('DAFTAR_SHIFT' in o) DAFTAR_SHIFT = o.DAFTAR_SHIFT; if ('JAM_SHIFT' in o) JAM_SHIFT = o.JAM_SHIFT; if ('STATUS_OPNAME_PROD' in o) STATUS_OPNAME_PROD = o.STATUS_OPNAME_PROD; if ('STATUS_DAUR' in o) STATUS_DAUR = o.STATUS_DAUR; if ('JENIS_DAUR_DETAIL' in o) JENIS_DAUR_DETAIL = o.JENIS_DAUR_DETAIL; if ('JENIS_PERMINTAAN' in o) JENIS_PERMINTAAN = o.JENIS_PERMINTAAN; if ('STATUS_PERMINTAAN' in o) STATUS_PERMINTAAN = o.STATUS_PERMINTAAN; if ('MAKS_MUNDUR_HARI' in o) MAKS_MUNDUR_HARI = o.MAKS_MUNDUR_HARI; if ('STATUS_PO' in o) STATUS_PO = o.STATUS_PO; if ('STATUS_INVOICE' in o) STATUS_INVOICE = o.STATUS_INVOICE; if ('STATUS_SO' in o) STATUS_SO = o.STATUS_SO; if ('KATEGORI_ITEM' in o) KATEGORI_ITEM = o.KATEGORI_ITEM; if ('KUALITAS' in o) KUALITAS = o.KUALITAS; if ('NAMA_KUALITAS' in o) NAMA_KUALITAS = o.NAMA_KUALITAS; if ('PERAN' in o) PERAN = o.PERAN; if ('MODUL' in o) MODUL = o.MODUL; if ('DAFTAR_MODUL' in o) DAFTAR_MODUL = o.DAFTAR_MODUL; if ('NAMA_MODUL' in o) NAMA_MODUL = o.NAMA_MODUL; if ('LOKASI' in o) LOKASI = o.LOKASI; if ('DEFAULT_SUSUT_CHASSEN_PERSEN' in o) DEFAULT_SUSUT_CHASSEN_PERSEN = o.DEFAULT_SUSUT_CHASSEN_PERSEN; if ('DEFAULT_TOLERANSI_CHASSEN_PERSEN' in o) DEFAULT_TOLERANSI_CHASSEN_PERSEN = o.DEFAULT_TOLERANSI_CHASSEN_PERSEN; if ('DUMMY_ITEM' in o) DUMMY_ITEM = o.DUMMY_ITEM; if ('DUMMY_SUPPLIER' in o) DUMMY_SUPPLIER = o.DUMMY_SUPPLIER; if ('DUMMY_CUSTOMER' in o) DUMMY_CUSTOMER = o.DUMMY_CUSTOMER; if ('DUMMY_PENGGUNA' in o) DUMMY_PENGGUNA = o.DUMMY_PENGGUNA; if ('DEFAULT_SETTING' in o) DEFAULT_SETTING = o.DEFAULT_SETTING; if ('RPC_WL' in o) RPC_WL = o.RPC_WL; if ('KOLOM_TANGGAL_' in o) KOLOM_TANGGAL_ = o.KOLOM_TANGGAL_; if ('MEMO_BACA_' in o) MEMO_BACA_ = o.MEMO_BACA_; if ('BATCH_DICOBA_' in o) BATCH_DICOBA_ = o.BATCH_DICOBA_; if ('KOLOM_WAKTU_' in o) KOLOM_WAKTU_ = o.KOLOM_WAKTU_; if ('SERIAL_EPOCH_' in o) SERIAL_EPOCH_ = o.SERIAL_EPOCH_; if ('ID_URUT_' in o) ID_URUT_ = o.ID_URUT_; if ('JENIS_RIWAYAT' in o) JENIS_RIWAYAT = o.JENIS_RIWAYAT; if ('BATAS_EDIT_STAF_JAM_' in o) BATAS_EDIT_STAF_JAM_ = o.BATAS_EDIT_STAF_JAM_; if ('PRIORITAS_EV_' in o) PRIORITAS_EV_ = o.PRIORITAS_EV_; if ('NAMA_FOLDER_BACKUP_' in o) NAMA_FOLDER_BACKUP_ = o.NAMA_FOLDER_BACKUP_; if ('SIMPAN_BACKUP_' in o) SIMPAN_BACKUP_ = o.SIMPAN_BACKUP_; },
+    vars: function () { return { APP: APP, SHEET: SHEET, HEADER: HEADER, JENIS_PENERIMAAN: JENIS_PENERIMAAN, JENIS_PENGIRIMAN: JENIS_PENGIRIMAN, STATUS_TRANSFER: STATUS_TRANSFER, MESIN: MESIN, JENIS_SHIFT: JENIS_SHIFT, STATUS_SHIFT: STATUS_SHIFT, STATUS_TUTUP: STATUS_TUTUP, DAFTAR_SHIFT: DAFTAR_SHIFT, JAM_SHIFT: JAM_SHIFT, STATUS_OPNAME_PROD: STATUS_OPNAME_PROD, STATUS_DAUR: STATUS_DAUR, JENIS_DAUR_DETAIL: JENIS_DAUR_DETAIL, JENIS_PERMINTAAN: JENIS_PERMINTAAN, STATUS_PERMINTAAN: STATUS_PERMINTAAN, MAKS_MUNDUR_HARI: MAKS_MUNDUR_HARI, STATUS_PO: STATUS_PO, STATUS_INVOICE: STATUS_INVOICE, STATUS_SO: STATUS_SO, KATEGORI_ITEM: KATEGORI_ITEM, KUALITAS: KUALITAS, NAMA_KUALITAS: NAMA_KUALITAS, PERAN: PERAN, MODUL: MODUL, DAFTAR_MODUL: DAFTAR_MODUL, NAMA_MODUL: NAMA_MODUL, LOKASI: LOKASI, DEFAULT_SUSUT_CHASSEN_PERSEN: DEFAULT_SUSUT_CHASSEN_PERSEN, DEFAULT_TOLERANSI_CHASSEN_PERSEN: DEFAULT_TOLERANSI_CHASSEN_PERSEN, DUMMY_ITEM: DUMMY_ITEM, DUMMY_SUPPLIER: DUMMY_SUPPLIER, DUMMY_CUSTOMER: DUMMY_CUSTOMER, DUMMY_PENGGUNA: DUMMY_PENGGUNA, DEFAULT_SETTING: DEFAULT_SETTING, RPC_WL: RPC_WL, KOLOM_TANGGAL_: KOLOM_TANGGAL_, MEMO_BACA_: MEMO_BACA_, BATCH_DICOBA_: BATCH_DICOBA_, KOLOM_WAKTU_: KOLOM_WAKTU_, SERIAL_EPOCH_: SERIAL_EPOCH_, ID_URUT_: ID_URUT_, JENIS_RIWAYAT: JENIS_RIWAYAT, BATAS_EDIT_STAF_JAM_: BATAS_EDIT_STAF_JAM_, PRIORITAS_EV_: PRIORITAS_EV_, NAMA_FOLDER_BACKUP_: NAMA_FOLDER_BACKUP_, SIMPAN_BACKUP_: SIMPAN_BACKUP_ }; }
   };
 }

@@ -16,6 +16,7 @@ function migrasiSkema() {
   migrasiV9_(ss);
   migrasiV10_(ss);
   migrasiV10_1_(ss);
+  migrasiV11_(ss);
   Object.keys(SHEET).forEach(function (k) {
     var nama = SHEET[k], head = HEADER[nama];
     var sh = ss.getSheetByName(nama);
@@ -120,9 +121,61 @@ function migrasiV10_(ss) {
     DUMMY_PENGGUNA.forEach(function (d) {
       if (d[3] !== 'Produksi' && d[3] !== 'Sales') return;
       if (adaNama[String(d[1]).toLowerCase()]) return;
-      tambah_(SHEET.PENGGUNA, { Email: d[0], Nama: d[1], Peran: d[2], Lokasi: d[3], PIN: d[4], Aktif: d[5] });
+      tambah_(SHEET.PENGGUNA, { Email: d[0], Nama: d[1], Peran: d[2], Lokasi: d[3], PIN: d[4], Aktif: d[5], Akses: d[6] || '' });
     });
   }
+  lupakanMemo_();
+}
+
+/**
+ * v11 (revamp akses): kolom Akses di Master_Pengguna (modul per akun); proses review dihapus —
+ * entri MENUNGGU yang masih ada jadi DISETUJUI (sudah dihitung di stok sejak awal; laporan rusak MENUNGGU ikut final);
+ * akun Yansen (PO), Deny (SO), Bastari (PRODUKSI) ditambahkan, akun lama Manager Produksi / Sales Manager dinonaktifkan. Aman diulang.
+ */
+function migrasiV11_(ss) {
+  var shP = ss.getSheetByName(SHEET.PENGGUNA); if (!shP) return;
+  var maxKol = shP.getMaxColumns();
+  var head = shP.getRange(1, 1, 1, maxKol).getValues()[0].map(String);
+  var baru = head.indexOf('Akses') < 0;
+  if (baru) {
+    var terakhir = 0; for (var i = head.length - 1; i >= 0; i--) if (head[i]) { terakhir = i + 1; break; }
+    if (terakhir + 1 > maxKol) shP.insertColumnsAfter(Math.max(terakhir, 1), 1);
+    shP.getRange(1, terakhir + 1).setValue('Akses');
+    lupakanMemo_(SHEET.PENGGUNA);
+  }
+  var adaNama = {};
+  baca_(SHEET.PENGGUNA).forEach(function (r) { adaNama[String(r.Nama || '').trim().toLowerCase()] = r; });
+  var ditambah = 0;
+  DUMMY_PENGGUNA.forEach(function (d) {
+    if (!d[6] || d[2] !== PERAN.SUPERVISOR) return;                 // hanya akun modul (Yansen / Deny / Bastari)
+    if (adaNama[String(d[1]).toLowerCase()]) return;
+    tambah_(SHEET.PENGGUNA, { Email: d[0], Nama: d[1], Peran: d[2], Lokasi: d[3], PIN: d[4], Aktif: d[5], Akses: d[6] });
+    ditambah++;
+  });
+  if (ditambah) {                                                    // hanya saat pertama kali: akun lama diganti akun modul
+    ['manager produksi', 'sales manager'].forEach(function (n) {
+      var r = adaNama[n]; if (r && String(r.Aktif).toUpperCase() !== 'TIDAK') ubahBaris_(SHEET.PENGGUNA, r._baris, { Aktif: 'TIDAK' });
+    });
+  }
+  lupakanMemo_(SHEET.PENGGUNA);
+  /* review dihapus: MENUNGGU → DISETUJUI (penerimaan & pengiriman sudah dihitung di stok; rusak MENUNGGU ikut final) */
+  var n = 0, now = new Date();
+  [SHEET.PENERIMAAN, SHEET.PENGIRIMAN, SHEET.KERUSAKAN].forEach(function (nama) {
+    if (!ss.getSheetByName(nama)) return;
+    baca_(nama).forEach(function (r) {
+      if (r.Status !== STATUS_TRANSFER.MENUNGGU) return;
+      ubahBaris_(nama, r._baris, { Status: STATUS_TRANSFER.DISETUJUI, Ditinjau_Oleh: 'sistem (review dihapus v11)', Waktu_Tinjau: now });
+      n++;
+    });
+  });
+  lupakanMemo_();
+  if (n) {
+    var rata = hitungRata_();
+    baca_(SHEET.KERUSAKAN).forEach(function (r) {
+      if (r.Ditinjau_Oleh === 'sistem (review dihapus v11)' && !angka_(r.Nilai_Kerugian)) ubahBaris_(SHEET.KERUSAKAN, r._baris, { Nilai_Kerugian: bulat_(rata.biaya[r.ID] || 0, 0) });
+    });
+  }
+  if (baru || ditambah || n) catatLog_('MIGRASI_V11', '', (ditambah ? ditambah + ' akun modul ditambah; ' : '') + n + ' entri MENUNGGU difinalkan');
   lupakanMemo_();
 }
 
@@ -210,7 +263,8 @@ var PRIORITAS_EV_ = { MASUK: 0, RETUR_CUST: 0, DAUR_TERIMA: 0, OPNAME: 1, SHIFT:
    PESANAN PEMBELIAN (PO) — manager
    ================================================================= */
 
-function bolehPo_(u) { return bolehReview_(u); }
+function bolehPo_(u) { return bolehReview_(u) && bolehModul_(u, MODUL.PO); }
+function bolehSo_(u) { return bolehReview_(u) && bolehModul_(u, MODUL.SO); }
 
 function nomorPoBaru_() {
   var tgl = Utilities.formatDate(new Date(), APP.zona, 'yyMMdd');
@@ -650,7 +704,8 @@ function laporanNilaiStok(ident) {
 /** Hitung ulang HPP tersimpan (HPP pengiriman, nilai kerugian rusak, HPP daur ulang) dari mesin rata-rata. Manager. */
 function hitungUlangHpp(ident) {
   var u = penggunaSaatIni_(ident);
-  if (!bolehPo_(u)) throw new Error('Hanya Manager / Admin.');
+  if (!bolehReview_(u)) throw new Error('Hanya Manager / Admin.');
+  wajibModul_(u, MODUL.MANAJEMEN);
   var lock = LockService.getScriptLock();
   lock.waitLock(20000);
   lupakanMemo_();
@@ -689,7 +744,7 @@ function hitungUlangHpp(ident) {
 /** p = { kode, qty, penyebab, tanggal, foto, catatan, ident } — HANYA STAF. (v9: lokasi selalu GBJ) */
 function simpanKerusakan(p) {
   var u = penggunaSaatIni_(p && p.ident);
-  if (bolehReview_(u)) throw new Error('Laporan barang rusak harus dicatat oleh STAF gudang (bukan manager).');
+  wajibModul_(u, MODUL.GUDANG);          // v11: siapa pun dengan akses gudang; langsung final (tanpa persetujuan)
   if (!p || !p.kode) throw new Error('Item belum dipilih.');
   var lok = LOKASI.GBJ;
   var q = angka_(p.qty); if (q <= 0) throw new Error('Qty harus > 0.');
@@ -705,10 +760,13 @@ function simpanKerusakan(p) {
       ID: id, Waktu: new Date(), Tanggal: tglValid_(p.tanggal), Lokasi: lok,
       Kode_Item: it.kode, Nama_Item: it.nama, Qty_Kg: q, Penyebab: p.penyebab,
       Foto_URL: foto.url, Foto_ID: foto.id, Dicatat_Oleh: penandaPencatat_(u), Nama_Pencatat: u.nama,
-      Status: STATUS_TRANSFER.MENUNGGU, Ditinjau_Oleh: '', Waktu_Tinjau: '', Catatan_Tinjau: '',
+      Status: STATUS_TRANSFER.DISETUJUI, Ditinjau_Oleh: 'otomatis', Waktu_Tinjau: new Date(), Catatan_Tinjau: '',
       Nilai_Kerugian: '', Catatan: p.catatan || '', Log_Edit: ''
     });
-    catatLog_('RUSAK_LAPOR', id, it.nama + ' ' + q + ' kg @' + lok + ' — ' + p.penyebab);
+    lupakanMemo_();
+    var nilai = bulat_(hitungRata_().biaya[id] || 0, 0);
+    ubahBaris_(SHEET.KERUSAKAN, cariEntri_(SHEET.KERUSAKAN, id)._baris, { Nilai_Kerugian: nilai });
+    catatLog_('RUSAK_LAPOR', id, it.nama + ' ' + q + ' kg @' + lok + ' — ' + p.penyebab + (nilai ? ' • rugi ' + nilai : ''));
     return { ok: true, id: id, item: it.nama, qty: q };
   } finally { lock.releaseLock(); }
 }
@@ -726,7 +784,7 @@ function daftarKerusakan(ident, status, hari) {
   var u = penggunaSaatIni_(ident);
   var spv = bolehReview_(u);
   var batas = new Date(); batas.setDate(batas.getDate() - (hari || 30));
-  status = status || STATUS_TRANSFER.MENUNGGU;
+  status = status || STATUS_TRANSFER.DISETUJUI;
   return baca_(SHEET.KERUSAKAN).filter(function (r) {
     if (!spv && r.Dicatat_Oleh !== penandaPencatat_(u)) return false;
     if (status !== 'SEMUA' && r.Status !== status) return false;
@@ -737,14 +795,17 @@ function daftarKerusakan(ident, status, hari) {
 /** aksi: 'setuju' (stok berkurang, nilai kerugian dihitung pada harga rata-rata) | 'batal' */
 function tinjauKerusakan(id, aksi, catatan, ident) {
   var u = penggunaSaatIni_(ident);
-  if (!bolehReview_(u)) throw new Error('Hanya Supervisor / Admin yang bisa meninjau laporan rusak.');
+  if (!bolehReview_(u)) throw new Error('Hanya Manager / Admin yang bisa membatalkan laporan rusak.');
+  wajibModul_(u, MODUL.GUDANG);
+  if (aksi !== 'batal') throw new Error('Tidak ada proses persetujuan lagi — laporan rusak langsung final. Yang bisa dilakukan: batalkan.');
   var lock = LockService.getScriptLock();
   lock.waitLock(20000);
   lupakanMemo_();   // di dalam lock: baca ulang dari sheet, jangan pakai memo sebelum lock
   try {
     var r = cariEntri_(SHEET.KERUSAKAN, id);
-    if (r.Status !== STATUS_TRANSFER.MENUNGGU) throw new Error('Laporan sudah ' + r.Status + '.');
-    var status = aksi === 'setuju' ? STATUS_TRANSFER.DISETUJUI : STATUS_TRANSFER.DIBATALKAN;
+    if (r.Status === STATUS_TRANSFER.DIBATALKAN) throw new Error('Laporan sudah dibatalkan.');
+    if (bulanTertutup_(r.Tanggal)) throw new Error(pesanKunci_('BULAN_TUTUP'));
+    var status = STATUS_TRANSFER.DIBATALKAN;
     ubahBaris_(SHEET.KERUSAKAN, r._baris, { Status: status, Ditinjau_Oleh: u.nama, Waktu_Tinjau: new Date(),
       Catatan_Tinjau: [r.Catatan_Tinjau, catatan].filter(String).join(' | ') });
     var nilai = 0;

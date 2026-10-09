@@ -41,7 +41,7 @@ tolak('ganti kode SKU yang sudah dipakai ditolak', ()=>ctx.simpanSku({baris:ctx.
 console.log('\n— Stock opname —');
 ctx.simpanPenerimaan({jenis:'MASUK',supplier:'X',noSuratJalan:'B',baris:[{kode:'RM-BP-KW',qty:1000}],ident:YANTO});
 ctx.simpanLaporanShift({shift:'1',blowing:{operator:'Sri',ambil:[{kode:'RM-BP-KW',qty:300}],hasil:[{kualitas:'KW',qty:290}],bs:[{kualitas:'KW',qty:5}]}}, ANTO);   // 300 kg biji masuk blowing → keluar dari gudang
-tolak('staf tidak boleh opname', ()=>ctx.siapkanOpname(YANTO), /Supervisor/);
+tolak('staf tidak boleh opname', ()=>ctx.siapkanOpname(YANTO), /Manajemen/);
 const prep = ctx.siapkanOpname(ANTO);
 ok('daftar item gudang dengan stok sistem (1000 − 300 diambil blowing)', prep.items.find(i=>i.kode==='RM-BP-KW').sistem===700, prep.items.find(i=>i.kode==='RM-BP-KW'));
 ok('opname tanpa pilihan lokasi (v9)', prep.lokasi==='GBJ');

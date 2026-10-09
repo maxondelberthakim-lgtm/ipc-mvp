@@ -395,7 +395,6 @@ input:disabled,select:disabled,textarea:disabled{background:#f3f4f6;color:#37415
       <button class="stat tap" onclick="tileHome('keluar')"><div class="n" id="sKeluar">–</div><div class="l" data-i18n="statKeluar">kg keluar hari ini</div></button>
       <button class="stat tap" onclick="tileHome('jadi')"><div class="n" id="sJadi">–</div><div class="l" data-i18n="statJadi">kg polybag jadi hari ini</div></button>
       <button class="stat alert tap" onclick="tileHome('bs')"><div class="n" id="sBs">–</div><div class="l" data-i18n="statBs">kg BS hari ini</div></button>
-      <button class="stat warn tap" onclick="tileHome('menunggu')"><div class="n" id="sQueue">–</div><div class="l" data-i18n="statQueue">Menunggu review</div></button>
       <button class="stat tap" onclick="tileHome('shift')"><div class="n" id="sShift">–</div><div class="l" data-i18n="statShift">Laporan shift hari ini</div></button>
       <button class="stat alert tap hide" id="tileBeli" onclick="tileHome('beli')"><div class="n" id="sBeli">–</div><div class="l" data-i18n="statBeli">Bahan perlu dibeli</div></button>
     </div>
@@ -427,14 +426,14 @@ input:disabled,select:disabled,textarea:disabled{background:#f3f4f6;color:#37415
       <div id="calDay"></div>
     </div>
 
-    <h3 class="sec" data-i18n="secBeli">Barang dari supplier</h3>
+    <h3 class="sec" id="secBeliH" data-i18n="secBeli">Barang dari supplier</h3>
     <div class="actions">
-      <button class="action" onclick="bukaMutasi('BELI_MASUK')">
+      <button class="action mod-gudang" onclick="bukaMutasi('BELI_MASUK')">
         <div class="ico d">⓪</div>
         <div class="tx"><b data-i18n="a0t">Penerimaan barang</b><span data-i18n="a0s">Supplier → GBJ · dari PO · foto surat jalan · QC</span></div>
         <span class="badge hide" id="poBadge">0</span>
       </button>
-      <button class="action" onclick="bukaMutasi('BELI_RETUR')">
+      <button class="action mod-gudang" onclick="bukaMutasi('BELI_RETUR')">
         <div class="ico e">↩</div>
         <div class="tx"><b data-i18n="a5t">Retur ke supplier</b><span data-i18n="a5s">Hanya dari barang yang sudah diterima</span></div>
       </button>
@@ -442,19 +441,19 @@ input:disabled,select:disabled,textarea:disabled{background:#f3f4f6;color:#37415
         <div class="ico d">📋</div>
         <div class="tx"><b data-i18n="a8t">Pesanan pembelian (PO)</b><span data-i18n="a8s">Apa yang akan datang · qty · harga · spesifikasi · invoice</span></div>
       </button>
-      <button class="action" id="tileRusak" onclick="tampil('rusak')">
+      <button class="action mod-gudang" id="tileRusak" onclick="tampil('rusak')">
         <div class="ico e">⚠️</div>
-        <div class="tx"><b data-i18n="a9t">Barang rusak</b><span data-i18n="a9s">Lapor kerusakan · stok berkurang setelah disetujui manager</span></div>
+        <div class="tx"><b data-i18n="a9t">Barang rusak</b><span data-i18n="a9s">Lapor kerusakan · stok langsung berkurang (tanpa persetujuan)</span></div>
       </button>
     </div>
 
-    <h3 class="sec" data-i18n="secJual">Barang ke customer</h3>
+    <h3 class="sec" id="secJualH" data-i18n="secJual">Barang ke customer</h3>
     <div class="actions">
-      <button class="action" onclick="bukaMutasi('JUAL_KELUAR')">
+      <button class="action mod-gudang" onclick="bukaMutasi('JUAL_KELUAR')">
         <div class="ico f">④</div>
         <div class="tx"><b data-i18n="a6t">Barang keluar (terjual)</b><span data-i18n="a6s">GBJ → customer · mengurangi stok</span></div>
       </button>
-      <button class="action" onclick="bukaMutasi('JUAL_RETUR')">
+      <button class="action mod-gudang" onclick="bukaMutasi('JUAL_RETUR')">
         <div class="ico e">↩</div>
         <div class="tx"><b data-i18n="a7t">Retur dari customer</b><span data-i18n="a7s">Customer → GBJ · menambah stok</span></div>
       </button>
@@ -472,22 +471,11 @@ input:disabled,select:disabled,textarea:disabled{background:#f3f4f6;color:#37415
         <div class="tx"><b data-i18n="a2t">Laporan shift produksi</b><span data-i18n="a2s">Per shift per mesin: operator · biji plastik diambil · roll / polybag jadi per kualitas · BS</span></div>
         <span class="badge hide" id="shiftBadge">0</span>
       </button>
-      <button class="action" onclick="tampil('daur')">
+      <button class="action mod-gudang" onclick="tampil('daur')">
         <div class="ico c">♻️</div>
         <div class="tx"><b data-i18n="a11t">Daur ulang scrap</b><span data-i18n="a11s">Scrap → mesin chassen (pabrik lain) → biji plastik · susut &amp; jasa</span></div>
         <span class="badge hide" id="daurBadge">0</span>
       </button>
-    </div>
-
-    <div id="homeRev" class="hide">
-      <h3 class="sec" data-i18n="secSup">Supervisor</h3>
-      <div class="actions">
-        <button class="action" onclick="tampil('review')">
-          <div class="ico c">✓</div>
-          <div class="tx"><b data-i18n="a4t">Antrian review</b><span data-i18n="a4s">Foto di sebelah angka · setuju / tandai</span></div>
-          <span class="badge hide" id="revBadge">0</span>
-        </button>
-      </div>
     </div>
 
     <div id="homeIdent" class="hide" style="margin-top:16px">
@@ -839,7 +827,7 @@ input:disabled,select:disabled,textarea:disabled{background:#f3f4f6;color:#37415
   <section id="v-rusak" class="hide">
     <div class="card">
       <h2 data-i18n="rusakT">Lapor barang rusak</h2>
-      <div class="sub" data-i18n="rusakS">Dicatat oleh staf gudang. Stok baru berkurang setelah manager menyetujui.</div>
+      <div class="sub" data-i18n="rusakS">Stok langsung berkurang saat laporan disimpan. Manager gudang bisa membatalkan laporan dalam 30 hari.</div>
       <div class="field">
         <label data-i18n="lblTanggal">Tanggal transaksi</label>
         <input type="date" id="rusakTanggal">
@@ -868,18 +856,6 @@ input:disabled,select:disabled,textarea:disabled{background:#f3f4f6;color:#37415
       <h2 data-i18n="rusakRiwayatT">Laporan saya</h2>
       <div id="rusakRiwayat"><div class="load">…</div></div>
     </div>
-  </section>
-
-  <!-- ============ REVIEW ============ -->
-  <section id="v-review" class="hide">
-    <div class="seg">
-      <button id="segRevMenunggu" class="on" onclick="segRev('MENUNGGU')"><span data-i18n="segMenunggu">Menunggu</span> <span class="cnt" id="cntMenunggu"></span></button>
-      <button id="segRevDitandai" onclick="segRev('DITANDAI')"><span data-i18n="segDitandai">Ditandai</span> <span class="cnt" id="cntDitandai"></span></button>
-      <button id="segRevUsulan" onclick="segRev('USULAN')"><span data-i18n="segUsulan">Usulan</span> <span class="cnt" id="cntUsulan"></span></button>
-      <button id="segRevRusak" onclick="segRev('RUSAK')"><span data-i18n="segRusak">Rusak</span> <span class="cnt" id="cntRusak"></span></button>
-    </div>
-    <div class="banner n" id="revHint"></div>
-    <div id="revList"><div class="load">…</div></div>
   </section>
 
   <!-- ============ LAPORAN ============ -->
@@ -952,9 +928,14 @@ input:disabled,select:disabled,textarea:disabled{background:#f3f4f6;color:#37415
       <div class="field"><label data-i18n="userPeran">Peran</label>
         <select id="userPeran">
           <option value="STAF">STAF — input pergerakan</option>
-          <option value="SUPERVISOR">SUPERVISOR — review, HPP, opname, SKU</option>
-          <option value="ADMIN">ADMIN — semua + kelola pengguna</option>
+          <option value="SUPERVISOR">SUPERVISOR — manager: lihat laporan & harga, modul sesuai akses</option>
+          <option value="ADMIN">ADMIN — semua + kelola pengguna + rekonsiliasi</option>
         </select></div>
+      <div class="field" id="userAksesWrap">
+        <label data-i18n="userAkses">Akses modul (kosong = semua modul)</label>
+        <div id="userAkses"></div>
+        <div class="hint" data-i18n="userAksesHint">Yang dicentang saja yang bisa diisi/diubah. Laporan tetap bisa dilihat semua manager.</div>
+      </div>
       <div class="field"><label data-i18n="userLokasi">Lokasi (opsional)</label><input id="userLokasi" placeholder="Gudang / Produksi / HQ"></div>
       <div class="field"><label data-i18n="userEmail">Email Google (opsional)</label><input id="userEmail" placeholder="hanya kalau pakai Google Workspace"></div>
       <div class="field"><label data-i18n="userPin">PIN (4–8 angka)</label><input id="userPin" type="tel" inputmode="numeric" placeholder=""><div class="hint" id="userPinHint"></div></div>
@@ -968,7 +949,6 @@ input:disabled,select:disabled,textarea:disabled{background:#f3f4f6;color:#37415
 <nav>
   <button id="nav-home" class="on" onclick="tampil('home')"><span class="g">🏠</span><span data-i18n="navHome">Beranda</span></button>
   <button id="nav-shift" onclick="tampil('shift')"><span class="g">🏭</span><span data-i18n="navJob">Produksi</span></button>
-  <button id="nav-review" class="hide" onclick="tampil('review')"><span class="g">✅</span><span data-i18n="navReview">Review</span><span class="dot hide" id="navDot"></span></button>
   <button id="nav-report" onclick="tampil('report')"><span class="g">📊</span><span data-i18n="navReport">Laporan</span></button>
   <button id="nav-admin" class="hide" onclick="tampil('admin')"><span class="g">🛠️</span><span data-i18n="navAdmin">Admin</span></button>
 </nav>
@@ -1040,7 +1020,7 @@ var T = {
     uEdit:'UBAH ENTRI', uBatal:'BATALKAN ENTRI', sebagian:'SEBAGIAN', baru:'Baru',
     serverSibuk:'Server sedang sibuk — coba lagi sebentar.', jaringanPutus:'Jaringan putus. Cek sinyal lalu coba lagi.',
     a8t:'Pesanan pembelian (PO)', a8s:'Apa yang akan datang · qty · harga · spesifikasi · invoice',
-    a9t:'Barang rusak', a9s:'Lapor kerusakan · stok berkurang setelah disetujui manager',
+    a9t:'Barang rusak', a9s:'Lapor kerusakan · stok langsung berkurang (tanpa persetujuan)',
     lblDariPo:'Dari pesanan pembelian (PO)', hintDariPo:'Pilih PO yang barangnya datang — item & spesifikasi terisi otomatis. Bisa pilih lebih dari satu.',
     pilihPo:'— pilih PO yang datang —', tanpaPo:'Tanpa PO (barang datang tanpa pesanan)', sisaPo:'sisa PO', spesifikasi:'Spesifikasi', datang:'datang',
     lblDariPenerimaan:'Barang yang diretur (dari penerimaan)', hintDariPenerimaan:'Hanya barang yang sudah tercatat diterima yang bisa diretur.',
@@ -1056,8 +1036,8 @@ var T = {
     invHargaBaru:'Harga di invoice beda? Isi harga baru per kg (kosongkan kalau sama):', invTersimpan:'Invoice terunggah', invDivalidasi:'Invoice divalidasi', invDitolak:'Invoice ditolak',
     hitungUlangHpp:'Hitung ulang HPP (rata-rata)', hppDihitung:'HPP dihitung ulang', kosongInv:'Belum ada invoice',
     segRusak:'Rusak', rusakT:'Lapor barang rusak', rusakS:'Dicatat oleh staf gudang. Stok baru berkurang setelah manager menyetujui.',
-    lblLokasi:'Lokasi', lblPenyebab:'Penyebab kerusakan', lblFotoOpsi:'Foto (opsional)', btnLaporRusak:'Kirim laporan', rusakRiwayatT:'Laporan saya',
-    rusakTerkirim:'Laporan rusak terkirim — menunggu persetujuan manager', kosongRusak:'Tidak ada laporan rusak', hintRusak:'Laporan kerusakan dari staf. Setujui = stok berkurang & kerugian dihitung dari harga rata-rata.',
+    lblLokasi:'Lokasi', lblPenyebab:'Penyebab kerusakan', lblFotoOpsi:'Foto (opsional)', btnLaporRusak:'Kirim laporan', rusakRiwayatT:'Riwayat laporan rusak',
+    rusakTerkirim:'Laporan rusak tersimpan — stok sudah dikurangi', kosongRusak:'Tidak ada laporan rusak', hintRusak:'Laporan kerusakan dari staf. Setujui = stok berkurang & kerugian dihitung dari harga rata-rata.',
     nilaiKerugian:'Kerugian', rusakDisetujui:'Disetujui — stok dikurangi', rusakDibatalkan:'Laporan dibatalkan',
     segNilai:'Nilai stok', nilaiT:'Nilai stok (harga rata-rata)', nilaiS:'Nilai persediaan sekarang dengan harga rata-rata bergerak: biji plastik dari pembelian, roll & polybag dari biji + biaya proses, BS dinilai 0, biji daur ulang dari jasa chassen.',
     rataHarga:'rata-rata', totalNilai:'Total nilai',
@@ -1121,8 +1101,9 @@ var T = {
     terkunciHint:'Sudah ditinjau — hanya supervisor yang bisa mengubah',
     lihatDetail:'Lihat', detailT:'Detail entri', hanyaLihat:'Hanya bisa dilihat',
     kunciSUDAH_DITINJAU:'Sudah ditinjau supervisor — hanya supervisor/manager yang bisa mengubah.',
+    kunciLEWAT_24JAM:'Lebih dari 24 jam sejak dicatat — hanya manager gudang yang bisa mengubah.', kunciBUKAN_MODUL:'Akun ini tidak punya akses modul gudang.',
     kunciLEWAT_BATAS:'Lebih dari {n} hari — periode sudah ditutup, tidak bisa diubah siapa pun.',
-    kunciBUKAN_MILIK:'Dicatat oleh orang lain — hanya pencatatnya (selama menunggu) atau supervisor yang bisa mengubah.',
+    kunciBUKAN_MILIK:'Dicatat oleh orang lain — hanya pencatatnya (dalam 24 jam) atau manager gudang yang bisa mengubah.',
     kunciDIBATALKAN:'Entri sudah dibatalkan.', kunciBULAN_TUTUP:'Bulan ini sudah ditutup (tutup buku) — tidak bisa diubah.',
     fotoBukti:'Foto bukti', tidakAdaFoto:'Tidak ada foto', ditinjauOleh:'Ditinjau oleh',
     statBeli:'Bahan perlu dibeli', datangT:'Barang akan datang', datangS:'PO yang belum lengkap diterima', kosongDatang:'Tidak ada PO terbuka',
@@ -1169,6 +1150,8 @@ var T = {
     aktInput:'input', aktKosong:'Belum ada aktivitas.',
     userT:'Pengguna', userTambah:'+ Tambah pengguna', userBaru:'Pengguna baru', userUbah:'Ubah pengguna',
     userPeran:'Peran', userLokasi:'Lokasi (opsional)', userEmail:'Email Google (opsional)',
+    userAkses:'Akses modul (kosong = semua modul)', userAksesHint:'Yang dicentang saja yang bisa diisi/diubah akun ini. Laporan (termasuk harga) tetap bisa dilihat semua manager.',
+    modulPO:'Pesanan pembelian & invoice', modulSO:'Sales order', modulPRODUKSI:'Laporan produksi & opname produksi', modulGUDANG:'Penerimaan, pengiriman, retur, rusak, daur ulang', modulMANAJEMEN:'Opname gudang, SKU, tutup bulan, aktivitas, backup',
     userPin:'PIN (4–8 angka)', userPinHintBaru:'Wajib supaya orang lain tidak bisa pakai nama ini.',
     userPinHintUbah:'Kosongkan = PIN tidak diubah. Ketik HAPUS untuk mengosongkan PIN.',
     userAktif:'Aktif (boleh login)', userTersimpan:'Pengguna tersimpan', userPunyaPin:'PIN', userTanpaPin:'tanpa PIN',
@@ -1289,7 +1272,7 @@ var T = {
     uEdit:'EDIT ENTRY', uBatal:'CANCEL ENTRY', sebagian:'PARTIAL', baru:'New',
     serverSibuk:'Server is busy — try again in a moment.', jaringanPutus:'No connection. Check your signal and try again.',
     a8t:'Purchase orders (PO)', a8s:'What is coming · qty · price · spec · invoice',
-    a9t:'Damaged goods', a9s:'Report damage · stock reduced after manager approval',
+    a9t:'Damaged goods', a9s:'Report damage · stock reduced immediately (no approval)',
     lblDariPo:'From purchase order (PO)', hintDariPo:'Pick the PO that arrived — item & spec are filled in. You can pick several.',
     pilihPo:'— pick the PO that arrived —', tanpaPo:'No PO (unplanned delivery)', sisaPo:'PO remaining', spesifikasi:'Specification', datang:'due',
     lblDariPenerimaan:'Goods to return (from a receipt)', hintDariPenerimaan:'Only goods already recorded as received can be returned.',
@@ -1305,8 +1288,8 @@ var T = {
     invHargaBaru:'Invoice price differs? Enter the new price per kg (leave blank if same):', invTersimpan:'Invoice uploaded', invDivalidasi:'Invoice validated', invDitolak:'Invoice rejected',
     hitungUlangHpp:'Recompute COGS (average)', hppDihitung:'COGS recomputed', kosongInv:'No invoices yet',
     segRusak:'Damage', rusakT:'Report damaged goods', rusakS:'Recorded by warehouse staff. Stock is reduced only after a manager approves.',
-    lblLokasi:'Location', lblPenyebab:'Cause of damage', lblFotoOpsi:'Photo (optional)', btnLaporRusak:'Send report', rusakRiwayatT:'My reports',
-    rusakTerkirim:'Damage report sent — waiting for manager approval', kosongRusak:'No damage reports', hintRusak:'Damage reports from staff. Approve = stock reduced & loss valued at average cost.',
+    lblLokasi:'Location', lblPenyebab:'Cause of damage', lblFotoOpsi:'Photo (optional)', btnLaporRusak:'Send report', rusakRiwayatT:'Damage report history',
+    rusakTerkirim:'Damage report saved — stock already reduced', kosongRusak:'No damage reports', hintRusak:'Damage reports from staff. Approve = stock reduced & loss valued at average cost.',
     nilaiKerugian:'Loss', rusakDisetujui:'Approved — stock reduced', rusakDibatalkan:'Report dismissed',
     segNilai:'Stock value', nilaiT:'Stock value (average cost)', nilaiS:'Current inventory at moving average cost: pellets from purchases, roll & polybag from pellets + process cost, BS valued 0, recycled pellets from the crushing fee.',
     rataHarga:'average', totalNilai:'Total value',
@@ -1366,8 +1349,9 @@ var T = {
     terkunciHint:'Already reviewed — only a supervisor can change it',
     lihatDetail:'View', detailT:'Entry details', hanyaLihat:'View only',
     kunciSUDAH_DITINJAU:'Already reviewed by a supervisor — only a supervisor/manager can change it.',
+    kunciLEWAT_24JAM:'More than 24 hours since it was recorded — only a warehouse manager can change it.', kunciBUKAN_MODUL:'This account has no warehouse module access.',
     kunciLEWAT_BATAS:'Older than {n} days — the period is closed, nobody can change it.',
-    kunciBUKAN_MILIK:'Logged by someone else — only the person who logged it (while pending) or a supervisor can change it.',
+    kunciBUKAN_MILIK:'Logged by someone else — only the person who logged it (within 24 h) or a warehouse manager can change it.',
     kunciDIBATALKAN:'Entry has been cancelled.', kunciBULAN_TUTUP:'This month is closed (books closed) — it cannot be changed.',
     fotoBukti:'Photo evidence', tidakAdaFoto:'No photo', ditinjauOleh:'Reviewed by',
     statBeli:'Materials to reorder', datangT:'Incoming goods', datangS:'POs not fully received yet', kosongDatang:'No open POs',
@@ -1412,6 +1396,8 @@ var T = {
     aktInput:'entries', aktKosong:'No activity yet.',
     userT:'Users', userTambah:'+ Add user', userBaru:'New user', userUbah:'Edit user',
     userPeran:'Role', userLokasi:'Location (optional)', userEmail:'Google email (optional)',
+    userAkses:'Module access (empty = all modules)', userAksesHint:'Only the ticked modules can be entered/edited by this account. Reports (incl. prices) stay visible to every manager.',
+    modulPO:'Purchase orders & invoices', modulSO:'Sales orders', modulPRODUKSI:'Production reports & production count', modulGUDANG:'Receipts, shipments, returns, damage, recycling', modulMANAJEMEN:'Warehouse count, SKUs, month close, activity, backup',
     userPin:'PIN (4–8 digits)', userPinHintBaru:'Required so nobody else can use this name.',
     userPinHintUbah:'Blank = PIN unchanged. Type HAPUS to clear the PIN.',
     userAktif:'Active (can sign in)', userTersimpan:'User saved', userPunyaPin:'PIN', userTanpaPin:'no PIN',
@@ -1498,7 +1484,6 @@ function terapkanBahasa(){
   if (S.view === 'beli') labelMutasi();
   if (S.view === 'shift') segShift(S.shiftTab || 'list');
   if (S.view === 'daur') segDaur(S.daurTab || 'list');
-  if (S.view === 'review') muatReview();
   if (S.view === 'report') segRep(S.repTab || 'produksi');
   if (S.cal.data) gambarKalender();
   gambarSemuaBaris();
@@ -1585,7 +1570,7 @@ function keluar(){
   S.ident = { nama:'', pin:'' }; S.ctx = null;
   $('hdrUser').textContent = '';
   /* v9: kosongkan layar hasil/daftar yang mungkin memuat harga — supaya akun berikutnya di HP yang sama tidak melihat sisa tampilan akun sebelumnya */
-  ['daurHasil','repBody','admBody','poBody','soBody','daurDone','daurList','daurDetailBody','revList','shiftRows','shiftRep','daurFinHead'].forEach(function(id){ var el=$(id); if (el) el.innerHTML=''; });
+  ['daurHasil','repBody','admBody','poBody','soBody','daurDone','daurList','daurDetailBody','rusakRiwayat','shiftRows','shiftRep','daurFinHead'].forEach(function(id){ var el=$(id); if (el) el.innerHTML=''; });
   S.daurCache = null; S.daurCacheDone = null; S.soCache = null; S.poCache = null; S.ekspor = null; S.shiftCache = null; S.shiftKunci = null; S.shiftCfg = null; S.shiftEdit = null; S.opprod = null; S.rekonBulan = null; STOK_CACHE = {};
   ['nav-review','nav-admin'].forEach(function(id){ var el=$(id); if(el) el.classList.add('hide'); });
   tampil('ident');
@@ -1601,7 +1586,7 @@ function sibuk(btn, on, teksAsli){
 /* ---------------- navigasi ---------------- */
 function tampil(v){
   S.view = v;
-  ['ident','home','beli','shift','review','report','admin','po','rusak','so','daur'].forEach(function(x){
+  ['ident','home','beli','shift','report','admin','po','rusak','so','daur'].forEach(function(x){
     var el = $('v-'+x); if(el) el.classList.toggle('hide', x !== v);
     var nb = $('nav-'+x); if(nb) nb.classList.toggle('on', x === v);
   });
@@ -1610,7 +1595,6 @@ function tampil(v){
   if (v==='ident')  siapkanIdent();
   if (v==='home')   muatKonteks();
   if (v==='shift')  segShift(S.shiftTab);
-  if (v==='review') muatReview();
   if (v==='report') segRep(S.repTab);
   if (v==='admin')  segAdm(S.admTab);
   if (v==='po')     segPo(S.poTab);
@@ -1644,42 +1628,35 @@ function muatKonteks(diam){
     $('sJadi').textContent   = n2(c.ringkasan.jadiHariIni || 0);
     $('sBs').textContent     = n2(c.ringkasan.bsHariIni || 0);
     $('sShift').textContent  = c.ringkasan.shiftHariIni || 0;
-    $('sQueue').textContent  = c.ringkasan.menungguReview;
-    $('homeRev').classList.toggle('hide', !c.bisaReview);
-    $('nav-review').classList.toggle('hide', !c.bisaReview);
+    var md = c.modul || {};
+    $('segRepBulanan').classList.toggle('hide', !c.lihatHpp);
     $('segRepBulanan').classList.toggle('hide', !c.lihatHpp);
     var shb = $('shiftBadge'); if (shb){ shb.textContent = c.ringkasan.shiftHariIni || ''; shb.classList.toggle('hide', !c.ringkasan.shiftHariIni); }
-    if (c.bisaReview && !S.shiftCfg) muatKonfigShift();
-    $('nav-admin').classList.toggle('hide', !c.bisaReview);
-    var tp = $('tilePo'), tr = $('tileRusak');
-    if (tp) tp.classList.toggle('hide', !c.bisaPo);
-    if (tr) tr.classList.toggle('hide', !!c.bisaReview);   // hanya staf yang melapor rusak
+    if (md.PRODUKSI && !S.shiftCfg) muatKonfigShift();
+    $('nav-admin').classList.toggle('hide', !(md.MANAJEMEN || md.PRODUKSI || c.bisaAdmin));
+    var tp = $('tilePo');
+    if (tp) tp.classList.toggle('hide', !md.PO);
+    document.querySelectorAll('.mod-gudang').forEach(function(el){ el.classList.toggle('hide', !md.GUDANG); });
+    var sbh = $('secBeliH'); if (sbh) sbh.classList.toggle('hide', !(md.GUDANG || md.PO));
+    var sjh = $('secJualH'); if (sjh) sjh.classList.toggle('hide', !(md.GUDANG || md.SO));
     var pb = $('poBadge'); if (pb){ pb.textContent = c.ringkasan.poTerbuka || ''; pb.classList.toggle('hide', !c.ringkasan.poTerbuka); }
-    var ts = $('tileSo'); if (ts) ts.classList.toggle('hide', !c.bisaPo);
+    var ts = $('tileSo'); if (ts) ts.classList.toggle('hide', !md.SO);
     var sb = $('soBadge'); if (sb){ sb.textContent = c.ringkasan.soTerbuka || ''; sb.classList.toggle('hide', !c.ringkasan.soTerbuka); }
     var db = $('daurBadge'); if (db){ db.textContent = c.ringkasan.daurBerjalan || ''; db.classList.toggle('hide', !c.ringkasan.daurBerjalan); }
     var se = $('segRepEkspor'); if (se) se.classList.toggle('hide', !c.lihatHpp);
-    var sbk = $('segAdmBackup'); if (sbk) sbk.classList.toggle('hide', !c.bisaReview);
-    var cr = $('cntRusak'); if (cr) cr.textContent = c.ringkasan.kerusakanMenunggu || '';
+    ['segAdmOpname','segAdmSku','segAdmAkt','segAdmBackup'].forEach(function(id){ var el=$(id); if (el) el.classList.toggle('hide', !md.MANAJEMEN); });
+    var sop = $('segAdmOpprod'); if (sop) sop.classList.toggle('hide', !(md.PRODUKSI || md.MANAJEMEN));
+    if (!md.MANAJEMEN && S.admTab === 'opname') S.admTab = (md.PRODUKSI ? 'opprod' : c.bisaAdmin ? 'rekon' : 'opname');
     var ci = $('cntInv'); if (ci) ci.textContent = c.ringkasan.invoiceMenunggu || '';
     ['segRepNilai'].forEach(function(id){ var el=$(id); if (el) el.classList.toggle('hide', !c.lihatHpp); });
     var sp = $('segRepPrediksi'); if (sp) sp.classList.toggle('hide', !c.bisaReview);
-    var tb = $('tileBeli'); if (tb){ tb.classList.toggle('hide', !c.bisaReview); $('sBeli').textContent = c.ringkasan.perluBeli || 0; }
-    var su = $('segRevUsulan'); if (su) su.classList.toggle('hide', !(c.ringkasan.permintaanMenunggu > 0));
+    var tb = $('tileBeli'); if (tb){ tb.classList.toggle('hide', !md.PO); $('sBeli').textContent = c.ringkasan.perluBeli || 0; }
     gambarPoDatang(c.poDatang || []);
     gambarKirimHariIni(c.soHariIni || []);
     S.terakhirSegar = Date.now();
     $('segAdmUser').classList.toggle('hide', !c.bisaAdmin);
     $('segAdmRekon').classList.toggle('hide', !c.bisaAdmin);
-    var cm = $('cntMenunggu'), cd = $('cntDitandai'), cu = $('cntUsulan');
-    if (cm) cm.textContent = c.ringkasan.menungguReview || '';
-    if (cd) cd.textContent = c.ringkasan.ditandai || '';
-    if (cu) cu.textContent = c.ringkasan.permintaanMenunggu || '';
     muatKalender(S.cal.bulan);
-    var b = $('revBadge'), d = $('navDot');
-    var ada = (c.ringkasan.menungguReview + (c.ringkasan.permintaanMenunggu||0) + (c.ringkasan.kerusakanMenunggu||0)) > 0;
-    if (b){ b.textContent = c.ringkasan.menungguReview; b.classList.toggle('hide', !ada); }
-    if (d) d.classList.toggle('hide', !(ada && c.bisaReview));
     isiSelectPartner(); gambarSemuaBaris();
   }).catch(function(e){
     var msg = String(e.message || e);
@@ -1724,7 +1701,6 @@ function gambarKirimHariIni(rows){
 function tileHome(jenis){
   if (jenis === 'shift'){ tampil('shift'); S.shiftSemua = false; $('shiftTglFilter').value = hariIniStr(); segShift('list'); return; }
   if (jenis === 'beli'){ tampil('report'); segRep('prediksi'); return; }
-  if (jenis === 'menunggu' && S.ctx && S.ctx.bisaReview){ tampil('review'); segRev('MENUNGGU'); return; }
   S.cal.filter = jenis;
   if (S.cal.data && S.cal.data.hariIni){
     if (S.cal.data.hariIni.indexOf(S.cal.data.bulan) !== 0){ S.cal.hari = null; muatKalender(null); return; }
@@ -1738,7 +1714,6 @@ function cocokFilter(e){
   var f = S.cal.filter; if (!f) return true;
   if (f === 'masuk')    return e.jenis === 'MASUK' || e.jenis === 'RETUR_CUSTOMER';
   if (f === 'keluar')   return e.jenis === 'KELUAR' || e.jenis === 'RETUR_SUPPLIER';
-  if (f === 'menunggu') return e.status === 'MENUNGGU';
   if (f === 'jadi')     return e.jenis === 'SHIFT';
   if (f === 'bs')       return e.jenis === 'SHIFT';
   return true;
@@ -1750,7 +1725,6 @@ function segarkan(){
   muatKalender(S.cal.bulan);
   if (S.view === 'beli') muatRiwayat('rcv');
   if (S.view === 'shift') segShift(S.shiftTab);
-  if (S.view === 'review') muatReview();
   if (S.view === 'report') segRep(S.repTab);
   if (S.view === 'po') segPo(S.poTab);
   if (S.view === 'rusak') bukaRusak();
@@ -2367,7 +2341,7 @@ function segShift(tab){
   $('shiftList').classList.toggle('hide', tab!=='list');
   $('shiftForm').classList.toggle('hide', tab!=='new');
   $('shiftRep').classList.toggle('hide', tab!=='rep');
-  var boleh = !!(S.ctx && S.ctx.bisaReview);
+  var boleh = !!(S.ctx && S.ctx.modul && S.ctx.modul.PRODUKSI);
   $('segShiftNew').classList.toggle('hide', !boleh);
   if (tab==='list'){ if (!$('shiftTglFilter').value && !S.shiftSemua) $('shiftTglFilter').value = hariIniStr(); muatShift(); }
   if (tab==='new' && !S.shiftEdit) shiftFormBaru();
@@ -2397,7 +2371,7 @@ function muatShift(){
     S.shiftCache = rows;
     if (!rows.length){
       el.innerHTML = '<div class="empty"><span class="g">🏭</span>'+esc(tgl ? t('kosongShiftHari') : t('kosongShift'))+'</div>' +
-        (S.ctx && S.ctx.bisaReview ? '<button class="btn" onclick="segShift(\'new\')">'+esc(t('segShiftNew'))+'</button>' : '');
+        (S.ctx && S.ctx.modul && S.ctx.modul.PRODUKSI ? '<button class="btn" onclick="segShift(\'new\')">'+esc(t('segShiftNew'))+'</button>' : '');
       return;
     }
     var perTgl = {}, urut = [];
@@ -2612,7 +2586,7 @@ function batalShiftUI(){
   }).catch(function(e){ toast(e.message,'bad'); });
 }
 function muatKonfigShift(){
-  if (!S.ctx || !S.ctx.bisaReview) return;
+  if (!S.ctx || !S.ctx.modul || !S.ctx.modul.PRODUKSI) return;
   panggil('konfigurasiShift',[S.ident]).then(function(c){ S.shiftCfg = c; if (S.view==='shift' && S.shiftTab==='new' && S.shift){ gambarOpChips('blowing'); gambarOpChips('cutting'); } }).catch(function(){});
 }
 
@@ -2849,7 +2823,6 @@ function simpanEditUI(){
     toast(r.diajukan ? t('usulanDiajukan') : r.berubah ? t('tersimpanEdit') : t('tanpaPerubahan'), r.berubah ? 'ok' : r.diajukan ? 'warn' : '');
     tutupEdit();
     if (S.view==='beli') muatRiwayat('rcv');
-    if (S.view==='review') muatReview();
     muatKonteks(true);
   }).catch(function(e){ sibuk(b,false,t('simpanPerubahan')); toast(e.message,'bad'); });
 }
@@ -2862,7 +2835,6 @@ function batalkanEntriUI(){
     toast(r && r.diajukan ? t('usulanDiajukan') : t('dibatalkan'), r && r.diajukan ? 'warn' : '');
     tutupEdit();
     if (S.view==='beli') muatRiwayat('rcv');
-    if (S.view==='review') muatReview();
     muatKonteks(true);
   }).catch(function(e){ toast(e.message,'bad'); });
 }
@@ -3164,7 +3136,7 @@ function admUser(){
         return '<div class="userrow"><div class="av">'+esc(r.nama.slice(0,2).toUpperCase())+'</div>' +
           '<div class="nm"><b>'+esc(r.nama)+(!r.aktif?' <span class="chip off">'+esc(t('skuNonaktif'))+'</span>':'')+'</b>' +
           '<small>'+(r.lokasi?esc(r.lokasi)+' · ':'')+(r.punyaPin?'🔑 '+esc(t('userPunyaPin')):'<span style="color:var(--danger)">'+esc(t('userTanpaPin'))+'</span>')+(r.email?' · '+esc(r.email):'')+'</small></div>' +
-          pr + '<button class="btn sec xs" onclick="bukaUser('+i+')">✎</button></div>';
+          pr + (r.peran==='SUPERVISOR' && r.akses ? '<span class="chip">'+esc(r.akses.replace(/,/g,' · '))+'</span>' : '') + '<button class="btn sec xs" onclick="bukaUser('+i+')">✎</button></div>';
       }).join('') + '</div>';
     $('admBody').innerHTML = h;
   }).catch(function(e){ $('admBody').innerHTML = '<div class="banner bad">'+esc(e.message)+'</div>'; });
@@ -3177,8 +3149,15 @@ function bukaUser(i){
   $('userLokasi').value = r ? r.lokasi : ''; $('userEmail').value = r ? r.email : '';
   $('userPin').value = ''; $('userPinHint').textContent = r ? t('userPinHintUbah') : t('userPinHintBaru');
   $('userAktif').checked = r ? r.aktif : true;
+  var dipilih = r && r.akses ? r.akses.split(',') : [];
+  $('userAkses').innerHTML = ['PO','SO','PRODUKSI','GUDANG','MANAJEMEN'].map(function(m){
+    return '<label style="display:flex;align-items:center;gap:8px;padding:5px 0;font-size:13px"><input type="checkbox" class="userAksesCb" value="'+m+'"'+(dipilih.indexOf(m)>=0?' checked':'')+' style="width:auto"> <b>'+m+'</b> <span style="color:var(--muted)">'+esc(t('modul'+m))+'</span></label>';
+  }).join('');
+  gambarAksesWrap();
+  $('userPeran').onchange = gambarAksesWrap;
   $('userWrap').classList.remove('hide');
 }
+function gambarAksesWrap(){ $('userAksesWrap').classList.toggle('hide', $('userPeran').value !== 'SUPERVISOR'); }
 function tutupUser(){ $('userWrap').classList.add('hide'); S.userEdit = null; }
 function simpanUserUI(){
   var r = S.userEdit;
@@ -3188,142 +3167,13 @@ function simpanUserUI(){
   panggil('simpanPengguna',[{
     baris: r ? r.baris : undefined, nama: $('userNama').value, peran: $('userPeran').value,
     lokasi: $('userLokasi').value, email: $('userEmail').value,
-    pin: pin || undefined, aktif: $('userAktif').checked
+    pin: pin || undefined, aktif: $('userAktif').checked,
+    akses: Array.prototype.map.call(document.querySelectorAll('.userAksesCb:checked'), function(x){ return x.value; })
   }, S.ident]).then(function(){
     sibuk(b,false,t('simpanPerubahan')); toast(t('userTersimpan'),'ok'); tutupUser(); admUser();
   }).catch(function(e){ sibuk(b,false,t('simpanPerubahan')); toast(e.message,'bad'); });
 }
 
-/* =================================================================
-   ANTRIAN REVIEW
-   ================================================================= */
-function segRev(tab){
-  S.revTab = tab;
-  $('segRevMenunggu').classList.toggle('on', tab==='MENUNGGU');
-  $('segRevDitandai').classList.toggle('on', tab==='DITANDAI');
-  $('segRevUsulan').classList.toggle('on', tab==='USULAN');
-  $('segRevRusak').classList.toggle('on', tab==='RUSAK');
-  muatReview();
-}
-function labelUsulan(j){ return j==='EDIT' ? t('uEdit') : j==='BATAL' ? t('uBatal') : j; }
-function muatUsulan(){
-  $('revHint').textContent = t('hintUsulan');
-  $('revList').innerHTML = '<div class="load">…</div>';
-  panggil('daftarPermintaan',[S.ident,'MENUNGGU']).then(function(rows){
-    if (S.view !== 'review' || S.revTab !== 'USULAN') return;
-    if (!rows.length){ $('revList').innerHTML = '<div class="empty"><span class="g">📝</span>'+esc(t('kosongUsulan'))+'</div>'; return; }
-    $('revList').innerHTML = rows.map(function(p){
-      var e = p.entri || {}, u = p.usulan || {};
-      var diff = '';
-      if (p.jenis === 'EDIT'){
-        var rows2 = [];
-        if (u.qty !== undefined && u.qty !== e.qty) rows2.push([t('qty'), n2(e.qty)+' kg', n2(u.qty)+' kg']);
-        if (u.kode && u.kode !== e.kode) rows2.push([t('item'), e.item, p.usulanNamaItem || u.kode]);
-        if (u.tanggal && u.tanggal !== e.tanggal) rows2.push([t('lblTanggal'), e.tanggal, u.tanggal]);
-        if (u.partner !== undefined && u.partner !== e.partner) rows2.push(['Partner', e.partner, u.partner]);
-        if (u.noSuratJalan !== undefined && u.noSuratJalan !== e.noSuratJalan) rows2.push([t('thSJ'), e.noSuratJalan||'—', u.noSuratJalan||'—']);
-        if (u.catatan !== undefined && u.catatan !== e.catatan) rows2.push([t('lblCatatan'), e.catatan||'—', u.catatan||'—']);
-        diff = '<table class="tbl" style="margin-top:8px"><thead><tr><th></th><th>'+esc(t('sekarang'))+'</th><th>'+esc(t('diusulkan'))+'</th></tr></thead><tbody>' +
-          rows2.map(function(r){ return '<tr><td>'+esc(r[0])+'</td><td>'+esc(String(r[1]))+'</td><td><b>'+esc(String(r[2]))+'</b></td></tr>'; }).join('') + '</tbody></table>';
-      }
-      var judul = n2(e.qty)+' kg · '+(e.item||'');
-      return '<div class="rev" id="req-'+esc(p.id)+'"><div class="body">' +
-        '<div style="display:flex;align-items:flex-start;gap:10px"><div style="flex:1">' +
-          '<div style="font-weight:700;font-size:15px">'+esc(judul)+'</div>' +
-          '<div class="meta">'+esc(e.jenis||'')+(e.tanggal?' · '+esc(e.tanggal):'')+' · '+esc(p.pengaju)+' · '+esc(p.waktu)+'</div>' +
-        '</div><span class="pill '+(p.jenis==='BATAL'?'bad':'warn')+'">'+esc(labelUsulan(p.jenis))+'</span></div>' +
-        diff +
-        (p.alasan ? '<div class="kv"><span>'+esc(t('alasan'))+'</span><b>'+esc(p.alasan)+'</b></div>' : '') +
-        '<div class="btnrow" style="margin-top:10px">' +
-          '<button class="btn ghost" onclick="tinjauUsulan(\''+esc(p.id)+'\',\'tolak\')">✕ '+esc(t('tolak'))+'</button>' +
-          '<button class="btn ok" onclick="tinjauUsulan(\''+esc(p.id)+'\',\'setuju\')">✓ '+esc(t('setujui'))+'</button>' +
-        '</div></div></div>';
-    }).join('');
-  }).catch(function(e){ $('revList').innerHTML = '<div class="banner bad">'+esc(e.message)+'</div>'; });
-}
-function tinjauUsulan(id, aksi){
-  var catatan = '';
-  if (aksi === 'tolak'){ catatan = window.prompt(t('alasanTolak')); if (catatan === null) return; }
-  var card = $('req-'+id); if (card) card.style.opacity = .45;
-  panggil('tinjauPermintaan',[id, aksi, catatan || '', S.ident]).then(function(){
-    if (card) card.remove();
-    toast(aksi==='setuju' ? t('usulanDisetujui') : t('usulanDitolak'), aksi==='setuju' ? 'ok' : '');
-    muatKonteks(true);
-    if (!document.querySelectorAll('.rev').length) muatUsulan();
-  }).catch(function(e){ if (card) card.style.opacity = 1; toast(e.message,'bad'); });
-}
-function muatReview(){
-  if (S.revTab === 'USULAN') return muatUsulan();
-  if (S.revTab === 'RUSAK') return muatRusakReview();
-  var arsip = S.revTab === 'DITANDAI';
-  $('revHint').textContent = arsip ? t('hintDitandai') : t('hintMenunggu');
-  $('revList').innerHTML = '<div class="load">…</div>';
-  panggil('antrianReview',[S.ident, S.revTab]).then(function(rows){
-    if (S.view !== 'review' || (S.revTab !== 'MENUNGGU' && S.revTab !== 'DITANDAI') || arsip !== (S.revTab === 'DITANDAI')) return;
-    if (!rows.length){
-      $('revList').innerHTML = '<div class="empty"><span class="g">'+(arsip?'🗂️':'✅')+'</span>'+esc(arsip?t('kosongDitandai'):t('kosongRev'))+'</div>';
-      return;
-    }
-    $('revList').innerHTML = rows.map(function(r){
-      var src = (r.foto && r.foto.indexOf('data:') === 0) ? r.foto
-              : (r.fotoId ? 'https://drive.google.com/thumbnail?id='+r.fotoId+'&sz=w1000' : '');
-      var img = src ? '<img class="ph" src="'+esc(src)+'" onerror="this.style.display=\'none\'">' : '';
-      var ocr = '';
-      if (r.qtyOcr != null){
-        var cocok = Math.abs(r.selisih == null ? 0 : r.selisih) < 0.001;
-        ocr = '<div class="kv"><span>OCR</span><b>'+n2(r.qtyOcr)+' kg</b></div>' +
-              '<div class="kv"><span>'+esc(cocok ? t('ocrCocok') : t('ocrBeda'))+'</span>' +
-              '<b style="color:'+(cocok?'var(--ok)':'var(--danger)')+'">' +
-              (cocok ? '✓' : (r.selisih>0?'+':'')+n2(r.selisih)+' kg') + '</b></div>';
-      }
-      var tag = r.jenis === 'RETUR' ? '<span class="pill bad">RETUR</span>'
-              : r.jenis === 'RETUR_MASUK' ? '<span class="pill warn">RETUR CUST</span>'
-              : r.jenis === 'KELUAR' ? '<span class="pill warn">KELUAR</span>'
-              : r.sumber === 'PENERIMAAN' ? '<span class="pill ok">MASUK</span>'
-              : '<span class="pill n">'+esc(r.label)+'</span>';
-      return '<div class="rev" id="rev-'+esc(r.id)+'">' + img +
-        '<div class="body">' +
-          '<div style="display:flex;align-items:flex-start;gap:10px">' +
-            '<div style="flex:1">' +
-              '<div class="qty">'+n2(r.qty)+' <span style="font-size:14px;font-weight:600;color:var(--muted)">kg</span></div>' +
-              '<div style="font-weight:600;font-size:13.5px;margin-top:2px">'+esc(r.item)+'</div>' +
-              '<div class="meta">'+esc(r.label)+' · '+esc(r.waktu)+' · '+esc(r.pencatat)+'</div>' +
-            '</div>' + tag +
-          '</div>' + ocr +
-          (r.noSuratJalan ? '<div class="kv"><span>'+esc(t('thSJ'))+'</span><b>'+esc(r.noSuratJalan)+'</b></div>' : '') +
-          (r.noPo ? '<div class="kv"><span>PO</span><b>'+esc(r.noPo)+'</b></div>' : (r.tanpaPo ? '<div class="kv"><span>PO</span><b style="color:var(--warn)">'+esc(t('tanpaPo'))+'</b></div>' : '')) +
-          (r.spesifikasi ? '<div class="kv"><span>'+esc(t('spesifikasi'))+'</span><b style="text-align:right;max-width:65%">'+esc(r.spesifikasi)+'</b></div>' : '') +
-          (r.catatanQc ? '<div class="kv"><span>QC</span><b style="text-align:right;max-width:65%">'+esc(r.catatanQc)+'</b></div>' : '') +
-          (r.catatan ? '<div class="kv"><span>'+esc(t('lblCatatan'))+'</span><b>'+esc(r.catatan)+'</b></div>' : '') +
-          (r.catatanTinjau ? '<div class="kv"><span>'+esc(t('catatanTinjau'))+'</span><b>'+esc(r.catatanTinjau)+'</b></div>' : '') +
-          '<div style="margin-top:9px;display:flex;justify-content:flex-end"><button class="btn sec xs" onclick="bukaEdit(\''+esc(r.id)+'\')">✎ '+esc(t('ubah'))+'</button></div>' +
-          '<div class="btnrow" style="margin-top:8px">' +
-            '<button class="btn ghost" onclick="tinjau(\''+esc(r.id)+'\',\'batal\')">✕ '+esc(t('batal'))+'</button>' +
-            (arsip ? '' : '<button class="btn warn" onclick="tinjau(\''+esc(r.id)+'\',\'tandai\')">⚑ '+esc(t('tandai'))+'</button>') +
-            '<button class="btn ok" onclick="tinjau(\''+esc(r.id)+'\',\'setuju\')">✓ '+esc(t('setuju'))+'</button>' +
-          '</div>' +
-        '</div></div>';
-    }).join('');
-  }).catch(function(e){ $('revList').innerHTML = '<div class="banner bad">'+esc(e.message)+'</div>'; });
-}
-
-function tinjau(id, aksi){
-  var catatan = '';
-  if (aksi === 'tandai'){ catatan = window.prompt(t('alasanTandai')); if (catatan === null) return; }
-  if (aksi === 'batal'){  catatan = window.prompt(t('alasanBatal'));  if (catatan === null) return; }
-  var card = $('rev-'+id);
-  if (card) card.style.opacity = .45;
-  panggil('tinjauTransfer', [id, aksi, catatan || '', S.ident]).then(function(){
-    if (card) card.remove();
-    toast(aksi==='setuju' ? t('disetujui') : aksi==='batal' ? t('dibatalkan') : t('ditandai'),
-          aksi==='setuju' ? 'ok' : '');
-    muatKonteks(true);
-    if (!document.querySelectorAll('.rev').length) muatReview();
-  }).catch(function(e){
-    if (card) card.style.opacity = 1;
-    toast(e.message,'bad');
-  });
-}
 
 /* =================================================================
    LAPORAN
@@ -3872,46 +3722,16 @@ function muatRusakRiwayat(){
     el.innerHTML = rows.map(function(r){
       return '<div class="hist"><span class="hq">'+n2(r.qty)+' kg</span>' +
         '<span class="hx"><b>'+esc(r.item)+'</b><small>'+esc(r.tanggal)+' · '+esc(r.penyebab)+(r.catatanTinjau?' · '+esc(r.catatanTinjau):'')+'</small></span>' +
-        '<span class="hb">'+pillStatus(r.status)+'</span></div>';
+        '<span class="hb">'+pillStatus(r.status)+(r.status==='DISETUJUI' && S.ctx && S.ctx.bisaReview && S.ctx.modul && S.ctx.modul.GUDANG ? ' <button class="btn ghost xs" onclick="tinjauRusak(\''+esc(r.id)+'\')">✕</button>' : '')+'</span></div>';
     }).join('');
   }).catch(function(e){ el.innerHTML = '<div class="banner bad">'+esc(e.message)+'</div>'; });
 }
-function muatRusakReview(){
-  $('revHint').textContent = t('hintRusak');
-  $('revList').innerHTML = '<div class="load">…</div>';
-  panggil('daftarKerusakan',[S.ident,'MENUNGGU',90]).then(function(rows){
-    if (S.view !== 'review' || S.revTab !== 'RUSAK') return;
-    if (!rows.length){ $('revList').innerHTML = '<div class="empty"><span class="g">🧯</span>'+esc(t('kosongRusak'))+'</div>'; return; }
-    $('revList').innerHTML = rows.map(function(r){
-      var src = r.foto && r.foto.indexOf('data:')===0 ? r.foto : (r.fotoId ? 'https://drive.google.com/thumbnail?id='+r.fotoId+'&sz=w1000' : '');
-      var st = (S.ctx && S.ctx.stok && S.ctx.stok[r.kode]) || { gbj:0 };
-      var ada = st.gbj;
-      return '<div class="rev" id="dmg-'+esc(r.id)+'">' + (src ? '<img class="ph" src="'+esc(src)+'" onerror="this.style.display=\'none\'">' : '') +
-        '<div class="body"><div style="display:flex;align-items:flex-start;gap:10px"><div style="flex:1">' +
-          '<div class="qty">'+n2(r.qty)+' <span style="font-size:14px;font-weight:600;color:var(--muted)">kg</span></div>' +
-          '<div style="font-weight:600;font-size:13.5px;margin-top:2px">'+esc(r.item)+'</div>' +
-          '<div class="meta">'+esc(r.tanggal)+' · '+esc(r.waktu)+' · '+esc(r.pencatat)+'</div></div>' +
-          '<span class="pill bad">'+esc(t('segRusak')).toUpperCase()+'</span></div>' +
-        '<div class="kv"><span>'+esc(t('lblPenyebab'))+'</span><b>'+esc(r.penyebab)+'</b></div>' +
-        '<div class="kv"><span>'+esc(t('tersedia'))+'</span><b style="color:'+(r.qty > ada+0.0001 ? 'var(--danger)' : 'inherit')+'">'+n2(ada)+' kg</b></div>' +
-        (r.catatan ? '<div class="kv"><span>'+esc(t('lblCatatan'))+'</span><b>'+esc(r.catatan)+'</b></div>' : '') +
-        '<div class="btnrow" style="margin-top:10px">' +
-          '<button class="btn ghost" onclick="tinjauRusak(\''+esc(r.id)+'\',\'batal\')">✕ '+esc(t('batal'))+'</button>' +
-          '<button class="btn ok" onclick="tinjauRusak(\''+esc(r.id)+'\',\'setuju\')">✓ '+esc(t('setujui'))+'</button></div>' +
-      '</div></div>';
-    }).join('');
-  }).catch(function(e){ $('revList').innerHTML = '<div class="banner bad">'+esc(e.message)+'</div>'; });
-}
 function tinjauRusak(id, aksi){
-  var catatan = '';
-  if (aksi === 'batal'){ catatan = window.prompt(t('alasanBatal')); if (catatan === null) return; }
-  var card = $('dmg-'+id); if (card) card.style.opacity = .45;
-  panggil('tinjauKerusakan',[id, aksi, catatan || '', S.ident]).then(function(r){
-    if (card) card.remove();
-    toast(aksi==='setuju' ? t('rusakDisetujui')+(r.nilaiKerugian ? ' · '+t('nilaiKerugian')+' '+rp(r.nilaiKerugian) : '') : t('rusakDibatalkan'), aksi==='setuju' ? 'ok' : '');
-    muatKonteks(true);
-    if (!document.querySelectorAll('.rev').length) muatRusakReview();
-  }).catch(function(e){ if (card) card.style.opacity = 1; toast(e.message,'bad'); });
+  var catatan = window.prompt(t('alasanBatal')); if (catatan === null) return;
+  panggil('tinjauKerusakan',[id, 'batal', catatan || '', S.ident]).then(function(){
+    toast(t('rusakDibatalkan'), '');
+    muatKonteks(true); muatRusakRiwayat();
+  }).catch(function(e){ toast(e.message,'bad'); });
 }
 
 /* =================================================================
@@ -4012,7 +3832,7 @@ function kartuSo(no, baris){
 function barisSoHtml(b, lihat, tutup){
   var pct = b.qty > 0 ? Math.min(100, b.dikirim / b.qty * 100) : 0;
   var aktif = b.status!=='SELESAI' && b.status!=='DIBATALKAN';
-  var bisaUbah = !tutup && aktif && S.ctx && S.ctx.bisaPo;
+  var bisaUbah = !tutup && aktif && S.ctx && S.ctx.bisaSo;
   var st = (S.ctx && S.ctx.stok && S.ctx.stok[b.kode]) || null;
   var kurang = st && aktif && b.sisa > st.gbj + 0.0001;
   return '<div class="listrow" id="sor-'+esc(b.id)+'">' +

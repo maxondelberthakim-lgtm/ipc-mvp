@@ -49,7 +49,6 @@
       <button class="stat tap" onclick="tileHome('keluar')"><div class="n" id="sKeluar">–</div><div class="l" data-i18n="statKeluar">kg keluar hari ini</div></button>
       <button class="stat tap" onclick="tileHome('jadi')"><div class="n" id="sJadi">–</div><div class="l" data-i18n="statJadi">kg polybag jadi hari ini</div></button>
       <button class="stat alert tap" onclick="tileHome('bs')"><div class="n" id="sBs">–</div><div class="l" data-i18n="statBs">kg BS hari ini</div></button>
-      <button class="stat warn tap" onclick="tileHome('menunggu')"><div class="n" id="sQueue">–</div><div class="l" data-i18n="statQueue">Menunggu review</div></button>
       <button class="stat tap" onclick="tileHome('shift')"><div class="n" id="sShift">–</div><div class="l" data-i18n="statShift">Laporan shift hari ini</div></button>
       <button class="stat alert tap hide" id="tileBeli" onclick="tileHome('beli')"><div class="n" id="sBeli">–</div><div class="l" data-i18n="statBeli">Bahan perlu dibeli</div></button>
     </div>
@@ -81,14 +80,14 @@
       <div id="calDay"></div>
     </div>
 
-    <h3 class="sec" data-i18n="secBeli">Barang dari supplier</h3>
+    <h3 class="sec" id="secBeliH" data-i18n="secBeli">Barang dari supplier</h3>
     <div class="actions">
-      <button class="action" onclick="bukaMutasi('BELI_MASUK')">
+      <button class="action mod-gudang" onclick="bukaMutasi('BELI_MASUK')">
         <div class="ico d">⓪</div>
         <div class="tx"><b data-i18n="a0t">Penerimaan barang</b><span data-i18n="a0s">Supplier → GBJ · dari PO · foto surat jalan · QC</span></div>
         <span class="badge hide" id="poBadge">0</span>
       </button>
-      <button class="action" onclick="bukaMutasi('BELI_RETUR')">
+      <button class="action mod-gudang" onclick="bukaMutasi('BELI_RETUR')">
         <div class="ico e">↩</div>
         <div class="tx"><b data-i18n="a5t">Retur ke supplier</b><span data-i18n="a5s">Hanya dari barang yang sudah diterima</span></div>
       </button>
@@ -96,19 +95,19 @@
         <div class="ico d">📋</div>
         <div class="tx"><b data-i18n="a8t">Pesanan pembelian (PO)</b><span data-i18n="a8s">Apa yang akan datang · qty · harga · spesifikasi · invoice</span></div>
       </button>
-      <button class="action" id="tileRusak" onclick="tampil('rusak')">
+      <button class="action mod-gudang" id="tileRusak" onclick="tampil('rusak')">
         <div class="ico e">⚠️</div>
-        <div class="tx"><b data-i18n="a9t">Barang rusak</b><span data-i18n="a9s">Lapor kerusakan · stok berkurang setelah disetujui manager</span></div>
+        <div class="tx"><b data-i18n="a9t">Barang rusak</b><span data-i18n="a9s">Lapor kerusakan · stok langsung berkurang (tanpa persetujuan)</span></div>
       </button>
     </div>
 
-    <h3 class="sec" data-i18n="secJual">Barang ke customer</h3>
+    <h3 class="sec" id="secJualH" data-i18n="secJual">Barang ke customer</h3>
     <div class="actions">
-      <button class="action" onclick="bukaMutasi('JUAL_KELUAR')">
+      <button class="action mod-gudang" onclick="bukaMutasi('JUAL_KELUAR')">
         <div class="ico f">④</div>
         <div class="tx"><b data-i18n="a6t">Barang keluar (terjual)</b><span data-i18n="a6s">GBJ → customer · mengurangi stok</span></div>
       </button>
-      <button class="action" onclick="bukaMutasi('JUAL_RETUR')">
+      <button class="action mod-gudang" onclick="bukaMutasi('JUAL_RETUR')">
         <div class="ico e">↩</div>
         <div class="tx"><b data-i18n="a7t">Retur dari customer</b><span data-i18n="a7s">Customer → GBJ · menambah stok</span></div>
       </button>
@@ -126,22 +125,11 @@
         <div class="tx"><b data-i18n="a2t">Laporan shift produksi</b><span data-i18n="a2s">Per shift per mesin: operator · biji plastik diambil · roll / polybag jadi per kualitas · BS</span></div>
         <span class="badge hide" id="shiftBadge">0</span>
       </button>
-      <button class="action" onclick="tampil('daur')">
+      <button class="action mod-gudang" onclick="tampil('daur')">
         <div class="ico c">♻️</div>
         <div class="tx"><b data-i18n="a11t">Daur ulang scrap</b><span data-i18n="a11s">Scrap → mesin chassen (pabrik lain) → biji plastik · susut &amp; jasa</span></div>
         <span class="badge hide" id="daurBadge">0</span>
       </button>
-    </div>
-
-    <div id="homeRev" class="hide">
-      <h3 class="sec" data-i18n="secSup">Supervisor</h3>
-      <div class="actions">
-        <button class="action" onclick="tampil('review')">
-          <div class="ico c">✓</div>
-          <div class="tx"><b data-i18n="a4t">Antrian review</b><span data-i18n="a4s">Foto di sebelah angka · setuju / tandai</span></div>
-          <span class="badge hide" id="revBadge">0</span>
-        </button>
-      </div>
     </div>
 
     <div id="homeIdent" class="hide" style="margin-top:16px">
@@ -493,7 +481,7 @@
   <section id="v-rusak" class="hide">
     <div class="card">
       <h2 data-i18n="rusakT">Lapor barang rusak</h2>
-      <div class="sub" data-i18n="rusakS">Dicatat oleh staf gudang. Stok baru berkurang setelah manager menyetujui.</div>
+      <div class="sub" data-i18n="rusakS">Stok langsung berkurang saat laporan disimpan. Manager gudang bisa membatalkan laporan dalam 30 hari.</div>
       <div class="field">
         <label data-i18n="lblTanggal">Tanggal transaksi</label>
         <input type="date" id="rusakTanggal">
@@ -522,18 +510,6 @@
       <h2 data-i18n="rusakRiwayatT">Laporan saya</h2>
       <div id="rusakRiwayat"><div class="load">…</div></div>
     </div>
-  </section>
-
-  <!-- ============ REVIEW ============ -->
-  <section id="v-review" class="hide">
-    <div class="seg">
-      <button id="segRevMenunggu" class="on" onclick="segRev('MENUNGGU')"><span data-i18n="segMenunggu">Menunggu</span> <span class="cnt" id="cntMenunggu"></span></button>
-      <button id="segRevDitandai" onclick="segRev('DITANDAI')"><span data-i18n="segDitandai">Ditandai</span> <span class="cnt" id="cntDitandai"></span></button>
-      <button id="segRevUsulan" onclick="segRev('USULAN')"><span data-i18n="segUsulan">Usulan</span> <span class="cnt" id="cntUsulan"></span></button>
-      <button id="segRevRusak" onclick="segRev('RUSAK')"><span data-i18n="segRusak">Rusak</span> <span class="cnt" id="cntRusak"></span></button>
-    </div>
-    <div class="banner n" id="revHint"></div>
-    <div id="revList"><div class="load">…</div></div>
   </section>
 
   <!-- ============ LAPORAN ============ -->
@@ -606,9 +582,14 @@
       <div class="field"><label data-i18n="userPeran">Peran</label>
         <select id="userPeran">
           <option value="STAF">STAF — input pergerakan</option>
-          <option value="SUPERVISOR">SUPERVISOR — review, HPP, opname, SKU</option>
-          <option value="ADMIN">ADMIN — semua + kelola pengguna</option>
+          <option value="SUPERVISOR">SUPERVISOR — manager: lihat laporan & harga, modul sesuai akses</option>
+          <option value="ADMIN">ADMIN — semua + kelola pengguna + rekonsiliasi</option>
         </select></div>
+      <div class="field" id="userAksesWrap">
+        <label data-i18n="userAkses">Akses modul (kosong = semua modul)</label>
+        <div id="userAkses"></div>
+        <div class="hint" data-i18n="userAksesHint">Yang dicentang saja yang bisa diisi/diubah. Laporan tetap bisa dilihat semua manager.</div>
+      </div>
       <div class="field"><label data-i18n="userLokasi">Lokasi (opsional)</label><input id="userLokasi" placeholder="Gudang / Produksi / HQ"></div>
       <div class="field"><label data-i18n="userEmail">Email Google (opsional)</label><input id="userEmail" placeholder="hanya kalau pakai Google Workspace"></div>
       <div class="field"><label data-i18n="userPin">PIN (4–8 angka)</label><input id="userPin" type="tel" inputmode="numeric" placeholder=""><div class="hint" id="userPinHint"></div></div>
@@ -622,7 +603,6 @@
 <nav>
   <button id="nav-home" class="on" onclick="tampil('home')"><span class="g">🏠</span><span data-i18n="navHome">Beranda</span></button>
   <button id="nav-shift" onclick="tampil('shift')"><span class="g">🏭</span><span data-i18n="navJob">Produksi</span></button>
-  <button id="nav-review" class="hide" onclick="tampil('review')"><span class="g">✅</span><span data-i18n="navReview">Review</span><span class="dot hide" id="navDot"></span></button>
   <button id="nav-report" onclick="tampil('report')"><span class="g">📊</span><span data-i18n="navReport">Laporan</span></button>
   <button id="nav-admin" class="hide" onclick="tampil('admin')"><span class="g">🛠️</span><span data-i18n="navAdmin">Admin</span></button>
 </nav>

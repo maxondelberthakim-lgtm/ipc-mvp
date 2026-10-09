@@ -23,7 +23,7 @@ function nomorSoBaru_() {
 /** p = { customer, tanggal, tanggalKirim, topHari, baris:[{kode, qty, harga}], catatan } — v10: TOP wajib diisi (0 = tunai). */
 function simpanSo(p, ident) {
   var u = penggunaSaatIni_(ident);
-  if (!bolehPo_(u)) throw new Error('Hanya Manager / Admin yang bisa membuat sales order.');
+  if (!bolehSo_(u)) throw new Error('Hanya akun dengan akses Sales order yang bisa membuat SO.');
   if (!p || !String(p.customer || '').trim()) throw new Error('Customer belum dipilih.');
   if (!p.baris || !p.baris.length) throw new Error('Item SO belum diisi.');
   var kirim = String(p.tanggalKirim || '').trim();
@@ -59,7 +59,7 @@ function simpanSo(p, ident) {
 
 function ubahSo(id, perubahan, ident) {
   var u = penggunaSaatIni_(ident);
-  if (!bolehPo_(u)) throw new Error('Hanya Manager / Admin yang bisa mengubah SO.');
+  if (!bolehSo_(u)) throw new Error('Hanya akun dengan akses Sales order yang bisa mengubah SO.');
   perubahan = perubahan || {};
   var lock = LockService.getScriptLock();
   lock.waitLock(20000);
@@ -95,7 +95,7 @@ function ubahSo(id, perubahan, ident) {
 
 function batalkanSo(id, alasan, ident) {
   var u = penggunaSaatIni_(ident);
-  if (!bolehPo_(u)) throw new Error('Hanya Manager / Admin yang bisa membatalkan SO.');
+  if (!bolehSo_(u)) throw new Error('Hanya akun dengan akses Sales order yang bisa membatalkan SO.');
   var lock = LockService.getScriptLock();
   lock.waitLock(20000);
   lupakanMemo_();
@@ -385,7 +385,7 @@ function pasangBackupHarian() {
 /** Info untuk menu Admin: apakah pemicu terpasang, salinan terakhir. */
 function statusBackup(ident) {
   var u = penggunaSaatIni_(ident);
-  if (!bolehReview_(u)) throw new Error('Hanya Supervisor / Admin.');
+  if (!bolehReview_(u) || !bolehModul_(u, MODUL.MANAJEMEN)) throw new Error('Hanya akun dengan akses Manajemen (Manager / Admin).');
   var terpasang = false;
   try { terpasang = ScriptApp.getProjectTriggers().some(function (t) { return t.getHandlerFunction() === 'backupHarian'; }); } catch (e) {}
   var terakhir = '', jumlah = 0;

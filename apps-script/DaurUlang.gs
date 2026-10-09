@@ -43,6 +43,7 @@ function detailDaur_(id, jenis, cache) {
  */
 function mulaiDaurUlang(p) {
   var u = penggunaSaatIni_(p && p.ident);
+  wajibModul_(u, MODUL.GUDANG);
   if (!p || !String(p.vendor || '').trim()) throw new Error('Tempat chassen (vendor) belum dipilih.');
   if (!p.scrap || !p.scrap.length) throw new Error('Scrap yang dikirim belum diisi.');
   var peta = petaItem_();
@@ -80,6 +81,7 @@ function mulaiDaurUlang(p) {
  */
 function selesaikanDaurUlang(p) {
   var u = penggunaSaatIni_(p && p.ident);
+  wajibModul_(u, MODUL.GUDANG);
   if (!p || !p.id) throw new Error('ID batch kosong.');
   if (!p.hasil || !p.hasil.length) throw new Error('Biji plastik yang diterima belum diisi.');
   var peta = petaItem_();
@@ -157,8 +159,8 @@ function daftarDaurUlang(ident, status, hari) {
     return r.Status === status && new Date(r.Waktu_Kirim) >= batas;
   }).map(function (r) {
     var o = ringkasDaur_(r, lihat, det);
-    o.bolehUbah = bolehReview_(u);
-    o.bolehBatal = (bolehReview_(u) || (r.Status === STATUS_DAUR.BERJALAN && r.Dicatat_Oleh === penandaPencatat_(u))) && r.Status !== STATUS_DAUR.DIBATALKAN;
+    o.bolehUbah = bolehReview_(u) && bolehModul_(u, MODUL.GUDANG);
+    o.bolehBatal = bolehModul_(u, MODUL.GUDANG) && (bolehReview_(u) || (r.Status === STATUS_DAUR.BERJALAN && r.Dicatat_Oleh === penandaPencatat_(u))) && r.Status !== STATUS_DAUR.DIBATALKAN;
     o.batas = standarChassen_().normal + standarChassen_().toleransi;
     return o;
   }).reverse().slice(0, 100);
@@ -168,8 +170,8 @@ function ambilDaurUlang(id, ident) {
   var u = penggunaSaatIni_(ident);
   var r = cariDaur_(id);
   var o = ringkasDaur_(r, bolehLihatHpp_(u));
-  o.bolehUbah = bolehReview_(u);
-  o.bolehBatal = (bolehReview_(u) || (r.Status === STATUS_DAUR.BERJALAN && r.Dicatat_Oleh === penandaPencatat_(u))) && r.Status !== STATUS_DAUR.DIBATALKAN;
+  o.bolehUbah = bolehReview_(u) && bolehModul_(u, MODUL.GUDANG);
+  o.bolehBatal = bolehModul_(u, MODUL.GUDANG) && (bolehReview_(u) || (r.Status === STATUS_DAUR.BERJALAN && r.Dicatat_Oleh === penandaPencatat_(u))) && r.Status !== STATUS_DAUR.DIBATALKAN;
   o.batas = standarChassen_().normal + standarChassen_().toleransi;
   return o;
 }
@@ -177,7 +179,7 @@ function ambilDaurUlang(id, ident) {
 /** Manager: perubahan = { biayaJasa, vendor, noSuratJalan, catatan }. Biaya jasa diubah → HPP dihitung ulang. */
 function ubahDaurUlang(id, perubahan, ident) {
   var u = penggunaSaatIni_(ident);
-  if (!bolehReview_(u)) throw new Error('Hanya Manager / Admin yang bisa mengubah batch daur ulang.');
+  if (!bolehReview_(u) || !bolehModul_(u, MODUL.GUDANG)) throw new Error('Hanya Manager / Admin dengan akses gudang yang bisa mengubah batch daur ulang.');
   perubahan = perubahan || {};
   var lock = LockService.getScriptLock();
   lock.waitLock(20000);
@@ -213,6 +215,7 @@ function ubahDaurUlang(id, perubahan, ident) {
 /** Batal: manager kapan saja; staf hanya batch sendiri yang masih BERJALAN. Stok scrap kembali (batch tidak dihitung). */
 function batalkanDaurUlang(id, alasan, ident) {
   var u = penggunaSaatIni_(ident);
+  wajibModul_(u, MODUL.GUDANG);
   var lock = LockService.getScriptLock();
   lock.waitLock(20000);
   lupakanMemo_();

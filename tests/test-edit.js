@@ -24,19 +24,19 @@ tolak('jenis salah ditolak', ()=>c2.riwayatInput('XXX',14,STAF), /tidak dikenal/
 
 console.log('\n— Izin edit (v8) —');
 const idM = rM[0].id;
-ok('pencatat sendiri boleh edit langsung selama MENUNGGU', rM[0].bolehEdit===true && rM[0].kunci==='' && rM[0].perluPersetujuan===false);
+ok('pencatat sendiri boleh edit langsung (< 24 jam)', rM[0].bolehEdit===true && rM[0].kunci==='' && rM[0].perluPersetujuan===false);
 const rLain = c2.riwayatInput('BELI_MASUK',14,STAF2)[0];
 ok('staf lain TIDAK boleh edit (kunci BUKAN_MILIK)', rLain.bolehEdit===false && rLain.kunci==='BUKAN_MILIK');
 tolak('staf lain ditolak server', ()=>c2.simpanEditEntri(idM,{qty:510},STAF2), /catat sendiri/);
 ok('supervisor boleh edit', c2.riwayatInput('BELI_MASUK',14,SPV)[0].bolehEdit===true);
 
-console.log('\n— Staf: edit LANGSUNG selama MENUNGGU —');
+console.log('\n— Staf: edit LANGSUNG dalam 24 jam —');
 const e1 = c2.simpanEditEntri(idM,{qty:510, noSuratJalan:'SJ/1-REV', catatan:'timbang ulang'},STAF);
 ok('staf: langsung diterapkan', e1.ok && e1.berubah===true && !e1.diajukan, e1);
 let rowM = c2.baca_(c2.SHEET.PENERIMAAN).find(r=>r.ID===idM);
 ok('qty jadi 510, SJ berubah', rowM.Qty_Kg===510 && rowM.No_Surat_Jalan==='SJ/1-REV');
 ok('Log_Edit menandai staf', /Staff Gudang: staf.*qty: 500 → 510 kg/.test(rowM.Log_Edit), rowM.Log_Edit);
-ok('status tetap MENUNGGU', rowM.Status==='MENUNGGU');
+ok('status tetap DISETUJUI (v11: tanpa review)', rowM.Status==='DISETUJUI');
 ok('tidak ada usulan dibuat', c2.daftarPermintaan(SPV).length===0 && c2.getKonteks(SPV).ringkasan.permintaanMenunggu===0);
 ok('edit tanpa perubahan -> berubah:false', c2.simpanEditEntri(idM,{qty:510},STAF).berubah===false);
 tolak('qty 0 ditolak', ()=>c2.simpanEditEntri(idM,{qty:0},STAF), /lebih dari 0/);
@@ -46,12 +46,13 @@ ok('supervisor: langsung diterapkan', e2.berubah===true && !e2.diajukan);
 ok('ganti item tercatat', /item: Biji Plastik KW → Biji Plastik Super/.test(c2.baca_(c2.SHEET.PENERIMAAN).find(r=>r.ID===idM).Log_Edit));
 ok('stok ikut angka baru', c2.laporanStok(SPV).daftar.find(s=>s.kode==='RM-BP-SUP').beli===510);
 
-console.log('\n— Setelah disetujui: staf hanya LIHAT, supervisor masih bisa ubah —');
-c2.tinjauTransfer(idM,'setuju','',SPV);
+console.log('\n— v11: setelah 24 jam staf hanya LIHAT, supervisor masih bisa ubah —');
+tolak('setuju sudah tidak ada', ()=>c2.tinjauTransfer(idM,'setuju','',SPV), /Tidak ada proses review/);
+c2.ubahBaris_(c2.SHEET.PENERIMAAN, c2.baca_(c2.SHEET.PENERIMAAN).find(r=>r.ID===idM)._baris, { Waktu: new Date(Date.now()-25*36e5) });
 const rS = c2.riwayatInput('BELI_MASUK',14,STAF)[0];
-ok('staf: bolehEdit=false, kunci SUDAH_DITINJAU', rS.bolehEdit===false && rS.bolehBatal===false && rS.kunci==='SUDAH_DITINJAU', rS.kunci);
-tolak('staf ditolak server setelah disetujui', ()=>c2.simpanEditEntri(idM,{qty:520},STAF), /sudah ditinjau/);
-tolak('staf tidak bisa batalkan setelah disetujui', ()=>c2.batalkanEntriSendiri(idM,'x',STAF), /sudah ditinjau/);
+ok('staf: bolehEdit=false, kunci LEWAT_24JAM', rS.bolehEdit===false && rS.bolehBatal===false && rS.kunci==='LEWAT_24JAM', rS.kunci);
+tolak('staf ditolak server setelah 24 jam', ()=>c2.simpanEditEntri(idM,{qty:520},STAF), /24 jam/);
+tolak('staf tidak bisa batalkan setelah 24 jam', ()=>c2.batalkanEntriSendiri(idM,'x',STAF), /24 jam/);
 ok('ambilEntri untuk staf tetap bisa (lihat detail)', c2.ambilEntri(idM,STAF).qty===510);
 ok('supervisor masih bisa langsung', c2.simpanEditEntri(idM,{qty:520},SPV).berubah===true);
 ok('ambilEntri kembalikan sheet', c2.ambilEntri(idM,SPV).sheet==='Penerimaan');
@@ -67,7 +68,7 @@ c2.setSetting_('MAKS_EDIT_HARI','30');
 c2.ubahBaris_(c2.SHEET.PENERIMAAN, rowLama._baris, { Tanggal: c2.tglStr_(new Date()) });
 ok('maksEditHari dikirim ke konteks', c2.getKonteks(STAF).maksEditHari===30);
 
-console.log('\n— Batal: staf batalkan entri sendiri yang MENUNGGU langsung —');
+console.log('\n— Batal: staf batalkan entri sendiri (< 24 jam) langsung —');
 const idOut = c2.riwayatInput('JUAL_KELUAR',14,STAF)[0].id;
 tolak('staf lain tidak bisa batalkan', ()=>c2.batalkanEntriSendiri(idOut,'x',STAF2), /catat sendiri/);
 ok('masih dihitung di stok sebelum batal', c2.laporanStok(SPV).daftar.find(s=>s.kode==='RM-BP-KW').jual===50);

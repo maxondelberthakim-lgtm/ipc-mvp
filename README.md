@@ -1,4 +1,4 @@
-# IPC — Inventory & Production Control (v10.1)
+# IPC — Inventory & Production Control (v11)
 
 Mobile web app for a small polybag factory: every kilogram that moves between
 **supplier → warehouse (GBJ) → blowing → cutting → warehouse → customer** is logged with a
@@ -46,9 +46,11 @@ There are no per-job records and no approvals on the production floor — the sy
   the opening and closing of the month. Closing the month stores the snapshot in `Tutup_Bulan`.
 - **Sales orders** require customer, ship date, **TOP (payment terms, days)**, items and prices; purchase orders carry TOP
   too. Due date = ship/arrival date + TOP. Entered by the Sales Manager (any manager account can).
-- **Roles**: STAF (warehouse input, sees no prices) · SUPERVISOR (all managers: production, sales, warehouse — see
-  everything incl. prices/COGS) · ADMIN (plus users, reopen months). Default accounts: Admin, Direktur, Manager,
-  Manager Produksi, Sales Manager, Staff Gudang — **change the PINs**.
+- **Roles & module access (v11)**: STAF (warehouse input, sees no prices) · SUPERVISOR (managers: see every report incl.
+  prices/COGS; *write* access limited per account to modules `PO`, `SO`, `PRODUKSI`, `GUDANG`, `MANAJEMEN` — empty = all)
+  · ADMIN (everything + users + reopen months + reconciliation). Default accounts: Admin, Direktur, Manager (all modules),
+  **Yansen** (PO & invoices), **Deny** (sales orders), **Bastari** (shift reports & production count), Staff Gudang —
+  **change the PINs**. Module access is enforced on the server (`wajibModul_`) and mirrored in the UI.
 
 ## Everything else
 
@@ -64,8 +66,9 @@ There are no per-job records and no approvals on the production floor — the sy
 | ④ | Goods out, sold (GBJ → customer), picked from an SO | required | required | GBJ − |
 | ↩ | Return from customer | required | — | GBJ + |
 
-- **Approve after, not before.** Warehouse movements post immediately and land in a review queue (photo next to the
-  typed number). Flag archives an entry to revise later (still counted); Cancel voids it.
+- **No review step (v11).** Receipts, shipments, returns and damage reports are final the moment they are saved (stock
+  moves immediately). Staff may edit or cancel their own entry within 24 hours; a manager with warehouse access may edit
+  or cancel anything until `MAKS_EDIT_HARI` or the month is closed. Every change is logged.
 - **Stock ledger per item** — every line signed (bought, returned, sold, taken by blowing, made, roll used, BS sent,
   pellets back, damage, count adjustment), ending in the balance.
 - **Activity calendar** on the home screen — shift reports, receipts, shipments, recycling per day.
@@ -117,7 +120,9 @@ cd cloudflare && npx wrangler dev --port 8787 --local   # local Worker for the P
 
 ## Status
 
-v10.1 — two 12-hour shifts, one report per shift with separate blowing / cutting operators, roll used typed by the
-cutting operator, blind monthly production count + admin-only reconciliation. v10 — shift reports replace jobs, average
+v11 — access revamp: per-account module access (Yansen PO · Deny SO · Bastari production), review/approval process
+removed (entries final on save, 24-hour self-edit window for staff). v10.1 — two 12-hour shifts, one report per shift
+with separate blowing / cutting operators, roll used typed by the cutting operator, blind monthly production count +
+admin-only reconciliation. v10 — shift reports replace jobs, average
 costing replaces FIFO, monthly close with COGS / gross profit / shrinkage, SO & PO with TOP. Backend on Cloudflare (free plan). Not yet: offline mode, barcode
 scanning, receivables / payment tracking beyond the due date.

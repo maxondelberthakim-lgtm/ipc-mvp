@@ -30,7 +30,7 @@
 
   var STAF = { 'Staff Gudang':'1111', Yanto:'2222', Sri:'3333', Rina:'4444' };
   function id(nama){ return { nama:nama, pin: STAF[nama] || '' }; }
-  var MGR = { nama:'Manager', pin:'1357' }, MP = { nama:'Manager Produksi', pin:'1122' }, SM = { nama:'Sales Manager', pin:'3344' };
+  var MGR = { nama:'Manager', pin:'1357' }, MP = { nama:'Bastari', pin:'4433' }, SM = { nama:'Deny', pin:'3322' }, YS = { nama:'Yansen', pin:'2211' };
   function mundur(menit){ return new Date(Date.now() - menit*60000); }
   function tglMundur(menit){ return Utilities.formatDate(mundur(menit), APP.zona, 'yyyy-MM-dd'); }
   /* mundurkan waktu N baris terakhir (satu entri bisa jadi beberapa baris) */
@@ -49,7 +49,7 @@
   var po1 = simpanPo({ supplier:'PT Sumber Biji Plastik', tanggal:tglMundur(60*75), perkiraanDatang:tglMundur(60*70), topHari:30,
     baris:[{kode:'RM-BP-KW', qty:2000, harga:13000, spesifikasi:'KW hitam, MFI 0.3–0.5, kadar air <1%'},
            {kode:'RM-BP-SUP', qty:500, harga:15000, spesifikasi:'Super hitam, bening tanpa bintik'}],
-    catatan:'Stok produksi minggu ini' }, SM);
+    catatan:'Stok produksi minggu ini' }, YS);
   geser(SHEET.PO, 60*75, 0, 2);
   var po2 = simpanPo({ supplier:'CV Warna Pigmen Jaya', tanggal:tglMundur(60*50), perkiraanDatang:tglMundur(60*44), topHari:14,
     baris:[{kode:'RM-PG-KW', qty:100, harga:28000, spesifikasi:'Masterbatch hitam KW'},
@@ -57,7 +57,7 @@
   geser(SHEET.PO, 60*50, 0, 2);
   simpanPo({ supplier:'PT Sumber Biji Plastik', tanggal:tglMundur(60*5), perkiraanDatang:tglMundur(-60*48), topHari:30,
     baris:[{kode:'RM-BP-SPL', qty:800, harga:15000, spesifikasi:'Super Plus bening'}],
-    catatan:'Datang lusa' }, SM);
+    catatan:'Datang lusa' }, YS);
   geser(SHEET.PO, 60*5, 0, 1);
 
   function poBaris(noPo, kode){ return baca_(SHEET.PO).filter(function(r){ return r.No_PO===noPo && r.Kode_Item===kode; })[0]; }
@@ -83,7 +83,7 @@
     ident:id('Staff Gudang') });
   geser(SHEET.PENERIMAAN, 60*18, 0, 1);
 
-  /* --- penerimaan sisa PO yang masih menunggu review (angka ketik beda 5 kg dari OCR) --- */
+  /* --- penerimaan sisa PO (angka ketik beda 5 kg dari OCR) --- */
   simpanPenerimaan({ jenis:'MASUK', supplier:'PT Sumber Biji Plastik', noSuratJalan:'SJ/2026/09/0184',
     baris:[{kode:'RM-BP-KW', qty:505, idPo:poBaris(po1.noPo,'RM-BP-KW').ID}], qtyOcr:500,
     catatan:'timbangan gudang lebih 5 kg', catatanQc:'3 karung lembab', ident:id('Staff Gudang') });
@@ -125,22 +125,15 @@
   kirim('KELUAR','Toko Tani Sejahtera','DO/2026/09/0040', [{kode:'FG-PB-KW', qty:250}], 60*19, 'Sri');
   kirim('RETUR_MASUK','Toko Tani Sejahtera','', [{kode:'FG-PB-KW', qty:12}], 60*12, 'Sri');
   kirim('KELUAR','Koperasi Perkebunan Sawit','DO/2026/09/0041', [{kode:'FG-PB-SUP', qty:150}], 60*5, 'Rina');
-  kirim('KELUAR','Toko Tani Sejahtera','DO/2026/09/0044', [{kode:'FG-PB-KW', qty:80}], 0, 'Sri');   // menunggu review
+  kirim('KELUAR','Toko Tani Sejahtera','DO/2026/09/0044', [{kode:'FG-PB-KW', qty:80}], 0, 'Sri');
 
-  /* --- sebagian sudah di-review supaya riwayat tidak seragam --- */
-  var q = antrianReview(MGR);
-  q.slice(4).forEach(function(x, i){
-    try {
-      if (i === 1) tinjauTransfer(x.id, 'tandai', 'cek ulang timbangan, angka beda dengan catatan manual', MGR);
-      else tinjauTransfer(x.id, 'setuju', '', MGR);
-    } catch(e){}
-  });
+  /* --- v11: tidak ada review — satu pengiriman dibatalkan manager supaya riwayat tidak seragam --- */
+  try { var kel = riwayatInput('JUAL_KELUAR', 14, MGR); if (kel.length > 2) tinjauTransfer(kel[kel.length-1].id, 'batal', 'dobel input', MGR); } catch(e){}
 
-  /* --- laporan barang rusak (v7): satu disetujui, satu menunggu --- */
+  /* --- laporan barang rusak (v11: langsung final) --- */
   try {
-    var d1 = simpanKerusakan({ kode:'RM-BP-KW', qty:25, penyebab:'karung bocor kena hujan di bongkar muat', ident:id('Yanto') });
+    simpanKerusakan({ kode:'RM-BP-KW', qty:25, penyebab:'karung bocor kena hujan di bongkar muat', ident:id('Yanto') });
     geser(SHEET.KERUSAKAN, 60*26, 0, 1);
-    tinjauKerusakan(d1.id, 'setuju', '', MGR);
     simpanKerusakan({ kode:'RM-PG-KW', qty:2, penyebab:'sak pigmen tumpah', ident:id('Rina') });
     geser(SHEET.KERUSAKAN, 60*2, 0, 1);
   } catch(e) {}

@@ -1,4 +1,4 @@
-# IPC — Inventory & Production Control (v10.1) — Panduan
+# IPC — Inventory & Production Control (v11) — Panduan
 
 Aplikasi HP untuk pabrik polybag: setiap kg yang bergerak **supplier → gudang (GBJ) → blowing → cutting → gudang → customer**
 dicatat dengan angka, foto (kalau perlu), dan siapa yang mencatat.
@@ -37,8 +37,8 @@ mencatat: **berapa biji plastik diambil dan siapa yang ambil, siapa mengerjakan 
 Blowing dan cutting tidak saling terkait per shift; yang dijumlahkan adalah **total roll jadi** dan **total roll dipakai**
 — selisihnya = tumpukan roll yang belum dipotong, dicek saat opname akhir bulan.
 
-Laporan bisa diubah / dibatalkan oleh manager selama bulannya belum ditutup. Staf gudang bisa **melihat** laporan
-(tanpa harga) tapi tidak mengisi.
+Laporan bisa diubah / dibatalkan oleh akun dengan akses PRODUKSI selama bulannya belum ditutup. Akun lain bisa **melihat** laporan
+(staf tanpa harga) tapi tidak mengisi.
 
 ### Opname produksi & rekonsiliasi (akhir bulan)
 
@@ -84,37 +84,49 @@ bisa ditambah / diubah / dibatalkan, angka COGS–laba–susut tersimpan di `Tut
 
 ## Akun & peran
 
-| Nama (bawaan) | Peran | PIN awal — **GANTI!** | Tugas |
-|---|---|---|---|
-| Admin, Direktur | ADMIN | 1234, 2468 | semua + kelola pengguna + buka bulan tertutup |
-| Manager | SUPERVISOR | 1357 | review, opname, SKU, laporan, tutup bulan |
-| Manager Produksi | SUPERVISOR | 1122 | laporan shift blowing / cutting |
-| Sales Manager | SUPERVISOR | 3344 | sales order & purchase order |
-| Staff Gudang | STAF | 1111 | penerimaan, pengiriman, retur, rusak, kirim BS ke chassen |
+| Nama (bawaan) | Peran | Akses modul | PIN awal — **GANTI!** | Tugas |
+|---|---|---|---|---|
+| Admin, Direktur | ADMIN | semua | 1234, 2468 | semua + kelola pengguna + buka bulan tertutup + rekonsiliasi |
+| Manager | SUPERVISOR | semua | 1357 | gudang, opname, SKU, laporan, tutup bulan |
+| **Yansen** | SUPERVISOR | PO | 2211 | pesanan pembelian & invoice supplier |
+| **Deny** | SUPERVISOR | SO | 3322 | sales order |
+| **Bastari** | SUPERVISOR | PRODUKSI | 4433 | laporan shift blowing / cutting & opname produksi |
+| Staff Gudang | STAF | GUDANG | 1111 | penerimaan, pengiriman, retur, rusak, kirim BS ke chassen |
 
-Semua akun SUPERVISOR melihat semua (harga, HPP, laba). Ganti PIN di **Admin → Pengguna**. Nama yang belum terdaftar
-ditolak (`AKSES_TERBUKA = TIDAK`).
+**v11 — akses per modul.** Setiap akun SUPERVISOR hanya bisa *mengisi/mengubah* modul yang dicentang di
+Admin → Pengguna (`PO`, `SO`, `PRODUKSI`, `GUDANG`, `MANAJEMEN`; kosong = semua). Menu yang bukan haknya tidak muncul di
+beranda, dan server menolak kalau dipaksa. **Laporan** (termasuk harga, HPP, laba) tetap bisa dilihat semua manager.
+Staf hanya modul gudang dan tidak pernah melihat harga.
+
+**v11 — tidak ada proses review.** Penerimaan, pengiriman, retur, dan laporan rusak **langsung final** saat disimpan
+(stok langsung bergerak). Staf boleh mengubah/membatalkan entrinya sendiri **dalam 24 jam**; manager gudang boleh
+mengubah/membatalkan apa saja sampai `MAKS_EDIT_HARI` (30 hari) atau bulan ditutup. Semua perubahan tercatat di log.
+
+Ganti PIN di **Admin → Pengguna**. Nama yang belum terdaftar ditolak (`AKSES_TERBUKA = TIDAK`). Akun lama
+*Manager Produksi* dan *Sales Manager* dinonaktifkan otomatis saat migrasi (riwayat inputnya tetap ada).
 
 ## Pakai sehari-hari
 
-**Sales Manager**
+**Deny (SO)**
 1. Beranda → **Sales order (SO)** → + Buat SO: customer, tanggal kirim, **TOP (hari; 0 = tunai)**, item, kg, harga/kg.
    Jatuh tempo = tanggal kirim + TOP. Gudang melihat SO tanpa harga di *Kirim hari ini*.
+**Yansen (PO)**
 2. Beranda → **Pesanan pembelian (PO)** → + Buat PO: supplier, perkiraan datang, TOP, item, kg, harga/kg, spesifikasi.
    Invoice supplier diunggah & divalidasi di tab Invoice (harga baru → HPP dihitung ulang).
 
 **Staff Gudang**
 1. ⓪ **Penerimaan barang**: pilih supplier → pilih PO yang datang → foto surat jalan (OCR) → kg → Simpan.
 2. ④ **Barang keluar**: ketuk SO di *Kirim hari ini* (form terisi) → foto → no. DO → Simpan.
-3. ↩ Retur (ke supplier / dari customer), ⚠ Barang rusak (disetujui manager), ♻ Kirim BS ke chassen & terima biji daur ulang.
+3. ↩ Retur (ke supplier / dari customer), ⚠ Barang rusak (langsung mengurangi stok), ♻ Kirim BS ke chassen & terima biji daur ulang.
+   Semua langsung final — salah input? Ubah/batalkan sendiri lewat riwayat input dalam 24 jam, setelah itu minta manager gudang.
 
-**Manager Produksi** — tab **Produksi** → + Isi laporan: tanggal, shift (1/2), lalu bagian **Blowing** (operator → Enter,
+**Bastari (Produksi)** — tab **Produksi** → + Isi laporan: tanggal, shift (1/2), lalu bagian **Blowing** (operator → Enter,
 biji plastik diambil, roll jadi per kualitas, BS) dan bagian **Cutting** (operator, roll diambil per kualitas, polybag jadi,
 BS) → Simpan. Form berikutnya otomatis melompat ke shift yang belum diisi. **Rekap bulan**: per mesin, per kualitas,
 per operator per mesin, per hari, %BS, sisa roll menurut laporan.
 
 **Manager**
-1. **Review**: setujui / tandai / batalkan penerimaan & pengiriman staf (foto di sebelah angka); laporan rusak.
+1. **Koreksi**: lewat riwayat input (ubah / batalkan entri staf, foto di sebelah angka) dan riwayat laporan rusak (✕ batalkan). Tidak ada antrian review lagi.
 2. **Laporan**: Produksi · Stok (neraca per item) · Beli · Jual · Daur ulang · **Laba bulan** · Nilai stok · Perlu beli · Ekspor (7 CSV).
 3. **Admin**: Opname gudang akhir bulan · **Opname produksi** (hitungan buta) · **Rekonsiliasi** (Admin saja) ·
    SKU (kategori: bahan baku / roll / polybag / BS, kualitas KW / Super / Super Plus) · Aktivitas per orang · Pengguna · Backup.
@@ -144,7 +156,10 @@ Tambah/ubah lewat Admin → SKU. Kalau satu kualitas belum lengkap, form laporan
 
 Pengaturan diubah lewat rute admin (`cloudflare/README.md`) atau ekspor–impor database.
 
-## Migrasi dari v9 / v10
+## Migrasi dari v9 / v10 / v10.1
+
+**v10.1 → v11** (otomatis): kolom `Akses` di Master_Pengguna; akun Yansen / Deny / Bastari ditambahkan, Manager Produksi /
+Sales Manager dinonaktifkan; entri yang masih MENUNGGU difinalkan (laporan rusak yang menunggu ikut mengurangi stok).
 
 **v10 → v10.1** (otomatis): laporan shift lama yang satu baris per mesin digabung jadi satu baris per tanggal+shift
 (operator blowing / cutting terpisah), sheet lama disimpan sebagai `Laporan_Shift_lama`. Shift 3 lama tetap terbaca.

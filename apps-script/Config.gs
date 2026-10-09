@@ -10,7 +10,7 @@
 
 var APP = {
   nama: 'IPC — Inventory & Production Control',
-  versi: '10.1.0',
+  versi: '11.0.0',
   zona: 'Asia/Jakarta',
   satuan: 'kg',
   folderFoto: 'IPC Foto Bukti'
@@ -58,7 +58,7 @@ HEADER[SHEET.CUSTOMER] = [
 ];
 
 HEADER[SHEET.PENGGUNA] = [
-  'Email','Nama','Peran','Lokasi','PIN','Aktif'
+  'Email','Nama','Peran','Lokasi','PIN','Aktif','Akses'   // v11: Akses = daftar modul (PO,SO,PRODUKSI,GUDANG,MANAJEMEN); kosong = semua modul perannya
 ];
 
 /* ⓪ Pembelian masuk (MASUK) & retur ke supplier (RETUR) — pakai surat jalan */
@@ -215,6 +215,12 @@ var KUALITAS = { KW: 'KW', SUPER: 'SUPER', SUPER_PLUS: 'SUPER_PLUS' };   // v10:
 var NAMA_KUALITAS = { KW: 'KW', SUPER: 'Super', SUPER_PLUS: 'Super Plus' };
 
 var PERAN = { STAF: 'STAF', SUPERVISOR: 'SUPERVISOR', ADMIN: 'ADMIN' };
+/* v11: akses per modul. ADMIN = semua. SUPERVISOR = modul yang tercantum di kolom Akses (kosong = semua).
+   STAF = GUDANG saja. Laporan (termasuk harga/HPP) tetap untuk semua SUPERVISOR/ADMIN. */
+var MODUL = { PO: 'PO', SO: 'SO', PRODUKSI: 'PRODUKSI', GUDANG: 'GUDANG', MANAJEMEN: 'MANAJEMEN' };
+var DAFTAR_MODUL = ['PO', 'SO', 'PRODUKSI', 'GUDANG', 'MANAJEMEN'];
+var NAMA_MODUL = { PO: 'Pesanan pembelian (PO) & invoice', SO: 'Sales order (SO)', PRODUKSI: 'Laporan produksi & opname produksi',
+                   GUDANG: 'Gudang: penerimaan, pengiriman, retur, rusak, daur ulang', MANAJEMEN: 'Manajemen: opname gudang, SKU, tutup bulan, aktivitas, backup' };
 var LOKASI = { GBJ: 'GBJ' };   // v9: satu gudang saja — pekerjaan berjalan di GBJ
 
 var DEFAULT_SUSUT_CHASSEN_PERSEN     = 5.0;   // v9: susut normal scrap → biji plastik di mesin chassen
@@ -262,12 +268,13 @@ var DUMMY_CUSTOMER = [
    SUPERVISOR = review, HPP, opname, SKU, edit semua entri
    STAF       = input pergerakan barang */
 var DUMMY_PENGGUNA = [
-  ['', 'Admin',            PERAN.ADMIN,      'HQ',       '1234', 'YA'],
-  ['', 'Direktur',         PERAN.ADMIN,      'HQ',       '2468', 'YA'],
-  ['', 'Manager',          PERAN.SUPERVISOR, 'GBJ',      '1357', 'YA'],
-  ['', 'Manager Produksi', PERAN.SUPERVISOR, 'Produksi', '1122', 'YA'],   // v10: mengisi laporan shift
-  ['', 'Sales Manager',    PERAN.SUPERVISOR, 'Sales',    '3344', 'YA'],   // v10: SO & PO
-  ['', 'Staff Gudang',     PERAN.STAF,       'GBJ',      '1111', 'YA']
+  ['', 'Admin',        PERAN.ADMIN,      'HQ',       '1234', 'YA', ''],
+  ['', 'Direktur',     PERAN.ADMIN,      'HQ',       '2468', 'YA', ''],
+  ['', 'Manager',      PERAN.SUPERVISOR, 'GBJ',      '1357', 'YA', ''],            // semua modul
+  ['', 'Yansen',       PERAN.SUPERVISOR, 'Purchasing','2211', 'YA', 'PO'],         // v11: pesanan pembelian & invoice
+  ['', 'Deny',         PERAN.SUPERVISOR, 'Sales',    '3322', 'YA', 'SO'],          // v11: sales order
+  ['', 'Bastari',      PERAN.SUPERVISOR, 'Produksi', '4433', 'YA', 'PRODUKSI'],    // v11: laporan shift & opname produksi
+  ['', 'Staff Gudang', PERAN.STAF,       'GBJ',      '1111', 'YA', 'GUDANG']
 ];
 
 var DEFAULT_SETTING = [

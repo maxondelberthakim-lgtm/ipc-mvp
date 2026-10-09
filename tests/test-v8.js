@@ -29,7 +29,7 @@ ctx.simpanLaporanShift({shift:'1',blowing:{operator:'Sri',ambil:[{kode:KW,qty:30
 ok('polybag KW 285 kg di GBJ (hasil cutting langsung di gudang)', ctx.getKonteks(STAF).stok[FG].gbj===285);
 
 console.log('\n— Sales order —');
-tolak('staf tidak boleh buat SO', ()=>ctx.simpanSo({customer:CUS,baris:[{kode:FG,qty:100,harga:250000}]},STAF), /Manager/);
+tolak('staf tidak boleh buat SO', ()=>ctx.simpanSo({customer:CUS,baris:[{kode:FG,qty:100,harga:250000}]},STAF), /Sales order/);
 tolak('customer kosong ditolak', ()=>ctx.simpanSo({customer:'',topHari:0,baris:[{kode:FG,qty:100,harga:25000}]},SPV), /Customer/);
 tolak('SO tanpa tanggal kirim ditolak (v10)', ()=>ctx.simpanSo({customer:CUS,topHari:0,baris:[{kode:FG,qty:100,harga:25000}]},SPV), /Tanggal kirim/);
 tolak('SO tanpa TOP ditolak (v10)', ()=>ctx.simpanSo({customer:CUS,tanggalKirim:ctx.tglStr_(new Date()),baris:[{kode:FG,qty:100,harga:25000}]},SPV), /TOP/);
@@ -74,7 +74,7 @@ tolak('batalkan SO yang sudah dikirim sebagian ditolak', ()=>ctx.batalkanSo(soLi
 const so2Line = ctx.daftarSo(SPV).find(x=>x.noSo===so2.noSo);
 ok('batalkan SO belum dikirim', ctx.batalkanSo(so2Line.id,'customer batal',SPV).ok && ctx.daftarSo(SPV,'DIBATALKAN').length===1);
 ok('dipesan tidak termasuk SO batal', ctx.getKonteks(STAF).stok[FG].dipesan===90);
-tolak('staf tidak boleh ubah SO', ()=>ctx.ubahSo(soLine.id,{qty:120},STAF), /Manager/);
+tolak('staf tidak boleh ubah SO', ()=>ctx.ubahSo(soLine.id,{qty:120},STAF), /Sales order/);
 const rc = ctx.riwayatInput('JUAL_KELUAR',14,STAF)[0];
 ok('riwayat pengiriman memuat idSo', rc.idSo===soLine.id || rc.idSo==='' );
 
@@ -130,7 +130,7 @@ ctx.backupHarian();
 ok('hanya 30 salinan terbaru disimpan, sisanya ke sampah', backupFiles.filter(f=>!f.trashed).length===30, backupFiles.filter(f=>!f.trashed).length);
 const sb = ctx.statusBackup(SPV);
 ok('statusBackup: terpasang, ada salinan terakhir', sb.terpasang===true && sb.terakhir.indexOf('IPC Backup')===0 && sb.simpan===30, sb);
-tolak('staf tidak boleh lihat status backup', ()=>ctx.statusBackup(STAF), /Supervisor/);
+tolak('staf tidak boleh lihat status backup', ()=>ctx.statusBackup(STAF), /Manajemen/);
 
 fs.unlinkSync(__dirname + '/.h8.js');
 console.log('\n================ '+pass+' lulus, '+fail+' gagal ================');

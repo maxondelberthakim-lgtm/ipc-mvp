@@ -213,7 +213,7 @@ function laporanBulanan(bulan, ident) {
   lap.tertutup = !!t && t.Status === STATUS_TUTUP.DITUTUP;
   lap.snapshot = t ? ringkasTutup_(t) : null;
   lap.bulanIni = tglStr_(new Date()).slice(0, 7);
-  lap.bolehTutup = bolehReview_(u) && !lap.tertutup && bulan < lap.bulanIni;
+  lap.bolehTutup = bolehReview_(u) && bolehModul_(u, MODUL.MANAJEMEN) && !lap.tertutup && bulan < lap.bulanIni;
   lap.bolehBuka = bolehAdmin_(u) && lap.tertutup && bulan === bulanTerakhirTertutup_();
   return lap;
 }
@@ -221,7 +221,7 @@ function laporanBulanan(bulan, ident) {
 /** Tutup bulan: simpan snapshot, kunci transaksi bulan itu. Hanya bulan yang sudah lewat. */
 function tutupBulan(bulan, catatan, ident) {
   var u = penggunaSaatIni_(ident);
-  if (!bolehReview_(u)) throw new Error('Hanya Manager / Admin yang bisa menutup bulan.');
+  if (!bolehReview_(u) || !bolehModul_(u, MODUL.MANAJEMEN)) throw new Error('Hanya akun dengan akses Manajemen yang bisa menutup bulan.');
   bulan = bulanValid_(bulan);
   var bulanIni = tglStr_(new Date()).slice(0, 7);
   if (bulan >= bulanIni) throw new Error('Bulan ' + bulan + ' belum selesai — tutup buku hanya untuk bulan yang sudah lewat.');

@@ -45,7 +45,7 @@ console.log('— Migrasi v8 → v9: Stok_Awal_GP digabung, kolom dihapus, sheet 
   ctx.lupakanMemo_();
 }
 ctx.setupSistem();
-ok('versi 10.1.0', ctx.APP.versi==='10.1.0');
+ok('versi 11.0.0', ctx.APP.versi==='11.0.0');
 ok('stok awal 0 di seed → laporan stok kosong (belum ada transaksi)', ctx.laporanStok(SPV).daftar.length===0);
 
 console.log('\n— Tambah master dari form (semua peran) —');

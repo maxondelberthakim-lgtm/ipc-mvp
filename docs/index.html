@@ -349,7 +349,7 @@ input:disabled,select:disabled,textarea:disabled{background:#f3f4f6;color:#37415
   <div style="display:flex;gap:10px;align-items:flex-start">
     <span style="flex:1"><b style="color:#fff;font-size:13.5px">⚠️ INI DEMO — BUKAN APLIKASI SUNGGUHAN.</b> Data contoh hanya di browser ini; refresh = reset; akun tidak sinkron antar HP.
       Aplikasi sungguhan (data bersama, tersimpan di server Cloudflare): <a href="./app/" style="color:#fff;font-weight:800;text-decoration:underline">buka di sini →</a><br>
-      Login demo: <b style="color:#fff">Admin</b> 1234 · <b style="color:#fff">Direktur</b> 2468 · <b style="color:#fff">Manager</b> 1357 · <b style="color:#fff">Manager Produksi</b> 1122 · <b style="color:#fff">Sales Manager</b> 3344 · <b style="color:#fff">Staff Gudang</b> 1111 · <b style="color:#fff">Yanto</b> 2222
+      Login demo: <b style="color:#fff">Admin</b> 1234 · <b style="color:#fff">Direktur</b> 2468 · <b style="color:#fff">Manager</b> 1357 · <b style="color:#fff">Yansen</b> 2211 (PO) · <b style="color:#fff">Deny</b> 3322 (SO) · <b style="color:#fff">Bastari</b> 4433 (produksi) · <b style="color:#fff">Staff Gudang</b> 1111 · <b style="color:#fff">Yanto</b> 2222
       <span style="opacity:.8">(ganti akun: Beranda → Ganti nama / PIN)</span></span>
     <button onclick="document.getElementById('demoBanner').hidden=true" style="background:rgba(255,255,255,.18);color:#fff;border:0;border-radius:7px;padding:5px 10px;font-size:11.5px;font-weight:700;cursor:pointer;flex:0 0 auto">Tutup</button>
   </div>
@@ -397,7 +397,6 @@ input:disabled,select:disabled,textarea:disabled{background:#f3f4f6;color:#37415
       <button class="stat tap" onclick="tileHome('keluar')"><div class="n" id="sKeluar">–</div><div class="l" data-i18n="statKeluar">kg keluar hari ini</div></button>
       <button class="stat tap" onclick="tileHome('jadi')"><div class="n" id="sJadi">–</div><div class="l" data-i18n="statJadi">kg polybag jadi hari ini</div></button>
       <button class="stat alert tap" onclick="tileHome('bs')"><div class="n" id="sBs">–</div><div class="l" data-i18n="statBs">kg BS hari ini</div></button>
-      <button class="stat warn tap" onclick="tileHome('menunggu')"><div class="n" id="sQueue">–</div><div class="l" data-i18n="statQueue">Menunggu review</div></button>
       <button class="stat tap" onclick="tileHome('shift')"><div class="n" id="sShift">–</div><div class="l" data-i18n="statShift">Laporan shift hari ini</div></button>
       <button class="stat alert tap hide" id="tileBeli" onclick="tileHome('beli')"><div class="n" id="sBeli">–</div><div class="l" data-i18n="statBeli">Bahan perlu dibeli</div></button>
     </div>
@@ -429,14 +428,14 @@ input:disabled,select:disabled,textarea:disabled{background:#f3f4f6;color:#37415
       <div id="calDay"></div>
     </div>
 
-    <h3 class="sec" data-i18n="secBeli">Barang dari supplier</h3>
+    <h3 class="sec" id="secBeliH" data-i18n="secBeli">Barang dari supplier</h3>
     <div class="actions">
-      <button class="action" onclick="bukaMutasi('BELI_MASUK')">
+      <button class="action mod-gudang" onclick="bukaMutasi('BELI_MASUK')">
         <div class="ico d">⓪</div>
         <div class="tx"><b data-i18n="a0t">Penerimaan barang</b><span data-i18n="a0s">Supplier → GBJ · dari PO · foto surat jalan · QC</span></div>
         <span class="badge hide" id="poBadge">0</span>
       </button>
-      <button class="action" onclick="bukaMutasi('BELI_RETUR')">
+      <button class="action mod-gudang" onclick="bukaMutasi('BELI_RETUR')">
         <div class="ico e">↩</div>
         <div class="tx"><b data-i18n="a5t">Retur ke supplier</b><span data-i18n="a5s">Hanya dari barang yang sudah diterima</span></div>
       </button>
@@ -444,19 +443,19 @@ input:disabled,select:disabled,textarea:disabled{background:#f3f4f6;color:#37415
         <div class="ico d">📋</div>
         <div class="tx"><b data-i18n="a8t">Pesanan pembelian (PO)</b><span data-i18n="a8s">Apa yang akan datang · qty · harga · spesifikasi · invoice</span></div>
       </button>
-      <button class="action" id="tileRusak" onclick="tampil('rusak')">
+      <button class="action mod-gudang" id="tileRusak" onclick="tampil('rusak')">
         <div class="ico e">⚠️</div>
-        <div class="tx"><b data-i18n="a9t">Barang rusak</b><span data-i18n="a9s">Lapor kerusakan · stok berkurang setelah disetujui manager</span></div>
+        <div class="tx"><b data-i18n="a9t">Barang rusak</b><span data-i18n="a9s">Lapor kerusakan · stok langsung berkurang (tanpa persetujuan)</span></div>
       </button>
     </div>
 
-    <h3 class="sec" data-i18n="secJual">Barang ke customer</h3>
+    <h3 class="sec" id="secJualH" data-i18n="secJual">Barang ke customer</h3>
     <div class="actions">
-      <button class="action" onclick="bukaMutasi('JUAL_KELUAR')">
+      <button class="action mod-gudang" onclick="bukaMutasi('JUAL_KELUAR')">
         <div class="ico f">④</div>
         <div class="tx"><b data-i18n="a6t">Barang keluar (terjual)</b><span data-i18n="a6s">GBJ → customer · mengurangi stok</span></div>
       </button>
-      <button class="action" onclick="bukaMutasi('JUAL_RETUR')">
+      <button class="action mod-gudang" onclick="bukaMutasi('JUAL_RETUR')">
         <div class="ico e">↩</div>
         <div class="tx"><b data-i18n="a7t">Retur dari customer</b><span data-i18n="a7s">Customer → GBJ · menambah stok</span></div>
       </button>
@@ -474,22 +473,11 @@ input:disabled,select:disabled,textarea:disabled{background:#f3f4f6;color:#37415
         <div class="tx"><b data-i18n="a2t">Laporan shift produksi</b><span data-i18n="a2s">Per shift per mesin: operator · biji plastik diambil · roll / polybag jadi per kualitas · BS</span></div>
         <span class="badge hide" id="shiftBadge">0</span>
       </button>
-      <button class="action" onclick="tampil('daur')">
+      <button class="action mod-gudang" onclick="tampil('daur')">
         <div class="ico c">♻️</div>
         <div class="tx"><b data-i18n="a11t">Daur ulang scrap</b><span data-i18n="a11s">Scrap → mesin chassen (pabrik lain) → biji plastik · susut &amp; jasa</span></div>
         <span class="badge hide" id="daurBadge">0</span>
       </button>
-    </div>
-
-    <div id="homeRev" class="hide">
-      <h3 class="sec" data-i18n="secSup">Supervisor</h3>
-      <div class="actions">
-        <button class="action" onclick="tampil('review')">
-          <div class="ico c">✓</div>
-          <div class="tx"><b data-i18n="a4t">Antrian review</b><span data-i18n="a4s">Foto di sebelah angka · setuju / tandai</span></div>
-          <span class="badge hide" id="revBadge">0</span>
-        </button>
-      </div>
     </div>
 
     <div id="homeIdent" class="hide" style="margin-top:16px">
@@ -841,7 +829,7 @@ input:disabled,select:disabled,textarea:disabled{background:#f3f4f6;color:#37415
   <section id="v-rusak" class="hide">
     <div class="card">
       <h2 data-i18n="rusakT">Lapor barang rusak</h2>
-      <div class="sub" data-i18n="rusakS">Dicatat oleh staf gudang. Stok baru berkurang setelah manager menyetujui.</div>
+      <div class="sub" data-i18n="rusakS">Stok langsung berkurang saat laporan disimpan. Manager gudang bisa membatalkan laporan dalam 30 hari.</div>
       <div class="field">
         <label data-i18n="lblTanggal">Tanggal transaksi</label>
         <input type="date" id="rusakTanggal">
@@ -870,18 +858,6 @@ input:disabled,select:disabled,textarea:disabled{background:#f3f4f6;color:#37415
       <h2 data-i18n="rusakRiwayatT">Laporan saya</h2>
       <div id="rusakRiwayat"><div class="load">…</div></div>
     </div>
-  </section>
-
-  <!-- ============ REVIEW ============ -->
-  <section id="v-review" class="hide">
-    <div class="seg">
-      <button id="segRevMenunggu" class="on" onclick="segRev('MENUNGGU')"><span data-i18n="segMenunggu">Menunggu</span> <span class="cnt" id="cntMenunggu"></span></button>
-      <button id="segRevDitandai" onclick="segRev('DITANDAI')"><span data-i18n="segDitandai">Ditandai</span> <span class="cnt" id="cntDitandai"></span></button>
-      <button id="segRevUsulan" onclick="segRev('USULAN')"><span data-i18n="segUsulan">Usulan</span> <span class="cnt" id="cntUsulan"></span></button>
-      <button id="segRevRusak" onclick="segRev('RUSAK')"><span data-i18n="segRusak">Rusak</span> <span class="cnt" id="cntRusak"></span></button>
-    </div>
-    <div class="banner n" id="revHint"></div>
-    <div id="revList"><div class="load">…</div></div>
   </section>
 
   <!-- ============ LAPORAN ============ -->
@@ -954,9 +930,14 @@ input:disabled,select:disabled,textarea:disabled{background:#f3f4f6;color:#37415
       <div class="field"><label data-i18n="userPeran">Peran</label>
         <select id="userPeran">
           <option value="STAF">STAF — input pergerakan</option>
-          <option value="SUPERVISOR">SUPERVISOR — review, HPP, opname, SKU</option>
-          <option value="ADMIN">ADMIN — semua + kelola pengguna</option>
+          <option value="SUPERVISOR">SUPERVISOR — manager: lihat laporan & harga, modul sesuai akses</option>
+          <option value="ADMIN">ADMIN — semua + kelola pengguna + rekonsiliasi</option>
         </select></div>
+      <div class="field" id="userAksesWrap">
+        <label data-i18n="userAkses">Akses modul (kosong = semua modul)</label>
+        <div id="userAkses"></div>
+        <div class="hint" data-i18n="userAksesHint">Yang dicentang saja yang bisa diisi/diubah. Laporan tetap bisa dilihat semua manager.</div>
+      </div>
       <div class="field"><label data-i18n="userLokasi">Lokasi (opsional)</label><input id="userLokasi" placeholder="Gudang / Produksi / HQ"></div>
       <div class="field"><label data-i18n="userEmail">Email Google (opsional)</label><input id="userEmail" placeholder="hanya kalau pakai Google Workspace"></div>
       <div class="field"><label data-i18n="userPin">PIN (4–8 angka)</label><input id="userPin" type="tel" inputmode="numeric" placeholder=""><div class="hint" id="userPinHint"></div></div>
@@ -970,7 +951,6 @@ input:disabled,select:disabled,textarea:disabled{background:#f3f4f6;color:#37415
 <nav>
   <button id="nav-home" class="on" onclick="tampil('home')"><span class="g">🏠</span><span data-i18n="navHome">Beranda</span></button>
   <button id="nav-shift" onclick="tampil('shift')"><span class="g">🏭</span><span data-i18n="navJob">Produksi</span></button>
-  <button id="nav-review" class="hide" onclick="tampil('review')"><span class="g">✅</span><span data-i18n="navReview">Review</span><span class="dot hide" id="navDot"></span></button>
   <button id="nav-report" onclick="tampil('report')"><span class="g">📊</span><span data-i18n="navReport">Laporan</span></button>
   <button id="nav-admin" class="hide" onclick="tampil('admin')"><span class="g">🛠️</span><span data-i18n="navAdmin">Admin</span></button>
 </nav>
@@ -1061,7 +1041,7 @@ input:disabled,select:disabled,textarea:disabled{background:#f3f4f6;color:#37415
 
 var APP = {
   nama: 'IPC — Inventory & Production Control',
-  versi: '10.1.0',
+  versi: '11.0.0',
   zona: 'Asia/Jakarta',
   satuan: 'kg',
   folderFoto: 'IPC Foto Bukti'
@@ -1109,7 +1089,7 @@ HEADER[SHEET.CUSTOMER] = [
 ];
 
 HEADER[SHEET.PENGGUNA] = [
-  'Email','Nama','Peran','Lokasi','PIN','Aktif'
+  'Email','Nama','Peran','Lokasi','PIN','Aktif','Akses'   // v11: Akses = daftar modul (PO,SO,PRODUKSI,GUDANG,MANAJEMEN); kosong = semua modul perannya
 ];
 
 /* ⓪ Pembelian masuk (MASUK) & retur ke supplier (RETUR) — pakai surat jalan */
@@ -1266,6 +1246,12 @@ var KUALITAS = { KW: 'KW', SUPER: 'SUPER', SUPER_PLUS: 'SUPER_PLUS' };   // v10:
 var NAMA_KUALITAS = { KW: 'KW', SUPER: 'Super', SUPER_PLUS: 'Super Plus' };
 
 var PERAN = { STAF: 'STAF', SUPERVISOR: 'SUPERVISOR', ADMIN: 'ADMIN' };
+/* v11: akses per modul. ADMIN = semua. SUPERVISOR = modul yang tercantum di kolom Akses (kosong = semua).
+   STAF = GUDANG saja. Laporan (termasuk harga/HPP) tetap untuk semua SUPERVISOR/ADMIN. */
+var MODUL = { PO: 'PO', SO: 'SO', PRODUKSI: 'PRODUKSI', GUDANG: 'GUDANG', MANAJEMEN: 'MANAJEMEN' };
+var DAFTAR_MODUL = ['PO', 'SO', 'PRODUKSI', 'GUDANG', 'MANAJEMEN'];
+var NAMA_MODUL = { PO: 'Pesanan pembelian (PO) & invoice', SO: 'Sales order (SO)', PRODUKSI: 'Laporan produksi & opname produksi',
+                   GUDANG: 'Gudang: penerimaan, pengiriman, retur, rusak, daur ulang', MANAJEMEN: 'Manajemen: opname gudang, SKU, tutup bulan, aktivitas, backup' };
 var LOKASI = { GBJ: 'GBJ' };   // v9: satu gudang saja — pekerjaan berjalan di GBJ
 
 var DEFAULT_SUSUT_CHASSEN_PERSEN     = 5.0;   // v9: susut normal scrap → biji plastik di mesin chassen
@@ -1313,12 +1299,13 @@ var DUMMY_CUSTOMER = [
    SUPERVISOR = review, HPP, opname, SKU, edit semua entri
    STAF       = input pergerakan barang */
 var DUMMY_PENGGUNA = [
-  ['', 'Admin',            PERAN.ADMIN,      'HQ',       '1234', 'YA'],
-  ['', 'Direktur',         PERAN.ADMIN,      'HQ',       '2468', 'YA'],
-  ['', 'Manager',          PERAN.SUPERVISOR, 'GBJ',      '1357', 'YA'],
-  ['', 'Manager Produksi', PERAN.SUPERVISOR, 'Produksi', '1122', 'YA'],   // v10: mengisi laporan shift
-  ['', 'Sales Manager',    PERAN.SUPERVISOR, 'Sales',    '3344', 'YA'],   // v10: SO & PO
-  ['', 'Staff Gudang',     PERAN.STAF,       'GBJ',      '1111', 'YA']
+  ['', 'Admin',        PERAN.ADMIN,      'HQ',       '1234', 'YA', ''],
+  ['', 'Direktur',     PERAN.ADMIN,      'HQ',       '2468', 'YA', ''],
+  ['', 'Manager',      PERAN.SUPERVISOR, 'GBJ',      '1357', 'YA', ''],            // semua modul
+  ['', 'Yansen',       PERAN.SUPERVISOR, 'Purchasing','2211', 'YA', 'PO'],         // v11: pesanan pembelian & invoice
+  ['', 'Deny',         PERAN.SUPERVISOR, 'Sales',    '3322', 'YA', 'SO'],          // v11: sales order
+  ['', 'Bastari',      PERAN.SUPERVISOR, 'Produksi', '4433', 'YA', 'PRODUKSI'],    // v11: laporan shift & opname produksi
+  ['', 'Staff Gudang', PERAN.STAF,       'GBJ',      '1111', 'YA', 'GUDANG']
 ];
 
 var DEFAULT_SETTING = [
@@ -1726,13 +1713,15 @@ function penggunaSaatIni_(ident) {
       if (String(rows[i].Email).toLowerCase().trim() === email.toLowerCase() &&
           String(rows[i].Aktif).toUpperCase() !== 'TIDAK') {
         return { email: email, nama: rows[i].Nama || email, peran: rows[i].Peran || PERAN.STAF,
-                 lokasi: rows[i].Lokasi || '', terdaftar: true, identitasManual: false };
+                 lokasi: rows[i].Lokasi || '', terdaftar: true, identitasManual: false,
+                 akses: aksesPengguna_(rows[i].Peran || PERAN.STAF, rows[i].Akses) };
       }
     }
     var terbuka = (getSetting_('AKSES_TERBUKA') || 'YA').toUpperCase() === 'YA';
     if (!terbuka) throw new Error('Akses ditolak. Email ' + email + ' belum terdaftar di Master_Pengguna.');
-    return { email: email, nama: email.split('@')[0], peran: getSetting_('PERAN_DEFAULT') || PERAN.STAF,
-             lokasi: '', terdaftar: false, identitasManual: false };
+    var peranT = getSetting_('PERAN_DEFAULT') || PERAN.STAF;
+    return { email: email, nama: email.split('@')[0], peran: peranT,
+             lokasi: '', terdaftar: false, identitasManual: false, akses: aksesPengguna_(peranT, '') };
   }
 
   var nama = String(ident.nama || '').trim();
@@ -1740,6 +1729,7 @@ function penggunaSaatIni_(ident) {
   var peran = getSetting_('PERAN_DEFAULT') || PERAN.STAF;
   var lokasi = '';
   var terdaftar = false;
+  var aksesTeks = '';
 
   if (nama) {
     var pr = baca_(SHEET.PENGGUNA);
@@ -1752,6 +1742,7 @@ function penggunaSaatIni_(ident) {
       nama = String(pr[j].Nama);          // pakai ejaan resmi
       peran = pr[j].Peran || peran;
       lokasi = pr[j].Lokasi || '';
+      aksesTeks = pr[j].Akses || '';
       terdaftar = true;
       break;
     }
@@ -1764,7 +1755,29 @@ function penggunaSaatIni_(ident) {
   }
 
   return { email: '', nama: nama || '(belum diisi)', peran: peran, lokasi: lokasi,
-           terdaftar: terdaftar, identitasManual: true, perluNama: !nama };
+           terdaftar: terdaftar, identitasManual: true, perluNama: !nama, akses: aksesPengguna_(peran, aksesTeks) };
+}
+
+/* v11: akses per modul. ADMIN = semua; STAF = GUDANG; SUPERVISOR = isi kolom Akses (kosong = semua). */
+function aksesPengguna_(peran, teks) {
+  var a = {};
+  if (peran === PERAN.ADMIN) { DAFTAR_MODUL.forEach(function (m) { a[m] = true; }); return a; }
+  if (peran !== PERAN.SUPERVISOR) { a[MODUL.GUDANG] = true; return a; }
+  var list = String(teks || '').toUpperCase().split(/[,;\s]+/).filter(function (m) { return DAFTAR_MODUL.indexOf(m) >= 0; });
+  if (!list.length) list = DAFTAR_MODUL.slice();
+  list.forEach(function (m) { a[m] = true; });
+  return a;
+}
+function bolehModul_(u, m) { return !!(u && u.akses && u.akses[m]); }
+function wajibModul_(u, m) {
+  if (!bolehModul_(u, m)) throw new Error('Akun ' + u.nama + ' tidak punya akses modul: ' + (NAMA_MODUL[m] || m) + '.');
+}
+/** Normalisasi teks Akses untuk disimpan: hanya modul yang dikenal, huruf besar, dipisah koma. */
+function aksesTeks_(v) {
+  var list = Array.isArray(v) ? v : String(v || '').split(/[,;\s]+/);
+  var out = [];
+  list.forEach(function (m) { m = String(m || '').toUpperCase().trim(); if (DAFTAR_MODUL.indexOf(m) >= 0 && out.indexOf(m) < 0) out.push(m); });
+  return out.join(',');
 }
 
 function bolehReview_(u) { return u.peran === PERAN.SUPERVISOR || u.peran === PERAN.ADMIN; }
@@ -1927,10 +1940,12 @@ function getKonteks(ident) {
     maksMundurHari: MAKS_MUNDUR_HARI,
     maksEditHari: maksEditHari_(),
     stok: stok,
-    bisaReview: bolehReview_(u),
+    bisaReview: bolehReview_(u),          // = tingkat manager (lihat laporan & harga)
     bisaAdmin: bolehAdmin_(u),
     lihatHpp: bolehLihatHpp_(u),
     bisaPo: bolehPo_(u),
+    bisaSo: bolehSo_(u),
+    modul: u.akses,                        // v11: { PO, SO, PRODUKSI, GUDANG, MANAJEMEN }
     metodeHpp: metodeHpp_(),
     kualitas: petaKualitas_().map(function (q) { return { kualitas: q.kualitas, nama: q.nama, biji: q.biji ? q.biji.kode : '', roll: q.roll ? q.roll.kode : '', jadi: q.jadi ? q.jadi.kode : '', bs: q.bs ? q.bs.kode : '' }; }),
     bulanTertutup: bulanTerakhirTertutup_(),
@@ -1979,6 +1994,7 @@ function getKonteks(ident) {
  */
 function simpanPenerimaan(p) {
   var u = penggunaSaatIni_(p && p.ident);
+  wajibModul_(u, MODUL.GUDANG);
   if (!p || !p.baris || !p.baris.length) throw new Error('Item belum diisi.');
   var jenis = p.jenis === JENIS_PENERIMAAN.RETUR ? JENIS_PENERIMAAN.RETUR : JENIS_PENERIMAAN.MASUK;
   if (!String(p.supplier || '').trim()) throw new Error('Supplier belum dipilih.');
@@ -2043,8 +2059,8 @@ function simpanPenerimaan(p) {
         Selisih_OCR: (i === 0 && qtyOcr) ? bulat_(totalQty - qtyOcr, 3) : '',
         Foto_URL: foto.url, Foto_ID: foto.id,
         Dicatat_Oleh: u.email || ('manual:' + u.nama), Nama_Pencatat: u.nama,
-        Status: STATUS_TRANSFER.MENUNGGU,
-        Ditinjau_Oleh: '', Waktu_Tinjau: '', Catatan_Tinjau: '',
+        Status: STATUS_TRANSFER.DISETUJUI,          // v11: tidak ada review — langsung final
+        Ditinjau_Oleh: 'otomatis', Waktu_Tinjau: now, Catatan_Tinjau: '',
         Catatan: p.catatan || '', Log_Edit: '',
         ID_PO: idPo, Harga_Per_Kg: harga, ID_Penerimaan_Asal: idAsal, Catatan_QC: p.catatanQc || ''
       });
@@ -2069,6 +2085,7 @@ function simpanPenerimaan(p) {
  */
 function simpanPengiriman(p) {
   var u = penggunaSaatIni_(p && p.ident);
+  wajibModul_(u, MODUL.GUDANG);
   if (!p || !p.baris || !p.baris.length) throw new Error('Item belum diisi.');
   var jenis = p.jenis === JENIS_PENGIRIMAN.RETUR_MASUK ? JENIS_PENGIRIMAN.RETUR_MASUK
                                                        : JENIS_PENGIRIMAN.KELUAR;
@@ -2121,8 +2138,8 @@ function simpanPengiriman(p) {
         Kode_Item: it.kode, Nama_Item: it.nama, Qty_Kg: qty,
         Foto_URL: foto.url, Foto_ID: foto.id,
         Dicatat_Oleh: u.email || ('manual:' + u.nama), Nama_Pencatat: u.nama,
-        Status: STATUS_TRANSFER.MENUNGGU,
-        Ditinjau_Oleh: '', Waktu_Tinjau: '', Catatan_Tinjau: '',
+        Status: STATUS_TRANSFER.DISETUJUI,          // v11: tidak ada review — langsung final
+        Ditinjau_Oleh: 'otomatis', Waktu_Tinjau: now, Catatan_Tinjau: '',
         Catatan: p.catatan || '', Log_Edit: '',
         HPP_Per_Kg: rataJual ? bulat_(hargaRataItem_(rataJual, it.kode, peta), 2) : (it.harga || ''),
         ID_SO: idSo
@@ -2197,10 +2214,11 @@ function antrianReview(ident, status) {
  */
 function tinjauTransfer(id, aksi, catatan, ident) {
   var u = penggunaSaatIni_(ident);
-  if (!bolehReview_(u)) throw new Error('Tidak punya izin review.');
-  var status = (aksi === 'setuju') ? STATUS_TRANSFER.DISETUJUI
-             : (aksi === 'batal')  ? STATUS_TRANSFER.DIBATALKAN
-             : STATUS_TRANSFER.DITANDAI;
+  if (!bolehReview_(u)) throw new Error('Hanya Manager / Admin.');
+  wajibModul_(u, MODUL.GUDANG);
+  /* v11: proses review dihapus — entri sudah final saat disimpan; yang tersisa hanya pembatalan. */
+  if (aksi !== 'batal') throw new Error('Tidak ada proses review lagi — entri langsung final saat disimpan. Yang bisa dilakukan: ubah atau batalkan.');
+  var status = STATUS_TRANSFER.DIBATALKAN;
   var nama = sheetDariId_(id);
 
   var lock = LockService.getScriptLock();
@@ -2211,13 +2229,9 @@ function tinjauTransfer(id, aksi, catatan, ident) {
     for (var i = 0; i < rows.length; i++) {
       if (rows[i].ID === id) {
         var skrg = rows[i].Status;
-        if (skrg === STATUS_TRANSFER.DISETUJUI || skrg === STATUS_TRANSFER.DIBATALKAN) {
-          throw new Error('Entri ini sudah final (' + skrg + ').');
-        }
-        if (status === STATUS_TRANSFER.DIBATALKAN && bulanTertutup_(rows[i].Tanggal)) throw new Error(pesanKunci_('BULAN_TUTUP'));
-        if (skrg === STATUS_TRANSFER.DITANDAI && status === STATUS_TRANSFER.DITANDAI) {
-          throw new Error('Entri ini sudah ditandai.');
-        }
+        if (skrg === STATUS_TRANSFER.DIBATALKAN) throw new Error('Entri ini sudah dibatalkan.');
+        if (bulanTertutup_(rows[i].Tanggal)) throw new Error(pesanKunci_('BULAN_TUTUP'));
+        if (!dalamBatasEdit_(rows[i])) throw new Error(pesanKunci_('LEWAT_BATAS'));
         var catatanBaru = [rows[i].Catatan_Tinjau, catatan].filter(String).join(' | ');
         ubahBaris_(nama, rows[i]._baris, {
           Status: status, Ditinjau_Oleh: u.nama, Waktu_Tinjau: new Date(),
@@ -2467,13 +2481,17 @@ function dalamBatasEdit_(r) { return umurHari_(r.Tanggal, r.Waktu) <= maksEditHa
    - STAF: entri sendiri, hanya selama masih MENUNGGU → ubah/batalkan langsung (tanpa usulan). Setelah disetujui: lihat saja.
    - SUPERVISOR/ADMIN: ubah kapan saja (termasuk yang sudah disetujui).
    - Semua: tidak bisa lagi setelah MAKS_EDIT_HARI. */
+/* v11 (tanpa review): STAF boleh ubah/batalkan entri sendiri selama 24 jam sejak dicatat;
+   SUPERVISOR/ADMIN dengan akses GUDANG boleh ubah apa saja sampai MAKS_EDIT_HARI / bulan ditutup. */
+var BATAS_EDIT_STAF_JAM_ = 24;
 function alasanKunci_(u, r) {
   if (r.Status === STATUS_TRANSFER.DIBATALKAN) return 'DIBATALKAN';
   if (bulanTertutup_(r.Tanggal)) return 'BULAN_TUTUP';
   if (!dalamBatasEdit_(r)) return 'LEWAT_BATAS';
-  if (bolehReview_(u)) return '';
+  if (bolehReview_(u)) return bolehModul_(u, MODUL.GUDANG) ? '' : 'BUKAN_MODUL';
   if (r.Dicatat_Oleh !== penandaPencatat_(u)) return 'BUKAN_MILIK';
-  if (r.Status !== STATUS_TRANSFER.MENUNGGU) return 'SUDAH_DITINJAU';
+  var jam = (Date.now() - new Date(r.Waktu).getTime()) / 36e5;
+  if (!(jam <= BATAS_EDIT_STAF_JAM_)) return 'LEWAT_24JAM';
   return '';
 }
 function bolehEditEntri_(u, r) { return alasanKunci_(u, r) === ''; }
@@ -2496,8 +2514,8 @@ function ringkasEntri_(r, nama, u, tertunda) {
     catatanTinjau: r.Catatan_Tinjau || '', logEdit: r.Log_Edit || '',
     idPo: r.ID_PO || '', idAsal: r.ID_Penerimaan_Asal || '', catatanQc: r.Catatan_QC || '', idSo: r.ID_SO || '',
     bolehEdit: bolehEditEntri_(u, r),
-    bolehBatal: bolehEditEntri_(u, r) && (bolehReview_(u) ? (r.Status === STATUS_TRANSFER.MENUNGGU || r.Status === STATUS_TRANSFER.DITANDAI) : true),
-    kunci: alasanKunci_(u, r),            // '' | SUDAH_DITINJAU | LEWAT_BATAS | BUKAN_MILIK | DIBATALKAN
+    bolehBatal: bolehEditEntri_(u, r),
+    kunci: alasanKunci_(u, r),            // '' | LEWAT_24JAM | LEWAT_BATAS | BUKAN_MILIK | BUKAN_MODUL | BULAN_TUTUP | DIBATALKAN
     perluPersetujuan: false,
     usulan: (tertunda && tertunda[r.ID]) || null,
     ditinjauOleh: r.Ditinjau_Oleh || '', lokasi: r.Lokasi || ''
@@ -2626,6 +2644,8 @@ function simpanEditEntri(id, perubahan, ident, alasan) {
 
 function pesanKunci_(kunci) {
   return kunci === 'SUDAH_DITINJAU' ? 'Entri sudah ditinjau supervisor — hanya supervisor/manager yang bisa mengubahnya.'
+       : kunci === 'LEWAT_24JAM' ? 'Entri lebih dari ' + BATAS_EDIT_STAF_JAM_ + ' jam — hanya manager gudang yang bisa mengubahnya.'
+       : kunci === 'BUKAN_MODUL' ? 'Akun ini tidak punya akses modul gudang.'
        : kunci === 'LEWAT_BATAS' ? 'Entri lebih tua dari ' + maksEditHari_() + ' hari — periode sudah ditutup, tidak bisa diubah.'
        : kunci === 'BULAN_TUTUP' ? 'Bulan entri ini sudah ditutup (tutup buku) — tidak bisa diubah.'
        : kunci === 'BUKAN_MILIK' ? 'Hanya entri yang kamu catat sendiri yang bisa diubah.'
@@ -2755,13 +2775,14 @@ function daftarPengguna(ident) {
   return baca_(SHEET.PENGGUNA).map(function (r) {
     return { baris: r._baris, email: r.Email || '', nama: r.Nama, peran: r.Peran || PERAN.STAF,
              lokasi: r.Lokasi || '', punyaPin: !!String(r.PIN || '').trim(),
-             aktif: String(r.Aktif).toUpperCase() !== 'TIDAK' };
+             aktif: String(r.Aktif).toUpperCase() !== 'TIDAK',
+             akses: aksesTeks_(r.Akses), modul: aksesPengguna_(r.Peran || PERAN.STAF, r.Akses) };
   });
 }
 
 /**
  * p = { baris (kosong = tambah baru), nama, email, peran, lokasi, pin (kosong = tidak diubah;
- *       'HAPUS' = kosongkan), aktif }
+ *       'HAPUS' = kosongkan), aktif, akses: ['PO','SO',...] (SUPERVISOR saja; kosong = semua modul) }
  */
 function simpanPengguna(p, ident) {
   var u = penggunaSaatIni_(ident);
@@ -2774,6 +2795,7 @@ function simpanPengguna(p, ident) {
   if (pin !== undefined && pin !== '' && pin !== 'HAPUS' && !/^\d{4,8}$/.test(pin)) {
     throw new Error('PIN harus 4–8 angka.');
   }
+  var akses = peran === PERAN.SUPERVISOR ? aksesTeks_(p.akses) : '';   // ADMIN = semua, STAF = gudang
 
   var lock = LockService.getScriptLock();
   lock.waitLock(20000);
@@ -2800,15 +2822,15 @@ function simpanPengguna(p, ident) {
     var log;
     if (target) {
       var ubah = { Nama: nama, Email: p.email || '', Peran: peran, Lokasi: p.lokasi || '',
-                   Aktif: p.aktif === false ? 'TIDAK' : 'YA' };
+                   Aktif: p.aktif === false ? 'TIDAK' : 'YA', Akses: akses };
       if (pin === 'HAPUS') ubah.PIN = '';
       else if (pin) ubah.PIN = pin;
       ubahBaris_(SHEET.PENGGUNA, target._baris, ubah);
-      log = 'ubah ' + nama + ' → ' + peran + (ubah.Aktif === 'TIDAK' ? ' (nonaktif)' : '') + (pin ? ' (PIN diubah)' : '');
+      log = 'ubah ' + nama + ' → ' + peran + (akses ? ' [' + akses + ']' : '') + (ubah.Aktif === 'TIDAK' ? ' (nonaktif)' : '') + (pin ? ' (PIN diubah)' : '');
     } else {
       tambah_(SHEET.PENGGUNA, { Email: p.email || '', Nama: nama, Peran: peran, Lokasi: p.lokasi || '',
-                                PIN: (pin && pin !== 'HAPUS') ? pin : '', Aktif: p.aktif === false ? 'TIDAK' : 'YA' });
-      log = 'tambah ' + nama + ' (' + peran + ')';
+                                PIN: (pin && pin !== 'HAPUS') ? pin : '', Aktif: p.aktif === false ? 'TIDAK' : 'YA', Akses: akses });
+      log = 'tambah ' + nama + ' (' + peran + (akses ? ' [' + akses + ']' : '') + ')';
     }
     catatLog_('ADMIN_PENGGUNA', nama, log);
     return { ok: true };
@@ -2820,7 +2842,7 @@ function simpanPengguna(p, ident) {
 /** Aktivitas satu pengguna (atau semua kalau nama kosong) dalam N hari. */
 function aktivitasStaf(nama, hari, ident) {
   var u = penggunaSaatIni_(ident);
-  if (!bolehReview_(u)) throw new Error('Hanya Supervisor / Admin.');
+  if (!bolehReview_(u) || !bolehModul_(u, MODUL.MANAJEMEN)) throw new Error('Hanya akun dengan akses Manajemen (Manager / Admin).');
   hari = hari || 30;
   var batas = new Date(); batas.setDate(batas.getDate() - hari);
   var target = String(nama || '').trim().toLowerCase();
@@ -2906,7 +2928,7 @@ function skuDipakai_() {
 /** p = { baris (kosong = baru), kode, nama, kategori, harga, awal, aktif } */
 function simpanSku(p, ident) {
   var u = penggunaSaatIni_(ident);
-  if (!bolehReview_(u)) throw new Error('Hanya Supervisor / Admin.');
+  if (!bolehReview_(u) || !bolehModul_(u, MODUL.MANAJEMEN)) throw new Error('Hanya akun dengan akses Manajemen (Manager / Admin).');
   p = p || {};
   var kode = String(p.kode || '').trim().toUpperCase().replace(/\s+/g, '-');
   var nama = String(p.nama || '').trim();
@@ -2950,7 +2972,7 @@ function simpanSku(p, ident) {
 /** Hapus beneran kalau belum pernah dipakai; kalau sudah, nonaktifkan. */
 function hapusSku(kode, ident) {
   var u = penggunaSaatIni_(ident);
-  if (!bolehReview_(u)) throw new Error('Hanya Supervisor / Admin.');
+  if (!bolehReview_(u) || !bolehModul_(u, MODUL.MANAJEMEN)) throw new Error('Hanya akun dengan akses Manajemen (Manager / Admin).');
   var lock = LockService.getScriptLock();
   lock.waitLock(20000);
   lupakanMemo_();   // di dalam lock: baca ulang dari sheet, jangan pakai memo sebelum lock
@@ -2979,7 +3001,7 @@ function hapusSku(kode, ident) {
  */
 function siapkanOpname(ident) {
   var u = penggunaSaatIni_(ident);
-  if (!bolehReview_(u)) throw new Error('Hanya Supervisor / Admin yang bisa stock opname.');
+  if (!bolehReview_(u) || !bolehModul_(u, MODUL.MANAJEMEN)) throw new Error('Hanya akun dengan akses Manajemen (Manager / Admin).');
   var lokasi = LOKASI.GBJ;
   var stok = {};
   laporanStok(ident).daftar.forEach(function (s) { stok[s.kode] = s; });
@@ -2998,7 +3020,7 @@ function siapkanOpname(ident) {
  */
 function simpanOpname(p, ident) {
   var u = penggunaSaatIni_(ident);
-  if (!bolehReview_(u)) throw new Error('Hanya Supervisor / Admin yang bisa stock opname.');
+  if (!bolehReview_(u) || !bolehModul_(u, MODUL.MANAJEMEN)) throw new Error('Hanya akun dengan akses Manajemen (Manager / Admin).');
   if (!p || !p.baris || !p.baris.length) throw new Error('Belum ada item yang dihitung.');
   var lokasi = LOKASI.GBJ;
 
@@ -3043,7 +3065,7 @@ function simpanOpname(p, ident) {
 
 function riwayatOpname(hari, ident) {
   var u = penggunaSaatIni_(ident);
-  if (!bolehReview_(u)) throw new Error('Hanya Supervisor / Admin.');
+  if (!bolehReview_(u) || !bolehModul_(u, MODUL.MANAJEMEN)) throw new Error('Hanya akun dengan akses Manajemen (Manager / Admin).');
   var batas = new Date(); batas.setDate(batas.getDate() - (hari || 90));
   var sesi = {};
   baca_(SHEET.OPNAME).forEach(function (r) {
@@ -3401,6 +3423,7 @@ function migrasiSkema() {
   migrasiV9_(ss);
   migrasiV10_(ss);
   migrasiV10_1_(ss);
+  migrasiV11_(ss);
   Object.keys(SHEET).forEach(function (k) {
     var nama = SHEET[k], head = HEADER[nama];
     var sh = ss.getSheetByName(nama);
@@ -3505,9 +3528,61 @@ function migrasiV10_(ss) {
     DUMMY_PENGGUNA.forEach(function (d) {
       if (d[3] !== 'Produksi' && d[3] !== 'Sales') return;
       if (adaNama[String(d[1]).toLowerCase()]) return;
-      tambah_(SHEET.PENGGUNA, { Email: d[0], Nama: d[1], Peran: d[2], Lokasi: d[3], PIN: d[4], Aktif: d[5] });
+      tambah_(SHEET.PENGGUNA, { Email: d[0], Nama: d[1], Peran: d[2], Lokasi: d[3], PIN: d[4], Aktif: d[5], Akses: d[6] || '' });
     });
   }
+  lupakanMemo_();
+}
+
+/**
+ * v11 (revamp akses): kolom Akses di Master_Pengguna (modul per akun); proses review dihapus —
+ * entri MENUNGGU yang masih ada jadi DISETUJUI (sudah dihitung di stok sejak awal; laporan rusak MENUNGGU ikut final);
+ * akun Yansen (PO), Deny (SO), Bastari (PRODUKSI) ditambahkan, akun lama Manager Produksi / Sales Manager dinonaktifkan. Aman diulang.
+ */
+function migrasiV11_(ss) {
+  var shP = ss.getSheetByName(SHEET.PENGGUNA); if (!shP) return;
+  var maxKol = shP.getMaxColumns();
+  var head = shP.getRange(1, 1, 1, maxKol).getValues()[0].map(String);
+  var baru = head.indexOf('Akses') < 0;
+  if (baru) {
+    var terakhir = 0; for (var i = head.length - 1; i >= 0; i--) if (head[i]) { terakhir = i + 1; break; }
+    if (terakhir + 1 > maxKol) shP.insertColumnsAfter(Math.max(terakhir, 1), 1);
+    shP.getRange(1, terakhir + 1).setValue('Akses');
+    lupakanMemo_(SHEET.PENGGUNA);
+  }
+  var adaNama = {};
+  baca_(SHEET.PENGGUNA).forEach(function (r) { adaNama[String(r.Nama || '').trim().toLowerCase()] = r; });
+  var ditambah = 0;
+  DUMMY_PENGGUNA.forEach(function (d) {
+    if (!d[6] || d[2] !== PERAN.SUPERVISOR) return;                 // hanya akun modul (Yansen / Deny / Bastari)
+    if (adaNama[String(d[1]).toLowerCase()]) return;
+    tambah_(SHEET.PENGGUNA, { Email: d[0], Nama: d[1], Peran: d[2], Lokasi: d[3], PIN: d[4], Aktif: d[5], Akses: d[6] });
+    ditambah++;
+  });
+  if (ditambah) {                                                    // hanya saat pertama kali: akun lama diganti akun modul
+    ['manager produksi', 'sales manager'].forEach(function (n) {
+      var r = adaNama[n]; if (r && String(r.Aktif).toUpperCase() !== 'TIDAK') ubahBaris_(SHEET.PENGGUNA, r._baris, { Aktif: 'TIDAK' });
+    });
+  }
+  lupakanMemo_(SHEET.PENGGUNA);
+  /* review dihapus: MENUNGGU → DISETUJUI (penerimaan & pengiriman sudah dihitung di stok; rusak MENUNGGU ikut final) */
+  var n = 0, now = new Date();
+  [SHEET.PENERIMAAN, SHEET.PENGIRIMAN, SHEET.KERUSAKAN].forEach(function (nama) {
+    if (!ss.getSheetByName(nama)) return;
+    baca_(nama).forEach(function (r) {
+      if (r.Status !== STATUS_TRANSFER.MENUNGGU) return;
+      ubahBaris_(nama, r._baris, { Status: STATUS_TRANSFER.DISETUJUI, Ditinjau_Oleh: 'sistem (review dihapus v11)', Waktu_Tinjau: now });
+      n++;
+    });
+  });
+  lupakanMemo_();
+  if (n) {
+    var rata = hitungRata_();
+    baca_(SHEET.KERUSAKAN).forEach(function (r) {
+      if (r.Ditinjau_Oleh === 'sistem (review dihapus v11)' && !angka_(r.Nilai_Kerugian)) ubahBaris_(SHEET.KERUSAKAN, r._baris, { Nilai_Kerugian: bulat_(rata.biaya[r.ID] || 0, 0) });
+    });
+  }
+  if (baru || ditambah || n) catatLog_('MIGRASI_V11', '', (ditambah ? ditambah + ' akun modul ditambah; ' : '') + n + ' entri MENUNGGU difinalkan');
   lupakanMemo_();
 }
 
@@ -3595,7 +3670,8 @@ var PRIORITAS_EV_ = { MASUK: 0, RETUR_CUST: 0, DAUR_TERIMA: 0, OPNAME: 1, SHIFT:
    PESANAN PEMBELIAN (PO) — manager
    ================================================================= */
 
-function bolehPo_(u) { return bolehReview_(u); }
+function bolehPo_(u) { return bolehReview_(u) && bolehModul_(u, MODUL.PO); }
+function bolehSo_(u) { return bolehReview_(u) && bolehModul_(u, MODUL.SO); }
 
 function nomorPoBaru_() {
   var tgl = Utilities.formatDate(new Date(), APP.zona, 'yyMMdd');
@@ -4035,7 +4111,8 @@ function laporanNilaiStok(ident) {
 /** Hitung ulang HPP tersimpan (HPP pengiriman, nilai kerugian rusak, HPP daur ulang) dari mesin rata-rata. Manager. */
 function hitungUlangHpp(ident) {
   var u = penggunaSaatIni_(ident);
-  if (!bolehPo_(u)) throw new Error('Hanya Manager / Admin.');
+  if (!bolehReview_(u)) throw new Error('Hanya Manager / Admin.');
+  wajibModul_(u, MODUL.MANAJEMEN);
   var lock = LockService.getScriptLock();
   lock.waitLock(20000);
   lupakanMemo_();
@@ -4074,7 +4151,7 @@ function hitungUlangHpp(ident) {
 /** p = { kode, qty, penyebab, tanggal, foto, catatan, ident } — HANYA STAF. (v9: lokasi selalu GBJ) */
 function simpanKerusakan(p) {
   var u = penggunaSaatIni_(p && p.ident);
-  if (bolehReview_(u)) throw new Error('Laporan barang rusak harus dicatat oleh STAF gudang (bukan manager).');
+  wajibModul_(u, MODUL.GUDANG);          // v11: siapa pun dengan akses gudang; langsung final (tanpa persetujuan)
   if (!p || !p.kode) throw new Error('Item belum dipilih.');
   var lok = LOKASI.GBJ;
   var q = angka_(p.qty); if (q <= 0) throw new Error('Qty harus > 0.');
@@ -4090,10 +4167,13 @@ function simpanKerusakan(p) {
       ID: id, Waktu: new Date(), Tanggal: tglValid_(p.tanggal), Lokasi: lok,
       Kode_Item: it.kode, Nama_Item: it.nama, Qty_Kg: q, Penyebab: p.penyebab,
       Foto_URL: foto.url, Foto_ID: foto.id, Dicatat_Oleh: penandaPencatat_(u), Nama_Pencatat: u.nama,
-      Status: STATUS_TRANSFER.MENUNGGU, Ditinjau_Oleh: '', Waktu_Tinjau: '', Catatan_Tinjau: '',
+      Status: STATUS_TRANSFER.DISETUJUI, Ditinjau_Oleh: 'otomatis', Waktu_Tinjau: new Date(), Catatan_Tinjau: '',
       Nilai_Kerugian: '', Catatan: p.catatan || '', Log_Edit: ''
     });
-    catatLog_('RUSAK_LAPOR', id, it.nama + ' ' + q + ' kg @' + lok + ' — ' + p.penyebab);
+    lupakanMemo_();
+    var nilai = bulat_(hitungRata_().biaya[id] || 0, 0);
+    ubahBaris_(SHEET.KERUSAKAN, cariEntri_(SHEET.KERUSAKAN, id)._baris, { Nilai_Kerugian: nilai });
+    catatLog_('RUSAK_LAPOR', id, it.nama + ' ' + q + ' kg @' + lok + ' — ' + p.penyebab + (nilai ? ' • rugi ' + nilai : ''));
     return { ok: true, id: id, item: it.nama, qty: q };
   } finally { lock.releaseLock(); }
 }
@@ -4111,7 +4191,7 @@ function daftarKerusakan(ident, status, hari) {
   var u = penggunaSaatIni_(ident);
   var spv = bolehReview_(u);
   var batas = new Date(); batas.setDate(batas.getDate() - (hari || 30));
-  status = status || STATUS_TRANSFER.MENUNGGU;
+  status = status || STATUS_TRANSFER.DISETUJUI;
   return baca_(SHEET.KERUSAKAN).filter(function (r) {
     if (!spv && r.Dicatat_Oleh !== penandaPencatat_(u)) return false;
     if (status !== 'SEMUA' && r.Status !== status) return false;
@@ -4122,14 +4202,17 @@ function daftarKerusakan(ident, status, hari) {
 /** aksi: 'setuju' (stok berkurang, nilai kerugian dihitung pada harga rata-rata) | 'batal' */
 function tinjauKerusakan(id, aksi, catatan, ident) {
   var u = penggunaSaatIni_(ident);
-  if (!bolehReview_(u)) throw new Error('Hanya Supervisor / Admin yang bisa meninjau laporan rusak.');
+  if (!bolehReview_(u)) throw new Error('Hanya Manager / Admin yang bisa membatalkan laporan rusak.');
+  wajibModul_(u, MODUL.GUDANG);
+  if (aksi !== 'batal') throw new Error('Tidak ada proses persetujuan lagi — laporan rusak langsung final. Yang bisa dilakukan: batalkan.');
   var lock = LockService.getScriptLock();
   lock.waitLock(20000);
   lupakanMemo_();   // di dalam lock: baca ulang dari sheet, jangan pakai memo sebelum lock
   try {
     var r = cariEntri_(SHEET.KERUSAKAN, id);
-    if (r.Status !== STATUS_TRANSFER.MENUNGGU) throw new Error('Laporan sudah ' + r.Status + '.');
-    var status = aksi === 'setuju' ? STATUS_TRANSFER.DISETUJUI : STATUS_TRANSFER.DIBATALKAN;
+    if (r.Status === STATUS_TRANSFER.DIBATALKAN) throw new Error('Laporan sudah dibatalkan.');
+    if (bulanTertutup_(r.Tanggal)) throw new Error(pesanKunci_('BULAN_TUTUP'));
+    var status = STATUS_TRANSFER.DIBATALKAN;
     ubahBaris_(SHEET.KERUSAKAN, r._baris, { Status: status, Ditinjau_Oleh: u.nama, Waktu_Tinjau: new Date(),
       Catatan_Tinjau: [r.Catatan_Tinjau, catatan].filter(String).join(' | ') });
     var nilai = 0;
@@ -4237,7 +4320,7 @@ function nomorSoBaru_() {
 /** p = { customer, tanggal, tanggalKirim, topHari, baris:[{kode, qty, harga}], catatan } — v10: TOP wajib diisi (0 = tunai). */
 function simpanSo(p, ident) {
   var u = penggunaSaatIni_(ident);
-  if (!bolehPo_(u)) throw new Error('Hanya Manager / Admin yang bisa membuat sales order.');
+  if (!bolehSo_(u)) throw new Error('Hanya akun dengan akses Sales order yang bisa membuat SO.');
   if (!p || !String(p.customer || '').trim()) throw new Error('Customer belum dipilih.');
   if (!p.baris || !p.baris.length) throw new Error('Item SO belum diisi.');
   var kirim = String(p.tanggalKirim || '').trim();
@@ -4273,7 +4356,7 @@ function simpanSo(p, ident) {
 
 function ubahSo(id, perubahan, ident) {
   var u = penggunaSaatIni_(ident);
-  if (!bolehPo_(u)) throw new Error('Hanya Manager / Admin yang bisa mengubah SO.');
+  if (!bolehSo_(u)) throw new Error('Hanya akun dengan akses Sales order yang bisa mengubah SO.');
   perubahan = perubahan || {};
   var lock = LockService.getScriptLock();
   lock.waitLock(20000);
@@ -4309,7 +4392,7 @@ function ubahSo(id, perubahan, ident) {
 
 function batalkanSo(id, alasan, ident) {
   var u = penggunaSaatIni_(ident);
-  if (!bolehPo_(u)) throw new Error('Hanya Manager / Admin yang bisa membatalkan SO.');
+  if (!bolehSo_(u)) throw new Error('Hanya akun dengan akses Sales order yang bisa membatalkan SO.');
   var lock = LockService.getScriptLock();
   lock.waitLock(20000);
   lupakanMemo_();
@@ -4599,7 +4682,7 @@ function pasangBackupHarian() {
 /** Info untuk menu Admin: apakah pemicu terpasang, salinan terakhir. */
 function statusBackup(ident) {
   var u = penggunaSaatIni_(ident);
-  if (!bolehReview_(u)) throw new Error('Hanya Supervisor / Admin.');
+  if (!bolehReview_(u) || !bolehModul_(u, MODUL.MANAJEMEN)) throw new Error('Hanya akun dengan akses Manajemen (Manager / Admin).');
   var terpasang = false;
   try { terpasang = ScriptApp.getProjectTriggers().some(function (t) { return t.getHandlerFunction() === 'backupHarian'; }); } catch (e) {}
   var terakhir = '', jumlah = 0;
@@ -4658,6 +4741,7 @@ function detailDaur_(id, jenis, cache) {
  */
 function mulaiDaurUlang(p) {
   var u = penggunaSaatIni_(p && p.ident);
+  wajibModul_(u, MODUL.GUDANG);
   if (!p || !String(p.vendor || '').trim()) throw new Error('Tempat chassen (vendor) belum dipilih.');
   if (!p.scrap || !p.scrap.length) throw new Error('Scrap yang dikirim belum diisi.');
   var peta = petaItem_();
@@ -4695,6 +4779,7 @@ function mulaiDaurUlang(p) {
  */
 function selesaikanDaurUlang(p) {
   var u = penggunaSaatIni_(p && p.ident);
+  wajibModul_(u, MODUL.GUDANG);
   if (!p || !p.id) throw new Error('ID batch kosong.');
   if (!p.hasil || !p.hasil.length) throw new Error('Biji plastik yang diterima belum diisi.');
   var peta = petaItem_();
@@ -4772,8 +4857,8 @@ function daftarDaurUlang(ident, status, hari) {
     return r.Status === status && new Date(r.Waktu_Kirim) >= batas;
   }).map(function (r) {
     var o = ringkasDaur_(r, lihat, det);
-    o.bolehUbah = bolehReview_(u);
-    o.bolehBatal = (bolehReview_(u) || (r.Status === STATUS_DAUR.BERJALAN && r.Dicatat_Oleh === penandaPencatat_(u))) && r.Status !== STATUS_DAUR.DIBATALKAN;
+    o.bolehUbah = bolehReview_(u) && bolehModul_(u, MODUL.GUDANG);
+    o.bolehBatal = bolehModul_(u, MODUL.GUDANG) && (bolehReview_(u) || (r.Status === STATUS_DAUR.BERJALAN && r.Dicatat_Oleh === penandaPencatat_(u))) && r.Status !== STATUS_DAUR.DIBATALKAN;
     o.batas = standarChassen_().normal + standarChassen_().toleransi;
     return o;
   }).reverse().slice(0, 100);
@@ -4783,8 +4868,8 @@ function ambilDaurUlang(id, ident) {
   var u = penggunaSaatIni_(ident);
   var r = cariDaur_(id);
   var o = ringkasDaur_(r, bolehLihatHpp_(u));
-  o.bolehUbah = bolehReview_(u);
-  o.bolehBatal = (bolehReview_(u) || (r.Status === STATUS_DAUR.BERJALAN && r.Dicatat_Oleh === penandaPencatat_(u))) && r.Status !== STATUS_DAUR.DIBATALKAN;
+  o.bolehUbah = bolehReview_(u) && bolehModul_(u, MODUL.GUDANG);
+  o.bolehBatal = bolehModul_(u, MODUL.GUDANG) && (bolehReview_(u) || (r.Status === STATUS_DAUR.BERJALAN && r.Dicatat_Oleh === penandaPencatat_(u))) && r.Status !== STATUS_DAUR.DIBATALKAN;
   o.batas = standarChassen_().normal + standarChassen_().toleransi;
   return o;
 }
@@ -4792,7 +4877,7 @@ function ambilDaurUlang(id, ident) {
 /** Manager: perubahan = { biayaJasa, vendor, noSuratJalan, catatan }. Biaya jasa diubah → HPP dihitung ulang. */
 function ubahDaurUlang(id, perubahan, ident) {
   var u = penggunaSaatIni_(ident);
-  if (!bolehReview_(u)) throw new Error('Hanya Manager / Admin yang bisa mengubah batch daur ulang.');
+  if (!bolehReview_(u) || !bolehModul_(u, MODUL.GUDANG)) throw new Error('Hanya Manager / Admin dengan akses gudang yang bisa mengubah batch daur ulang.');
   perubahan = perubahan || {};
   var lock = LockService.getScriptLock();
   lock.waitLock(20000);
@@ -4828,6 +4913,7 @@ function ubahDaurUlang(id, perubahan, ident) {
 /** Batal: manager kapan saja; staf hanya batch sendiri yang masih BERJALAN. Stok scrap kembali (batch tidak dihitung). */
 function batalkanDaurUlang(id, alasan, ident) {
   var u = penggunaSaatIni_(ident);
+  wajibModul_(u, MODUL.GUDANG);
   var lock = LockService.getScriptLock();
   lock.waitLock(20000);
   lupakanMemo_();
@@ -4947,7 +5033,8 @@ function konfigurasiShift(ident) {
   return { kualitas: kualitas, kurang: kurang, bahan: bahan, operator: daftarOperator_(), shift: DAFTAR_SHIFT, jamShift: JAM_SHIFT, hariIni: tglStr_(new Date()) };
 }
 
-function bolehShift_(u) { return bolehReview_(u); }
+function bolehShift_(u) { return bolehReview_(u) && bolehModul_(u, MODUL.PRODUKSI); }
+function bolehOpnameProd_(u) { return bolehReview_(u) && (bolehModul_(u, MODUL.PRODUKSI) || bolehModul_(u, MODUL.MANAJEMEN)); }
 
 /**
  * p = { tanggal, shift,
@@ -5234,7 +5321,7 @@ function laporanProduksi(bulan, ident) {
  */
 function simpanOpnameProduksi(p, ident) {
   var u = penggunaSaatIni_(ident);
-  if (!bolehReview_(u)) throw new Error('Opname produksi hanya diisi Manager / Admin.');
+  if (!bolehOpnameProd_(u)) throw new Error('Opname produksi hanya diisi akun dengan akses Produksi / Manajemen.');
   p = p || {};
   var bulan = bulanValid_(p.bulan || tglStr_(new Date()).slice(0, 7));
   if (bulan > tglStr_(new Date()).slice(0, 7)) throw new Error('Bulan belum berjalan.');
@@ -5280,7 +5367,7 @@ function ringkasOpnameProd_(r) {
 /** Riwayat opname produksi (Manager / Admin) — tanpa angka pembanding. */
 function daftarOpnameProduksi(ident, bulan) {
   var u = penggunaSaatIni_(ident);
-  if (!bolehReview_(u)) throw new Error('Hanya Manager / Admin.');
+  if (!bolehOpnameProd_(u)) throw new Error('Hanya akun dengan akses Produksi / Manajemen.');
   return baca_(SHEET.OPNAME_PROD).filter(function (r) { return !bulan || bulanStr_(r.Bulan) === bulan; })
     .map(ringkasOpnameProd_).sort(function (a, b) { return (b.bulan + b.tanggal).localeCompare(a.bulan + a.tanggal); });
 }
@@ -5567,7 +5654,7 @@ function laporanBulanan(bulan, ident) {
   lap.tertutup = !!t && t.Status === STATUS_TUTUP.DITUTUP;
   lap.snapshot = t ? ringkasTutup_(t) : null;
   lap.bulanIni = tglStr_(new Date()).slice(0, 7);
-  lap.bolehTutup = bolehReview_(u) && !lap.tertutup && bulan < lap.bulanIni;
+  lap.bolehTutup = bolehReview_(u) && bolehModul_(u, MODUL.MANAJEMEN) && !lap.tertutup && bulan < lap.bulanIni;
   lap.bolehBuka = bolehAdmin_(u) && lap.tertutup && bulan === bulanTerakhirTertutup_();
   return lap;
 }
@@ -5575,7 +5662,7 @@ function laporanBulanan(bulan, ident) {
 /** Tutup bulan: simpan snapshot, kunci transaksi bulan itu. Hanya bulan yang sudah lewat. */
 function tutupBulan(bulan, catatan, ident) {
   var u = penggunaSaatIni_(ident);
-  if (!bolehReview_(u)) throw new Error('Hanya Manager / Admin yang bisa menutup bulan.');
+  if (!bolehReview_(u) || !bolehModul_(u, MODUL.MANAJEMEN)) throw new Error('Hanya akun dengan akses Manajemen yang bisa menutup bulan.');
   bulan = bulanValid_(bulan);
   var bulanIni = tglStr_(new Date()).slice(0, 7);
   if (bulan >= bulanIni) throw new Error('Bulan ' + bulan + ' belum selesai — tutup buku hanya untuk bulan yang sudah lewat.');
@@ -5679,7 +5766,7 @@ DUMMY_CUSTOMER = [
 
   var STAF = { 'Staff Gudang':'1111', Yanto:'2222', Sri:'3333', Rina:'4444' };
   function id(nama){ return { nama:nama, pin: STAF[nama] || '' }; }
-  var MGR = { nama:'Manager', pin:'1357' }, MP = { nama:'Manager Produksi', pin:'1122' }, SM = { nama:'Sales Manager', pin:'3344' };
+  var MGR = { nama:'Manager', pin:'1357' }, MP = { nama:'Bastari', pin:'4433' }, SM = { nama:'Deny', pin:'3322' }, YS = { nama:'Yansen', pin:'2211' };
   function mundur(menit){ return new Date(Date.now() - menit*60000); }
   function tglMundur(menit){ return Utilities.formatDate(mundur(menit), APP.zona, 'yyyy-MM-dd'); }
   /* mundurkan waktu N baris terakhir (satu entri bisa jadi beberapa baris) */
@@ -5698,7 +5785,7 @@ DUMMY_CUSTOMER = [
   var po1 = simpanPo({ supplier:'PT Sumber Biji Plastik', tanggal:tglMundur(60*75), perkiraanDatang:tglMundur(60*70), topHari:30,
     baris:[{kode:'RM-BP-KW', qty:2000, harga:13000, spesifikasi:'KW hitam, MFI 0.3–0.5, kadar air <1%'},
            {kode:'RM-BP-SUP', qty:500, harga:15000, spesifikasi:'Super hitam, bening tanpa bintik'}],
-    catatan:'Stok produksi minggu ini' }, SM);
+    catatan:'Stok produksi minggu ini' }, YS);
   geser(SHEET.PO, 60*75, 0, 2);
   var po2 = simpanPo({ supplier:'CV Warna Pigmen Jaya', tanggal:tglMundur(60*50), perkiraanDatang:tglMundur(60*44), topHari:14,
     baris:[{kode:'RM-PG-KW', qty:100, harga:28000, spesifikasi:'Masterbatch hitam KW'},
@@ -5706,7 +5793,7 @@ DUMMY_CUSTOMER = [
   geser(SHEET.PO, 60*50, 0, 2);
   simpanPo({ supplier:'PT Sumber Biji Plastik', tanggal:tglMundur(60*5), perkiraanDatang:tglMundur(-60*48), topHari:30,
     baris:[{kode:'RM-BP-SPL', qty:800, harga:15000, spesifikasi:'Super Plus bening'}],
-    catatan:'Datang lusa' }, SM);
+    catatan:'Datang lusa' }, YS);
   geser(SHEET.PO, 60*5, 0, 1);
 
   function poBaris(noPo, kode){ return baca_(SHEET.PO).filter(function(r){ return r.No_PO===noPo && r.Kode_Item===kode; })[0]; }
@@ -5732,7 +5819,7 @@ DUMMY_CUSTOMER = [
     ident:id('Staff Gudang') });
   geser(SHEET.PENERIMAAN, 60*18, 0, 1);
 
-  /* --- penerimaan sisa PO yang masih menunggu review (angka ketik beda 5 kg dari OCR) --- */
+  /* --- penerimaan sisa PO (angka ketik beda 5 kg dari OCR) --- */
   simpanPenerimaan({ jenis:'MASUK', supplier:'PT Sumber Biji Plastik', noSuratJalan:'SJ/2026/09/0184',
     baris:[{kode:'RM-BP-KW', qty:505, idPo:poBaris(po1.noPo,'RM-BP-KW').ID}], qtyOcr:500,
     catatan:'timbangan gudang lebih 5 kg', catatanQc:'3 karung lembab', ident:id('Staff Gudang') });
@@ -5774,22 +5861,15 @@ DUMMY_CUSTOMER = [
   kirim('KELUAR','Toko Tani Sejahtera','DO/2026/09/0040', [{kode:'FG-PB-KW', qty:250}], 60*19, 'Sri');
   kirim('RETUR_MASUK','Toko Tani Sejahtera','', [{kode:'FG-PB-KW', qty:12}], 60*12, 'Sri');
   kirim('KELUAR','Koperasi Perkebunan Sawit','DO/2026/09/0041', [{kode:'FG-PB-SUP', qty:150}], 60*5, 'Rina');
-  kirim('KELUAR','Toko Tani Sejahtera','DO/2026/09/0044', [{kode:'FG-PB-KW', qty:80}], 0, 'Sri');   // menunggu review
+  kirim('KELUAR','Toko Tani Sejahtera','DO/2026/09/0044', [{kode:'FG-PB-KW', qty:80}], 0, 'Sri');
 
-  /* --- sebagian sudah di-review supaya riwayat tidak seragam --- */
-  var q = antrianReview(MGR);
-  q.slice(4).forEach(function(x, i){
-    try {
-      if (i === 1) tinjauTransfer(x.id, 'tandai', 'cek ulang timbangan, angka beda dengan catatan manual', MGR);
-      else tinjauTransfer(x.id, 'setuju', '', MGR);
-    } catch(e){}
-  });
+  /* --- v11: tidak ada review — satu pengiriman dibatalkan manager supaya riwayat tidak seragam --- */
+  try { var kel = riwayatInput('JUAL_KELUAR', 14, MGR); if (kel.length > 2) tinjauTransfer(kel[kel.length-1].id, 'batal', 'dobel input', MGR); } catch(e){}
 
-  /* --- laporan barang rusak (v7): satu disetujui, satu menunggu --- */
+  /* --- laporan barang rusak (v11: langsung final) --- */
   try {
-    var d1 = simpanKerusakan({ kode:'RM-BP-KW', qty:25, penyebab:'karung bocor kena hujan di bongkar muat', ident:id('Yanto') });
+    simpanKerusakan({ kode:'RM-BP-KW', qty:25, penyebab:'karung bocor kena hujan di bongkar muat', ident:id('Yanto') });
     geser(SHEET.KERUSAKAN, 60*26, 0, 1);
-    tinjauKerusakan(d1.id, 'setuju', '', MGR);
     simpanKerusakan({ kode:'RM-PG-KW', qty:2, penyebab:'sak pigmen tumpah', ident:id('Rina') });
     geser(SHEET.KERUSAKAN, 60*2, 0, 1);
   } catch(e) {}
@@ -5931,7 +6011,7 @@ var T = {
     uEdit:'UBAH ENTRI', uBatal:'BATALKAN ENTRI', sebagian:'SEBAGIAN', baru:'Baru',
     serverSibuk:'Server sedang sibuk — coba lagi sebentar.', jaringanPutus:'Jaringan putus. Cek sinyal lalu coba lagi.',
     a8t:'Pesanan pembelian (PO)', a8s:'Apa yang akan datang · qty · harga · spesifikasi · invoice',
-    a9t:'Barang rusak', a9s:'Lapor kerusakan · stok berkurang setelah disetujui manager',
+    a9t:'Barang rusak', a9s:'Lapor kerusakan · stok langsung berkurang (tanpa persetujuan)',
     lblDariPo:'Dari pesanan pembelian (PO)', hintDariPo:'Pilih PO yang barangnya datang — item & spesifikasi terisi otomatis. Bisa pilih lebih dari satu.',
     pilihPo:'— pilih PO yang datang —', tanpaPo:'Tanpa PO (barang datang tanpa pesanan)', sisaPo:'sisa PO', spesifikasi:'Spesifikasi', datang:'datang',
     lblDariPenerimaan:'Barang yang diretur (dari penerimaan)', hintDariPenerimaan:'Hanya barang yang sudah tercatat diterima yang bisa diretur.',
@@ -5947,8 +6027,8 @@ var T = {
     invHargaBaru:'Harga di invoice beda? Isi harga baru per kg (kosongkan kalau sama):', invTersimpan:'Invoice terunggah', invDivalidasi:'Invoice divalidasi', invDitolak:'Invoice ditolak',
     hitungUlangHpp:'Hitung ulang HPP (rata-rata)', hppDihitung:'HPP dihitung ulang', kosongInv:'Belum ada invoice',
     segRusak:'Rusak', rusakT:'Lapor barang rusak', rusakS:'Dicatat oleh staf gudang. Stok baru berkurang setelah manager menyetujui.',
-    lblLokasi:'Lokasi', lblPenyebab:'Penyebab kerusakan', lblFotoOpsi:'Foto (opsional)', btnLaporRusak:'Kirim laporan', rusakRiwayatT:'Laporan saya',
-    rusakTerkirim:'Laporan rusak terkirim — menunggu persetujuan manager', kosongRusak:'Tidak ada laporan rusak', hintRusak:'Laporan kerusakan dari staf. Setujui = stok berkurang & kerugian dihitung dari harga rata-rata.',
+    lblLokasi:'Lokasi', lblPenyebab:'Penyebab kerusakan', lblFotoOpsi:'Foto (opsional)', btnLaporRusak:'Kirim laporan', rusakRiwayatT:'Riwayat laporan rusak',
+    rusakTerkirim:'Laporan rusak tersimpan — stok sudah dikurangi', kosongRusak:'Tidak ada laporan rusak', hintRusak:'Laporan kerusakan dari staf. Setujui = stok berkurang & kerugian dihitung dari harga rata-rata.',
     nilaiKerugian:'Kerugian', rusakDisetujui:'Disetujui — stok dikurangi', rusakDibatalkan:'Laporan dibatalkan',
     segNilai:'Nilai stok', nilaiT:'Nilai stok (harga rata-rata)', nilaiS:'Nilai persediaan sekarang dengan harga rata-rata bergerak: biji plastik dari pembelian, roll & polybag dari biji + biaya proses, BS dinilai 0, biji daur ulang dari jasa chassen.',
     rataHarga:'rata-rata', totalNilai:'Total nilai',
@@ -6012,8 +6092,9 @@ var T = {
     terkunciHint:'Sudah ditinjau — hanya supervisor yang bisa mengubah',
     lihatDetail:'Lihat', detailT:'Detail entri', hanyaLihat:'Hanya bisa dilihat',
     kunciSUDAH_DITINJAU:'Sudah ditinjau supervisor — hanya supervisor/manager yang bisa mengubah.',
+    kunciLEWAT_24JAM:'Lebih dari 24 jam sejak dicatat — hanya manager gudang yang bisa mengubah.', kunciBUKAN_MODUL:'Akun ini tidak punya akses modul gudang.',
     kunciLEWAT_BATAS:'Lebih dari {n} hari — periode sudah ditutup, tidak bisa diubah siapa pun.',
-    kunciBUKAN_MILIK:'Dicatat oleh orang lain — hanya pencatatnya (selama menunggu) atau supervisor yang bisa mengubah.',
+    kunciBUKAN_MILIK:'Dicatat oleh orang lain — hanya pencatatnya (dalam 24 jam) atau manager gudang yang bisa mengubah.',
     kunciDIBATALKAN:'Entri sudah dibatalkan.', kunciBULAN_TUTUP:'Bulan ini sudah ditutup (tutup buku) — tidak bisa diubah.',
     fotoBukti:'Foto bukti', tidakAdaFoto:'Tidak ada foto', ditinjauOleh:'Ditinjau oleh',
     statBeli:'Bahan perlu dibeli', datangT:'Barang akan datang', datangS:'PO yang belum lengkap diterima', kosongDatang:'Tidak ada PO terbuka',
@@ -6060,6 +6141,8 @@ var T = {
     aktInput:'input', aktKosong:'Belum ada aktivitas.',
     userT:'Pengguna', userTambah:'+ Tambah pengguna', userBaru:'Pengguna baru', userUbah:'Ubah pengguna',
     userPeran:'Peran', userLokasi:'Lokasi (opsional)', userEmail:'Email Google (opsional)',
+    userAkses:'Akses modul (kosong = semua modul)', userAksesHint:'Yang dicentang saja yang bisa diisi/diubah akun ini. Laporan (termasuk harga) tetap bisa dilihat semua manager.',
+    modulPO:'Pesanan pembelian & invoice', modulSO:'Sales order', modulPRODUKSI:'Laporan produksi & opname produksi', modulGUDANG:'Penerimaan, pengiriman, retur, rusak, daur ulang', modulMANAJEMEN:'Opname gudang, SKU, tutup bulan, aktivitas, backup',
     userPin:'PIN (4–8 angka)', userPinHintBaru:'Wajib supaya orang lain tidak bisa pakai nama ini.',
     userPinHintUbah:'Kosongkan = PIN tidak diubah. Ketik HAPUS untuk mengosongkan PIN.',
     userAktif:'Aktif (boleh login)', userTersimpan:'Pengguna tersimpan', userPunyaPin:'PIN', userTanpaPin:'tanpa PIN',
@@ -6180,7 +6263,7 @@ var T = {
     uEdit:'EDIT ENTRY', uBatal:'CANCEL ENTRY', sebagian:'PARTIAL', baru:'New',
     serverSibuk:'Server is busy — try again in a moment.', jaringanPutus:'No connection. Check your signal and try again.',
     a8t:'Purchase orders (PO)', a8s:'What is coming · qty · price · spec · invoice',
-    a9t:'Damaged goods', a9s:'Report damage · stock reduced after manager approval',
+    a9t:'Damaged goods', a9s:'Report damage · stock reduced immediately (no approval)',
     lblDariPo:'From purchase order (PO)', hintDariPo:'Pick the PO that arrived — item & spec are filled in. You can pick several.',
     pilihPo:'— pick the PO that arrived —', tanpaPo:'No PO (unplanned delivery)', sisaPo:'PO remaining', spesifikasi:'Specification', datang:'due',
     lblDariPenerimaan:'Goods to return (from a receipt)', hintDariPenerimaan:'Only goods already recorded as received can be returned.',
@@ -6196,8 +6279,8 @@ var T = {
     invHargaBaru:'Invoice price differs? Enter the new price per kg (leave blank if same):', invTersimpan:'Invoice uploaded', invDivalidasi:'Invoice validated', invDitolak:'Invoice rejected',
     hitungUlangHpp:'Recompute COGS (average)', hppDihitung:'COGS recomputed', kosongInv:'No invoices yet',
     segRusak:'Damage', rusakT:'Report damaged goods', rusakS:'Recorded by warehouse staff. Stock is reduced only after a manager approves.',
-    lblLokasi:'Location', lblPenyebab:'Cause of damage', lblFotoOpsi:'Photo (optional)', btnLaporRusak:'Send report', rusakRiwayatT:'My reports',
-    rusakTerkirim:'Damage report sent — waiting for manager approval', kosongRusak:'No damage reports', hintRusak:'Damage reports from staff. Approve = stock reduced & loss valued at average cost.',
+    lblLokasi:'Location', lblPenyebab:'Cause of damage', lblFotoOpsi:'Photo (optional)', btnLaporRusak:'Send report', rusakRiwayatT:'Damage report history',
+    rusakTerkirim:'Damage report saved — stock already reduced', kosongRusak:'No damage reports', hintRusak:'Damage reports from staff. Approve = stock reduced & loss valued at average cost.',
     nilaiKerugian:'Loss', rusakDisetujui:'Approved — stock reduced', rusakDibatalkan:'Report dismissed',
     segNilai:'Stock value', nilaiT:'Stock value (average cost)', nilaiS:'Current inventory at moving average cost: pellets from purchases, roll & polybag from pellets + process cost, BS valued 0, recycled pellets from the crushing fee.',
     rataHarga:'average', totalNilai:'Total value',
@@ -6257,8 +6340,9 @@ var T = {
     terkunciHint:'Already reviewed — only a supervisor can change it',
     lihatDetail:'View', detailT:'Entry details', hanyaLihat:'View only',
     kunciSUDAH_DITINJAU:'Already reviewed by a supervisor — only a supervisor/manager can change it.',
+    kunciLEWAT_24JAM:'More than 24 hours since it was recorded — only a warehouse manager can change it.', kunciBUKAN_MODUL:'This account has no warehouse module access.',
     kunciLEWAT_BATAS:'Older than {n} days — the period is closed, nobody can change it.',
-    kunciBUKAN_MILIK:'Logged by someone else — only the person who logged it (while pending) or a supervisor can change it.',
+    kunciBUKAN_MILIK:'Logged by someone else — only the person who logged it (within 24 h) or a warehouse manager can change it.',
     kunciDIBATALKAN:'Entry has been cancelled.', kunciBULAN_TUTUP:'This month is closed (books closed) — it cannot be changed.',
     fotoBukti:'Photo evidence', tidakAdaFoto:'No photo', ditinjauOleh:'Reviewed by',
     statBeli:'Materials to reorder', datangT:'Incoming goods', datangS:'POs not fully received yet', kosongDatang:'No open POs',
@@ -6303,6 +6387,8 @@ var T = {
     aktInput:'entries', aktKosong:'No activity yet.',
     userT:'Users', userTambah:'+ Add user', userBaru:'New user', userUbah:'Edit user',
     userPeran:'Role', userLokasi:'Location (optional)', userEmail:'Google email (optional)',
+    userAkses:'Module access (empty = all modules)', userAksesHint:'Only the ticked modules can be entered/edited by this account. Reports (incl. prices) stay visible to every manager.',
+    modulPO:'Purchase orders & invoices', modulSO:'Sales orders', modulPRODUKSI:'Production reports & production count', modulGUDANG:'Receipts, shipments, returns, damage, recycling', modulMANAJEMEN:'Warehouse count, SKUs, month close, activity, backup',
     userPin:'PIN (4–8 digits)', userPinHintBaru:'Required so nobody else can use this name.',
     userPinHintUbah:'Blank = PIN unchanged. Type HAPUS to clear the PIN.',
     userAktif:'Active (can sign in)', userTersimpan:'User saved', userPunyaPin:'PIN', userTanpaPin:'no PIN',
@@ -6389,7 +6475,6 @@ function terapkanBahasa(){
   if (S.view === 'beli') labelMutasi();
   if (S.view === 'shift') segShift(S.shiftTab || 'list');
   if (S.view === 'daur') segDaur(S.daurTab || 'list');
-  if (S.view === 'review') muatReview();
   if (S.view === 'report') segRep(S.repTab || 'produksi');
   if (S.cal.data) gambarKalender();
   gambarSemuaBaris();
@@ -6476,7 +6561,7 @@ function keluar(){
   S.ident = { nama:'', pin:'' }; S.ctx = null;
   $('hdrUser').textContent = '';
   /* v9: kosongkan layar hasil/daftar yang mungkin memuat harga — supaya akun berikutnya di HP yang sama tidak melihat sisa tampilan akun sebelumnya */
-  ['daurHasil','repBody','admBody','poBody','soBody','daurDone','daurList','daurDetailBody','revList','shiftRows','shiftRep','daurFinHead'].forEach(function(id){ var el=$(id); if (el) el.innerHTML=''; });
+  ['daurHasil','repBody','admBody','poBody','soBody','daurDone','daurList','daurDetailBody','rusakRiwayat','shiftRows','shiftRep','daurFinHead'].forEach(function(id){ var el=$(id); if (el) el.innerHTML=''; });
   S.daurCache = null; S.daurCacheDone = null; S.soCache = null; S.poCache = null; S.ekspor = null; S.shiftCache = null; S.shiftKunci = null; S.shiftCfg = null; S.shiftEdit = null; S.opprod = null; S.rekonBulan = null; STOK_CACHE = {};
   ['nav-review','nav-admin'].forEach(function(id){ var el=$(id); if(el) el.classList.add('hide'); });
   tampil('ident');
@@ -6492,7 +6577,7 @@ function sibuk(btn, on, teksAsli){
 /* ---------------- navigasi ---------------- */
 function tampil(v){
   S.view = v;
-  ['ident','home','beli','shift','review','report','admin','po','rusak','so','daur'].forEach(function(x){
+  ['ident','home','beli','shift','report','admin','po','rusak','so','daur'].forEach(function(x){
     var el = $('v-'+x); if(el) el.classList.toggle('hide', x !== v);
     var nb = $('nav-'+x); if(nb) nb.classList.toggle('on', x === v);
   });
@@ -6501,7 +6586,6 @@ function tampil(v){
   if (v==='ident')  siapkanIdent();
   if (v==='home')   muatKonteks();
   if (v==='shift')  segShift(S.shiftTab);
-  if (v==='review') muatReview();
   if (v==='report') segRep(S.repTab);
   if (v==='admin')  segAdm(S.admTab);
   if (v==='po')     segPo(S.poTab);
@@ -6535,42 +6619,35 @@ function muatKonteks(diam){
     $('sJadi').textContent   = n2(c.ringkasan.jadiHariIni || 0);
     $('sBs').textContent     = n2(c.ringkasan.bsHariIni || 0);
     $('sShift').textContent  = c.ringkasan.shiftHariIni || 0;
-    $('sQueue').textContent  = c.ringkasan.menungguReview;
-    $('homeRev').classList.toggle('hide', !c.bisaReview);
-    $('nav-review').classList.toggle('hide', !c.bisaReview);
+    var md = c.modul || {};
+    $('segRepBulanan').classList.toggle('hide', !c.lihatHpp);
     $('segRepBulanan').classList.toggle('hide', !c.lihatHpp);
     var shb = $('shiftBadge'); if (shb){ shb.textContent = c.ringkasan.shiftHariIni || ''; shb.classList.toggle('hide', !c.ringkasan.shiftHariIni); }
-    if (c.bisaReview && !S.shiftCfg) muatKonfigShift();
-    $('nav-admin').classList.toggle('hide', !c.bisaReview);
-    var tp = $('tilePo'), tr = $('tileRusak');
-    if (tp) tp.classList.toggle('hide', !c.bisaPo);
-    if (tr) tr.classList.toggle('hide', !!c.bisaReview);   // hanya staf yang melapor rusak
+    if (md.PRODUKSI && !S.shiftCfg) muatKonfigShift();
+    $('nav-admin').classList.toggle('hide', !(md.MANAJEMEN || md.PRODUKSI || c.bisaAdmin));
+    var tp = $('tilePo');
+    if (tp) tp.classList.toggle('hide', !md.PO);
+    document.querySelectorAll('.mod-gudang').forEach(function(el){ el.classList.toggle('hide', !md.GUDANG); });
+    var sbh = $('secBeliH'); if (sbh) sbh.classList.toggle('hide', !(md.GUDANG || md.PO));
+    var sjh = $('secJualH'); if (sjh) sjh.classList.toggle('hide', !(md.GUDANG || md.SO));
     var pb = $('poBadge'); if (pb){ pb.textContent = c.ringkasan.poTerbuka || ''; pb.classList.toggle('hide', !c.ringkasan.poTerbuka); }
-    var ts = $('tileSo'); if (ts) ts.classList.toggle('hide', !c.bisaPo);
+    var ts = $('tileSo'); if (ts) ts.classList.toggle('hide', !md.SO);
     var sb = $('soBadge'); if (sb){ sb.textContent = c.ringkasan.soTerbuka || ''; sb.classList.toggle('hide', !c.ringkasan.soTerbuka); }
     var db = $('daurBadge'); if (db){ db.textContent = c.ringkasan.daurBerjalan || ''; db.classList.toggle('hide', !c.ringkasan.daurBerjalan); }
     var se = $('segRepEkspor'); if (se) se.classList.toggle('hide', !c.lihatHpp);
-    var sbk = $('segAdmBackup'); if (sbk) sbk.classList.toggle('hide', !c.bisaReview);
-    var cr = $('cntRusak'); if (cr) cr.textContent = c.ringkasan.kerusakanMenunggu || '';
+    ['segAdmOpname','segAdmSku','segAdmAkt','segAdmBackup'].forEach(function(id){ var el=$(id); if (el) el.classList.toggle('hide', !md.MANAJEMEN); });
+    var sop = $('segAdmOpprod'); if (sop) sop.classList.toggle('hide', !(md.PRODUKSI || md.MANAJEMEN));
+    if (!md.MANAJEMEN && S.admTab === 'opname') S.admTab = (md.PRODUKSI ? 'opprod' : c.bisaAdmin ? 'rekon' : 'opname');
     var ci = $('cntInv'); if (ci) ci.textContent = c.ringkasan.invoiceMenunggu || '';
     ['segRepNilai'].forEach(function(id){ var el=$(id); if (el) el.classList.toggle('hide', !c.lihatHpp); });
     var sp = $('segRepPrediksi'); if (sp) sp.classList.toggle('hide', !c.bisaReview);
-    var tb = $('tileBeli'); if (tb){ tb.classList.toggle('hide', !c.bisaReview); $('sBeli').textContent = c.ringkasan.perluBeli || 0; }
-    var su = $('segRevUsulan'); if (su) su.classList.toggle('hide', !(c.ringkasan.permintaanMenunggu > 0));
+    var tb = $('tileBeli'); if (tb){ tb.classList.toggle('hide', !md.PO); $('sBeli').textContent = c.ringkasan.perluBeli || 0; }
     gambarPoDatang(c.poDatang || []);
     gambarKirimHariIni(c.soHariIni || []);
     S.terakhirSegar = Date.now();
     $('segAdmUser').classList.toggle('hide', !c.bisaAdmin);
     $('segAdmRekon').classList.toggle('hide', !c.bisaAdmin);
-    var cm = $('cntMenunggu'), cd = $('cntDitandai'), cu = $('cntUsulan');
-    if (cm) cm.textContent = c.ringkasan.menungguReview || '';
-    if (cd) cd.textContent = c.ringkasan.ditandai || '';
-    if (cu) cu.textContent = c.ringkasan.permintaanMenunggu || '';
     muatKalender(S.cal.bulan);
-    var b = $('revBadge'), d = $('navDot');
-    var ada = (c.ringkasan.menungguReview + (c.ringkasan.permintaanMenunggu||0) + (c.ringkasan.kerusakanMenunggu||0)) > 0;
-    if (b){ b.textContent = c.ringkasan.menungguReview; b.classList.toggle('hide', !ada); }
-    if (d) d.classList.toggle('hide', !(ada && c.bisaReview));
     isiSelectPartner(); gambarSemuaBaris();
   }).catch(function(e){
     var msg = String(e.message || e);
@@ -6615,7 +6692,6 @@ function gambarKirimHariIni(rows){
 function tileHome(jenis){
   if (jenis === 'shift'){ tampil('shift'); S.shiftSemua = false; $('shiftTglFilter').value = hariIniStr(); segShift('list'); return; }
   if (jenis === 'beli'){ tampil('report'); segRep('prediksi'); return; }
-  if (jenis === 'menunggu' && S.ctx && S.ctx.bisaReview){ tampil('review'); segRev('MENUNGGU'); return; }
   S.cal.filter = jenis;
   if (S.cal.data && S.cal.data.hariIni){
     if (S.cal.data.hariIni.indexOf(S.cal.data.bulan) !== 0){ S.cal.hari = null; muatKalender(null); return; }
@@ -6629,7 +6705,6 @@ function cocokFilter(e){
   var f = S.cal.filter; if (!f) return true;
   if (f === 'masuk')    return e.jenis === 'MASUK' || e.jenis === 'RETUR_CUSTOMER';
   if (f === 'keluar')   return e.jenis === 'KELUAR' || e.jenis === 'RETUR_SUPPLIER';
-  if (f === 'menunggu') return e.status === 'MENUNGGU';
   if (f === 'jadi')     return e.jenis === 'SHIFT';
   if (f === 'bs')       return e.jenis === 'SHIFT';
   return true;
@@ -6641,7 +6716,6 @@ function segarkan(){
   muatKalender(S.cal.bulan);
   if (S.view === 'beli') muatRiwayat('rcv');
   if (S.view === 'shift') segShift(S.shiftTab);
-  if (S.view === 'review') muatReview();
   if (S.view === 'report') segRep(S.repTab);
   if (S.view === 'po') segPo(S.poTab);
   if (S.view === 'rusak') bukaRusak();
@@ -7258,7 +7332,7 @@ function segShift(tab){
   $('shiftList').classList.toggle('hide', tab!=='list');
   $('shiftForm').classList.toggle('hide', tab!=='new');
   $('shiftRep').classList.toggle('hide', tab!=='rep');
-  var boleh = !!(S.ctx && S.ctx.bisaReview);
+  var boleh = !!(S.ctx && S.ctx.modul && S.ctx.modul.PRODUKSI);
   $('segShiftNew').classList.toggle('hide', !boleh);
   if (tab==='list'){ if (!$('shiftTglFilter').value && !S.shiftSemua) $('shiftTglFilter').value = hariIniStr(); muatShift(); }
   if (tab==='new' && !S.shiftEdit) shiftFormBaru();
@@ -7288,7 +7362,7 @@ function muatShift(){
     S.shiftCache = rows;
     if (!rows.length){
       el.innerHTML = '<div class="empty"><span class="g">🏭</span>'+esc(tgl ? t('kosongShiftHari') : t('kosongShift'))+'</div>' +
-        (S.ctx && S.ctx.bisaReview ? '<button class="btn" onclick="segShift(\'new\')">'+esc(t('segShiftNew'))+'</button>' : '');
+        (S.ctx && S.ctx.modul && S.ctx.modul.PRODUKSI ? '<button class="btn" onclick="segShift(\'new\')">'+esc(t('segShiftNew'))+'</button>' : '');
       return;
     }
     var perTgl = {}, urut = [];
@@ -7503,7 +7577,7 @@ function batalShiftUI(){
   }).catch(function(e){ toast(e.message,'bad'); });
 }
 function muatKonfigShift(){
-  if (!S.ctx || !S.ctx.bisaReview) return;
+  if (!S.ctx || !S.ctx.modul || !S.ctx.modul.PRODUKSI) return;
   panggil('konfigurasiShift',[S.ident]).then(function(c){ S.shiftCfg = c; if (S.view==='shift' && S.shiftTab==='new' && S.shift){ gambarOpChips('blowing'); gambarOpChips('cutting'); } }).catch(function(){});
 }
 
@@ -7740,7 +7814,6 @@ function simpanEditUI(){
     toast(r.diajukan ? t('usulanDiajukan') : r.berubah ? t('tersimpanEdit') : t('tanpaPerubahan'), r.berubah ? 'ok' : r.diajukan ? 'warn' : '');
     tutupEdit();
     if (S.view==='beli') muatRiwayat('rcv');
-    if (S.view==='review') muatReview();
     muatKonteks(true);
   }).catch(function(e){ sibuk(b,false,t('simpanPerubahan')); toast(e.message,'bad'); });
 }
@@ -7753,7 +7826,6 @@ function batalkanEntriUI(){
     toast(r && r.diajukan ? t('usulanDiajukan') : t('dibatalkan'), r && r.diajukan ? 'warn' : '');
     tutupEdit();
     if (S.view==='beli') muatRiwayat('rcv');
-    if (S.view==='review') muatReview();
     muatKonteks(true);
   }).catch(function(e){ toast(e.message,'bad'); });
 }
@@ -8055,7 +8127,7 @@ function admUser(){
         return '<div class="userrow"><div class="av">'+esc(r.nama.slice(0,2).toUpperCase())+'</div>' +
           '<div class="nm"><b>'+esc(r.nama)+(!r.aktif?' <span class="chip off">'+esc(t('skuNonaktif'))+'</span>':'')+'</b>' +
           '<small>'+(r.lokasi?esc(r.lokasi)+' · ':'')+(r.punyaPin?'🔑 '+esc(t('userPunyaPin')):'<span style="color:var(--danger)">'+esc(t('userTanpaPin'))+'</span>')+(r.email?' · '+esc(r.email):'')+'</small></div>' +
-          pr + '<button class="btn sec xs" onclick="bukaUser('+i+')">✎</button></div>';
+          pr + (r.peran==='SUPERVISOR' && r.akses ? '<span class="chip">'+esc(r.akses.replace(/,/g,' · '))+'</span>' : '') + '<button class="btn sec xs" onclick="bukaUser('+i+')">✎</button></div>';
       }).join('') + '</div>';
     $('admBody').innerHTML = h;
   }).catch(function(e){ $('admBody').innerHTML = '<div class="banner bad">'+esc(e.message)+'</div>'; });
@@ -8068,8 +8140,15 @@ function bukaUser(i){
   $('userLokasi').value = r ? r.lokasi : ''; $('userEmail').value = r ? r.email : '';
   $('userPin').value = ''; $('userPinHint').textContent = r ? t('userPinHintUbah') : t('userPinHintBaru');
   $('userAktif').checked = r ? r.aktif : true;
+  var dipilih = r && r.akses ? r.akses.split(',') : [];
+  $('userAkses').innerHTML = ['PO','SO','PRODUKSI','GUDANG','MANAJEMEN'].map(function(m){
+    return '<label style="display:flex;align-items:center;gap:8px;padding:5px 0;font-size:13px"><input type="checkbox" class="userAksesCb" value="'+m+'"'+(dipilih.indexOf(m)>=0?' checked':'')+' style="width:auto"> <b>'+m+'</b> <span style="color:var(--muted)">'+esc(t('modul'+m))+'</span></label>';
+  }).join('');
+  gambarAksesWrap();
+  $('userPeran').onchange = gambarAksesWrap;
   $('userWrap').classList.remove('hide');
 }
+function gambarAksesWrap(){ $('userAksesWrap').classList.toggle('hide', $('userPeran').value !== 'SUPERVISOR'); }
 function tutupUser(){ $('userWrap').classList.add('hide'); S.userEdit = null; }
 function simpanUserUI(){
   var r = S.userEdit;
@@ -8079,142 +8158,13 @@ function simpanUserUI(){
   panggil('simpanPengguna',[{
     baris: r ? r.baris : undefined, nama: $('userNama').value, peran: $('userPeran').value,
     lokasi: $('userLokasi').value, email: $('userEmail').value,
-    pin: pin || undefined, aktif: $('userAktif').checked
+    pin: pin || undefined, aktif: $('userAktif').checked,
+    akses: Array.prototype.map.call(document.querySelectorAll('.userAksesCb:checked'), function(x){ return x.value; })
   }, S.ident]).then(function(){
     sibuk(b,false,t('simpanPerubahan')); toast(t('userTersimpan'),'ok'); tutupUser(); admUser();
   }).catch(function(e){ sibuk(b,false,t('simpanPerubahan')); toast(e.message,'bad'); });
 }
 
-/* =================================================================
-   ANTRIAN REVIEW
-   ================================================================= */
-function segRev(tab){
-  S.revTab = tab;
-  $('segRevMenunggu').classList.toggle('on', tab==='MENUNGGU');
-  $('segRevDitandai').classList.toggle('on', tab==='DITANDAI');
-  $('segRevUsulan').classList.toggle('on', tab==='USULAN');
-  $('segRevRusak').classList.toggle('on', tab==='RUSAK');
-  muatReview();
-}
-function labelUsulan(j){ return j==='EDIT' ? t('uEdit') : j==='BATAL' ? t('uBatal') : j; }
-function muatUsulan(){
-  $('revHint').textContent = t('hintUsulan');
-  $('revList').innerHTML = '<div class="load">…</div>';
-  panggil('daftarPermintaan',[S.ident,'MENUNGGU']).then(function(rows){
-    if (S.view !== 'review' || S.revTab !== 'USULAN') return;
-    if (!rows.length){ $('revList').innerHTML = '<div class="empty"><span class="g">📝</span>'+esc(t('kosongUsulan'))+'</div>'; return; }
-    $('revList').innerHTML = rows.map(function(p){
-      var e = p.entri || {}, u = p.usulan || {};
-      var diff = '';
-      if (p.jenis === 'EDIT'){
-        var rows2 = [];
-        if (u.qty !== undefined && u.qty !== e.qty) rows2.push([t('qty'), n2(e.qty)+' kg', n2(u.qty)+' kg']);
-        if (u.kode && u.kode !== e.kode) rows2.push([t('item'), e.item, p.usulanNamaItem || u.kode]);
-        if (u.tanggal && u.tanggal !== e.tanggal) rows2.push([t('lblTanggal'), e.tanggal, u.tanggal]);
-        if (u.partner !== undefined && u.partner !== e.partner) rows2.push(['Partner', e.partner, u.partner]);
-        if (u.noSuratJalan !== undefined && u.noSuratJalan !== e.noSuratJalan) rows2.push([t('thSJ'), e.noSuratJalan||'—', u.noSuratJalan||'—']);
-        if (u.catatan !== undefined && u.catatan !== e.catatan) rows2.push([t('lblCatatan'), e.catatan||'—', u.catatan||'—']);
-        diff = '<table class="tbl" style="margin-top:8px"><thead><tr><th></th><th>'+esc(t('sekarang'))+'</th><th>'+esc(t('diusulkan'))+'</th></tr></thead><tbody>' +
-          rows2.map(function(r){ return '<tr><td>'+esc(r[0])+'</td><td>'+esc(String(r[1]))+'</td><td><b>'+esc(String(r[2]))+'</b></td></tr>'; }).join('') + '</tbody></table>';
-      }
-      var judul = n2(e.qty)+' kg · '+(e.item||'');
-      return '<div class="rev" id="req-'+esc(p.id)+'"><div class="body">' +
-        '<div style="display:flex;align-items:flex-start;gap:10px"><div style="flex:1">' +
-          '<div style="font-weight:700;font-size:15px">'+esc(judul)+'</div>' +
-          '<div class="meta">'+esc(e.jenis||'')+(e.tanggal?' · '+esc(e.tanggal):'')+' · '+esc(p.pengaju)+' · '+esc(p.waktu)+'</div>' +
-        '</div><span class="pill '+(p.jenis==='BATAL'?'bad':'warn')+'">'+esc(labelUsulan(p.jenis))+'</span></div>' +
-        diff +
-        (p.alasan ? '<div class="kv"><span>'+esc(t('alasan'))+'</span><b>'+esc(p.alasan)+'</b></div>' : '') +
-        '<div class="btnrow" style="margin-top:10px">' +
-          '<button class="btn ghost" onclick="tinjauUsulan(\''+esc(p.id)+'\',\'tolak\')">✕ '+esc(t('tolak'))+'</button>' +
-          '<button class="btn ok" onclick="tinjauUsulan(\''+esc(p.id)+'\',\'setuju\')">✓ '+esc(t('setujui'))+'</button>' +
-        '</div></div></div>';
-    }).join('');
-  }).catch(function(e){ $('revList').innerHTML = '<div class="banner bad">'+esc(e.message)+'</div>'; });
-}
-function tinjauUsulan(id, aksi){
-  var catatan = '';
-  if (aksi === 'tolak'){ catatan = window.prompt(t('alasanTolak')); if (catatan === null) return; }
-  var card = $('req-'+id); if (card) card.style.opacity = .45;
-  panggil('tinjauPermintaan',[id, aksi, catatan || '', S.ident]).then(function(){
-    if (card) card.remove();
-    toast(aksi==='setuju' ? t('usulanDisetujui') : t('usulanDitolak'), aksi==='setuju' ? 'ok' : '');
-    muatKonteks(true);
-    if (!document.querySelectorAll('.rev').length) muatUsulan();
-  }).catch(function(e){ if (card) card.style.opacity = 1; toast(e.message,'bad'); });
-}
-function muatReview(){
-  if (S.revTab === 'USULAN') return muatUsulan();
-  if (S.revTab === 'RUSAK') return muatRusakReview();
-  var arsip = S.revTab === 'DITANDAI';
-  $('revHint').textContent = arsip ? t('hintDitandai') : t('hintMenunggu');
-  $('revList').innerHTML = '<div class="load">…</div>';
-  panggil('antrianReview',[S.ident, S.revTab]).then(function(rows){
-    if (S.view !== 'review' || (S.revTab !== 'MENUNGGU' && S.revTab !== 'DITANDAI') || arsip !== (S.revTab === 'DITANDAI')) return;
-    if (!rows.length){
-      $('revList').innerHTML = '<div class="empty"><span class="g">'+(arsip?'🗂️':'✅')+'</span>'+esc(arsip?t('kosongDitandai'):t('kosongRev'))+'</div>';
-      return;
-    }
-    $('revList').innerHTML = rows.map(function(r){
-      var src = (r.foto && r.foto.indexOf('data:') === 0) ? r.foto
-              : (r.fotoId ? 'https://drive.google.com/thumbnail?id='+r.fotoId+'&sz=w1000' : '');
-      var img = src ? '<img class="ph" src="'+esc(src)+'" onerror="this.style.display=\'none\'">' : '';
-      var ocr = '';
-      if (r.qtyOcr != null){
-        var cocok = Math.abs(r.selisih == null ? 0 : r.selisih) < 0.001;
-        ocr = '<div class="kv"><span>OCR</span><b>'+n2(r.qtyOcr)+' kg</b></div>' +
-              '<div class="kv"><span>'+esc(cocok ? t('ocrCocok') : t('ocrBeda'))+'</span>' +
-              '<b style="color:'+(cocok?'var(--ok)':'var(--danger)')+'">' +
-              (cocok ? '✓' : (r.selisih>0?'+':'')+n2(r.selisih)+' kg') + '</b></div>';
-      }
-      var tag = r.jenis === 'RETUR' ? '<span class="pill bad">RETUR</span>'
-              : r.jenis === 'RETUR_MASUK' ? '<span class="pill warn">RETUR CUST</span>'
-              : r.jenis === 'KELUAR' ? '<span class="pill warn">KELUAR</span>'
-              : r.sumber === 'PENERIMAAN' ? '<span class="pill ok">MASUK</span>'
-              : '<span class="pill n">'+esc(r.label)+'</span>';
-      return '<div class="rev" id="rev-'+esc(r.id)+'">' + img +
-        '<div class="body">' +
-          '<div style="display:flex;align-items:flex-start;gap:10px">' +
-            '<div style="flex:1">' +
-              '<div class="qty">'+n2(r.qty)+' <span style="font-size:14px;font-weight:600;color:var(--muted)">kg</span></div>' +
-              '<div style="font-weight:600;font-size:13.5px;margin-top:2px">'+esc(r.item)+'</div>' +
-              '<div class="meta">'+esc(r.label)+' · '+esc(r.waktu)+' · '+esc(r.pencatat)+'</div>' +
-            '</div>' + tag +
-          '</div>' + ocr +
-          (r.noSuratJalan ? '<div class="kv"><span>'+esc(t('thSJ'))+'</span><b>'+esc(r.noSuratJalan)+'</b></div>' : '') +
-          (r.noPo ? '<div class="kv"><span>PO</span><b>'+esc(r.noPo)+'</b></div>' : (r.tanpaPo ? '<div class="kv"><span>PO</span><b style="color:var(--warn)">'+esc(t('tanpaPo'))+'</b></div>' : '')) +
-          (r.spesifikasi ? '<div class="kv"><span>'+esc(t('spesifikasi'))+'</span><b style="text-align:right;max-width:65%">'+esc(r.spesifikasi)+'</b></div>' : '') +
-          (r.catatanQc ? '<div class="kv"><span>QC</span><b style="text-align:right;max-width:65%">'+esc(r.catatanQc)+'</b></div>' : '') +
-          (r.catatan ? '<div class="kv"><span>'+esc(t('lblCatatan'))+'</span><b>'+esc(r.catatan)+'</b></div>' : '') +
-          (r.catatanTinjau ? '<div class="kv"><span>'+esc(t('catatanTinjau'))+'</span><b>'+esc(r.catatanTinjau)+'</b></div>' : '') +
-          '<div style="margin-top:9px;display:flex;justify-content:flex-end"><button class="btn sec xs" onclick="bukaEdit(\''+esc(r.id)+'\')">✎ '+esc(t('ubah'))+'</button></div>' +
-          '<div class="btnrow" style="margin-top:8px">' +
-            '<button class="btn ghost" onclick="tinjau(\''+esc(r.id)+'\',\'batal\')">✕ '+esc(t('batal'))+'</button>' +
-            (arsip ? '' : '<button class="btn warn" onclick="tinjau(\''+esc(r.id)+'\',\'tandai\')">⚑ '+esc(t('tandai'))+'</button>') +
-            '<button class="btn ok" onclick="tinjau(\''+esc(r.id)+'\',\'setuju\')">✓ '+esc(t('setuju'))+'</button>' +
-          '</div>' +
-        '</div></div>';
-    }).join('');
-  }).catch(function(e){ $('revList').innerHTML = '<div class="banner bad">'+esc(e.message)+'</div>'; });
-}
-
-function tinjau(id, aksi){
-  var catatan = '';
-  if (aksi === 'tandai'){ catatan = window.prompt(t('alasanTandai')); if (catatan === null) return; }
-  if (aksi === 'batal'){  catatan = window.prompt(t('alasanBatal'));  if (catatan === null) return; }
-  var card = $('rev-'+id);
-  if (card) card.style.opacity = .45;
-  panggil('tinjauTransfer', [id, aksi, catatan || '', S.ident]).then(function(){
-    if (card) card.remove();
-    toast(aksi==='setuju' ? t('disetujui') : aksi==='batal' ? t('dibatalkan') : t('ditandai'),
-          aksi==='setuju' ? 'ok' : '');
-    muatKonteks(true);
-    if (!document.querySelectorAll('.rev').length) muatReview();
-  }).catch(function(e){
-    if (card) card.style.opacity = 1;
-    toast(e.message,'bad');
-  });
-}
 
 /* =================================================================
    LAPORAN
@@ -8763,46 +8713,16 @@ function muatRusakRiwayat(){
     el.innerHTML = rows.map(function(r){
       return '<div class="hist"><span class="hq">'+n2(r.qty)+' kg</span>' +
         '<span class="hx"><b>'+esc(r.item)+'</b><small>'+esc(r.tanggal)+' · '+esc(r.penyebab)+(r.catatanTinjau?' · '+esc(r.catatanTinjau):'')+'</small></span>' +
-        '<span class="hb">'+pillStatus(r.status)+'</span></div>';
+        '<span class="hb">'+pillStatus(r.status)+(r.status==='DISETUJUI' && S.ctx && S.ctx.bisaReview && S.ctx.modul && S.ctx.modul.GUDANG ? ' <button class="btn ghost xs" onclick="tinjauRusak(\''+esc(r.id)+'\')">✕</button>' : '')+'</span></div>';
     }).join('');
   }).catch(function(e){ el.innerHTML = '<div class="banner bad">'+esc(e.message)+'</div>'; });
 }
-function muatRusakReview(){
-  $('revHint').textContent = t('hintRusak');
-  $('revList').innerHTML = '<div class="load">…</div>';
-  panggil('daftarKerusakan',[S.ident,'MENUNGGU',90]).then(function(rows){
-    if (S.view !== 'review' || S.revTab !== 'RUSAK') return;
-    if (!rows.length){ $('revList').innerHTML = '<div class="empty"><span class="g">🧯</span>'+esc(t('kosongRusak'))+'</div>'; return; }
-    $('revList').innerHTML = rows.map(function(r){
-      var src = r.foto && r.foto.indexOf('data:')===0 ? r.foto : (r.fotoId ? 'https://drive.google.com/thumbnail?id='+r.fotoId+'&sz=w1000' : '');
-      var st = (S.ctx && S.ctx.stok && S.ctx.stok[r.kode]) || { gbj:0 };
-      var ada = st.gbj;
-      return '<div class="rev" id="dmg-'+esc(r.id)+'">' + (src ? '<img class="ph" src="'+esc(src)+'" onerror="this.style.display=\'none\'">' : '') +
-        '<div class="body"><div style="display:flex;align-items:flex-start;gap:10px"><div style="flex:1">' +
-          '<div class="qty">'+n2(r.qty)+' <span style="font-size:14px;font-weight:600;color:var(--muted)">kg</span></div>' +
-          '<div style="font-weight:600;font-size:13.5px;margin-top:2px">'+esc(r.item)+'</div>' +
-          '<div class="meta">'+esc(r.tanggal)+' · '+esc(r.waktu)+' · '+esc(r.pencatat)+'</div></div>' +
-          '<span class="pill bad">'+esc(t('segRusak')).toUpperCase()+'</span></div>' +
-        '<div class="kv"><span>'+esc(t('lblPenyebab'))+'</span><b>'+esc(r.penyebab)+'</b></div>' +
-        '<div class="kv"><span>'+esc(t('tersedia'))+'</span><b style="color:'+(r.qty > ada+0.0001 ? 'var(--danger)' : 'inherit')+'">'+n2(ada)+' kg</b></div>' +
-        (r.catatan ? '<div class="kv"><span>'+esc(t('lblCatatan'))+'</span><b>'+esc(r.catatan)+'</b></div>' : '') +
-        '<div class="btnrow" style="margin-top:10px">' +
-          '<button class="btn ghost" onclick="tinjauRusak(\''+esc(r.id)+'\',\'batal\')">✕ '+esc(t('batal'))+'</button>' +
-          '<button class="btn ok" onclick="tinjauRusak(\''+esc(r.id)+'\',\'setuju\')">✓ '+esc(t('setujui'))+'</button></div>' +
-      '</div></div>';
-    }).join('');
-  }).catch(function(e){ $('revList').innerHTML = '<div class="banner bad">'+esc(e.message)+'</div>'; });
-}
 function tinjauRusak(id, aksi){
-  var catatan = '';
-  if (aksi === 'batal'){ catatan = window.prompt(t('alasanBatal')); if (catatan === null) return; }
-  var card = $('dmg-'+id); if (card) card.style.opacity = .45;
-  panggil('tinjauKerusakan',[id, aksi, catatan || '', S.ident]).then(function(r){
-    if (card) card.remove();
-    toast(aksi==='setuju' ? t('rusakDisetujui')+(r.nilaiKerugian ? ' · '+t('nilaiKerugian')+' '+rp(r.nilaiKerugian) : '') : t('rusakDibatalkan'), aksi==='setuju' ? 'ok' : '');
-    muatKonteks(true);
-    if (!document.querySelectorAll('.rev').length) muatRusakReview();
-  }).catch(function(e){ if (card) card.style.opacity = 1; toast(e.message,'bad'); });
+  var catatan = window.prompt(t('alasanBatal')); if (catatan === null) return;
+  panggil('tinjauKerusakan',[id, 'batal', catatan || '', S.ident]).then(function(){
+    toast(t('rusakDibatalkan'), '');
+    muatKonteks(true); muatRusakRiwayat();
+  }).catch(function(e){ toast(e.message,'bad'); });
 }
 
 /* =================================================================
@@ -8903,7 +8823,7 @@ function kartuSo(no, baris){
 function barisSoHtml(b, lihat, tutup){
   var pct = b.qty > 0 ? Math.min(100, b.dikirim / b.qty * 100) : 0;
   var aktif = b.status!=='SELESAI' && b.status!=='DIBATALKAN';
-  var bisaUbah = !tutup && aktif && S.ctx && S.ctx.bisaPo;
+  var bisaUbah = !tutup && aktif && S.ctx && S.ctx.bisaSo;
   var st = (S.ctx && S.ctx.stok && S.ctx.stok[b.kode]) || null;
   var kurang = st && aktif && b.sisa > st.gbj + 0.0001;
   return '<div class="listrow" id="sor-'+esc(b.id)+'">' +

@@ -19,6 +19,6 @@ File `ADMIN_KEY.txt` = kunci admin server baru (untuk impor/reset). Simpan, jang
    (atau: `cd "$HOME/Claude Co Work/ipc-cloudflare" && unzip -o ~/Downloads/ipc-cloudflare-update.zip`).
 3. Klik dua kali **`deploy-v10.command`** di Finder (atau Terminal: `cd "$HOME/Claude Co Work/ipc-cloudflare" && bash deploy.sh`).
    Login Cloudflare sudah tersimpan; impor data hanya jalan sekali di deploy pertama — data yang ada tidak disentuh.
-4. Migrasi skema (v9 → v10 → v10.1) berjalan sendiri saat request pertama setelah deploy. Buka app, login sebagai Manager,
+4. Migrasi skema (v9 → v10 → v10.1 → v11) berjalan sendiri saat request pertama setelah deploy. Buka app, login sebagai Manager,
    cek tab Produksi dan Laporan → Nilai stok. Data lama tetap ada (laporan shift v10 per mesin digabung per shift,
    sheet lama diarsipkan sebagai `Laporan_Shift_lama`).

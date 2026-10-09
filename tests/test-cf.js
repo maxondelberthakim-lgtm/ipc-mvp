@@ -193,6 +193,52 @@ console.log('— 7. Migrasi v10 → v10.1: laporan shift per mesin digabung per 
   ok('migrasi idempoten: impor ulang tetap 1 laporan, tidak ada _lama2', d2.ok && d2.data.length === 1 && !J.m.SS.sheets['Laporan_Shift_lama2'], d2.ok ? d2.data.length : d2.error);
   J.db.close();
 }
+console.log('— 8. Migrasi v10.1 → v11: kolom Akses, akun modul, entri MENUNGGU difinalkan —');
+{
+  const K = bukaMesin();
+  const ADM8 = { nama: 'Admin', pin: '1234' };
+  JSON.parse(K.m.panggil('getKonteks', [ADM8], 'm81'));
+  const dump = JSON.parse(JSON.stringify(K.m.eksporSemua()));
+  const tgl = K.m.fns.tglStr_(new Date()), now = new Date().toISOString();
+  /* bentuk v10.1: pengguna tanpa kolom Akses, akun Manager Produksi / Sales Manager masih aktif */
+  dump.Master_Pengguna = [
+    ['Email','Nama','Peran','Lokasi','PIN','Aktif'],
+    ['', 'Admin', 'ADMIN', 'HQ', '1234', 'YA'],
+    ['', 'Manager', 'SUPERVISOR', 'GBJ', '1357', 'YA'],
+    ['', 'Manager Produksi', 'SUPERVISOR', 'Produksi', '1122', 'YA'],
+    ['', 'Sales Manager', 'SUPERVISOR', 'Sales', '3344', 'YA'],
+    ['', 'Staff Gudang', 'STAF', 'GBJ', '1111', 'YA'],
+  ];
+  const hP = dump.Penerimaan[0];
+  const rowP = hP.map(() => ''); const set = (h, r, k, v) => { r[h.indexOf(k)] = v; };
+  set(hP, rowP, 'ID', 'RCV-LAMA-1'); set(hP, rowP, 'Waktu', now); set(hP, rowP, 'Tanggal', tgl); set(hP, rowP, 'Jenis', 'MASUK'); set(hP, rowP, 'Supplier', 'PT Sumber Biji Plastik');
+  set(hP, rowP, 'Kode_Item', 'RM-BP-KW'); set(hP, rowP, 'Nama_Item', 'Biji Plastik KW'); set(hP, rowP, 'Qty_Kg', 100); set(hP, rowP, 'No_Surat_Jalan', 'SJ/LAMA'); set(hP, rowP, 'Status', 'MENUNGGU'); set(hP, rowP, 'Nama_Pencatat', 'Staff Gudang'); set(hP, rowP, 'Dicatat_Oleh', 'manual:Staff Gudang');
+  dump.Penerimaan.push(rowP);
+  const hK = dump.Kerusakan[0]; const rowK = hK.map(() => '');
+  set(hK, rowK, 'ID', 'DMG-LAMA-1'); set(hK, rowK, 'Waktu', now); set(hK, rowK, 'Tanggal', tgl); set(hK, rowK, 'Lokasi', 'GBJ'); set(hK, rowK, 'Kode_Item', 'RM-BP-KW'); set(hK, rowK, 'Nama_Item', 'Biji Plastik KW');
+  set(hK, rowK, 'Qty_Kg', 5); set(hK, rowK, 'Penyebab', 'basah'); set(hK, rowK, 'Status', 'MENUNGGU'); set(hK, rowK, 'Nama_Pencatat', 'Staff Gudang'); set(hK, rowK, 'Dicatat_Oleh', 'manual:Staff Gudang');
+  dump.Kerusakan.push(rowK);
+  K.db.close();
+  const L = bukaMesin(); L.m.imporSemua(dump);
+  const users = JSON.parse(L.m.panggil('daftarPengguna', [ADM8], 'm82'));
+  ok('Yansen (PO), Deny (SO), Bastari (PRODUKSI) ditambahkan', users.ok && users.data.some((u) => u.nama === 'Yansen' && u.akses === 'PO') && users.data.some((u) => u.nama === 'Deny' && u.akses === 'SO') && users.data.some((u) => u.nama === 'Bastari' && u.akses === 'PRODUKSI'), users.ok ? users.data.map((u) => u.nama + ':' + u.akses) : users.error);
+  ok('Manager Produksi & Sales Manager dinonaktifkan, Manager tetap semua modul', users.data.find((u) => u.nama === 'Manager Produksi').aktif === false && users.data.find((u) => u.nama === 'Sales Manager').aktif === false && users.data.find((u) => u.nama === 'Manager').modul.PO && users.data.find((u) => u.nama === 'Manager').modul.GUDANG);
+  const lama = JSON.parse(L.m.panggil('getKonteks', [{ nama: 'Manager Produksi', pin: '1122' }], 'm83'));
+  ok('login akun lama ditolak (nonaktif)', !lama.ok && /dinonaktifkan/.test(lama.error), lama.error);
+  const kB = JSON.parse(L.m.panggil('getKonteks', [{ nama: 'Bastari', pin: '4433' }], 'm84'));
+  ok('Bastari login: modul PRODUKSI saja, tetap lihat harga', kB.ok && kB.data.modul.PRODUKSI && !kB.data.modul.PO && kB.data.lihatHpp === true, kB.ok ? kB.data.modul : kB.error);
+  const rcv = L.m.fns.baca_(L.m.vars.SHEET.PENERIMAAN).find((r) => r.ID === 'RCV-LAMA-1');
+  const dmg = L.m.fns.baca_(L.m.vars.SHEET.KERUSAKAN).find((r) => r.ID === 'DMG-LAMA-1');
+  ok('entri MENUNGGU lama → DISETUJUI (ditinjau: sistem)', rcv.Status === 'DISETUJUI' && /sistem/.test(rcv.Ditinjau_Oleh) && dmg.Status === 'DISETUJUI' && L.m.fns.angka_(dmg.Nilai_Kerugian) >= 0, [rcv.Status, dmg.Status]);
+  const st = JSON.parse(L.m.panggil('laporanStok', [ADM8], 'm85'));
+  ok('rusak lama kini dihitung di stok (rusak 5)', st.ok && st.data.daftar.find((x) => x.kode === 'RM-BP-KW').rusak === 5, st.ok ? st.data.daftar.find((x) => x.kode === 'RM-BP-KW') : st.error);
+  ok('log MIGRASI_V11 tercatat', L.m.fns.baca_(L.m.vars.SHEET.LOG).some((r) => r.Aksi === 'MIGRASI_V11'));
+  const dump2 = JSON.parse(JSON.stringify(L.m.eksporSemua())); L.db.close();
+  const Mm = bukaMesin(); Mm.m.imporSemua(dump2);
+  const u2 = JSON.parse(Mm.m.panggil('daftarPengguna', [ADM8], 'm86'));
+  ok('migrasi idempoten: akun tidak digandakan', u2.ok && u2.data.filter((u) => u.nama === 'Yansen').length === 1 && u2.data.length === 8, u2.ok ? u2.data.length : u2.error);
+  Mm.db.close();
+}
 try { fs.unlinkSync(file); } catch (e) {}
 console.log('\n================ ' + pass + ' lulus, ' + fail + ' gagal ================');
 process.exit(fail ? 1 : 0);
