@@ -17,6 +17,7 @@ function migrasiSkema() {
   migrasiV10_(ss);
   migrasiV10_1_(ss);
   migrasiV11_(ss);
+  migrasiV11_1_(ss);
   Object.keys(SHEET).forEach(function (k) {
     var nama = SHEET[k], head = HEADER[nama];
     var sh = ss.getSheetByName(nama);
@@ -177,6 +178,21 @@ function migrasiV11_(ss) {
   }
   if (baru || ditambah || n) catatLog_('MIGRASI_V11', '', (ditambah ? ditambah + ' akun modul ditambah; ' : '') + n + ' entri MENUNGGU difinalkan');
   lupakanMemo_();
+}
+
+/** v11.1: gudang dikerjakan Yansen (akses PO,GUDANG); akun Staff Gudang dinonaktifkan. Aman diulang. */
+function migrasiV11_1_(ss) {
+  if (!ss.getSheetByName(SHEET.PENGGUNA)) return;
+  var n = 0, rows = baca_(SHEET.PENGGUNA);
+  /* akun "Staff Gudang" bawaan hanya ada di DB yang dibuat sebelum v11.1 (ditandai akun lama Manager Produksi / Sales Manager);
+     akun STAF bernama sama yang dibuat admin di instalasi baru tidak disentuh */
+  var lama = rows.some(function (r) { var nm = String(r.Nama || '').trim().toLowerCase(); return nm === 'manager produksi' || nm === 'sales manager'; });
+  rows.forEach(function (r) {
+    var nama = String(r.Nama || '').trim().toLowerCase();
+    if (nama === 'yansen' && aksesTeks_(r.Akses) === 'PO') { ubahBaris_(SHEET.PENGGUNA, r._baris, { Akses: 'PO,GUDANG' }); n++; }
+    if (lama && nama === 'staff gudang' && String(r.Aktif).toUpperCase() !== 'TIDAK') { ubahBaris_(SHEET.PENGGUNA, r._baris, { Aktif: 'TIDAK' }); n++; }
+  });
+  if (n) { lupakanMemo_(SHEET.PENGGUNA); catatLog_('MIGRASI_V11_1', '', 'Yansen → PO,GUDANG; Staff Gudang nonaktif'); }
 }
 
 /** Dipanggil di awal tiap request: migrasi hanya kalau versi skema berubah (1 property read). */

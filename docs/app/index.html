@@ -8,10 +8,10 @@
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="IPC">
+  <meta name="apple-mobile-web-app-title" content="H-Plast">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="apple-touch-icon" href="icon-192.png">
-  <title>IPC Gudang &amp; Produksi</title>
+  <title>H-Plast IPC — Gudang &amp; Produksi</title>
   <style>
 :root{
   --bg:#f4f5f7; --surface:#ffffff; --surface-2:#fafbfc;
@@ -955,6 +955,8 @@ input:disabled,select:disabled,textarea:disabled{background:#f3f4f6;color:#37415
 
 <script>
 window.API_URL = 'https://ipc-api.maxondelberthakim.workers.dev/exec';
+/* v11.1: alamat resmi app = h-plast.pages.dev; salinan lama di github.io dialihkan */
+if (/github\.io$/.test(location.hostname)) { location.replace('https://h-plast.pages.dev/' + location.search + location.hash); }
 var BAHASA_AWAL = 'id';
 if ('serviceWorker' in navigator) { window.addEventListener('load', function(){ navigator.serviceWorker.register('sw.js').catch(function(){}); }); }
 </script>

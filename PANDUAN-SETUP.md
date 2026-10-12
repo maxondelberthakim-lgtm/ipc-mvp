@@ -1,9 +1,9 @@
-# IPC — Inventory & Production Control (v11) — Panduan
+# IPC — Inventory & Production Control (v11.1) — Panduan
 
 Aplikasi HP untuk pabrik polybag: setiap kg yang bergerak **supplier → gudang (GBJ) → blowing → cutting → gudang → customer**
 dicatat dengan angka, foto (kalau perlu), dan siapa yang mencatat.
 
-- **Aplikasi:** https://maxondelberthakim-lgtm.github.io/ipc-mvp/app/ — buka di Safari/Chrome HP, *Add to Home Screen*.
+- **Aplikasi:** https://h-plast.pages.dev/ — buka di Safari/Chrome HP, *Add to Home Screen*. (Alamat lama github.io/app otomatis mengalihkan ke sini.)
 - **Demo (tanpa simpan):** https://maxondelberthakim-lgtm.github.io/ipc-mvp/
 - **Backend:** Cloudflare Workers + Durable Object (paket gratis). Cara deploy / update: `cloudflare/DEPLOY.md`.
   (Google Sheet tidak dipakai lagi sebagai database sejak migrasi Cloudflare.)
@@ -88,15 +88,17 @@ bisa ditambah / diubah / dibatalkan, angka COGS–laba–susut tersimpan di `Tut
 |---|---|---|---|---|
 | Admin, Direktur | ADMIN | semua | 1234, 2468 | semua + kelola pengguna + buka bulan tertutup + rekonsiliasi |
 | Manager | SUPERVISOR | semua | 1357 | gudang, opname, SKU, laporan, tutup bulan |
-| **Yansen** | SUPERVISOR | PO | 2211 | pesanan pembelian & invoice supplier |
+| **Yansen** | SUPERVISOR | PO, GUDANG | 2211 | pesanan pembelian & invoice supplier **+ semua pekerjaan gudang**: penerimaan, pengiriman, retur, rusak, kirim BS ke chassen |
 | **Deny** | SUPERVISOR | SO | 3322 | sales order |
 | **Bastari** | SUPERVISOR | PRODUKSI | 4433 | laporan shift blowing / cutting & opname produksi |
-| Staff Gudang | STAF | GUDANG | 1111 | penerimaan, pengiriman, retur, rusak, kirim BS ke chassen |
+
+Tidak ada akun Staff Gudang bawaan sejak v11.1 (dinonaktifkan otomatis). Kalau nanti ada staf gudang, Admin → Pengguna →
+tambah dengan peran STAF (hanya modul gudang, tidak pernah melihat harga).
 
 **v11 — akses per modul.** Setiap akun SUPERVISOR hanya bisa *mengisi/mengubah* modul yang dicentang di
 Admin → Pengguna (`PO`, `SO`, `PRODUKSI`, `GUDANG`, `MANAJEMEN`; kosong = semua). Menu yang bukan haknya tidak muncul di
 beranda, dan server menolak kalau dipaksa. **Laporan** (termasuk harga, HPP, laba) tetap bisa dilihat semua manager.
-Staf hanya modul gudang dan tidak pernah melihat harga.
+Akun peran STAF (kalau dibuat) hanya modul gudang dan tidak pernah melihat harga.
 
 **v11 — tidak ada proses review.** Penerimaan, pengiriman, retur, dan laporan rusak **langsung final** saat disimpan
 (stok langsung bergerak). Staf boleh mengubah/membatalkan entrinya sendiri **dalam 24 jam**; manager gudang boleh
@@ -110,15 +112,16 @@ Ganti PIN di **Admin → Pengguna**. Nama yang belum terdaftar ditolak (`AKSES_T
 **Deny (SO)**
 1. Beranda → **Sales order (SO)** → + Buat SO: customer, tanggal kirim, **TOP (hari; 0 = tunai)**, item, kg, harga/kg.
    Jatuh tempo = tanggal kirim + TOP. Gudang melihat SO tanpa harga di *Kirim hari ini*.
-**Yansen (PO)**
+**Yansen (PO + gudang)**
 2. Beranda → **Pesanan pembelian (PO)** → + Buat PO: supplier, perkiraan datang, TOP, item, kg, harga/kg, spesifikasi.
    Invoice supplier diunggah & divalidasi di tab Invoice (harga baru → HPP dihitung ulang).
 
-**Staff Gudang**
+3. Gudang (juga Yansen):
+
 1. ⓪ **Penerimaan barang**: pilih supplier → pilih PO yang datang → foto surat jalan (OCR) → kg → Simpan.
 2. ④ **Barang keluar**: ketuk SO di *Kirim hari ini* (form terisi) → foto → no. DO → Simpan.
 3. ↩ Retur (ke supplier / dari customer), ⚠ Barang rusak (langsung mengurangi stok), ♻ Kirim BS ke chassen & terima biji daur ulang.
-   Semua langsung final — salah input? Ubah/batalkan sendiri lewat riwayat input dalam 24 jam, setelah itu minta manager gudang.
+   Semua langsung final — salah input? Ubah/batalkan lewat riwayat input (Yansen/Manager bisa kapan saja dalam 30 hari; akun STAF hanya 24 jam).
 
 **Bastari (Produksi)** — tab **Produksi** → + Isi laporan: tanggal, shift (1/2), lalu bagian **Blowing** (operator → Enter,
 biji plastik diambil, roll jadi per kualitas, BS) dan bagian **Cutting** (operator, roll diambil per kualitas, polybag jadi,
@@ -156,7 +159,9 @@ Tambah/ubah lewat Admin → SKU. Kalau satu kualitas belum lengkap, form laporan
 
 Pengaturan diubah lewat rute admin (`cloudflare/README.md`) atau ekspor–impor database.
 
-## Migrasi dari v9 / v10 / v10.1
+## Migrasi dari v9 / v10 / v10.1 / v11
+
+**v11 → v11.1** (otomatis): Yansen mendapat akses GUDANG; akun Staff Gudang dinonaktifkan. Frontend pindah ke h-plast.pages.dev.
 
 **v10.1 → v11** (otomatis): kolom `Akses` di Master_Pengguna; akun Yansen / Deny / Bastari ditambahkan, Manager Produksi /
 Sales Manager dinonaktifkan; entri yang masih MENUNGGU difinalkan (laporan rusak yang menunggu ikut mengurangi stok).

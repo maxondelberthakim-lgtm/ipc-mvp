@@ -10,7 +10,7 @@
 
 var APP = {
   nama: 'IPC — Inventory & Production Control',
-  versi: '11.0.0',
+  versi: '11.1.0',
   zona: 'Asia/Jakarta',
   satuan: 'kg',
   folderFoto: 'IPC Foto Bukti'
@@ -271,10 +271,10 @@ var DUMMY_PENGGUNA = [
   ['', 'Admin',        PERAN.ADMIN,      'HQ',       '1234', 'YA', ''],
   ['', 'Direktur',     PERAN.ADMIN,      'HQ',       '2468', 'YA', ''],
   ['', 'Manager',      PERAN.SUPERVISOR, 'GBJ',      '1357', 'YA', ''],            // semua modul
-  ['', 'Yansen',       PERAN.SUPERVISOR, 'Purchasing','2211', 'YA', 'PO'],         // v11: pesanan pembelian & invoice
+  ['', 'Yansen',       PERAN.SUPERVISOR, 'Purchasing','2211', 'YA', 'PO,GUDANG'],  // v11.1: PO & invoice + semua pekerjaan gudang
   ['', 'Deny',         PERAN.SUPERVISOR, 'Sales',    '3322', 'YA', 'SO'],          // v11: sales order
-  ['', 'Bastari',      PERAN.SUPERVISOR, 'Produksi', '4433', 'YA', 'PRODUKSI'],    // v11: laporan shift & opname produksi
-  ['', 'Staff Gudang', PERAN.STAF,       'GBJ',      '1111', 'YA', 'GUDANG']
+  ['', 'Bastari',      PERAN.SUPERVISOR, 'Produksi', '4433', 'YA', 'PRODUKSI']     // v11: laporan shift & opname produksi
+  /* v11.1: tidak ada akun Staff Gudang lagi — gudang dikerjakan Yansen. Peran STAF tetap tersedia di Admin → Pengguna. */
 ];
 
 var DEFAULT_SETTING = [

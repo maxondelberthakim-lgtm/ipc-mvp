@@ -348,8 +348,8 @@ input:disabled,select:disabled,textarea:disabled{background:#f3f4f6;color:#37415
 <div id="demoBanner" style="background:#b45309;color:#fff7ed;font:12.5px/1.5 -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;padding:9px 14px;border-bottom:3px solid #f59e0b">
   <div style="display:flex;gap:10px;align-items:flex-start">
     <span style="flex:1"><b style="color:#fff;font-size:13.5px">⚠️ INI DEMO — BUKAN APLIKASI SUNGGUHAN.</b> Data contoh hanya di browser ini; refresh = reset; akun tidak sinkron antar HP.
-      Aplikasi sungguhan (data bersama, tersimpan di server Cloudflare): <a href="./app/" style="color:#fff;font-weight:800;text-decoration:underline">buka di sini →</a><br>
-      Login demo: <b style="color:#fff">Admin</b> 1234 · <b style="color:#fff">Direktur</b> 2468 · <b style="color:#fff">Manager</b> 1357 · <b style="color:#fff">Yansen</b> 2211 (PO) · <b style="color:#fff">Deny</b> 3322 (SO) · <b style="color:#fff">Bastari</b> 4433 (produksi) · <b style="color:#fff">Staff Gudang</b> 1111 · <b style="color:#fff">Yanto</b> 2222
+      Aplikasi sungguhan (data bersama, tersimpan di server Cloudflare): <a href="https://h-plast.pages.dev/" style="color:#fff;font-weight:800;text-decoration:underline">buka di sini →</a><br>
+      Login demo: <b style="color:#fff">Admin</b> 1234 · <b style="color:#fff">Direktur</b> 2468 · <b style="color:#fff">Manager</b> 1357 · <b style="color:#fff">Yansen</b> 2211 (PO + gudang) · <b style="color:#fff">Deny</b> 3322 (SO) · <b style="color:#fff">Bastari</b> 4433 (produksi) · <b style="color:#fff">Staff Gudang</b> 1111 (contoh akun STAF, hanya demo) · <b style="color:#fff">Yanto</b> 2222
       <span style="opacity:.8">(ganti akun: Beranda → Ganti nama / PIN)</span></span>
     <button onclick="document.getElementById('demoBanner').hidden=true" style="background:rgba(255,255,255,.18);color:#fff;border:0;border-radius:7px;padding:5px 10px;font-size:11.5px;font-weight:700;cursor:pointer;flex:0 0 auto">Tutup</button>
   </div>
@@ -1041,7 +1041,7 @@ input:disabled,select:disabled,textarea:disabled{background:#f3f4f6;color:#37415
 
 var APP = {
   nama: 'IPC — Inventory & Production Control',
-  versi: '11.0.0',
+  versi: '11.1.0',
   zona: 'Asia/Jakarta',
   satuan: 'kg',
   folderFoto: 'IPC Foto Bukti'
@@ -1302,10 +1302,10 @@ var DUMMY_PENGGUNA = [
   ['', 'Admin',        PERAN.ADMIN,      'HQ',       '1234', 'YA', ''],
   ['', 'Direktur',     PERAN.ADMIN,      'HQ',       '2468', 'YA', ''],
   ['', 'Manager',      PERAN.SUPERVISOR, 'GBJ',      '1357', 'YA', ''],            // semua modul
-  ['', 'Yansen',       PERAN.SUPERVISOR, 'Purchasing','2211', 'YA', 'PO'],         // v11: pesanan pembelian & invoice
+  ['', 'Yansen',       PERAN.SUPERVISOR, 'Purchasing','2211', 'YA', 'PO,GUDANG'],  // v11.1: PO & invoice + semua pekerjaan gudang
   ['', 'Deny',         PERAN.SUPERVISOR, 'Sales',    '3322', 'YA', 'SO'],          // v11: sales order
-  ['', 'Bastari',      PERAN.SUPERVISOR, 'Produksi', '4433', 'YA', 'PRODUKSI'],    // v11: laporan shift & opname produksi
-  ['', 'Staff Gudang', PERAN.STAF,       'GBJ',      '1111', 'YA', 'GUDANG']
+  ['', 'Bastari',      PERAN.SUPERVISOR, 'Produksi', '4433', 'YA', 'PRODUKSI']     // v11: laporan shift & opname produksi
+  /* v11.1: tidak ada akun Staff Gudang lagi — gudang dikerjakan Yansen. Peran STAF tetap tersedia di Admin → Pengguna. */
 ];
 
 var DEFAULT_SETTING = [
@@ -3424,6 +3424,7 @@ function migrasiSkema() {
   migrasiV10_(ss);
   migrasiV10_1_(ss);
   migrasiV11_(ss);
+  migrasiV11_1_(ss);
   Object.keys(SHEET).forEach(function (k) {
     var nama = SHEET[k], head = HEADER[nama];
     var sh = ss.getSheetByName(nama);
@@ -3584,6 +3585,21 @@ function migrasiV11_(ss) {
   }
   if (baru || ditambah || n) catatLog_('MIGRASI_V11', '', (ditambah ? ditambah + ' akun modul ditambah; ' : '') + n + ' entri MENUNGGU difinalkan');
   lupakanMemo_();
+}
+
+/** v11.1: gudang dikerjakan Yansen (akses PO,GUDANG); akun Staff Gudang dinonaktifkan. Aman diulang. */
+function migrasiV11_1_(ss) {
+  if (!ss.getSheetByName(SHEET.PENGGUNA)) return;
+  var n = 0, rows = baca_(SHEET.PENGGUNA);
+  /* akun "Staff Gudang" bawaan hanya ada di DB yang dibuat sebelum v11.1 (ditandai akun lama Manager Produksi / Sales Manager);
+     akun STAF bernama sama yang dibuat admin di instalasi baru tidak disentuh */
+  var lama = rows.some(function (r) { var nm = String(r.Nama || '').trim().toLowerCase(); return nm === 'manager produksi' || nm === 'sales manager'; });
+  rows.forEach(function (r) {
+    var nama = String(r.Nama || '').trim().toLowerCase();
+    if (nama === 'yansen' && aksesTeks_(r.Akses) === 'PO') { ubahBaris_(SHEET.PENGGUNA, r._baris, { Akses: 'PO,GUDANG' }); n++; }
+    if (lama && nama === 'staff gudang' && String(r.Aktif).toUpperCase() !== 'TIDAK') { ubahBaris_(SHEET.PENGGUNA, r._baris, { Aktif: 'TIDAK' }); n++; }
+  });
+  if (n) { lupakanMemo_(SHEET.PENGGUNA); catatLog_('MIGRASI_V11_1', '', 'Yansen → PO,GUDANG; Staff Gudang nonaktif'); }
 }
 
 /** Dipanggil di awal tiap request: migrasi hanya kalau versi skema berubah (1 property read). */
@@ -5742,7 +5758,7 @@ DUMMY_CUSTOMER = [
   setupSistem();
   try { migrasiSkema(); } catch(e) {}
   // staf gudang tambahan untuk demo (supaya riwayat & aktivitas per user terlihat)
-  [['Yanto','2222','Gudang'],['Sri','3333','Produksi'],['Rina','4444','Produksi']].forEach(function(u){
+  [['Staff Gudang','1111','GBJ'],['Yanto','2222','Gudang'],['Sri','3333','Produksi'],['Rina','4444','Produksi']].forEach(function(u){
     tambah_(SHEET.PENGGUNA, { Email:'', Nama:u[0], Peran:PERAN.STAF, Lokasi:u[2], PIN:u[1], Aktif:'YA' });
   });
 

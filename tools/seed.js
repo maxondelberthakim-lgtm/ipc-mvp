@@ -6,7 +6,7 @@
   setupSistem();
   try { migrasiSkema(); } catch(e) {}
   // staf gudang tambahan untuk demo (supaya riwayat & aktivitas per user terlihat)
-  [['Yanto','2222','Gudang'],['Sri','3333','Produksi'],['Rina','4444','Produksi']].forEach(function(u){
+  [['Staff Gudang','1111','GBJ'],['Yanto','2222','Gudang'],['Sri','3333','Produksi'],['Rina','4444','Produksi']].forEach(function(u){
     tambah_(SHEET.PENGGUNA, { Email:'', Nama:u[0], Peran:PERAN.STAF, Lokasi:u[2], PIN:u[1], Aktif:'YA' });
   });
 

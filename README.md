@@ -1,4 +1,4 @@
-# IPC — Inventory & Production Control (v11)
+# IPC — Inventory & Production Control (v11.1)
 
 Mobile web app for a small polybag factory: every kilogram that moves between
 **supplier → warehouse (GBJ) → blowing → cutting → warehouse → customer** is logged with a
@@ -9,14 +9,15 @@ typed quantity, a photo where it matters, and a timestamp — then reviewed afte
 Google Sheets is no longer the database (v9 → Cloudflare migration keeps every row; the old Apps Script
 deployment still works as a fallback by pointing `tools/api-url.txt` back at it).
 
-> **[▶ App (GitHub Pages PWA)](https://maxondelberthakim-lgtm.github.io/ipc-mvp/app/)** — static frontend, calls the
+> **[▶ App (Cloudflare Pages PWA)](https://h-plast.pages.dev/)** — static frontend (`docs/app`, deployed with `wrangler pages deploy`;
+> the old github.io/app copy only redirects here), calls the
 > Worker as a JSON API (`POST {fn,args,idKlien}`). Installable, no Google sign-in; name + PIN only. ~50 ms per call.
 >
 > **[▶ Offline demo](https://maxondelberthakim-lgtm.github.io/ipc-mvp/)** — the real backend logic running in the
 > browser on sample data. Nothing you do there is saved (refresh = reset).
 >
-> Demo sign-in (name · PIN): **Admin** 1234 · **Direktur** 2468 · **Manager** 1357 · **Manager Produksi** 1122 ·
-> **Sales Manager** 3344 · **Staff Gudang** 1111
+> Demo sign-in (name · PIN): **Admin** 1234 · **Direktur** 2468 · **Manager** 1357 · **Yansen** 2211 ·
+> **Deny** 3322 · **Bastari** 4433 · **Staff Gudang** 1111 (demo only — the live app has no default STAF account since v11.1)
 
 ## Production flow (v10)
 
@@ -49,8 +50,9 @@ There are no per-job records and no approvals on the production floor — the sy
 - **Roles & module access (v11)**: STAF (warehouse input, sees no prices) · SUPERVISOR (managers: see every report incl.
   prices/COGS; *write* access limited per account to modules `PO`, `SO`, `PRODUKSI`, `GUDANG`, `MANAJEMEN` — empty = all)
   · ADMIN (everything + users + reopen months + reconciliation). Default accounts: Admin, Direktur, Manager (all modules),
-  **Yansen** (PO & invoices), **Deny** (sales orders), **Bastari** (shift reports & production count), Staff Gudang —
-  **change the PINs**. Module access is enforced on the server (`wajibModul_`) and mirrored in the UI.
+  **Yansen** (PO & invoices **+ all warehouse work**: receipts, shipments, returns, damage, recycling), **Deny** (sales
+  orders), **Bastari** (shift reports & production count) — **change the PINs**. There is no default STAF account since
+  v11.1; Admin → Pengguna can still create STAF accounts (warehouse only, no prices). Module access is enforced on the server (`wajibModul_`) and mirrored in the UI.
 
 ## Everything else
 
@@ -113,13 +115,14 @@ the old `RM-BS-*` raw-material SKUs, switches `METODE_HPP` to `RATA`, adds the M
 ```bash
 cd tests && npm test          # ~960 checks: sheet harness + Cloudflare engine (incl. live-data migration v9→v10→v10.1)
 python3 tools/build-cf.py     # bundle apps-script/*.gs → cloudflare/src/backend.js
-python3 tools/build-app.py    # rebuild docs/app/ (PWA); API URL from tools/api-url.txt
+python3 tools/build-app.py    # rebuild docs/app/ (PWA); API URL from tools/api-url.txt — deploy: double-click deploy-app.command on the Mac (wrangler pages deploy docs/app --project-name h-plast)
 python3 tools/build-demo.py   # rebuild docs/index.html
 cd cloudflare && npx wrangler dev --port 8787 --local   # local Worker for the Playwright e2e
 ```
 
 ## Status
 
+v11.1 — app moves to **h-plast.pages.dev** (Cloudflare Pages); Staff Gudang removed, Yansen does the warehouse work.
 v11 — access revamp: per-account module access (Yansen PO · Deny SO · Bastari production), review/approval process
 removed (entries final on save, 24-hour self-edit window for staff). v10.1 — two 12-hour shifts, one report per shift
 with separate blowing / cutting operators, roll used typed by the cutting operator, blind monthly production count +

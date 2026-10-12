@@ -19,10 +19,10 @@ pwa_head = (
   '  <meta name="mobile-web-app-capable" content="yes">\n'
   '  <meta name="apple-mobile-web-app-capable" content="yes">\n'
   '  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">\n'
-  '  <meta name="apple-mobile-web-app-title" content="IPC">\n'
+  '  <meta name="apple-mobile-web-app-title" content="H-Plast">\n'
   '  <link rel="manifest" href="manifest.webmanifest">\n'
   '  <link rel="apple-touch-icon" href="icon-192.png">\n'
-  '  <title>IPC Gudang &amp; Produksi</title>\n  '
+  '  <title>H-Plast IPC — Gudang &amp; Produksi</title>\n  '
 )
 html = idx.replace("<?!= include('Styles'); ?>", pwa_head + styles)
 
@@ -30,6 +30,8 @@ html = idx.replace("<?!= include('Styles'); ?>", pwa_head + styles)
 boot = (
   "<script>\n"
   "window.API_URL = " + repr(api) + ";\n"
+  "/* v11.1: alamat resmi app = h-plast.pages.dev; salinan lama di github.io dialihkan */\n"
+  "if (/github\\.io$/.test(location.hostname)) { location.replace('https://h-plast.pages.dev/' + location.search + location.hash); }\n"
   "var BAHASA_AWAL = 'id';\n"
   "if ('serviceWorker' in navigator) { window.addEventListener('load', function(){ "
   "navigator.serviceWorker.register('sw.js').catch(function(){}); }); }\n"
@@ -44,8 +46,8 @@ open(os.path.join(out_dir, 'index.html'), 'w', encoding='utf-8').write(html)
 
 # --- manifest ---
 manifest = '''{
-  "name": "IPC — Gudang & Produksi",
-  "short_name": "IPC",
+  "name": "H-Plast IPC — Gudang & Produksi",
+  "short_name": "H-Plast",
   "description": "Kontrol inventory & produksi — supplier, gudang, produksi, customer.",
   "start_url": "./",
   "scope": "./",

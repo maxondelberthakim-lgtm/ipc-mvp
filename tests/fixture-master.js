@@ -12,3 +12,14 @@ DUMMY_CUSTOMER = [
   ['CUS-003','Koperasi Perkebunan Sawit','Polybag bibit sawit',  'YA'],
   ['CUS-004','Ekspor — Green Trading',   'Ekspor curah',         'YA']
 ];
+
+/* v11.1: akun bawaan tidak punya Staff Gudang lagi; tes peran STAF tetap memakai akun ini */
+DUMMY_PENGGUNA = [
+  ['', 'Admin',        PERAN.ADMIN,      'HQ',       '1234', 'YA', ''],
+  ['', 'Direktur',     PERAN.ADMIN,      'HQ',       '2468', 'YA', ''],
+  ['', 'Manager',      PERAN.SUPERVISOR, 'GBJ',      '1357', 'YA', ''],
+  ['', 'Yansen',       PERAN.SUPERVISOR, 'Purchasing','2211', 'YA', 'PO,GUDANG'],
+  ['', 'Deny',         PERAN.SUPERVISOR, 'Sales',    '3322', 'YA', 'SO'],
+  ['', 'Bastari',      PERAN.SUPERVISOR, 'Produksi', '4433', 'YA', 'PRODUKSI'],
+  ['', 'Staff Gudang', PERAN.STAF,       'GBJ',      '1111', 'YA', 'GUDANG']
+];

@@ -1,6 +1,6 @@
 {
-  "name": "IPC — Gudang & Produksi",
-  "short_name": "IPC",
+  "name": "H-Plast IPC — Gudang & Produksi",
+  "short_name": "H-Plast",
   "description": "Kontrol inventory & produksi — supplier, gudang, produksi, customer.",
   "start_url": "./",
   "scope": "./",

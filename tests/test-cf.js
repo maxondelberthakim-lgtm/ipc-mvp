@@ -14,7 +14,7 @@ function bukaMesin() {
   const M = H.muatEsm(path.join(__dirname, '..', 'cloudflare', 'src', 'mesin.js'));
   return { db, sql, m: new M.Mesin({ sql, asalFoto: 'https://api.test' }) };
 }
-const SPV = { nama: 'Manager', pin: '1357' }, STAF = { nama: 'Staff Gudang', pin: '1111' };
+const SPV = { nama: 'Manager', pin: '1357' }, STAF = { nama: 'Staff Gudang', pin: '1111' }, BAS = { nama: 'Bastari', pin: '4433' };
 const PNG = 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/wAALCAABAAEBAREA/8QAFAABAAAAAAAAAAAAAAAAAAAACf/EABQQAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQEAAD8AKp//2Q==';
 
 console.log('— 1. Setup awal di DB kosong → skema + master bawaan (DUMMY_* Config.gs) —');
@@ -97,8 +97,8 @@ console.log('— 4. Potongan: >64 baris, hapus baris, migrasi & impor —');
   ok('kolom Tanggal tersimpan sebagai string YYYY-MM-DD', /^\d{4}-\d{2}-\d{2}$/.test(E.m.SS.sheets['Penerimaan'].rows[1][iT]), E.m.SS.sheets['Penerimaan'].rows[1][iT]);
   const st = JSON.parse(E.m.panggil('statusBackup', [SPV], 'sb1'));
   ok('statusBackup (versi R2) ok', st.ok && st.data.simpan === 30 && st.data.terpasang === true, st);
-  const st2 = JSON.parse(E.m.panggil('statusBackup', [STAF], 'sb2'));
-  ok('staf tidak boleh lihat status backup', !st2.ok && /Supervisor/.test(st2.error), st2);
+  const st2 = JSON.parse(E.m.panggil('statusBackup', [BAS], 'sb2'));
+  ok('akun tanpa modul MANAJEMEN (Bastari) tidak boleh lihat status backup', !st2.ok && /Manajemen/.test(st2.error), st2);
   E.db.close();
 }
 
@@ -124,7 +124,7 @@ console.log('— 6. Migrasi v9 → v10 di atas data sungguhan (cloudflare/ipc-li
     ok('impor data v9 jalan', hasil.some((x) => /^Master_Item:/.test(x)), hasil);
     const ADM6 = { nama: 'Admin', pin: String(data.Master_Pengguna.find((r) => r[1] === 'Admin')[4]) };
     const k = JSON.parse(G6.m.panggil('getKonteks', [ADM6], 'mig-1'));
-    ok('getKonteks setelah migrasi ok (versi 10.1)', k.ok && k.data.app.versi === '10.1.0', k.error);
+    ok('getKonteks setelah migrasi ok (versi 11.1)', k.ok && k.data.app.versi === '11.1.0', k.error);
     ok('peta kualitas lengkap (roll/polybag/BS ditambahkan)', k.data.kualitas.length === 3 && k.data.kualitas.every((q) => q.biji && q.roll && q.jadi && q.bs), k.data.kualitas);
     ok('RM-BS-* lama dinonaktifkan, SCR-BS-* aktif', !k.data.items.some((i) => /^RM-BS-/.test(i.kode)) && k.data.items.some((i) => i.kode === 'SCR-BS-KW' && i.kategori === 'SCRAP'));
     ok('item lama (FG-PB-HP, RM-BIJI-PLASTIK-DAUR-UL) tetap ada', k.data.items.some((i) => i.kode === 'FG-PB-HP') && k.data.items.some((i) => i.kode === 'RM-BIJI-PLASTIK-DAUR-UL'));
@@ -221,8 +221,8 @@ console.log('— 8. Migrasi v10.1 → v11: kolom Akses, akun modul, entri MENUNG
   K.db.close();
   const L = bukaMesin(); L.m.imporSemua(dump);
   const users = JSON.parse(L.m.panggil('daftarPengguna', [ADM8], 'm82'));
-  ok('Yansen (PO), Deny (SO), Bastari (PRODUKSI) ditambahkan', users.ok && users.data.some((u) => u.nama === 'Yansen' && u.akses === 'PO') && users.data.some((u) => u.nama === 'Deny' && u.akses === 'SO') && users.data.some((u) => u.nama === 'Bastari' && u.akses === 'PRODUKSI'), users.ok ? users.data.map((u) => u.nama + ':' + u.akses) : users.error);
-  ok('Manager Produksi & Sales Manager dinonaktifkan, Manager tetap semua modul', users.data.find((u) => u.nama === 'Manager Produksi').aktif === false && users.data.find((u) => u.nama === 'Sales Manager').aktif === false && users.data.find((u) => u.nama === 'Manager').modul.PO && users.data.find((u) => u.nama === 'Manager').modul.GUDANG);
+  ok('Yansen (PO,GUDANG), Deny (SO), Bastari (PRODUKSI) ditambahkan', users.ok && users.data.some((u) => u.nama === 'Yansen' && u.akses === 'PO,GUDANG') && users.data.some((u) => u.nama === 'Deny' && u.akses === 'SO') && users.data.some((u) => u.nama === 'Bastari' && u.akses === 'PRODUKSI'), users.ok ? users.data.map((u) => u.nama + ':' + u.akses) : users.error);
+  ok('Manager Produksi, Sales Manager & Staff Gudang dinonaktifkan (v11.1), Manager tetap semua modul', users.data.find((u) => u.nama === 'Manager Produksi').aktif === false && users.data.find((u) => u.nama === 'Sales Manager').aktif === false && users.data.find((u) => u.nama === 'Staff Gudang').aktif === false && users.data.find((u) => u.nama === 'Manager').modul.PO && users.data.find((u) => u.nama === 'Manager').modul.GUDANG);
   const lama = JSON.parse(L.m.panggil('getKonteks', [{ nama: 'Manager Produksi', pin: '1122' }], 'm83'));
   ok('login akun lama ditolak (nonaktif)', !lama.ok && /dinonaktifkan/.test(lama.error), lama.error);
   const kB = JSON.parse(L.m.panggil('getKonteks', [{ nama: 'Bastari', pin: '4433' }], 'm84'));
@@ -236,7 +236,7 @@ console.log('— 8. Migrasi v10.1 → v11: kolom Akses, akun modul, entri MENUNG
   const dump2 = JSON.parse(JSON.stringify(L.m.eksporSemua())); L.db.close();
   const Mm = bukaMesin(); Mm.m.imporSemua(dump2);
   const u2 = JSON.parse(Mm.m.panggil('daftarPengguna', [ADM8], 'm86'));
-  ok('migrasi idempoten: akun tidak digandakan', u2.ok && u2.data.filter((u) => u.nama === 'Yansen').length === 1 && u2.data.length === 8, u2.ok ? u2.data.length : u2.error);
+  ok('migrasi idempoten: akun tidak digandakan', u2.ok && u2.data.filter((u) => u.nama === 'Yansen').length === 1 && u2.data.length === 8 && u2.data.find((u) => u.nama === 'Yansen').akses === 'PO,GUDANG', u2.ok ? u2.data.length : u2.error);
   Mm.db.close();
 }
 try { fs.unlinkSync(file); } catch (e) {}

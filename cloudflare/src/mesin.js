@@ -155,7 +155,7 @@ export class Mesin {
   /* backup harian → R2 (menggantikan salinan Sheet di Drive) */
   statusBackup(ident) {
     const u = this.fns.penggunaSaatIni_(ident);
-    if (!this.fns.bolehReview_(u)) throw new Error('Hanya Supervisor / Admin.');
+    if (!this.fns.bolehReview_(u) || !this.fns.bolehModul_(u, this.vars.MODUL.MANAJEMEN)) throw new Error('Hanya akun dengan akses Manajemen (Manager / Admin).');
     return {
       terpasang: true, terakhir: this.props.get('BACKUP_TERAKHIR') || '',
       jumlah: parseInt(this.props.get('BACKUP_JUMLAH') || '0', 10), simpan: this.vars.SIMPAN_BACKUP_
