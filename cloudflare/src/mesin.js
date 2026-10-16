@@ -197,6 +197,19 @@ export class Mesin {
     const d = r[0].data;
     return { mime: r[0].mime, data: d instanceof Uint8Array ? d : new Uint8Array(d) };
   }
+  /** Hapus foto di tabel `foto` yang tidak lagi dirujuk kolom Foto_ID / File_ID mana pun (setelah hapusTransaksiSebelum). */
+  bersihkanFotoYatim() {
+    const dipakai = new Set();
+    Object.keys(this.SS.sheets).forEach((n) => {
+      const rows = this.SS.sheets[n].rows; if (!rows || !rows.length) return;
+      const kol = rows[0].map((h, i) => /^(Foto_ID|File_ID)$/.test(String(h)) ? i : -1).filter((i) => i >= 0);
+      for (let i = 1; i < rows.length; i++) kol.forEach((c) => { const v = rows[i][c]; if (v) dipakai.add(String(v)); });
+    });
+    const semua = this.sql.exec('SELECT id FROM foto').toArray().map((r) => String(r.id));
+    const yatim = semua.filter((id) => !dipakai.has(id));
+    yatim.forEach((id) => this.sql.exec('DELETE FROM foto WHERE id = ?', id));
+    return { dihapus: yatim.length, tersisa: semua.length - yatim.length };
+  }
   statistikFoto() { const r = this.sql.exec('SELECT COUNT(*) AS n, COALESCE(SUM(ukuran),0) AS b FROM foto').toArray()[0]; return { jumlah: r.n, byte: r.b }; }
   stempel() { return formatDate(new Date(), this.vars.APP.zona, 'yyyy-MM-dd HH.mm'); }
 }

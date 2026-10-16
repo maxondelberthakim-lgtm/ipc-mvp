@@ -125,9 +125,10 @@ export class IpcDb extends DurableObject {
       }
       if (path === '/admin/jalankan') {           // fungsi pemeliharaan yang di Apps Script dijalankan dari editor (resetUntukGoLive, seedUlangMaster, migrasiSkema)
         const b = JSON.parse(body || '{}');
-        const boleh = { resetUntukGoLive: 1, seedUlangMaster: 1, migrasiSkema: 1, setupSistem: 1, hitungUlangHpp: 1 };
+        const boleh = { resetUntukGoLive: 1, seedUlangMaster: 1, migrasiSkema: 1, setupSistem: 1, hitungUlangHpp: 1, hapusTransaksiSebelum: 1 };
         if (!boleh[b.fn]) throw new Error('Fungsi tidak diizinkan: ' + b.fn);
-        const hasil = m.fns[b.fn].apply(null, b.args || []);
+        let hasil = m.fns[b.fn].apply(null, b.args || []);
+        if (b.fn === 'hapusTransaksiSebelum' || b.fn === 'resetUntukGoLive') hasil = Object.assign({}, hasil || {}, { foto: m.bersihkanFotoYatim() });
         m.simpan();
         return JSON.stringify({ ok: true, data: hasil === undefined ? null : hasil });
       }

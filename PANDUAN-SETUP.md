@@ -173,7 +173,9 @@ Sales Manager dinonaktifkan; entri yang masih MENUNGGU difinalkan (laporan rusak
 diarsipkan jadi `*_lama` (data lama tidak hilang, tidak dihitung), kolom `Kualitas` + SKU roll/polybag/BS ditambahkan,
 `RM-BS-*` lama dinonaktifkan (BS sekarang `SCR-BS-*`), `METODE_HPP` FIFO → RATA, akun Manager Produksi & Sales Manager
 ditambahkan. Sebelum dipakai sungguhan, Admin menjalankan `resetUntukGoLive` (rute `/admin/jalankan`) untuk membersihkan
-data uji, lalu isi stok awal lewat opname.
+data uji, lalu isi stok awal lewat opname. Kalau pemakaian sungguhan sudah dimulai di tengah data uji, pakai
+`hapusTransaksiSebelum("YYYY-MM-DD")` (v11.1.1, lewat `hapus-data-uji.command` di Mac): hanya transaksi sebelum tanggal
+itu yang dibuang, master/pengguna/transaksi sesudahnya tetap — lalu tetap isi stok awal lewat opname.
 
 ## Yang belum ada
 

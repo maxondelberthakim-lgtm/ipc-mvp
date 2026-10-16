@@ -35,8 +35,11 @@ npx wrangler r2 bucket create ipc-foto
 * `POST /exec` (atau `/`) — RPC persis seperti `/exec` Apps Script (daftar putih `RPC_WL`, idempotensi `idKlien` 10 menit).
 * `GET /foto/<id>.jpg` — foto bukti dari R2.
 * `POST /admin/info | /admin/ekspor | /admin/impor | /admin/backup | /admin/jalankan` — header `X-Admin-Key`.
-  `/admin/jalankan` body `{"fn":"resetUntukGoLive"|"seedUlangMaster"|"migrasiSkema"|"hitungUlangHpp","args":[...]}`
-  (pengganti "jalankan dari editor Apps Script").
+  `/admin/jalankan` body `{"fn":"resetUntukGoLive"|"seedUlangMaster"|"migrasiSkema"|"hitungUlangHpp"|"hapusTransaksiSebelum","args":[...]}`
+  (pengganti "jalankan dari editor Apps Script"). `hapusTransaksiSebelum` (v11.1.1, `args:["YYYY-MM-DD"]`) membuang semua
+  transaksi bertanggal sebelum batas (data uji coba) tapi mempertahankan master, pengguna, pengaturan, log dan transaksi
+  sesudahnya; foto yang tidak dirujuk lagi ikut dihapus. Backup ke KV dulu (`/admin/backup`) — di Mac: klik dua kali
+  `hapus-data-uji.command`.
 
 ## Pindah data dari Google Sheet
 1. Sheet → File → Download → .xlsx

@@ -10,7 +10,7 @@
 
 var APP = {
   nama: 'IPC — Inventory & Production Control',
-  versi: '11.1.0',
+  versi: '11.1.1',
   zona: 'Asia/Jakarta',
   satuan: 'kg',
   folderFoto: 'IPC Foto Bukti'
@@ -390,6 +390,55 @@ function resetUntukGoLive() {
   lupakanMemo_();
   catatLog_('RESET_GO_LIVE', '', 'Semua transaksi uji coba dihapus');
   seedUlangMaster();
+}
+
+/**
+ * Hapus semua transaksi yang TANGGALNYA sebelum `tanggal` (YYYY-MM-DD) — untuk membuang data uji coba
+ * saat pemakaian sungguhan sudah mulai di tengah jalan. Master (item/supplier/customer), pengguna,
+ * pengaturan dan log TIDAK disentuh (beda dengan resetUntukGoLive yang menghapus semua + menyemai ulang master).
+ * Detail shift / daur ulang ikut induknya; tutup bulan dihapus kalau bulannya sebelum bulan batas.
+ * Hanya dari /admin/jalankan (kunci admin), bukan dari aplikasi. Aman diulang.
+ */
+function hapusTransaksiSebelum(tanggal) {
+  var cut = String(tanggal || '').slice(0, 10);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(cut)) throw new Error('Tanggal batas harus YYYY-MM-DD.');
+  lupakanMemo_();
+  var ss = SpreadsheetApp.getActiveSpreadsheet(), ringkas = {}, induk = {};
+  function tgl(v) {
+    if (!v) return '';
+    if (Object.prototype.toString.call(v) === '[object Date]') return tglStr_(v);
+    var s = String(v);
+    if (/^\d{4}-\d{2}-\d{2}T/.test(s)) { var d = new Date(s); return isNaN(d) ? s.slice(0, 10) : tglStr_(d); }
+    return s.slice(0, 10);
+  }
+  function sebelum(kol) { return function (r) { var t = tgl(r[kol]); return !!t && t < cut; }; }
+  function hapus(nama, cocok) {
+    var sh = ss.getSheetByName(nama); if (!sh) return [];
+    var target = baca_(nama).filter(cocok);
+    target.map(function (r) { return r._baris; }).sort(function (a, b) { return b - a; }).forEach(function (b) { sh.deleteRow(b); });
+    ringkas[nama] = target.length;
+    lupakanMemo_(nama);
+    return target;
+  }
+  hapus(SHEET.PENERIMAAN, sebelum('Tanggal'));
+  hapus(SHEET.PENGIRIMAN, sebelum('Tanggal'));
+  hapus(SHEET.SHIFT, sebelum('Tanggal')).forEach(function (r) { induk[r.ID] = 1; });
+  hapus(SHEET.SHIFT_DETAIL, function (r) { return !!induk[r.ID_Shift]; });
+  induk = {};
+  hapus(SHEET.DAUR, sebelum('Tanggal')).forEach(function (r) { induk[r.ID] = 1; });
+  hapus(SHEET.DAUR_DETAIL, function (r) { return !!induk[r.ID_Daur]; });
+  hapus(SHEET.OPNAME, sebelum('Tanggal'));
+  hapus(SHEET.OPNAME_PROD, sebelum('Tanggal'));
+  hapus(SHEET.PO, sebelum('Tanggal'));
+  hapus(SHEET.INVOICE, sebelum('Tanggal'));
+  hapus(SHEET.KERUSAKAN, sebelum('Tanggal'));
+  hapus(SHEET.SO, sebelum('Tanggal'));
+  hapus(SHEET.TUTUP, function (r) { return String(r.Bulan || '') < cut.slice(0, 7); });
+  hapus(SHEET.PERMINTAAN, sebelum('Waktu'));
+  lupakanMemo_();
+  var total = 0; Object.keys(ringkas).forEach(function (k) { total += ringkas[k]; });
+  catatLog_('HAPUS_DATA_UJI', cut, total + ' baris sebelum ' + cut + ' dihapus: ' + JSON.stringify(ringkas));
+  return { batas: cut, total: total, dihapus: ringkas };
 }
 
 function ambilAtauBuatFolder_() {
