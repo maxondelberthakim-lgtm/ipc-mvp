@@ -70,7 +70,7 @@ soRow = ctx.baca_(ctx.SHEET.SO).find(r=>r.ID===soLine.id);
 ok('pengiriman dibatalkan → SO kembali SEBAGIAN 60', soRow.Status==='SEBAGIAN' && soRow.Qty_Dikirim_Kg===60);
 ok('ubah qty SO tidak boleh < dikirim', (()=>{ try{ ctx.ubahSo(soLine.id,{qty:50},SPV); return false; }catch(e){ return /sudah dikirim/.test(e.message); } })());
 ok('ubah harga, tanggal kirim & TOP SO → jatuh tempo ikut', ctx.ubahSo(soLine.id,{harga:25500, tanggalKirim:'2026-10-01', topHari:45},SPV).log.length===3 && ctx.baca_(ctx.SHEET.SO).find(r=>r.ID===soLine.id).Jatuh_Tempo==='2026-11-15');
-tolak('batalkan SO yang sudah dikirim sebagian ditolak', ()=>ctx.batalkanSo(soLine.id,'x',SPV), /Sudah ada pengiriman/);
+tolak('batalkan SO yang sudah dikirim sebagian ditolak', ()=>ctx.batalkanSo(soLine.id,'salah input',SPV), /Sudah ada pengiriman/);
 const so2Line = ctx.daftarSo(SPV).find(x=>x.noSo===so2.noSo);
 ok('batalkan SO belum dikirim', ctx.batalkanSo(so2Line.id,'customer batal',SPV).ok && ctx.daftarSo(SPV,'DIBATALKAN').length===1);
 ok('dipesan tidak termasuk SO batal', ctx.getKonteks(STAF).stok[FG].dipesan===90);

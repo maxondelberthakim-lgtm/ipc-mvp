@@ -96,6 +96,7 @@ function ubahSo(id, perubahan, ident) {
 function batalkanSo(id, alasan, ident) {
   var u = penggunaSaatIni_(ident);
   if (!bolehSo_(u)) throw new Error('Hanya akun dengan akses Sales order yang bisa membatalkan SO.');
+  alasan = alasanWajib_(alasan);
   var lock = LockService.getScriptLock();
   lock.waitLock(20000);
   lupakanMemo_();

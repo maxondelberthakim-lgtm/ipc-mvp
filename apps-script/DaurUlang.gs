@@ -46,8 +46,9 @@ function mulaiDaurUlang(p) {
   wajibModul_(u, MODUL.GUDANG);
   if (!p || !String(p.vendor || '').trim()) throw new Error('Tempat chassen (vendor) belum dipilih.');
   if (!p.scrap || !p.scrap.length) throw new Error('Scrap yang dikirim belum diisi.');
+  if (!p.foto) throw new Error('Foto surat jalan ke tempat chassen wajib diunggah.');   // v11.2
   var peta = petaItem_();
-  var foto = p.foto ? unggahFoto_(p.foto, 'DAUR-KIRIM') : { url: '', id: '' };
+  var foto = unggahFoto_(p.foto, 'DAUR-KIRIM');
   var lock = LockService.getScriptLock();
   lock.waitLock(20000);
   lupakanMemo_();
@@ -84,8 +85,9 @@ function selesaikanDaurUlang(p) {
   wajibModul_(u, MODUL.GUDANG);
   if (!p || !p.id) throw new Error('ID batch kosong.');
   if (!p.hasil || !p.hasil.length) throw new Error('Biji plastik yang diterima belum diisi.');
+  if (!p.foto) throw new Error('Foto surat jalan dari tempat chassen wajib diunggah.');   // v11.2
   var peta = petaItem_();
-  var foto = p.foto ? unggahFoto_(p.foto, 'DAUR-TERIMA') : { url: '', id: '' };
+  var foto = unggahFoto_(p.foto, 'DAUR-TERIMA');
   var lock = LockService.getScriptLock();
   lock.waitLock(20000);
   lupakanMemo_();
@@ -222,6 +224,7 @@ function batalkanDaurUlang(id, alasan, ident) {
   try {
     var r = cariDaur_(id);
     if (r.Status === STATUS_DAUR.DIBATALKAN) throw new Error('Batch sudah dibatalkan.');
+    alasan = alasanWajib_(alasan);
     if (bulanTertutup_(r.Tanggal) || (r.Tanggal_Terima && bulanTertutup_(r.Tanggal_Terima))) throw new Error('Bulan batch ini sudah ditutup — tidak bisa dibatalkan.');
     if (!bolehReview_(u)) {
       if (r.Dicatat_Oleh !== penandaPencatat_(u)) throw new Error('Hanya batch yang kamu catat sendiri yang bisa dibatalkan.');

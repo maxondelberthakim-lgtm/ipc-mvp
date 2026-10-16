@@ -44,6 +44,7 @@
 
   <!-- ============ BERANDA ============ -->
   <section id="v-home">
+    <div class="banner warn hide" id="homeTanpaFoto" style="margin:0 0 10px"></div>
     <div class="stats">
       <button class="stat tap" onclick="tileHome('masuk')"><div class="n" id="sMasuk">–</div><div class="l" data-i18n="statMasuk">kg masuk hari ini</div></button>
       <button class="stat tap" onclick="tileHome('keluar')"><div class="n" id="sKeluar">–</div><div class="l" data-i18n="statKeluar">kg keluar hari ini</div></button>
@@ -156,6 +157,8 @@
           <div class="p2" data-i18n="fotoHintSJ">Bukti silang untuk angka yang diketik</div>
         </div>
         <input type="file" accept="image/*" capture="environment" id="rcvFile" class="hide" onchange="fotoTerpilih(event,'rcv')">
+        <!-- v11.2: foto menyusul — satu input file bersama untuk "+ Foto" di riwayat / detail -->
+        <input type="file" accept="image/*" capture="environment" id="entriFile" class="hide" onchange="fotoEntriTerpilih(event)">
         <div class="btnrow hide" id="rcvOcrRow">
           <button class="btn sec sm" onclick="jalankanOcr()" id="btnOcr" data-i18n="btnOcr">🔍 Baca surat jalan</button>
           <button class="btn sec sm" onclick="hapusFoto('rcv')" data-i18n="btnGanti">Ganti foto</button>

@@ -3,6 +3,7 @@
 const fs=require('fs');
 let src=fs.readFileSync(__dirname+'/harness.js','utf8').replace("return 'pemilik@contoh.co.id';","return '';");
 fs.writeFileSync(__dirname + '/.h10.js', src);
+const FOTO = 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/wAALCAABAAEBAREA/8QAFAABAAAAAAAAAAAAAAAAAAAACf/EABQQAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQEAAD8AKp//2Q==';
 const {ctx}=require(__dirname + '/.h10.js');
 let pass=0,fail=0;
 const ok=(l,c,e)=>{c?(pass++,console.log('  ✓',l)):(fail++,console.log('  ✗',l,e===undefined?'':JSON.stringify(e)))};
@@ -28,8 +29,8 @@ const so = ctx.simpanSo({customer:CUS, tanggal:tB(11), tanggalKirim:tB(12), topH
 ok('SO oleh Deny (modul SO): customer, TOP 14, tanggal kirim, item, harga', so.ok && ctx.baca_(ctx.SHEET.SO)[0].Jatuh_Tempo===ctx.jatuhTempo_(tB(12),14));
 const kirim = ctx.simpanPengiriman({jenis:'KELUAR', customer:CUS, tanggal:tB(12), noSuratJalan:'DO/B/1', baris:[{kode:FG, qty:300, idSo:so.ids[0]}], ident:STAF});
 ctx.simpanPengiriman({jenis:'KELUAR', customer:'Toko Tani Sejahtera', tanggal:tB(12), noSuratJalan:'DO/B/2', baris:[{kode:FG, qty:50}], ident:STAF});   // tanpa SO → tidak ada nilai jual
-const du = ctx.mulaiDaurUlang({vendor:VENDOR, tanggal:tB(13), scrap:[{kode:BS, qty:20}], ident:STAF});
-ctx.selesaikanDaurUlang({id:du.id, tanggalTerima:tB(14), hasil:[{kode:DU, qty:18}], biayaJasa:90000, ident:SPV});
+const du = ctx.mulaiDaurUlang({vendor:VENDOR, tanggal:tB(13), scrap:[{kode:BS, qty:20}], foto:FOTO, ident:STAF});
+ctx.selesaikanDaurUlang({id:du.id, tanggalTerima:tB(14), hasil:[{kode:DU, qty:18}], biayaJasa:90000, foto:FOTO, ident:SPV});
 const rusak = ctx.simpanKerusakan({kode:FG, qty:5, tanggal:tB(11), penyebab:'kena air', ident:STAF});
 /* opname akhir bulan: biji KW fisik 396 (sistem 400 → kurang 4) — tanggal digeser ke akhir bulan B */
 const op = ctx.simpanOpname({baris:[{kode:KW, fisik:396}], catatan:'opname akhir bulan'}, SPV);
@@ -90,12 +91,12 @@ tolak('laporan shift bertanggal bulan tertutup ditolak', ()=>ctx.simpanLaporanSh
 tolak('penerimaan bertanggal bulan tertutup ditolak', ()=>ctx.simpanPenerimaan({jenis:'MASUK', supplier:SUP, tanggal:tB(20), noSuratJalan:'SJ/X', baris:[{kode:KW, qty:1}], ident:STAF}), /sudah ditutup/);
 tolak('pengiriman bertanggal bulan tertutup ditolak', ()=>ctx.simpanPengiriman({jenis:'KELUAR', customer:CUS, tanggal:tB(20), noSuratJalan:'DO/X', baris:[{kode:FG, qty:1}], ident:STAF}), /sudah ditutup/);
 tolak('ubah laporan shift bulan tertutup ditolak', ()=>ctx.ubahLaporanShift(shB.id, {blowing:{operator:'Sri', hasil:[{kualitas:'KW', qty:1}]}}, MP), /sudah ditutup/);
-tolak('batalkan laporan shift bulan tertutup ditolak', ()=>ctx.batalkanLaporanShift(shB.id, 'x', MP), /sudah ditutup/);
+tolak('batalkan laporan shift bulan tertutup ditolak', ()=>ctx.batalkanLaporanShift(shB.id, 'salah input', MP), /sudah ditutup/);
 tolak('edit penerimaan bulan tertutup ditolak (manager pun)', ()=>ctx.simpanEditEntri(rc.ids[0], {qty:999}, SPV), /sudah ditutup/);
 ok('riwayat input: kunci BULAN_TUTUP', ctx.riwayatInput('BELI_MASUK', 60, SPV).find(x=>x.id===rc.ids[0]).kunci==='BULAN_TUTUP');
-tolak('batalkan pengiriman bulan tertutup ditolak', ()=>ctx.tinjauTransfer(kirim.ids[0], 'batal', 'x', SPV), /sudah ditutup/);
+tolak('batalkan pengiriman bulan tertutup ditolak', ()=>ctx.tinjauTransfer(kirim.ids[0], 'batal', 'salah input', SPV), /sudah ditutup/);
 tolak('ubah batch daur ulang bulan tertutup ditolak', ()=>ctx.ubahDaurUlang(du.id, {biayaJasa:1}, SPV), /sudah ditutup/);
-tolak('batalkan batch daur ulang bulan tertutup ditolak', ()=>ctx.batalkanDaurUlang(du.id, 'x', SPV), /sudah ditutup/);
+tolak('batalkan batch daur ulang bulan tertutup ditolak', ()=>ctx.batalkanDaurUlang(du.id, 'salah input', SPV), /sudah ditutup/);
 ok('laporan shift bulan tertutup: bolehEdit false', ctx.ambilLaporanShift(shB.id, MP).bolehEdit===false);
 ok('transaksi bulan ini tetap bisa', ctx.simpanLaporanShift({shift:'1', blowing:{operator:'Sri', ambil:[{kode:KW, qty:100}], hasil:[{kualitas:'KW', qty:96}], bs:[{kualitas:'KW', qty:2}]}}, MP).blowing.totalAmbil===100);
 ctx.simpanPengiriman({jenis:'KELUAR', customer:CUS, noSuratJalan:'DO/N/1', baris:[{kode:FG, qty:20}], ident:STAF});

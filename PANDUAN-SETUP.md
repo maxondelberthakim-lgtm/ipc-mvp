@@ -177,6 +177,14 @@ data uji, lalu isi stok awal lewat opname. Kalau pemakaian sungguhan sudah dimul
 `hapusTransaksiSebelum("YYYY-MM-DD")` (v11.1.1, lewat `hapus-data-uji.command` di Mac): hanya transaksi sebelum tanggal
 itu yang dibuang, master/pengguna/transaksi sesudahnya tetap — lalu tetap isi stok awal lewat opname.
 
+## v11.2 (16 Okt 2026)
+
+Foto bukti **tidak wajib saat input** (penerimaan, pengiriman, laporan shift, rusak) — simpan dulu, lalu tekan **+ Foto**
+di riwayat (atau di layar detail) untuk mengunggah belakangan; beranda menampilkan jumlah entri yang belum ada fotonya.
+Yang boleh menambah: pencatatnya sendiri atau manager modul itu, sekali per entri, tercatat di log. **Kecuali daur ulang
+BS: foto surat jalan chassen wajib** saat kirim dan saat terima. Semua pembatalan (PO, SO, laporan shift, daur ulang,
+penerimaan, pengiriman, rusak) **wajib beralasan** (minimal 3 huruf) — entri jadi DIBATALKAN, stok kembali, jejak tetap.
+
 ## Yang belum ada
 
 Offline mode · barcode · piutang/pembayaran (baru jatuh tempo) · lebih dari satu gudang · notifikasi.

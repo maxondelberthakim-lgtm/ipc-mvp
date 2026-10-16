@@ -52,7 +52,7 @@ c2.ubahBaris_(c2.SHEET.PENERIMAAN, c2.baca_(c2.SHEET.PENERIMAAN).find(r=>r.ID===
 const rS = c2.riwayatInput('BELI_MASUK',14,STAF)[0];
 ok('staf: bolehEdit=false, kunci LEWAT_24JAM', rS.bolehEdit===false && rS.bolehBatal===false && rS.kunci==='LEWAT_24JAM', rS.kunci);
 tolak('staf ditolak server setelah 24 jam', ()=>c2.simpanEditEntri(idM,{qty:520},STAF), /24 jam/);
-tolak('staf tidak bisa batalkan setelah 24 jam', ()=>c2.batalkanEntriSendiri(idM,'x',STAF), /24 jam/);
+tolak('staf tidak bisa batalkan setelah 24 jam', ()=>c2.batalkanEntriSendiri(idM,'salah input',STAF), /24 jam/);
 ok('ambilEntri untuk staf tetap bisa (lihat detail)', c2.ambilEntri(idM,STAF).qty===510);
 ok('supervisor masih bisa langsung', c2.simpanEditEntri(idM,{qty:520},SPV).berubah===true);
 ok('ambilEntri kembalikan sheet', c2.ambilEntri(idM,SPV).sheet==='Penerimaan');
@@ -70,13 +70,13 @@ ok('maksEditHari dikirim ke konteks', c2.getKonteks(STAF).maksEditHari===30);
 
 console.log('\n— Batal: staf batalkan entri sendiri (< 24 jam) langsung —');
 const idOut = c2.riwayatInput('JUAL_KELUAR',14,STAF)[0].id;
-tolak('staf lain tidak bisa batalkan', ()=>c2.batalkanEntriSendiri(idOut,'x',STAF2), /catat sendiri/);
+tolak('staf lain tidak bisa batalkan', ()=>c2.batalkanEntriSendiri(idOut,'salah input',STAF2), /catat sendiri/);
 ok('masih dihitung di stok sebelum batal', c2.laporanStok(SPV).daftar.find(s=>s.kode==='RM-BP-KW').jual===50);
 const b1 = c2.batalkanEntriSendiri(idOut,'dobel input',STAF);
 ok('staf: langsung DIBATALKAN', b1.status==='DIBATALKAN' && !b1.diajukan, b1);
 ok('status DIBATALKAN, ditinjau oleh diri sendiri', (()=>{const r=c2.baca_(c2.SHEET.PENGIRIMAN).find(r=>r.ID===idOut); return r.Status==='DIBATALKAN' && /sendiri/.test(r.Ditinjau_Oleh) && /dobel input/.test(r.Catatan_Tinjau);})());
 ok('keluar dari stok', (c2.laporanStok(SPV).daftar.find(s=>s.kode==='RM-BP-KW')||{jual:0}).jual===0);
-tolak('tidak bisa dibatalkan 2x', ()=>c2.batalkanEntriSendiri(idOut,'x',STAF), /sudah dibatalkan/);
+tolak('tidak bisa dibatalkan 2x', ()=>c2.batalkanEntriSendiri(idOut,'salah input',STAF), /sudah dibatalkan/);
 ok('supervisor batalkan lewat jalur review', (()=>{ const r2=c2.simpanPengiriman({jenis:'KELUAR',customer:'PT Nursery Hijau Lestari',noSuratJalan:'DO/2',baris:[{kode:'RM-BP-KW',qty:5}],ident:STAF}); const b=c2.batalkanEntriSendiri(r2.ids[0],'salah',SPV); return b.status==='DIBATALKAN'; })());
 
 console.log('\n— Tanggal transaksi —');
@@ -102,7 +102,7 @@ const sh = c2.simpanLaporanShift({tanggal:kemarin2, shift:'2', blowing:{operator
 ok('laporan bertanggal kemarin tersimpan', sh.tanggal===kemarin2 && sh.blowing.totalAmbil===300, sh);
 ok('staf lihat laporan tapi tidak boleh edit', c2.daftarLaporanShift(STAF, 7)[0].bolehEdit===false);
 tolak('staf ditolak ubah laporan shift', ()=>c2.ubahLaporanShift(sh.id, {blowing:{operator:'Sri', hasil:[{kualitas:'KW',qty:1}]}}, STAF), /Manager|Admin/);
-tolak('staf ditolak batalkan laporan shift', ()=>c2.batalkanLaporanShift(sh.id, 'x', STAF), /Manager|Admin/);
+tolak('staf ditolak batalkan laporan shift', ()=>c2.batalkanLaporanShift(sh.id, 'salah input', STAF), /Manager|Admin/);
 tolak('simpanEditEntri untuk ID SHF- diarahkan ke ubahLaporanShift', ()=>c2.simpanEditEntri(sh.id, {qty:1}, SPV), /ubahLaporanShift/);
 const detSebelum = c2.baca_(c2.SHEET.SHIFT_DETAIL).filter(d=>d.ID_Shift===sh.id).length;
 // salah ketik: hasil 285 → 275, BS 3 → 5, operator ganti
@@ -116,6 +116,37 @@ ok('ubah tanggal laporan ke hari ini', /tanggal/.test(c2.ubahLaporanShift(sh.id,
 tolak('ubah ke tanggal masa depan ditolak', ()=>c2.ubahLaporanShift(sh.id, {tanggal:'2099-01-01'}, SPV), /masa depan/);
 ok('stok gudang ikut angka terbaru: roll KW 275', c2.laporanStok(SPV).daftar.find(s=>s.kode==='WIP-ROLL-KW').gbj===275);
 ok('laporan produksi konsisten setelah edit', c2.laporanProduksi(null, SPV).total.roll===275 && c2.laporanProduksi(null, SPV).total.bs===5);
+
+console.log('\n— v11.2: foto menyusul (tambahFoto) —');
+{
+  const FOTO='data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/wAALCAABAAEBAREA/8QAFAABAAAAAAAAAAAAAAAAAAAACf/EABQQAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQEAAD8AKp//2Q==';
+  const rc = c2.simpanPenerimaan({jenis:'MASUK',supplier:'PT Sumber Biji Plastik',noSuratJalan:'SJ/FOTO',baris:[{kode:'RM-BP-KW',qty:10}],ident:STAF});
+  const idF = rc.ids[0];
+  ok('penerimaan tersimpan TANPA foto', c2.baca_(c2.SHEET.PENERIMAAN).find(r=>r.ID===idF).Foto_URL==='');
+  ok('riwayat: bolehFoto=true untuk pencatat', c2.riwayatInput('BELI_MASUK',14,STAF).find(r=>r.id===idF).bolehFoto===true);
+  ok('riwayat: bolehFoto=false untuk staf lain', c2.riwayatInput('BELI_MASUK',14,STAF2).find(r=>r.id===idF).bolehFoto===false);
+  tolak('staf lain tidak bisa tambah foto', ()=>c2.tambahFoto(idF, FOTO, STAF2), /Tidak bisa menambah foto/);
+  tolak('tanpa data foto ditolak', ()=>c2.tambahFoto(idF, '', STAF), /Foto belum dipilih/);
+  // lewat 24 jam: staf tetap boleh menambah foto (rekap akhir hari / besok)
+  c2.ubahBaris_(c2.SHEET.PENERIMAAN, c2.baca_(c2.SHEET.PENERIMAAN).find(r=>r.ID===idF)._baris, { Waktu: new Date(Date.now()-30*36e5) });
+  const tf = c2.tambahFoto(idF, FOTO, STAF);
+  const rowF = c2.baca_(c2.SHEET.PENERIMAAN).find(r=>r.ID===idF);
+  ok('staf tambah foto entri sendiri setelah 24 jam → tersimpan', tf.ok && rowF.Foto_URL && rowF.Foto_ID && /foto ditambahkan/.test(rowF.Log_Edit), rowF.Log_Edit);
+  ok('ambilEntri: bolehFoto=false setelah ada foto', c2.ambilEntri(idF, STAF).bolehFoto===false);
+  tolak('foto kedua ditolak (tidak diganti)', ()=>c2.tambahFoto(idF, FOTO, SPV), /sudah punya foto/);
+  ok('log FOTO_TAMBAH tercatat', c2.baca_(c2.SHEET.LOG).some(l=>l.Aksi==='FOTO_TAMBAH' && l.Referensi===idF));
+  // laporan rusak & shift & pengiriman oleh manager
+  const dmg = c2.simpanKerusakan({kode:'RM-BP-KW', qty:1, penyebab:'uji foto', ident:STAF});
+  ok('rusak tanpa foto → daftarKerusakan.bolehFoto (pencatat)', c2.daftarKerusakan(STAF,'SEMUA').find(x=>x.id===dmg.id).bolehFoto===true);
+  ok('manager gudang tambah foto laporan rusak', c2.tambahFoto(dmg.id, FOTO, SPV).ok && c2.baca_(c2.SHEET.KERUSAKAN).find(r=>r.ID===dmg.id).Foto_URL!=='');
+  const sh = c2.simpanLaporanShift({shift:'1', blowing:{operator:'Sri', ambil:[{kode:'RM-BP-KW', qty:2}], hasil:[{kualitas:'KW', qty:1.9}]}}, SPV);
+  ok('shift tanpa foto → bolehFoto manager produksi', c2.daftarLaporanShift(SPV,14).find(x=>x.id===sh.id).bolehFoto===true);
+  tolak('staf tidak bisa tambah foto laporan shift orang lain', ()=>c2.tambahFoto(sh.id, FOTO, STAF), /Tidak bisa menambah foto/);
+  ok('manager tambah foto laporan shift', c2.tambahFoto(sh.id, FOTO, SPV).ok && c2.baca_(c2.SHEET.SHIFT).find(r=>r.ID===sh.id).Foto_URL!=='');
+  const dib = c2.simpanPengiriman({jenis:'KELUAR',customer:'PT Nursery Hijau Lestari',noSuratJalan:'DO/F',baris:[{kode:'RM-BP-KW',qty:1}],ident:STAF});
+  c2.batalkanEntriSendiri(dib.ids[0], 'salah input', STAF);
+  tolak('entri DIBATALKAN tidak bisa ditambah foto', ()=>c2.tambahFoto(dib.ids[0], FOTO, SPV), /Tidak bisa menambah foto/);
+}
 
 fs.unlinkSync(__dirname+'/.h2.js');
 console.log('\n================ '+pass+' lulus, '+fail+' gagal ================');

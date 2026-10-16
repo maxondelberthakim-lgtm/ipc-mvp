@@ -193,7 +193,8 @@ function ringkasShift_(r, u, detCache) {
                totalRoll: rollPakai, totalHasil: pbKg, totalBs: bsC, persenBs: rollPakai > 0 ? bulat_(bsC / rollPakai * 100, 2) : 0 },
     totalBs: bulat_(bsB + bsC, 3),
     pencatat: r.Nama_Pencatat, foto: r.Foto_URL || '', catatan: r.Catatan || '', logEdit: r.Log_Edit || '', status: r.Status,
-    bolehEdit: !!u && bolehShift_(u) && r.Status !== STATUS_SHIFT.DIBATALKAN && !bulanTertutup_(r.Tanggal)
+    bolehEdit: !!u && bolehShift_(u) && r.Status !== STATUS_SHIFT.DIBATALKAN && !bulanTertutup_(r.Tanggal),
+    bolehFoto: !r.Foto_URL && bolehFoto_(u, SHEET.SHIFT, r)
   };
 }
 
@@ -261,6 +262,7 @@ function ubahLaporanShift(id, p, ident) {
 function batalkanLaporanShift(id, alasan, ident) {
   var u = penggunaSaatIni_(ident);
   if (!bolehShift_(u)) throw new Error('Hanya Manager / Admin.');
+  alasan = alasanWajib_(alasan);
   var lock = LockService.getScriptLock();
   lock.waitLock(20000);
   lupakanMemo_();

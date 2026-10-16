@@ -1,4 +1,4 @@
-# IPC — Inventory & Production Control (v11.1)
+# IPC — Inventory & Production Control (v11.2)
 
 Mobile web app for a small polybag factory: every kilogram that moves between
 **supplier → warehouse (GBJ) → blowing → cutting → warehouse → customer** is logged with a
@@ -68,6 +68,14 @@ There are no per-job records and no approvals on the production floor — the sy
 | ④ | Goods out, sold (GBJ → customer), picked from an SO | required | required | GBJ − |
 | ↩ | Return from customer | required | — | GBJ + |
 
+- **Photos can follow later (v11.2).** Receipts, shipments, shift reports and damage reports save without a photo so the
+  floor is never blocked; a "+ Foto" button in every history list (and a home-screen banner counting entries without a
+  photo) lets the person who recorded it — or a manager of that module — attach the photo at the end of the day
+  (`tambahFoto`, once per entry, logged). **Exception: BS recycling requires a photo of the crusher's delivery note both
+  when BS leaves and when recycled pellets come back.**
+- **Every cancellation needs a reason (v11.2).** PO, SO, shift report, recycling batch, receipt, shipment and damage report
+  can all be cancelled by their module owner (status DIBATALKAN, stock restored, audit trail kept) but only with a reason
+  of at least 3 characters — enforced on the server.
 - **No review step (v11).** Receipts, shipments, returns and damage reports are final the moment they are saved (stock
   moves immediately). Staff may edit or cancel their own entry within 24 hours; a manager with warehouse access may edit
   or cancel anything until `MAKS_EDIT_HARI` or the month is closed. Every change is logged.
@@ -122,7 +130,8 @@ cd cloudflare && npx wrangler dev --port 8787 --local   # local Worker for the P
 
 ## Status
 
-v11.1 — app moves to **h-plast.pages.dev** (Cloudflare Pages); Staff Gudang removed, Yansen does the warehouse work.
+v11.2 — photos optional at entry time ("+ Foto" later from history), crusher delivery-note photos mandatory for
+recycling, every cancellation requires a reason. v11.1.1 — admin `hapusTransaksiSebelum` to purge test data. v11.1 — app moves to **h-plast.pages.dev** (Cloudflare Pages); Staff Gudang removed, Yansen does the warehouse work.
 v11 — access revamp: per-account module access (Yansen PO · Deny SO · Bastari production), review/approval process
 removed (entries final on save, 24-hour self-edit window for staff). v10.1 — two 12-hour shifts, one report per shift
 with separate blowing / cutting operators, roll used typed by the cutting operator, blind monthly production count +

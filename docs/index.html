@@ -392,6 +392,7 @@ input:disabled,select:disabled,textarea:disabled{background:#f3f4f6;color:#37415
 
   <!-- ============ BERANDA ============ -->
   <section id="v-home">
+    <div class="banner warn hide" id="homeTanpaFoto" style="margin:0 0 10px"></div>
     <div class="stats">
       <button class="stat tap" onclick="tileHome('masuk')"><div class="n" id="sMasuk">–</div><div class="l" data-i18n="statMasuk">kg masuk hari ini</div></button>
       <button class="stat tap" onclick="tileHome('keluar')"><div class="n" id="sKeluar">–</div><div class="l" data-i18n="statKeluar">kg keluar hari ini</div></button>
@@ -504,6 +505,8 @@ input:disabled,select:disabled,textarea:disabled{background:#f3f4f6;color:#37415
           <div class="p2" data-i18n="fotoHintSJ">Bukti silang untuk angka yang diketik</div>
         </div>
         <input type="file" accept="image/*" capture="environment" id="rcvFile" class="hide" onchange="fotoTerpilih(event,'rcv')">
+        <!-- v11.2: foto menyusul — satu input file bersama untuk "+ Foto" di riwayat / detail -->
+        <input type="file" accept="image/*" capture="environment" id="entriFile" class="hide" onchange="fotoEntriTerpilih(event)">
         <div class="btnrow hide" id="rcvOcrRow">
           <button class="btn sec sm" onclick="jalankanOcr()" id="btnOcr" data-i18n="btnOcr">🔍 Baca surat jalan</button>
           <button class="btn sec sm" onclick="hapusFoto('rcv')" data-i18n="btnGanti">Ganti foto</button>
@@ -1041,7 +1044,7 @@ input:disabled,select:disabled,textarea:disabled{background:#f3f4f6;color:#37415
 
 var APP = {
   nama: 'IPC — Inventory & Production Control',
-  versi: '11.1.1',
+  versi: '11.2.0',
   zona: 'Asia/Jakarta',
   satuan: 'kg',
   folderFoto: 'IPC Foto Bukti'
@@ -1507,7 +1510,7 @@ function include(nama) {
  * Hanya fungsi di daftar putih (RPC_WL) yang boleh dipanggil. */
 var RPC_WL = {
   getKonteks:1, simpanPenerimaan:1, simpanPengiriman:1,
-  riwayatInput:1, ambilEntri:1, simpanEditEntri:1, batalkanEntriSendiri:1,
+  riwayatInput:1, ambilEntri:1, simpanEditEntri:1, batalkanEntriSendiri:1, tambahFoto:1,
   antrianReview:1, tinjauTransfer:1, daftarPermintaan:1, tinjauPermintaan:1,
   laporanStok:1, riwayatPenerimaan:1, laporanPenjualan:1,
   kalender:1, ocrSuratJalan:1,
@@ -1954,6 +1957,14 @@ function getKonteks(ident) {
     jadiHariIni += angka_(r.Total_Polybag_Kg);
   });
 
+  /* v11.2: entri 14 hari terakhir tanpa foto yang boleh dilengkapi pengguna ini (foto menyusul) */
+  var tanpaFoto = 0, batasFoto = new Date(); batasFoto.setDate(batasFoto.getDate() - 14);
+  function hitungTanpaFoto(nama, rows) {
+    rows.forEach(function (r) { if (!r.Foto_URL && new Date(r.Waktu) >= batasFoto && bolehFoto_(u, nama, r)) tanpaFoto++; });
+  }
+  hitungTanpaFoto(SHEET.PENERIMAAN, rcv); hitungTanpaFoto(SHEET.PENGIRIMAN, snd);
+  hitungTanpaFoto(SHEET.SHIFT, baca_(SHEET.SHIFT)); hitungTanpaFoto(SHEET.KERUSAKAN, baca_(SHEET.KERUSAKAN));
+
   var masukHariIni = rcv.filter(function (r) {
     return r.Jenis === JENIS_PENERIMAAN.MASUK && String(r.Tanggal) === hariIni && dihitung_(r);
   }).reduce(function (a, r) { return a + angka_(r.Qty_Kg); }, 0);
@@ -2020,6 +2031,7 @@ function getKonteks(ident) {
       ditandai         : ditandai(rcv) + ditandai(snd),
       daurBerjalan     : daurBerjalanN,
       shiftHariIni     : shiftHariIni,
+      tanpaFoto        : tanpaFoto,
       jadiHariIni      : bulat_(jadiHariIni, 1),
       bsHariIni        : bulat_(bsHariIni, 1),
       masukHariIni     : bulat_(masukHariIni, 1),
@@ -2267,6 +2279,7 @@ function tinjauTransfer(id, aksi, catatan, ident) {
   wajibModul_(u, MODUL.GUDANG);
   /* v11: proses review dihapus — entri sudah final saat disimpan; yang tersisa hanya pembatalan. */
   if (aksi !== 'batal') throw new Error('Tidak ada proses review lagi — entri langsung final saat disimpan. Yang bisa dilakukan: ubah atau batalkan.');
+  catatan = alasanWajib_(catatan);
   var status = STATUS_TRANSFER.DIBATALKAN;
   var nama = sheetDariId_(id);
 
@@ -2545,6 +2558,65 @@ function alasanKunci_(u, r) {
 }
 function bolehEditEntri_(u, r) { return alasanKunci_(u, r) === ''; }
 
+/** v11.2: setiap pembatalan WAJIB beralasan (anak-anak masih uji coba — jejaknya harus jelas). */
+function alasanWajib_(alasan) {
+  var a = String(alasan || '').trim();
+  if (a.length < 3) throw new Error('Alasan pembatalan wajib diisi (minimal 3 huruf).');
+  return a;
+}
+
+/* ---------- v11.2: foto menyusul ----------
+   Foto bukti tidak lagi wajib saat input (supaya operasional tidak tertahan); diunggah belakangan dari riwayat.
+   Boleh menambah foto: ADMIN; SUPERVISOR dengan modul sheet itu (GUDANG / PRODUKSI); STAF untuk entri sendiri —
+   tanpa batas 24 jam, selama bulan belum ditutup dan masih dalam MAKS_EDIT_HARI. Foto yang sudah ada tidak diganti. */
+function modulSheet_(nama) { return nama === SHEET.SHIFT ? MODUL.PRODUKSI : MODUL.GUDANG; }
+function bolehFoto_(u, nama, r) {
+  if (!u || !r) return false;
+  if (r.Status === STATUS_TRANSFER.DIBATALKAN) return false;
+  if (bulanTertutup_(r.Tanggal)) return false;
+  if (!dalamBatasEdit_(r)) return false;
+  if (u.peran === PERAN.ADMIN) return true;
+  if (bolehReview_(u)) return bolehModul_(u, modulSheet_(nama));
+  return r.Dicatat_Oleh === penandaPencatat_(u);
+}
+function sheetFoto_(id) {
+  var pre = String(id).slice(0, 4);
+  if (pre === 'DMG-') return SHEET.KERUSAKAN;
+  return sheetDariId_(id);
+}
+/**
+ * Tambah foto bukti ke entri yang disimpan tanpa foto. id: RCV/RTR/OUT/RTC/SHF/DMG; daur ulang pakai opsi.bagian 'kirim'|'terima'.
+ * Mengembalikan { ok, foto (URL) }.
+ */
+function tambahFoto(id, foto, ident, opsi) {
+  var u = penggunaSaatIni_(ident);
+  if (!foto || String(foto).indexOf('data:image') !== 0) throw new Error('Foto belum dipilih.');
+  var nama = sheetFoto_(id);
+  var lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  lupakanMemo_();
+  try {
+    var r = cariEntri_(nama, id);
+    if (!bolehFoto_(u, nama, r)) throw new Error('Tidak bisa menambah foto ke entri ini (bukan entri kamu / bulan sudah ditutup / sudah dibatalkan).');
+    var kolUrl = 'Foto_URL', kolId = 'Foto_ID', prefix;
+    if (nama === SHEET.DAUR) {
+      var bagian = opsi && opsi.bagian === 'terima' ? 'terima' : 'kirim';
+      kolUrl = bagian === 'terima' ? 'Foto_Terima_URL' : 'Foto_Kirim_URL'; kolId = ''; prefix = bagian === 'terima' ? 'DAUR-TERIMA' : 'DAUR-KIRIM';
+    } else if (nama === SHEET.SHIFT) { kolId = ''; prefix = 'SHIFT'; }
+    else if (nama === SHEET.KERUSAKAN) prefix = 'RUSAK';
+    else prefix = String(id).slice(0, 3);
+    if (r[kolUrl]) throw new Error('Entri ini sudah punya foto.');
+    var f = unggahFoto_(foto, prefix);
+    var ubah = {}; ubah[kolUrl] = f.url; if (kolId) ubah[kolId] = f.id;
+    if (HEADER[nama].indexOf('Log_Edit') >= 0) {
+      ubah.Log_Edit = [r.Log_Edit, Utilities.formatDate(new Date(), APP.zona, 'dd/MM HH:mm') + ' ' + u.nama + ': foto ditambahkan'].filter(String).join('\n');
+    }
+    ubahBaris_(nama, r._baris, ubah);
+    catatLog_('FOTO_TAMBAH', id, nama + (kolUrl !== 'Foto_URL' ? ' ' + kolUrl : ''));
+    return { ok: true, foto: f.url };
+  } finally { lock.releaseLock(); }
+}
+
 function sheetDariId_(id) {
   var pre = String(id).slice(0, 4);
   if (pre === 'OUT-' || pre === 'RTC-') return SHEET.PENGIRIMAN;
@@ -2559,7 +2631,7 @@ function ringkasEntri_(r, nama, u, tertunda) {
     item: r.Nama_Item, kode: r.Kode_Item, qty: angka_(r.Qty_Kg),
     status: r.Status, pencatat: r.Nama_Pencatat, catatan: r.Catatan,
     noSuratJalan: r.No_Surat_Jalan || '',
-    foto: r.Foto_URL, fotoId: r.Foto_ID,
+    foto: r.Foto_URL, fotoId: r.Foto_ID, bolehFoto: !r.Foto_URL && bolehFoto_(u, nama, r),
     catatanTinjau: r.Catatan_Tinjau || '', logEdit: r.Log_Edit || '',
     idPo: r.ID_PO || '', idAsal: r.ID_Penerimaan_Asal || '', catatanQc: r.Catatan_QC || '', idSo: r.ID_SO || '',
     bolehEdit: bolehEditEntri_(u, r),
@@ -2705,6 +2777,7 @@ function batalkanEntriSendiri(id, alasan, ident) {
   var u = penggunaSaatIni_(ident);
   var nama = sheetDariId_(id);
   if (nama === SHEET.DAUR) return batalkanDaurUlang(id, alasan, ident);
+  alasan = alasanWajib_(alasan);
   var lock = LockService.getScriptLock();
   lock.waitLock(20000);
   lupakanMemo_();   // di dalam lock: baca ulang dari sheet, jangan pakai memo sebelum lock
@@ -3825,6 +3898,7 @@ function ubahPo(id, perubahan, ident) {
 function batalkanPo(id, alasan, ident) {
   var u = penggunaSaatIni_(ident);
   if (!bolehPo_(u)) throw new Error('Hanya Manager / Admin yang bisa membatalkan PO.');
+  alasan = alasanWajib_(alasan);
   var lock = LockService.getScriptLock();
   lock.waitLock(20000);
   lupakanMemo_();   // di dalam lock: baca ulang dari sheet, jangan pakai memo sebelum lock
@@ -4243,9 +4317,9 @@ function simpanKerusakan(p) {
   } finally { lock.releaseLock(); }
 }
 
-function ringkasKerusakan_(r, lihatNilai) {
+function ringkasKerusakan_(r, lihatNilai, u) {
   var o = { id: r.ID, waktu: jam_(r.Waktu), tanggal: r.Tanggal, lokasi: r.Lokasi, kode: r.Kode_Item, item: r.Nama_Item,
-            qty: angka_(r.Qty_Kg), penyebab: r.Penyebab, foto: r.Foto_URL, fotoId: r.Foto_ID, pencatat: r.Nama_Pencatat,
+            qty: angka_(r.Qty_Kg), penyebab: r.Penyebab, foto: r.Foto_URL, fotoId: r.Foto_ID, bolehFoto: !r.Foto_URL && (u ? bolehFoto_(u, SHEET.KERUSAKAN, r) : false), pencatat: r.Nama_Pencatat,
             status: r.Status, ditinjau: r.Ditinjau_Oleh || '', catatanTinjau: r.Catatan_Tinjau || '', catatan: r.Catatan || '' };
   if (lihatNilai) o.nilaiKerugian = angka_(r.Nilai_Kerugian);
   return o;
@@ -4261,7 +4335,7 @@ function daftarKerusakan(ident, status, hari) {
     if (!spv && r.Dicatat_Oleh !== penandaPencatat_(u)) return false;
     if (status !== 'SEMUA' && r.Status !== status) return false;
     return new Date(r.Waktu) >= batas;
-  }).map(function (r) { return ringkasKerusakan_(r, spv); }).reverse().slice(0, 100);
+  }).map(function (r) { return ringkasKerusakan_(r, spv, u); }).reverse().slice(0, 100);
 }
 
 /** aksi: 'setuju' (stok berkurang, nilai kerugian dihitung pada harga rata-rata) | 'batal' */
@@ -4270,6 +4344,7 @@ function tinjauKerusakan(id, aksi, catatan, ident) {
   if (!bolehReview_(u)) throw new Error('Hanya Manager / Admin yang bisa membatalkan laporan rusak.');
   wajibModul_(u, MODUL.GUDANG);
   if (aksi !== 'batal') throw new Error('Tidak ada proses persetujuan lagi — laporan rusak langsung final. Yang bisa dilakukan: batalkan.');
+  catatan = alasanWajib_(catatan);
   var lock = LockService.getScriptLock();
   lock.waitLock(20000);
   lupakanMemo_();   // di dalam lock: baca ulang dari sheet, jangan pakai memo sebelum lock
@@ -4458,6 +4533,7 @@ function ubahSo(id, perubahan, ident) {
 function batalkanSo(id, alasan, ident) {
   var u = penggunaSaatIni_(ident);
   if (!bolehSo_(u)) throw new Error('Hanya akun dengan akses Sales order yang bisa membatalkan SO.');
+  alasan = alasanWajib_(alasan);
   var lock = LockService.getScriptLock();
   lock.waitLock(20000);
   lupakanMemo_();
@@ -4809,8 +4885,9 @@ function mulaiDaurUlang(p) {
   wajibModul_(u, MODUL.GUDANG);
   if (!p || !String(p.vendor || '').trim()) throw new Error('Tempat chassen (vendor) belum dipilih.');
   if (!p.scrap || !p.scrap.length) throw new Error('Scrap yang dikirim belum diisi.');
+  if (!p.foto) throw new Error('Foto surat jalan ke tempat chassen wajib diunggah.');   // v11.2
   var peta = petaItem_();
-  var foto = p.foto ? unggahFoto_(p.foto, 'DAUR-KIRIM') : { url: '', id: '' };
+  var foto = unggahFoto_(p.foto, 'DAUR-KIRIM');
   var lock = LockService.getScriptLock();
   lock.waitLock(20000);
   lupakanMemo_();
@@ -4847,8 +4924,9 @@ function selesaikanDaurUlang(p) {
   wajibModul_(u, MODUL.GUDANG);
   if (!p || !p.id) throw new Error('ID batch kosong.');
   if (!p.hasil || !p.hasil.length) throw new Error('Biji plastik yang diterima belum diisi.');
+  if (!p.foto) throw new Error('Foto surat jalan dari tempat chassen wajib diunggah.');   // v11.2
   var peta = petaItem_();
-  var foto = p.foto ? unggahFoto_(p.foto, 'DAUR-TERIMA') : { url: '', id: '' };
+  var foto = unggahFoto_(p.foto, 'DAUR-TERIMA');
   var lock = LockService.getScriptLock();
   lock.waitLock(20000);
   lupakanMemo_();
@@ -4985,6 +5063,7 @@ function batalkanDaurUlang(id, alasan, ident) {
   try {
     var r = cariDaur_(id);
     if (r.Status === STATUS_DAUR.DIBATALKAN) throw new Error('Batch sudah dibatalkan.');
+    alasan = alasanWajib_(alasan);
     if (bulanTertutup_(r.Tanggal) || (r.Tanggal_Terima && bulanTertutup_(r.Tanggal_Terima))) throw new Error('Bulan batch ini sudah ditutup — tidak bisa dibatalkan.');
     if (!bolehReview_(u)) {
       if (r.Dicatat_Oleh !== penandaPencatat_(u)) throw new Error('Hanya batch yang kamu catat sendiri yang bisa dibatalkan.');
@@ -5230,7 +5309,8 @@ function ringkasShift_(r, u, detCache) {
                totalRoll: rollPakai, totalHasil: pbKg, totalBs: bsC, persenBs: rollPakai > 0 ? bulat_(bsC / rollPakai * 100, 2) : 0 },
     totalBs: bulat_(bsB + bsC, 3),
     pencatat: r.Nama_Pencatat, foto: r.Foto_URL || '', catatan: r.Catatan || '', logEdit: r.Log_Edit || '', status: r.Status,
-    bolehEdit: !!u && bolehShift_(u) && r.Status !== STATUS_SHIFT.DIBATALKAN && !bulanTertutup_(r.Tanggal)
+    bolehEdit: !!u && bolehShift_(u) && r.Status !== STATUS_SHIFT.DIBATALKAN && !bulanTertutup_(r.Tanggal),
+    bolehFoto: !r.Foto_URL && bolehFoto_(u, SHEET.SHIFT, r)
   };
 }
 
@@ -5298,6 +5378,7 @@ function ubahLaporanShift(id, p, ident) {
 function batalkanLaporanShift(id, alasan, ident) {
   var u = penggunaSaatIni_(ident);
   if (!bolehShift_(u)) throw new Error('Hanya Manager / Admin.');
+  alasan = alasanWajib_(alasan);
   var lock = LockService.getScriptLock();
   lock.waitLock(20000);
   lupakanMemo_();
@@ -5966,10 +6047,11 @@ DUMMY_CUSTOMER = [
 
   /* --- daur ulang scrap (v9): satu batch selesai (jasa diisi manager), satu masih di chassen --- */
   try {
-    var du1 = mulaiDaurUlang({ vendor:'UD Daur Ulang Makmur', tanggal:tglMundur(60*30), noSuratJalan:'SJ/CH/0091', scrap:[{kode:'SCR-BS-KW', qty:40}], catatan:'dikirim pakai pickup', ident:id('Yanto') });
+    var FOTO_SJ = 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/wAALCAABAAEBAREA/8QAFAABAAAAAAAAAAAAAAAAAAAACf/EABQQAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQEAAD8AKp//2Q==';   // v11.2: foto surat jalan chassen wajib
+    var du1 = mulaiDaurUlang({ vendor:'UD Daur Ulang Makmur', tanggal:tglMundur(60*30), noSuratJalan:'SJ/CH/0091', scrap:[{kode:'SCR-BS-KW', qty:40}], catatan:'dikirim pakai pickup', foto:FOTO_SJ, ident:id('Yanto') });
     geser(SHEET.DAUR, 60*30, 0, 1);
-    selesaikanDaurUlang({ id:du1.id, hasil:[{kode:'RM-BP-DU', qty:37.5}], biayaJasa:120000, catatan:'diterima sore, karung 2', ident:MGR });
-    mulaiDaurUlang({ vendor:'UD Daur Ulang Makmur', scrap:[{kode:'SCR-BS-SUP', qty:12}], ident:id('Sri') });
+    selesaikanDaurUlang({ id:du1.id, hasil:[{kode:'RM-BP-DU', qty:37.5}], biayaJasa:120000, catatan:'diterima sore, karung 2', foto:FOTO_SJ, ident:MGR });
+    mulaiDaurUlang({ vendor:'UD Daur Ulang Makmur', scrap:[{kode:'SCR-BS-SUP', qty:12}], foto:FOTO_SJ, ident:id('Sri') });
     geser(SHEET.DAUR, 60*5, 0, 1);
   } catch(e) { console.warn('seed daur ulang', e); }
 
@@ -6063,6 +6145,7 @@ var T = {
     kosongRev:'Antrian bersih. Tidak ada yang perlu ditinjau.',
     kosongData:'Belum ada data.',
     wajibFoto:'Foto bukti wajib diisi.', wajibItem:'Isi minimal satu item dengan qty.',
+    fotoMenyusul:'Foto boleh menyusul — bisa diunggah nanti dari riwayat', tambahFoto:'+ Foto', belumFoto:'belum ada foto', fotoTersimpan:'Foto tersimpan', wajibFotoSJChassen:'Foto surat jalan chassen wajib diunggah.', alasanWajib:'Alasan wajib diisi (minimal 3 huruf).', fotoHintChassen:'Wajib: foto surat jalan dari/ke tempat chassen', tanpaFotoBanner:'{n} entri belum ada foto — buka riwayat lalu tekan "+ Foto"',
     wajibSupplier:'Pilih supplier dulu.', wajibSJ:'No. surat jalan wajib diisi.',
     menyimpan:'Menyimpan…', tersimpan:'Tersimpan', gagal:'Gagal', keluar:'Keluar',
     lblTanggal:'Tanggal transaksi', hintTanggal:'Default hari ini. Ganti kalau barangnya masuk/keluar kemarin tapi baru dicatat sekarang.',
@@ -6315,6 +6398,7 @@ var T = {
     kosongRev:'Queue is clear. Nothing to review.',
     kosongData:'No data yet.',
     wajibFoto:'A proof photo is required.', wajibItem:'Add at least one item with a quantity.',
+    fotoMenyusul:'Photo can follow later — upload it from the history list', tambahFoto:'+ Photo', belumFoto:'no photo yet', fotoTersimpan:'Photo saved', wajibFotoSJChassen:'A photo of the crusher delivery note is required.', alasanWajib:'A reason is required (at least 3 characters).', fotoHintChassen:'Required: photo of the delivery note to/from the crusher', tanpaFotoBanner:'{n} entries have no photo yet — open the history and tap "+ Photo"',
     wajibSupplier:'Select a supplier first.', wajibSJ:'Delivery note number is required.',
     menyimpan:'Saving…', tersimpan:'Saved', gagal:'Failed', keluar:'Log out',
     lblTanggal:'Transaction date', hintTanggal:'Defaults to today. Change it if the goods moved yesterday but are only being logged now.',
@@ -6684,6 +6768,7 @@ function muatKonteks(diam){
     $('sJadi').textContent   = n2(c.ringkasan.jadiHariIni || 0);
     $('sBs').textContent     = n2(c.ringkasan.bsHariIni || 0);
     $('sShift').textContent  = c.ringkasan.shiftHariIni || 0;
+    var htf = $('homeTanpaFoto'); if (htf){ htf.classList.toggle('hide', !c.ringkasan.tanpaFoto); htf.textContent = '📷 ' + t('tanpaFotoBanner').replace('{n}', c.ringkasan.tanpaFoto || 0); }
     var md = c.modul || {};
     $('segRepBulanan').classList.toggle('hide', !c.lihatHpp);
     $('segRepBulanan').classList.toggle('hide', !c.lihatHpp);
@@ -7150,11 +7235,70 @@ function fotoTerpilih(ev, k){
   ev.target.value = '';
 }
 
+/* v11.2: alasan pembatalan wajib — ulangi prompt sampai terisi (≥3 huruf) atau dibatalkan */
+function mintaAlasan(key){
+  for (var i = 0; i < 3; i++){
+    var a = window.prompt(t(key) + (i ? '\n' + t('alasanWajib') : ''));
+    if (a === null) return null;
+    a = a.trim();
+    if (a.length >= 3) return a;
+  }
+  toast(t('alasanWajib'), 'bad');
+  return null;
+}
+
+/* v11.2: foto menyusul — "+ Foto" di riwayat / layar detail: pilih file → unggah ke entri yang sudah tersimpan */
+function fotoEntri(id, bagian, ev){
+  if (ev) ev.stopPropagation();
+  S.fotoTarget = { id: id, bagian: bagian || '' };
+  $('entriFile').click();
+}
+function fotoEntriTerpilih(ev){
+  var f = ev.target.files && ev.target.files[0]; ev.target.value = '';
+  var tg = S.fotoTarget; S.fotoTarget = null;
+  if (!f || !tg) return;
+  toast('⏳ ' + t('menyimpan'), '');
+  kecilkanGambar(f, 1400, 0.72).then(function(dataUrl){
+    return panggil('tambahFoto', [tg.id, dataUrl, S.ident, tg.bagian ? { bagian: tg.bagian } : null]);
+  }).then(function(r){
+    toast(t('fotoTersimpan'), 'ok');
+    if (S.edit && S.edit.id === tg.id){ S.edit.foto = r.foto; S.edit.bolehFoto = false; tampilFotoEdit(); }
+    if (S.shiftEdit && S.shiftEdit.id === tg.id){ var fb = $('shiftPhoto'); fb.innerHTML = '<img src="'+esc(r.foto)+'">'; fb.className = 'photo filled'; fb.onclick = null; }
+    if (S.view === 'beli' || S.view === 'jual') muatRiwayat('rcv');
+    if (S.view === 'rusak') muatRusakRiwayat();
+    if (S.view === 'shift') muatShift();
+    muatKonteks(true);
+  }).catch(function(e){ toast(e.message || t('gagal'), 'bad'); });
+}
+function tombolFoto(r, bagian){
+  if (r.foto || !r.bolehFoto) return '';
+  return ' <button class="btn ghost xs" title="'+esc(t('belumFoto'))+'" onclick="fotoEntri(\''+esc(r.id)+'\',\''+(bagian||'')+'\',event)">📷 '+esc(t('tambahFoto'))+'</button>';
+}
+function tampilFotoEdit(){
+  var r = S.edit; if (!r) return;
+  var src = r.foto && r.foto.indexOf('data:') === 0 ? r.foto : (r.fotoId && !r.foto ? 'https://drive.google.com/thumbnail?id='+r.fotoId+'&sz=w1200' : (r.foto || ''));
+  var fb = $('editFoto');
+  if (src){
+    fb.innerHTML = '<img src="'+esc(src)+'" onerror="this.parentNode.innerHTML=\'<div class=&quot;p2&quot;>'+esc(t('tidakAdaFoto'))+'</div>\'">';
+    fb.className = 'photo filled';
+    fb.onclick = (r.foto && r.foto.indexOf('http') === 0) ? function(){ window.open(r.foto, '_blank'); } : null;
+  } else if (r.bolehFoto){
+    fb.innerHTML = '<div class="p1">📷 '+esc(t('tambahFoto'))+'</div><div class="p2">'+esc(t('belumFoto'))+'</div>';
+    fb.className = 'photo';
+    fb.onclick = function(){ fotoEntri(r.id); };
+  } else {
+    fb.innerHTML = '<div class="p2">'+esc(t('tidakAdaFoto'))+'</div>';
+    fb.className = 'photo'; fb.onclick = null;
+  }
+}
+
 function hapusFoto(k){
   S.foto[k] = null;
   var box = $(KOTAK[k]);
   box.className = 'photo';
-  var hint = (k==='rcv') ? (S.modeExt.indexOf('JUAL')===0 ? t('fotoHintKirim') : t('fotoHintSJ')) : '';
+  var hint = (k==='rcv') ? (S.modeExt.indexOf('JUAL')===0 ? t('fotoHintKirim') : t('fotoHintSJ')) + ' · ' + t('fotoMenyusul')
+           : (k==='daur' || k==='daurFin') ? t('fotoHintChassen')
+           : (k==='shift' || k==='rusak') ? t('fotoMenyusul') : '';
   box.innerHTML = '<div class="p1">📷 '+esc(t('fotoAmbil'))+'</div>' +
                   (hint ? '<div class="p2">'+esc(hint)+'</div>' : '');
   if (k==='rcv'){ $('rcvOcrRow').classList.add('hide'); $('ocrHasil').innerHTML=''; S.ocr=null; }
@@ -7317,7 +7461,7 @@ function simpanMutasiUI(){
   var baris = ambilBaris('rcv');
   var partner = comboNama('rcvPartner');
   if (!partner){ toast($('rcvPartner').value.trim() ? t('pilihDulu') : (i.jual ? t('wajibCustomer') : t('wajibSupplier')),'bad'); return; }
-  if (!S.foto.rcv){ toast(t('wajibFoto'),'bad'); return; }
+  /* v11.2: foto tidak wajib saat input — bisa menyusul dari riwayat (+ Foto) */
   if (S.modeExt==='BELI_MASUK' && !$('rcvNoSJ').value.trim()){ toast(t('wajibSJ'),'bad'); return; }
   if (S.modeExt==='JUAL_KELUAR' && S.ctx && S.ctx.wajibSjKeluar && !$('rcvNoSJ').value.trim()){
     toast(t('wajibSJKeluar'),'bad'); return;
@@ -7451,7 +7595,7 @@ function kartuShift(r){
   var h = '<div class="job" onclick="bukaEditShift(\''+esc(r.id)+'\')" style="cursor:pointer">' +
     '<div style="display:flex;align-items:flex-start;gap:10px">' +
       '<div style="flex:1;min-width:0"><b>'+esc(t('shiftKe'))+' '+esc(r.shift)+' <small style="font-weight:500;color:var(--muted)">'+esc(r.jam || jamShift(r.shift))+'</small></b>' +
-        '<div class="m">'+esc(r.pencatat)+(r.logEdit?' · <i>'+esc(t('diubah'))+'</i>':'')+'</div></div>' +
+        '<div class="m">'+esc(r.pencatat)+(r.logEdit?' · <i>'+esc(t('diubah'))+'</i>':'')+(r.foto ? ' · 📷' : (r.bolehFoto ? ' · <span style="color:var(--warn,#b45309)">📷 '+esc(t('belumFoto'))+'</span>' : ''))+'</div>'+(r.bolehFoto && !r.foto ? '<div style="margin-top:4px">'+tombolFoto(r)+'</div>' : '')+'</div>' +
       '<div style="text-align:right;flex:0 0 auto"><div class="big" style="font-size:24px">'+n2(c.totalHasil)+'<span class="u">kg</span></div>' +
         '<div class="m" style="margin-top:1px">'+esc(t('polybagJadi'))+'</div></div></div>' +
     '<div class="bb">';
@@ -7474,7 +7618,7 @@ function shiftFormBaru(){
   S.shiftEdit = null;
   S.shift = shiftKosong();
   S.baris.ambil = [{ kode:'', qty:'' }];
-  S.foto.shift = null; hapusFoto('shift');
+  S.foto.shift = null; hapusFoto('shift'); $('shiftPhoto').onclick = function(){ pilihFoto('shift'); };
   $('shiftCatatan').value = '';
   $('shiftFormT').textContent = t('shiftFormT'); $('shiftFormS').textContent = t('shiftFormS');
   $('shiftInfo').classList.add('hide'); $('shiftLog').classList.add('hide');
@@ -7610,7 +7754,7 @@ function bukaEditShift(id){
     r.cutting.hasil.forEach(function(h){ S.shift.cutting.hasil[h.kualitas] = h.qty; });
     r.cutting.bs.forEach(function(h){ S.shift.cutting.bs[h.kualitas] = h.qty; });
     S.baris.ambil = r.blowing.ambil.length ? r.blowing.ambil.map(function(a){ return { kode:a.kode, qty:a.qty }; }) : [{ kode:'', qty:'' }];
-    S.foto.shift = null; hapusFoto('shift');
+    S.foto.shift = null; hapusFoto('shift'); $('shiftPhoto').onclick = function(){ pilihFoto('shift'); };
     $('shiftCatatan').value = r.catatan || '';
     setTanggal('shiftTanggal'); $('shiftTanggal').value = r.tanggal;
     var baca = !r.bolehEdit;
@@ -7629,15 +7773,17 @@ function bukaEditShift(id){
     gambarShiftForm();
     setBacaSaja(['shiftTanggal','blowingOperator','cuttingOperator','shiftCatatan'], baca);
     if (baca) $('shiftForm').querySelectorAll('input[type=number], input[type=checkbox], #ambilLines input, #ambilLines button, #shiftPilihWrap button, .chip button, #shiftForm .btn.sm').forEach(function(x){ x.disabled = true; });
-    if (r.foto){ var fb = $('shiftPhoto'); fb.innerHTML = '<img src="'+esc(r.foto)+'">'; fb.className = 'photo filled'; }
+    var fb = $('shiftPhoto');
+    if (r.foto){ fb.innerHTML = '<img src="'+esc(r.foto)+'">'; fb.className = 'photo filled'; fb.onclick = null; }
+    else if (r.bolehFoto){ fb.innerHTML = '<div class="p1">📷 '+esc(t('tambahFoto'))+'</div><div class="p2">'+esc(t('belumFoto'))+'</div>'; fb.className = 'photo'; fb.onclick = function(){ fotoEntri(r.id); }; }
     window.scrollTo(0,0);
   }).catch(function(e){ toast(e.message,'bad'); });
 }
 function batalShiftUI(){
   if (!S.shiftEdit) return;
   if (!window.confirm(t('konfirmBatalShift'))) return;
-  var alasan = window.prompt(t('alasanBatalSendiri')); if (alasan === null) return;
-  panggil('batalkanLaporanShift',[S.shiftEdit.id, alasan || '', S.ident]).then(function(){
+  var alasan = mintaAlasan('alasanBatalSendiri'); if (alasan === null) return;
+  panggil('batalkanLaporanShift',[S.shiftEdit.id, alasan, S.ident]).then(function(){
     toast(t('shiftDibatalkan'),'ok'); S.shiftEdit = null; segShift('list'); muatKonteks(true);
   }).catch(function(e){ toast(e.message,'bad'); });
 }
@@ -7800,6 +7946,7 @@ function muatRiwayat(k){
         : r.bolehEdit
         ? '<button class="btn sec xs" onclick="event.stopPropagation();bukaEdit(\''+esc(r.id)+'\')">✎ '+esc(t('ubah'))+'</button>'
         : '<button class="btn sec xs" onclick="event.stopPropagation();bukaEdit(\''+esc(r.id)+'\')">🔒 '+esc(t('lihatDetail'))+'</button>';
+      tombol = tombolFoto(r) + tombol;
       return '<div class="hist tap" onclick="bukaEdit(\''+esc(r.id)+'\')">' +
         '<span class="hq">'+n2(r.qty)+' kg</span>' +
         '<span class="hx"><b>'+esc(r.item)+'</b><small>'+sub2+(r.logEdit?' · <i>'+esc(t('diubah'))+'</i>':'')+'</small></span>' +
@@ -7843,12 +7990,8 @@ function bukaEdit(id){
     $('editCatatan').value = r.catatan || '';
     setBacaSaja(['editPartner','editKode','editQty','editTanggal','editSJ','editCatatan'], baca);
     if (!baca && kunciItem) $('editKode').disabled = true;
-    /* foto bukti & info tambahan (PO, QC, peninjau) */
-    var src = r.foto && r.foto.indexOf('data:') === 0 ? r.foto : (r.fotoId ? 'https://drive.google.com/thumbnail?id='+r.fotoId+'&sz=w1200' : (r.foto || ''));
-    var fb = $('editFoto');
-    fb.innerHTML = src ? '<img src="'+esc(src)+'" onerror="this.parentNode.innerHTML=\'<div class=&quot;p2&quot;>'+esc(t('tidakAdaFoto'))+'</div>\'">' : '<div class="p2">'+esc(t('tidakAdaFoto'))+'</div>';
-    fb.className = src ? 'photo filled' : 'photo';
-    if (src && r.foto && r.foto.indexOf('http') === 0) fb.onclick = function(){ window.open(r.foto, '_blank'); }; else fb.onclick = null;
+    /* foto bukti (v11.2: bisa ditambah belakangan) & info tambahan (PO, QC, peninjau) */
+    tampilFotoEdit();
     var ekstra = [];
     if (r.idPo) ekstra.push('PO');
     if (r.catatanQc) ekstra.push('QC: '+r.catatanQc);
@@ -7886,8 +8029,8 @@ function simpanEditUI(){
 function batalkanEntriUI(){
   if (!S.edit) return;
   if (!window.confirm(t('konfirmBatal'))) return;
-  var alasan = window.prompt(t('alasanBatalSendiri')); if (alasan === null) return;
-  panggil('batalkanEntriSendiri',[S.edit.id, alasan || '', S.ident]).then(function(r){
+  var alasan = mintaAlasan('alasanBatalSendiri'); if (alasan === null) return;
+  panggil('batalkanEntriSendiri',[S.edit.id, alasan, S.ident]).then(function(r){
     toast(r && r.diajukan ? t('usulanDiajukan') : t('dibatalkan'), r && r.diajukan ? 'warn' : '');
     tutupEdit();
     if (S.view==='beli') muatRiwayat('rcv');
@@ -8593,7 +8736,7 @@ function simpanUbahPo(id){
   }).catch(function(e){ sibuk(btn,false); toast(e.message,'bad'); });
 }
 function batalPoUI(id){
-  var alasan = window.prompt(t('alasanBatalPo')); if (alasan === null) return;
+  var alasan = mintaAlasan('alasanBatalPo'); if (alasan === null) return;
   panggil('batalkanPo',[id, alasan, S.ident]).then(function(){
     toast(t('poDibatalkan'), 'ok'); muatKonteks(true); segPo(S.poTab);
   }).catch(function(e){ toast(e.message,'bad'); });
@@ -8778,13 +8921,13 @@ function muatRusakRiwayat(){
     el.innerHTML = rows.map(function(r){
       return '<div class="hist"><span class="hq">'+n2(r.qty)+' kg</span>' +
         '<span class="hx"><b>'+esc(r.item)+'</b><small>'+esc(r.tanggal)+' · '+esc(r.penyebab)+(r.catatanTinjau?' · '+esc(r.catatanTinjau):'')+'</small></span>' +
-        '<span class="hb">'+pillStatus(r.status)+(r.status==='DISETUJUI' && S.ctx && S.ctx.bisaReview && S.ctx.modul && S.ctx.modul.GUDANG ? ' <button class="btn ghost xs" onclick="tinjauRusak(\''+esc(r.id)+'\')">✕</button>' : '')+'</span></div>';
+        '<span class="hb">'+pillStatus(r.status)+tombolFoto(r)+(r.status==='DISETUJUI' && S.ctx && S.ctx.bisaReview && S.ctx.modul && S.ctx.modul.GUDANG ? ' <button class="btn ghost xs" onclick="tinjauRusak(\''+esc(r.id)+'\')">✕</button>' : '')+'</span></div>';
     }).join('');
   }).catch(function(e){ el.innerHTML = '<div class="banner bad">'+esc(e.message)+'</div>'; });
 }
 function tinjauRusak(id, aksi){
-  var catatan = window.prompt(t('alasanBatal')); if (catatan === null) return;
-  panggil('tinjauKerusakan',[id, 'batal', catatan || '', S.ident]).then(function(){
+  var catatan = mintaAlasan('alasanBatal'); if (catatan === null) return;
+  panggil('tinjauKerusakan',[id, 'batal', catatan, S.ident]).then(function(){
     toast(t('rusakDibatalkan'), '');
     muatKonteks(true); muatRusakRiwayat();
   }).catch(function(e){ toast(e.message,'bad'); });
@@ -8933,7 +9076,7 @@ function simpanUbahSo(id){
   }).catch(function(e){ sibuk(btn,false); toast(e.message,'bad'); });
 }
 function batalSoUI(id){
-  var alasan = window.prompt(t('alasanBatalSo')); if (alasan === null) return;
+  var alasan = mintaAlasan('alasanBatalSo'); if (alasan === null) return;
   panggil('batalkanSo',[id, alasan, S.ident]).then(function(){
     toast(t('soDibatalkan'), 'ok'); muatKonteks(true); segSo(S.soTab);
   }).catch(function(e){ toast(e.message,'bad'); });
@@ -9063,6 +9206,7 @@ function kirimDaurUI(){
   var baris = ambilBaris('daur');
   if (!comboNama('daurVendor')){ toast($('daurVendor').value.trim() ? t('pilihDulu') : t('lblVendor'),'bad'); return; }
   if (!baris.length){ toast(t('wajibItem'),'bad'); return; }
+  if (!S.foto.daur){ toast(t('wajibFotoSJChassen'),'bad'); return; }
   var b = $('btnKirimDaur'); sibuk(b, true);
   panggil('mulaiDaurUlang', [{ vendor: comboNama('daurVendor'), tanggal: ambilTanggal('daurTanggal'), noSuratJalan: $('daurNoSJ').value,
     scrap: baris, catatan: $('daurCatatan').value, foto: S.foto.daur, ident: S.ident }]).then(function(r){
@@ -9126,6 +9270,7 @@ function previewSusutDaur(){
 function terimaDaurUI(){
   var hasil = ambilBaris('daurHasil');
   if (!hasil.length){ toast(t('wajibItem'),'bad'); return; }
+  if (!S.foto.daurFin){ toast(t('wajibFotoSJChassen'),'bad'); return; }
   var b = $('btnTerimaDaur'); sibuk(b, true);
   var p = { id: S.daurAktif.id, hasil: hasil, tanggalTerima: ambilTanggal('daurTglTerima'), catatan: $('daurFinCatatan').value, foto: S.foto.daurFin, ident: S.ident };
   if (lihatHpp()) p.biayaJasa = parseFloat($('daurJasa').value) || 0;
@@ -9201,7 +9346,7 @@ function simpanJasaUI(id){
   }).catch(function(e){ toast(e.message,'bad'); });
 }
 function batalDaurUI(id){
-  var alasan = window.prompt(t('alasanBatalDaur')); if (alasan === null) return;
+  var alasan = mintaAlasan('alasanBatalDaur'); if (alasan === null) return;
   panggil('batalkanDaurUlang',[id, alasan, S.ident]).then(function(){
     toast(t('daurDibatalkan'), 'ok'); tutupDaur(); muatKonteks(true);
     if (S.view === 'daur') segDaur(S.daurTab);

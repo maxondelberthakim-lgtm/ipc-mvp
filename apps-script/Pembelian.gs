@@ -369,6 +369,7 @@ function ubahPo(id, perubahan, ident) {
 function batalkanPo(id, alasan, ident) {
   var u = penggunaSaatIni_(ident);
   if (!bolehPo_(u)) throw new Error('Hanya Manager / Admin yang bisa membatalkan PO.');
+  alasan = alasanWajib_(alasan);
   var lock = LockService.getScriptLock();
   lock.waitLock(20000);
   lupakanMemo_();   // di dalam lock: baca ulang dari sheet, jangan pakai memo sebelum lock
@@ -787,9 +788,9 @@ function simpanKerusakan(p) {
   } finally { lock.releaseLock(); }
 }
 
-function ringkasKerusakan_(r, lihatNilai) {
+function ringkasKerusakan_(r, lihatNilai, u) {
   var o = { id: r.ID, waktu: jam_(r.Waktu), tanggal: r.Tanggal, lokasi: r.Lokasi, kode: r.Kode_Item, item: r.Nama_Item,
-            qty: angka_(r.Qty_Kg), penyebab: r.Penyebab, foto: r.Foto_URL, fotoId: r.Foto_ID, pencatat: r.Nama_Pencatat,
+            qty: angka_(r.Qty_Kg), penyebab: r.Penyebab, foto: r.Foto_URL, fotoId: r.Foto_ID, bolehFoto: !r.Foto_URL && (u ? bolehFoto_(u, SHEET.KERUSAKAN, r) : false), pencatat: r.Nama_Pencatat,
             status: r.Status, ditinjau: r.Ditinjau_Oleh || '', catatanTinjau: r.Catatan_Tinjau || '', catatan: r.Catatan || '' };
   if (lihatNilai) o.nilaiKerugian = angka_(r.Nilai_Kerugian);
   return o;
@@ -805,7 +806,7 @@ function daftarKerusakan(ident, status, hari) {
     if (!spv && r.Dicatat_Oleh !== penandaPencatat_(u)) return false;
     if (status !== 'SEMUA' && r.Status !== status) return false;
     return new Date(r.Waktu) >= batas;
-  }).map(function (r) { return ringkasKerusakan_(r, spv); }).reverse().slice(0, 100);
+  }).map(function (r) { return ringkasKerusakan_(r, spv, u); }).reverse().slice(0, 100);
 }
 
 /** aksi: 'setuju' (stok berkurang, nilai kerugian dihitung pada harga rata-rata) | 'batal' */
@@ -814,6 +815,7 @@ function tinjauKerusakan(id, aksi, catatan, ident) {
   if (!bolehReview_(u)) throw new Error('Hanya Manager / Admin yang bisa membatalkan laporan rusak.');
   wajibModul_(u, MODUL.GUDANG);
   if (aksi !== 'batal') throw new Error('Tidak ada proses persetujuan lagi — laporan rusak langsung final. Yang bisa dilakukan: batalkan.');
+  catatan = alasanWajib_(catatan);
   var lock = LockService.getScriptLock();
   lock.waitLock(20000);
   lupakanMemo_();   // di dalam lock: baca ulang dari sheet, jangan pakai memo sebelum lock

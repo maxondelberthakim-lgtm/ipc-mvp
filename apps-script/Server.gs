@@ -26,7 +26,7 @@ function include(nama) {
  * Hanya fungsi di daftar putih (RPC_WL) yang boleh dipanggil. */
 var RPC_WL = {
   getKonteks:1, simpanPenerimaan:1, simpanPengiriman:1,
-  riwayatInput:1, ambilEntri:1, simpanEditEntri:1, batalkanEntriSendiri:1,
+  riwayatInput:1, ambilEntri:1, simpanEditEntri:1, batalkanEntriSendiri:1, tambahFoto:1,
   antrianReview:1, tinjauTransfer:1, daftarPermintaan:1, tinjauPermintaan:1,
   laporanStok:1, riwayatPenerimaan:1, laporanPenjualan:1,
   kalender:1, ocrSuratJalan:1,
@@ -473,6 +473,14 @@ function getKonteks(ident) {
     jadiHariIni += angka_(r.Total_Polybag_Kg);
   });
 
+  /* v11.2: entri 14 hari terakhir tanpa foto yang boleh dilengkapi pengguna ini (foto menyusul) */
+  var tanpaFoto = 0, batasFoto = new Date(); batasFoto.setDate(batasFoto.getDate() - 14);
+  function hitungTanpaFoto(nama, rows) {
+    rows.forEach(function (r) { if (!r.Foto_URL && new Date(r.Waktu) >= batasFoto && bolehFoto_(u, nama, r)) tanpaFoto++; });
+  }
+  hitungTanpaFoto(SHEET.PENERIMAAN, rcv); hitungTanpaFoto(SHEET.PENGIRIMAN, snd);
+  hitungTanpaFoto(SHEET.SHIFT, baca_(SHEET.SHIFT)); hitungTanpaFoto(SHEET.KERUSAKAN, baca_(SHEET.KERUSAKAN));
+
   var masukHariIni = rcv.filter(function (r) {
     return r.Jenis === JENIS_PENERIMAAN.MASUK && String(r.Tanggal) === hariIni && dihitung_(r);
   }).reduce(function (a, r) { return a + angka_(r.Qty_Kg); }, 0);
@@ -539,6 +547,7 @@ function getKonteks(ident) {
       ditandai         : ditandai(rcv) + ditandai(snd),
       daurBerjalan     : daurBerjalanN,
       shiftHariIni     : shiftHariIni,
+      tanpaFoto        : tanpaFoto,
       jadiHariIni      : bulat_(jadiHariIni, 1),
       bsHariIni        : bulat_(bsHariIni, 1),
       masukHariIni     : bulat_(masukHariIni, 1),
@@ -786,6 +795,7 @@ function tinjauTransfer(id, aksi, catatan, ident) {
   wajibModul_(u, MODUL.GUDANG);
   /* v11: proses review dihapus — entri sudah final saat disimpan; yang tersisa hanya pembatalan. */
   if (aksi !== 'batal') throw new Error('Tidak ada proses review lagi — entri langsung final saat disimpan. Yang bisa dilakukan: ubah atau batalkan.');
+  catatan = alasanWajib_(catatan);
   var status = STATUS_TRANSFER.DIBATALKAN;
   var nama = sheetDariId_(id);
 
@@ -1064,6 +1074,65 @@ function alasanKunci_(u, r) {
 }
 function bolehEditEntri_(u, r) { return alasanKunci_(u, r) === ''; }
 
+/** v11.2: setiap pembatalan WAJIB beralasan (anak-anak masih uji coba — jejaknya harus jelas). */
+function alasanWajib_(alasan) {
+  var a = String(alasan || '').trim();
+  if (a.length < 3) throw new Error('Alasan pembatalan wajib diisi (minimal 3 huruf).');
+  return a;
+}
+
+/* ---------- v11.2: foto menyusul ----------
+   Foto bukti tidak lagi wajib saat input (supaya operasional tidak tertahan); diunggah belakangan dari riwayat.
+   Boleh menambah foto: ADMIN; SUPERVISOR dengan modul sheet itu (GUDANG / PRODUKSI); STAF untuk entri sendiri —
+   tanpa batas 24 jam, selama bulan belum ditutup dan masih dalam MAKS_EDIT_HARI. Foto yang sudah ada tidak diganti. */
+function modulSheet_(nama) { return nama === SHEET.SHIFT ? MODUL.PRODUKSI : MODUL.GUDANG; }
+function bolehFoto_(u, nama, r) {
+  if (!u || !r) return false;
+  if (r.Status === STATUS_TRANSFER.DIBATALKAN) return false;
+  if (bulanTertutup_(r.Tanggal)) return false;
+  if (!dalamBatasEdit_(r)) return false;
+  if (u.peran === PERAN.ADMIN) return true;
+  if (bolehReview_(u)) return bolehModul_(u, modulSheet_(nama));
+  return r.Dicatat_Oleh === penandaPencatat_(u);
+}
+function sheetFoto_(id) {
+  var pre = String(id).slice(0, 4);
+  if (pre === 'DMG-') return SHEET.KERUSAKAN;
+  return sheetDariId_(id);
+}
+/**
+ * Tambah foto bukti ke entri yang disimpan tanpa foto. id: RCV/RTR/OUT/RTC/SHF/DMG; daur ulang pakai opsi.bagian 'kirim'|'terima'.
+ * Mengembalikan { ok, foto (URL) }.
+ */
+function tambahFoto(id, foto, ident, opsi) {
+  var u = penggunaSaatIni_(ident);
+  if (!foto || String(foto).indexOf('data:image') !== 0) throw new Error('Foto belum dipilih.');
+  var nama = sheetFoto_(id);
+  var lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  lupakanMemo_();
+  try {
+    var r = cariEntri_(nama, id);
+    if (!bolehFoto_(u, nama, r)) throw new Error('Tidak bisa menambah foto ke entri ini (bukan entri kamu / bulan sudah ditutup / sudah dibatalkan).');
+    var kolUrl = 'Foto_URL', kolId = 'Foto_ID', prefix;
+    if (nama === SHEET.DAUR) {
+      var bagian = opsi && opsi.bagian === 'terima' ? 'terima' : 'kirim';
+      kolUrl = bagian === 'terima' ? 'Foto_Terima_URL' : 'Foto_Kirim_URL'; kolId = ''; prefix = bagian === 'terima' ? 'DAUR-TERIMA' : 'DAUR-KIRIM';
+    } else if (nama === SHEET.SHIFT) { kolId = ''; prefix = 'SHIFT'; }
+    else if (nama === SHEET.KERUSAKAN) prefix = 'RUSAK';
+    else prefix = String(id).slice(0, 3);
+    if (r[kolUrl]) throw new Error('Entri ini sudah punya foto.');
+    var f = unggahFoto_(foto, prefix);
+    var ubah = {}; ubah[kolUrl] = f.url; if (kolId) ubah[kolId] = f.id;
+    if (HEADER[nama].indexOf('Log_Edit') >= 0) {
+      ubah.Log_Edit = [r.Log_Edit, Utilities.formatDate(new Date(), APP.zona, 'dd/MM HH:mm') + ' ' + u.nama + ': foto ditambahkan'].filter(String).join('\n');
+    }
+    ubahBaris_(nama, r._baris, ubah);
+    catatLog_('FOTO_TAMBAH', id, nama + (kolUrl !== 'Foto_URL' ? ' ' + kolUrl : ''));
+    return { ok: true, foto: f.url };
+  } finally { lock.releaseLock(); }
+}
+
 function sheetDariId_(id) {
   var pre = String(id).slice(0, 4);
   if (pre === 'OUT-' || pre === 'RTC-') return SHEET.PENGIRIMAN;
@@ -1078,7 +1147,7 @@ function ringkasEntri_(r, nama, u, tertunda) {
     item: r.Nama_Item, kode: r.Kode_Item, qty: angka_(r.Qty_Kg),
     status: r.Status, pencatat: r.Nama_Pencatat, catatan: r.Catatan,
     noSuratJalan: r.No_Surat_Jalan || '',
-    foto: r.Foto_URL, fotoId: r.Foto_ID,
+    foto: r.Foto_URL, fotoId: r.Foto_ID, bolehFoto: !r.Foto_URL && bolehFoto_(u, nama, r),
     catatanTinjau: r.Catatan_Tinjau || '', logEdit: r.Log_Edit || '',
     idPo: r.ID_PO || '', idAsal: r.ID_Penerimaan_Asal || '', catatanQc: r.Catatan_QC || '', idSo: r.ID_SO || '',
     bolehEdit: bolehEditEntri_(u, r),
@@ -1224,6 +1293,7 @@ function batalkanEntriSendiri(id, alasan, ident) {
   var u = penggunaSaatIni_(ident);
   var nama = sheetDariId_(id);
   if (nama === SHEET.DAUR) return batalkanDaurUlang(id, alasan, ident);
+  alasan = alasanWajib_(alasan);
   var lock = LockService.getScriptLock();
   lock.waitLock(20000);
   lupakanMemo_();   // di dalam lock: baca ulang dari sheet, jangan pakai memo sebelum lock

@@ -165,10 +165,11 @@
 
   /* --- daur ulang scrap (v9): satu batch selesai (jasa diisi manager), satu masih di chassen --- */
   try {
-    var du1 = mulaiDaurUlang({ vendor:'UD Daur Ulang Makmur', tanggal:tglMundur(60*30), noSuratJalan:'SJ/CH/0091', scrap:[{kode:'SCR-BS-KW', qty:40}], catatan:'dikirim pakai pickup', ident:id('Yanto') });
+    var FOTO_SJ = 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/wAALCAABAAEBAREA/8QAFAABAAAAAAAAAAAAAAAAAAAACf/EABQQAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQEAAD8AKp//2Q==';   // v11.2: foto surat jalan chassen wajib
+    var du1 = mulaiDaurUlang({ vendor:'UD Daur Ulang Makmur', tanggal:tglMundur(60*30), noSuratJalan:'SJ/CH/0091', scrap:[{kode:'SCR-BS-KW', qty:40}], catatan:'dikirim pakai pickup', foto:FOTO_SJ, ident:id('Yanto') });
     geser(SHEET.DAUR, 60*30, 0, 1);
-    selesaikanDaurUlang({ id:du1.id, hasil:[{kode:'RM-BP-DU', qty:37.5}], biayaJasa:120000, catatan:'diterima sore, karung 2', ident:MGR });
-    mulaiDaurUlang({ vendor:'UD Daur Ulang Makmur', scrap:[{kode:'SCR-BS-SUP', qty:12}], ident:id('Sri') });
+    selesaikanDaurUlang({ id:du1.id, hasil:[{kode:'RM-BP-DU', qty:37.5}], biayaJasa:120000, catatan:'diterima sore, karung 2', foto:FOTO_SJ, ident:MGR });
+    mulaiDaurUlang({ vendor:'UD Daur Ulang Makmur', scrap:[{kode:'SCR-BS-SUP', qty:12}], foto:FOTO_SJ, ident:id('Sri') });
     geser(SHEET.DAUR, 60*5, 0, 1);
   } catch(e) { console.warn('seed daur ulang', e); }
 

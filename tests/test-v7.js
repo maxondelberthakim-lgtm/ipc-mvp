@@ -59,7 +59,7 @@ poRow = ctx.baca_(ctx.SHEET.PO).find(r=>r.ID===lineKW.id);
 ok('penerimaan dibatalkan → PO diterima 400, SEBAGIAN lagi', poRow.Qty_Diterima_Kg===400 && poRow.Status==='SEBAGIAN', poRow);
 tolak('ubah qty PO di bawah yang diterima ditolak', ()=>ctx.ubahPo(lineKW.id,{qty:300},SPV), /sudah diterima/);
 ok('ubah qty PO ke 400 → SELESAI', (()=>{ ctx.ubahPo(lineKW.id,{qty:400},SPV); return ctx.baca_(ctx.SHEET.PO).find(r=>r.ID===lineKW.id).Status==='SELESAI'; })());
-tolak('PO yang sudah ada penerimaan tidak bisa dibatalkan', ()=>ctx.batalkanPo(lineKW.id,'x',SPV), /sudah ada penerimaan/);
+tolak('PO yang sudah ada penerimaan tidak bisa dibatalkan', ()=>ctx.batalkanPo(lineKW.id,'salah input',SPV), /sudah ada penerimaan/);
 ok('PO tanpa penerimaan bisa dibatalkan', ctx.batalkanPo(po2.ids[0],'ganti supplier',SPV).ok && ctx.baca_(ctx.SHEET.PO).find(r=>r.ID===po2.ids[0]).Status==='DIBATALKAN');
 
 console.log('\n— Retur hanya dari penerimaan —');

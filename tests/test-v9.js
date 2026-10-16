@@ -2,6 +2,7 @@
 const fs=require('fs');
 let src=fs.readFileSync(__dirname+'/harness.js','utf8').replace("return 'pemilik@contoh.co.id';","return '';");
 fs.writeFileSync(__dirname + '/.h9.js', src);
+const FOTO = 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/wAALCAABAAEBAREA/8QAFAABAAAAAAAAAAAAAAAAAAAACf/EABQQAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQEAAD8AKp//2Q==';
 const {ctx, SS}=require(__dirname + '/.h9.js');
 let pass=0,fail=0;
 const ok=(l,c,e)=>{c?(pass++,console.log('  ✓',l)):(fail++,console.log('  ✗',l,e===undefined?'':JSON.stringify(e)))};
@@ -45,7 +46,7 @@ console.log('— Migrasi v8 → v9: Stok_Awal_GP digabung, kolom dihapus, sheet 
   ctx.lupakanMemo_();
 }
 ctx.setupSistem();
-ok('versi 11.1.1', ctx.APP.versi==='11.1.1');
+ok('versi 11.2.0', ctx.APP.versi==='11.2.0');
 ok('stok awal 0 di seed → laporan stok kosong (belum ada transaksi)', ctx.laporanStok(SPV).daftar.length===0);
 
 console.log('\n— Tambah master dari form (semua peran) —');
@@ -85,10 +86,11 @@ ctx.simpanPenerimaan({jenis:'MASUK',supplier:SUP,noSuratJalan:'SJ/1',baris:[{kod
 const shB = ctx.simpanLaporanShift({shift:'1',blowing:{operator:'Sri',ambil:[{kode:KW,qty:500}],hasil:[{kualitas:'KW',qty:470}],bs:[{kualitas:'KW',qty:12}]},cutting:{operator:'Rina',rollPakai:[{kualitas:'KW',qty:470}],hasil:[{kualitas:'KW',qty:462}],bs:[{kualitas:'KW',qty:8}]}}, SPV);
 const SCR='SCR-BS-KW', DU='RM-BIJI-PLASTIK-DAUR-UL';
 ok('BS KW 20 kg ada di gudang (12 blowing + 8 cutting)', ctx.getKonteks(STAF).stok[SCR].gbj===20);
-tolak('bahan baku biasa tidak bisa dikirim ke chassen', ()=>ctx.mulaiDaurUlang({vendor:VENDOR, scrap:[{kode:KW,qty:5}], ident:STAF}), /bukan scrap/);
+tolak('bahan baku biasa tidak bisa dikirim ke chassen', ()=>ctx.mulaiDaurUlang({vendor:VENDOR, scrap:[{kode:KW,qty:5}], foto:FOTO, ident:STAF}), /bukan scrap/);
 tolak('tanpa vendor ditolak', ()=>ctx.mulaiDaurUlang({scrap:[{kode:SCR,qty:5}], ident:STAF}), /vendor/i);
 tolak('tanpa scrap ditolak', ()=>ctx.mulaiDaurUlang({vendor:VENDOR, scrap:[], ident:STAF}), /belum diisi/);
-const d1 = ctx.mulaiDaurUlang({vendor:VENDOR, noSuratJalan:'SJ/CH/1', scrap:[{kode:SCR,qty:15}], catatan:'kirim pagi', ident:STAF});
+tolak('v11.2: kirim ke chassen tanpa foto surat jalan ditolak', ()=>ctx.mulaiDaurUlang({vendor:VENDOR, noSuratJalan:'SJ/CH/1', scrap:[{kode:SCR,qty:15}], ident:STAF}), /Foto surat jalan ke tempat chassen wajib/);
+const d1 = ctx.mulaiDaurUlang({vendor:VENDOR, noSuratJalan:'SJ/CH/1', scrap:[{kode:SCR,qty:15}], catatan:'kirim pagi', foto:FOTO, ident:STAF});
 ok('batch dibuat, 15 kg', d1.ok && /^DUR-/.test(d1.id) && d1.totalKg===15, d1);
 ok('scrap di gudang berkurang jadi 5 (dalam perjalanan ke chassen)', ctx.getKonteks(STAF).stok[SCR].gbj===5);
 ok('neraca: daurKirim 15', ctx.laporanStok(SPV).daftar.find(s=>s.kode===SCR).daurKirim===15);
@@ -96,10 +98,11 @@ ok('konteks: daurBerjalan = 1', ctx.getKonteks(STAF).ringkasan.daurBerjalan===1)
 const bj = ctx.daftarDaurUlang(STAF, '');
 ok('daftar berjalan: 1 batch, staf tidak dapat hpp', bj.length===1 && bj[0].status==='BERJALAN' && bj[0].hpp===undefined && bj[0].scrap[0].qty===15, bj[0]);
 ok('manager dapat hpp (masih kosong)', ctx.daftarDaurUlang(SPV, '')[0].hpp !== undefined);
-tolak('terima hasil sebagai barang jadi ditolak', ()=>ctx.selesaikanDaurUlang({id:d1.id, hasil:[{kode:'FG-PB-KW',qty:10}], ident:STAF}), /bukan bahan baku/);
-tolak('tanggal terima sebelum kirim ditolak', ()=>ctx.selesaikanDaurUlang({id:d1.id, hasil:[{kode:DU,qty:14}], tanggalTerima:'2026-01-01', ident:STAF}), /sebelum tanggal kirim|terlalu lama/);
+tolak('terima hasil sebagai barang jadi ditolak', ()=>ctx.selesaikanDaurUlang({id:d1.id, hasil:[{kode:'FG-PB-KW',qty:10}], foto:FOTO, ident:STAF}), /bukan bahan baku/);
+tolak('tanggal terima sebelum kirim ditolak', ()=>ctx.selesaikanDaurUlang({id:d1.id, hasil:[{kode:DU,qty:14}], tanggalTerima:'2026-01-01', foto:FOTO, ident:STAF}), /sebelum tanggal kirim|terlalu lama/);
 /* staf terima 14 kg (susut 1 kg = 6,67% → normal 5 + toleransi 3 = 8 → NORMAL); staf tidak bisa isi jasa */
-const t1 = ctx.selesaikanDaurUlang({id:d1.id, hasil:[{kode:DU,qty:14}], biayaJasa:999999, catatan:'diterima sore', ident:STAF});
+tolak('v11.2: terima dari chassen tanpa foto surat jalan ditolak', ()=>ctx.selesaikanDaurUlang({id:d1.id, hasil:[{kode:DU,qty:14}], ident:STAF}), /Foto surat jalan dari tempat chassen wajib/);
+const t1 = ctx.selesaikanDaurUlang({id:d1.id, hasil:[{kode:DU,qty:14}], biayaJasa:999999, catatan:'diterima sore', foto:FOTO, ident:STAF});
 ok('hasil 14 kg, susut 1 kg = 6,67% NORMAL', t1.hasil===14 && t1.susut===1 && t1.persen===6.67 && t1.status==='NORMAL' && t1.batas===8, t1);
 ok('staf tidak menerima hpp di balasan', t1.hpp===undefined);
 const row1 = ctx.baca_(ctx.SHEET.DAUR).find(r=>r.ID===d1.id);
@@ -125,23 +128,24 @@ ok('ambilDaurUlang staf: tanpa hpp, ada scrap & hasil', (()=>{ const a=ctx.ambil
 ok('ambilDaurUlang manager: hpp ada, bolehUbah', (()=>{ const a=ctx.ambilDaurUlang(d1.id, SPV); return a.hpp.jasa===70000 && a.bolehUbah===true; })());
 
 console.log('\n— Batch dengan jasa langsung oleh manager; susut TINGGI; batal —');
-const d2 = ctx.mulaiDaurUlang({vendor:VENDOR, scrap:[{kode:SCR,qty:5}], ident:STAF});
-const t2 = ctx.selesaikanDaurUlang({id:d2.id, hasil:[{kode:DU,qty:4}], biayaJasa:20000, ident:SPV});
+const d2 = ctx.mulaiDaurUlang({vendor:VENDOR, scrap:[{kode:SCR,qty:5}], foto:FOTO, ident:STAF});
+const t2 = ctx.selesaikanDaurUlang({id:d2.id, hasil:[{kode:DU,qty:4}], biayaJasa:20000, foto:FOTO, ident:SPV});
 ok('susut 1 dari 5 = 20% → TINGGI', t2.status==='TINGGI' && t2.persen===20, t2);
 ok('manager dapat hpp: jasa 20.000, 5.000/kg', t2.hpp && t2.hpp.jasa===20000 && t2.hpp.perKg===5000, t2.hpp);
-tolak('batch selesai tidak bisa diterima lagi', ()=>ctx.selesaikanDaurUlang({id:d2.id, hasil:[{kode:DU,qty:1}], ident:SPV}), /sudah SELESAI/);
+tolak('batch selesai tidak bisa diterima lagi', ()=>ctx.selesaikanDaurUlang({id:d2.id, hasil:[{kode:DU,qty:1}], foto:FOTO, ident:SPV}), /sudah SELESAI/);
 ok('scrap gudang sekarang 0', ctx.getKonteks(STAF).stok[SCR].gbj===0);
 ok('biji daur ulang: 14 + 4 − 10 diambil blowing = 8', ctx.getKonteks(STAF).stok[DU].gbj===8);
 /* batal: staf hanya batch sendiri yang BERJALAN */
-const d3 = ctx.mulaiDaurUlang({vendor:VENDOR, scrap:[{kode:SCR,qty:0.5}], ident:STAF});
-tolak('staf tidak bisa batalkan batch selesai', ()=>ctx.batalkanDaurUlang(d2.id, 'x', STAF), /manager/);
+const d3 = ctx.mulaiDaurUlang({vendor:VENDOR, scrap:[{kode:SCR,qty:0.5}], foto:FOTO, ident:STAF});
+tolak('staf tidak bisa batalkan batch selesai', ()=>ctx.batalkanDaurUlang(d2.id, 'salah input', STAF), /manager/);
 ok('scrap −0,5 (batch 3 keluar)', ctx.getKonteks(STAF).stok[SCR].gbj===-0.5);
 ctx.batalkanDaurUlang(d3.id, 'salah kirim', STAF);
 ok('staf batalkan batch sendiri BERJALAN → scrap kembali', ctx.baca_(ctx.SHEET.DAUR).find(r=>r.ID===d3.id).Status==='DIBATALKAN' && ctx.getKonteks(STAF).stok[SCR].gbj===0);
-tolak('batal 2x ditolak', ()=>ctx.batalkanDaurUlang(d3.id, '', SPV), /sudah dibatalkan/);
+tolak('batal 2x ditolak', ()=>ctx.batalkanDaurUlang(d3.id, 'lagi', SPV), /sudah dibatalkan/);
+tolak('v11.2: batal daur ulang tanpa alasan ditolak', ()=>ctx.batalkanDaurUlang(d2.id, '', SPV), /Alasan pembatalan wajib/);
 ctx.batalkanDaurUlang(d2.id, 'ternyata salah timbang', SPV);
 ok('manager batalkan batch selesai → hasil & scrap tidak dihitung', ctx.getKonteks(STAF).stok[DU].gbj===4 && ctx.getKonteks(STAF).stok[SCR].gbj===5);
-ok('batalkanEntriSendiri dengan ID DUR- diarahkan ke daur ulang', (()=>{ try { ctx.batalkanEntriSendiri(d3.id, '', SPV); return false; } catch(e){ return /sudah dibatalkan/.test(e.message); } })());
+ok('batalkanEntriSendiri dengan ID DUR- diarahkan ke daur ulang', (()=>{ try { ctx.batalkanEntriSendiri(d3.id, 'coba lagi', SPV); return false; } catch(e){ return /sudah dibatalkan/.test(e.message); } })());
 
 console.log('\n— Laporan, kalender, aktivitas, ekspor, hitung ulang HPP —');
 const lap = ctx.laporanDaurUlang(90, SPV);
