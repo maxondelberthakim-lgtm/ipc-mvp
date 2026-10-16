@@ -18,13 +18,14 @@ pjl    = rd(os.path.join(A, 'Penjualan.gs'))
 dur    = rd(os.path.join(A, 'DaurUlang.gs'))
 prd    = rd(os.path.join(A, 'Produksi.gs'))
 ttp    = rd(os.path.join(A, 'TutupBulan.gs'))
+dok    = rd(os.path.join(A, 'Dokumen.gs'))
 shim   = rd(os.path.join(root, 'tools', 'shim.js'))
 seed   = rd(os.path.join(root, 'tools', 'seed.js'))
 fixture= rd(os.path.join(root, 'tools', 'fixture-master.js'))  # supplier/customer contoh khusus demo
 
 html = idx.replace("<?!= include('Styles'); ?>", styles).replace("<?!= include('Script'); ?>", "__S__")
 html = html.replace("<script>var BAHASA_AWAL = '<?= bahasaAwal ?>';</script>", "<script>var BAHASA_AWAL = 'id';</script>")
-backend = ("<script>\n" + shim + "\n</script>\n<script>\n" + cfg + "\n" + srv + "\n" + med + "\n" + pem + "\n" + pjl + "\n" + dur + "\n" + prd + "\n" + ttp +
+backend = ("<script>\n" + shim + "\n</script>\n<script>\n" + cfg + "\n" + srv + "\n" + med + "\n" + pem + "\n" + pjl + "\n" + dur + "\n" + prd + "\n" + ttp + "\n" + dok +
            "\n</script>\n<script>\n" + fixture + "\n" + seed + "\n</script>\n")
 html = html.replace("__S__", backend + script)
 

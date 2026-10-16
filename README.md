@@ -1,4 +1,4 @@
-# IPC — Inventory & Production Control (v11.2)
+# IPC — Inventory & Production Control (v12)
 
 Mobile web app for a small polybag factory: every kilogram that moves between
 **supplier → warehouse (GBJ) → blowing → cutting → warehouse → customer** is logged with a
@@ -68,6 +68,16 @@ There are no per-job records and no approvals on the production floor — the sy
 | ④ | Goods out, sold (GBJ → customer), picked from an SO | required | required | GBJ − |
 | ↩ | Return from customer | required | — | GBJ + |
 
+- **Invoices & PO documents (v12).** From a sales order Deny (module SO) creates a customer **invoice** (no VAT; number
+  `INV/YYYY/MM/NNN` or typed), and from a purchase order Yansen (module PO) creates a **PO document**; both are snapshots
+  stored in `Dokumen` and served by the Worker at `GET /dok/<token>` as a printable page ("Simpan PDF" = browser print).
+  The link is sent with **WhatsApp** via `wa.me/<number>?text=…` (message + link prefilled; the sender taps send) — numbers
+  are picked from a contact list (`Master_Kontak_WA`) or typed and saved. Company header, bank account and footer notes
+  live in Settings (Admin → Dokumen; editable by the PO account / Admin), and can be overridden per document. Cancelling a
+  document kills its link; a new PO document for the same PO number replaces the old one.
+- **Bale or kg (v12).** SO, PO, receipt and shipment lines can be entered in **bal** (1 bal = `KG_PER_BAL`, default 25,
+  changed in Admin → Dokumen); stock is always stored in kg, documents show both. Polybag SKUs carry a **size note
+  (cm × cm)** shown under the SKU list and on documents.
 - **Photos can follow later (v11.2).** Receipts, shipments, shift reports and damage reports save without a photo so the
   floor is never blocked; a "+ Foto" button in every history list (and a home-screen banner counting entries without a
   photo) lets the person who recorded it — or a manager of that module — attach the photo at the end of the day
@@ -130,7 +140,8 @@ cd cloudflare && npx wrangler dev --port 8787 --local   # local Worker for the P
 
 ## Status
 
-v11.2 — photos optional at entry time ("+ Foto" later from history), crusher delivery-note photos mandatory for
+v12 — customer invoices from SOs and PO documents with shareable print links + WhatsApp send, contact list, bale/kg
+entry, SKU size notes, document settings. v11.2 — photos optional at entry time ("+ Foto" later from history), crusher delivery-note photos mandatory for
 recycling, every cancellation requires a reason. v11.1.1 — admin `hapusTransaksiSebelum` to purge test data. v11.1 — app moves to **h-plast.pages.dev** (Cloudflare Pages); Staff Gudang removed, Yansen does the warehouse work.
 v11 — access revamp: per-account module access (Yansen PO · Deny SO · Bastari production), review/approval process
 removed (entries final on save, 24-hour self-edit window for staff). v10.1 — two 12-hour shifts, one report per shift

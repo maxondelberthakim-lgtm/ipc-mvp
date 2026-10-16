@@ -177,6 +177,18 @@ data uji, lalu isi stok awal lewat opname. Kalau pemakaian sungguhan sudah dimul
 `hapusTransaksiSebelum("YYYY-MM-DD")` (v11.1.1, lewat `hapus-data-uji.command` di Mac): hanya transaksi sebelum tanggal
 itu yang dibuang, master/pengguna/transaksi sesudahnya tetap — lalu tetap isi stok awal lewat opname.
 
+## v12 (16 Okt 2026)
+
+**Invoice & dokumen PO.** Di kartu SO ada tombol **Invoice** (akun Sales order / Admin), di kartu PO ada **Dokumen PO**
+(akun PO / Admin). Isi nomor (kosong = otomatis `INV/TAHUN/BULAN/001`), tanggal, catatan; kop perusahaan diambil dari
+**Admin → Dokumen** (nama, alamat, telepon, rekening, catatan bawah — hanya akun PO/Yansen & Admin yang bisa ubah) dan bisa
+diubah untuk satu dokumen. Hasilnya link cetak (`…/dok/<kode>`) → **Buka / Simpan PDF** (cetak dari browser) atau **Kirim
+ke WA**: pilih kontak dari daftar atau ketik nomor + nama (bisa disimpan), lalu WhatsApp terbuka dengan pesan + link —
+tinggal tekan kirim. Invoice tanpa PPN. Dokumen yang dibatalkan link-nya mati; dokumen PO baru untuk PO yang sama
+menggantikan yang lama. **Satuan bal:** di baris SO / PO / penerimaan / pengiriman pilih kg atau bal (1 bal = 25 kg,
+ubah di Admin → Dokumen); stok tetap kg. **Ukuran SKU:** Admin → SKU, isi "Ukuran (cm × cm)" untuk polybag — tampil di
+kartu "Ukuran polybag" di bawah daftar SKU dan di invoice/PO.
+
 ## v11.2 (16 Okt 2026)
 
 Foto bukti **tidak wajib saat input** (penerimaan, pengiriman, laporan shift, rusak) — simpan dulu, lalu tekan **+ Foto**

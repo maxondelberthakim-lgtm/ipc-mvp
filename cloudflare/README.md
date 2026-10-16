@@ -34,6 +34,7 @@ npx wrangler r2 bucket create ipc-foto
 ## Rute
 * `POST /exec` (atau `/`) — RPC persis seperti `/exec` Apps Script (daftar putih `RPC_WL`, idempotensi `idKlien` 10 menit).
 * `GET /foto/<id>.jpg` — foto bukti dari R2.
+* `GET /dok/<token>` — v12: halaman cetak invoice / dokumen PO (publik, token rahasia 24 huruf; dibatalkan → 'sudah dibatalkan').
 * `POST /admin/info | /admin/ekspor | /admin/impor | /admin/backup | /admin/jalankan` — header `X-Admin-Key`.
   `/admin/jalankan` body `{"fn":"resetUntukGoLive"|"seedUlangMaster"|"migrasiSkema"|"hitungUlangHpp"|"hapusTransaksiSebelum","args":[...]}`
   (pengganti "jalankan dari editor Apps Script"). `hapusTransaksiSebelum` (v11.1.1, `args:["YYYY-MM-DD"]`) membuang semua

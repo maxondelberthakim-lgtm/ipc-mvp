@@ -541,11 +541,46 @@
       <button id="segAdmAkt" onclick="segAdm('akt')" data-i18n="segAkt">Aktivitas</button>
       <button id="segAdmUser" class="hide" onclick="segAdm('user')" data-i18n="segUser">Pengguna</button>
       <button id="segAdmBackup" onclick="segAdm('backup')" data-i18n="segBackup">Backup</button>
+      <button id="segAdmDok" class="hide" onclick="segAdm('dok')" data-i18n="segDok">Dokumen</button>
     </div>
     <div id="admBody"><div class="load">…</div></div>
   </section>
 
   <!-- ============ FORM SKU (overlay) ============ -->
+  <!-- v12: dokumen (invoice / PO) → link cetak + kirim WA -->
+  <div id="dokWrap" class="overlay hide" onclick="if(event.target===this)tutupDok()">
+    <div class="sheet">
+      <div class="sheethead"><b id="dokJudul">Dokumen</b><button class="x2" onclick="tutupDok()">✕</button></div>
+      <div class="sub" id="dokSub"></div>
+      <div id="dokForm">
+        <div class="field"><label data-i18n="dokNomor">Nomor (kosong = otomatis)</label><input id="dokNomor" placeholder="INV/2026/10/001"></div>
+        <div class="field"><label data-i18n="dokTanggal">Tanggal dokumen</label><input type="date" id="dokTanggal"></div>
+        <div class="field"><label data-i18n="dokCatatan">Catatan di dokumen</label><textarea id="dokCatatan" rows="2"></textarea></div>
+        <details style="margin-bottom:10px"><summary style="font-size:12.5px;font-weight:650;cursor:pointer" data-i18n="dokKop">Kop perusahaan (bisa diubah untuk dokumen ini)</summary>
+          <div class="field"><label data-i18n="perNama">Nama perusahaan</label><input id="dokPerNama"></div>
+          <div class="field"><label data-i18n="perAlamat">Alamat</label><textarea id="dokPerAlamat" rows="2"></textarea></div>
+          <div class="field"><label data-i18n="perTelp">Telepon / WA</label><input id="dokPerTelp"></div>
+          <div class="field"><label data-i18n="perBank">Rekening pembayaran</label><textarea id="dokPerBank" rows="2"></textarea></div>
+        </details>
+        <button class="btn ok" id="btnDokBuat" onclick="buatDokUI()" data-i18n="dokBuat">Buat dokumen</button>
+      </div>
+      <div id="dokHasil" class="hide"></div>
+      <h3 class="sec" data-i18n="dokDaftar">Dokumen yang sudah dibuat</h3>
+      <div id="dokDaftar"><div class="load">…</div></div>
+    </div>
+  </div>
+  <div id="waWrap" class="overlay hide" onclick="if(event.target===this)tutupWa()">
+    <div class="sheet">
+      <div class="sheethead"><b data-i18n="waT">Kirim lewat WhatsApp</b><button class="x2" onclick="tutupWa()">✕</button></div>
+      <div class="sub" id="waSub"></div>
+      <div class="field"><label data-i18n="waPilih">Pilih kontak</label><select id="waKontak" onchange="waPilihKontak()"></select></div>
+      <div class="field"><label data-i18n="waNomor">Nomor WA</label><input id="waNomor" inputmode="tel" placeholder="0812…"></div>
+      <div class="field"><label data-i18n="waNama">Nama pemilik nomor</label><input id="waNama"></div>
+      <div class="field"><label><input type="checkbox" id="waSimpan" checked style="width:auto;margin-right:8px"><span data-i18n="waSimpanKontak">Simpan ke daftar kontak</span></label></div>
+      <div class="field"><label data-i18n="dokCatatan">Pesan</label><textarea id="waPesan" rows="5"></textarea></div>
+      <button class="btn ok" id="btnWaBuka" onclick="bukaWaUI()">💬 <span data-i18n="waBuka">Buka WhatsApp</span></button>
+    </div>
+  </div>
   <div id="skuWrap" class="overlay hide" onclick="if(event.target===this)tutupSku()">
     <div class="sheet">
       <div class="sheethead"><b id="skuJudul">SKU</b><button class="x2" onclick="tutupSku()">✕</button></div>
@@ -567,6 +602,7 @@
           <option value="SUPER_PLUS">Super Plus</option>
         </select>
         <div class="hint" data-i18n="skuKualitasHint">Laporan shift memakai SKU per kualitas: biji → roll → polybag, dan BS-nya.</div></div>
+      <div class="field"><label data-i18n="skuUkuran">Ukuran (cm × cm) — catatan untuk polybag</label><input id="skuUkuran" placeholder="mis. 30 x 50" maxlength="60"></div>
       <div class="field" id="skuHargaWrap"><label data-i18n="skuHarga">Harga beli per kg (untuk HPP)</label><input type="number" inputmode="decimal" id="skuHarga" placeholder="0"></div>
       <div class="field"><label data-i18n="skuAwal">Stok awal (kg)</label><input type="number" inputmode="decimal" id="skuAwal" placeholder="0"></div>
       <div class="field"><label><input type="checkbox" id="skuAktif" checked style="width:auto;margin-right:8px"><span data-i18n="skuAktif">Aktif (muncul di dropdown)</span></label></div>

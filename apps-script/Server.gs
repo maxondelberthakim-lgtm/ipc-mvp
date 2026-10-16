@@ -27,6 +27,7 @@ function include(nama) {
 var RPC_WL = {
   getKonteks:1, simpanPenerimaan:1, simpanPengiriman:1,
   riwayatInput:1, ambilEntri:1, simpanEditEntri:1, batalkanEntriSendiri:1, tambahFoto:1,
+  /* v12 */ pengaturanDokumen:1, simpanPengaturanDokumen:1, daftarKontakWa:1, simpanKontakWa:1, hapusKontakWa:1, buatDokumen:1, daftarDokumen:1, batalkanDokumen:1,
   antrianReview:1, tinjauTransfer:1, daftarPermintaan:1, tinjauPermintaan:1,
   laporanStok:1, riwayatPenerimaan:1, laporanPenjualan:1,
   kalender:1, ocrSuratJalan:1,
@@ -369,7 +370,7 @@ function petaItem_() {
     peta[r.Kode_Item] = {
       kode: r.Kode_Item, nama: r.Nama_Item, kategori: r.Kategori,
       harga: angka_(r.Harga_Per_Kg), aktif: r.Aktif,
-      awal: angka_(r.Stok_Awal), kualitas: String(r.Kualitas || '').trim()
+      awal: angka_(r.Stok_Awal), kualitas: String(r.Kualitas || '').trim(), ukuran: String(r.Ukuran || '').trim()
     };
   });
   return peta;
@@ -444,7 +445,7 @@ function getKonteks(ident) {
   var items = baca_(SHEET.ITEM).filter(function (r) {
     return String(r.Aktif).toUpperCase() !== 'TIDAK' && r.Kode_Item;
   }).map(function (r) {
-    return { kode: r.Kode_Item, nama: r.Nama_Item, kategori: r.Kategori, kualitas: String(r.Kualitas || '').trim() };
+    return { kode: r.Kode_Item, nama: r.Nama_Item, kategori: r.Kategori, kualitas: String(r.Kualitas || '').trim(), ukuran: String(r.Ukuran || '').trim() };
   });
 
   var supplier = baca_(SHEET.SUPPLIER).filter(function (r) {
@@ -515,6 +516,8 @@ function getKonteks(ident) {
     hariIni: hariIni,
     maksMundurHari: MAKS_MUNDUR_HARI,
     maksEditHari: maksEditHari_(),
+    kgPerBal: kgPerBal_(),           // v12
+    bisaDokumen: bolehDokumen_(u),   // v12: invoice / dokumen PO / kontak WA
     stok: stok,
     bisaReview: bolehReview_(u),          // = tingkat manager (lihat laporan & harga)
     bisaAdmin: bolehAdmin_(u),
@@ -1548,7 +1551,7 @@ function daftarSku(ident) {
   var lihatHpp = bolehLihatHpp_(u);
   return baca_(SHEET.ITEM).map(function (r) {
     var o = { baris: r._baris, kode: r.Kode_Item, nama: r.Nama_Item, kategori: r.Kategori, kualitas: String(r.Kualitas || '').trim(),
-              awal: angka_(r.Stok_Awal),
+              ukuran: String(r.Ukuran || '').trim(), awal: angka_(r.Stok_Awal),
               aktif: String(r.Aktif).toUpperCase() !== 'TIDAK', dipakai: !!dipakai[r.Kode_Item] };
     if (lihatHpp) o.harga = angka_(r.Harga_Per_Kg);
     return o;
@@ -1586,7 +1589,7 @@ function simpanSku(p, ident) {
       if (rows[i]._baris === p.baris) target = rows[i];
       else if (String(rows[i].Kode_Item).toUpperCase() === kode) throw new Error('Kode "' + kode + '" sudah ada.');
     }
-    var ubah = { Kode_Item: kode, Nama_Item: nama, Kategori: kat, Kualitas: kual,
+    var ubah = { Kode_Item: kode, Nama_Item: nama, Kategori: kat, Kualitas: kual, Ukuran: String(p.ukuran || '').trim().slice(0, 60),
                  Stok_Awal: angka_(p.awal !== undefined ? p.awal : p.awalGBJ),
                  Aktif: p.aktif === false ? 'TIDAK' : 'YA' };
     if (p.harga !== undefined && p.harga !== null && String(p.harga) !== '') ubah.Harga_Per_Kg = angka_(p.harga);

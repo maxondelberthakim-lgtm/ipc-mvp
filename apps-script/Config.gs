@@ -10,7 +10,7 @@
 
 var APP = {
   nama: 'IPC — Inventory & Production Control',
-  versi: '11.2.0',
+  versi: '12.0.0',
   zona: 'Asia/Jakarta',
   satuan: 'kg',
   folderFoto: 'IPC Foto Bukti'
@@ -39,14 +39,17 @@ var SHEET = {
   DAUR       : 'Daur_Ulang',        // v9: scrap dikirim ke mesin chassen (pabrik lain) → kembali sebagai biji plastik daur ulang
   DAUR_DETAIL: 'Daur_Ulang_Detail',
   LOG        : 'Log_Audit',
-  SETTING    : 'Pengaturan'
+  SETTING    : 'Pengaturan',
+  KONTAK_WA  : 'Master_Kontak_WA',  // v12: nomor WA tujuan kirim invoice / PO
+  DOKUMEN    : 'Dokumen'            // v12: invoice (dari SO) & dokumen PO — snapshot JSON + token link
 };
 
 var HEADER = {};
 
 HEADER[SHEET.ITEM] = [
   'Kode_Item','Nama_Item','Kategori','Harga_Per_Kg','Stok_Awal','Aktif',
-  'Kualitas'   // v10: KW / SUPER / SUPER_PLUS — menghubungkan biji plastik ↔ roll ↔ polybag ↔ BS di laporan shift
+  'Kualitas',  // v10: KW / SUPER / SUPER_PLUS — menghubungkan biji plastik ↔ roll ↔ polybag ↔ BS di laporan shift
+  'Ukuran'     // v12: catatan ukuran polybag (cm × cm), tampil di daftar SKU & dokumen
 ];
 
 HEADER[SHEET.SUPPLIER] = [
@@ -161,6 +164,9 @@ HEADER[SHEET.DAUR_DETAIL] = [
 HEADER[SHEET.LOG] = [
   'Waktu','Email','Aksi','Referensi','Detail'
 ];
+/* v12 */
+HEADER[SHEET.KONTAK_WA] = ['ID','Nama','Nomor','Aktif','Waktu','Dibuat_Oleh'];
+HEADER[SHEET.DOKUMEN] = ['ID','Jenis','Nomor','Ref','Tanggal','Waktu','Dibuat_Oleh','Nama_Pembuat','Token','Data_JSON','Status','Log_Edit'];
 
 HEADER[SHEET.SETTING] = [
   'Kunci','Nilai','Keterangan'
@@ -294,7 +300,16 @@ var DEFAULT_SETTING = [
   ['MAKS_EDIT_HARI','30','Entri lebih tua dari sekian hari (dari tanggal transaksi) tidak bisa diubah/dibatalkan siapa pun — periode dianggap ditutup.'],
   ['LEAD_TIME_HARI','7','Lama pesan sampai barang datang (hari). Dipakai untuk peringatan "perlu beli": stok habis sebelum lead time.'],
   ['SUSUT_CHASSEN_PERSEN','5','v9: susut normal saat scrap digiling di mesin chassen jadi biji plastik (%). Susut = scrap dikirim − biji plastik diterima.'],
-  ['TOLERANSI_CHASSEN_PERSEN','3','v9: toleransi di atas susut normal chassen (%). Lebih dari normal + toleransi = SUSUT TINGGI.']
+  ['TOLERANSI_CHASSEN_PERSEN','3','v9: toleransi di atas susut normal chassen (%). Lebih dari normal + toleransi = SUSUT TINGGI.'],
+  /* v12: satuan bal & kop dokumen (diubah Yansen lewat Admin → Dokumen) */
+  ['KG_PER_BAL','25','v12: 1 bal = sekian kg (pilihan satuan bal di form SO / PO / penerimaan / pengiriman; disimpan tetap kg)'],
+  ['PERUSAHAAN_NAMA','H-Plast','v12: nama perusahaan di kop invoice / PO'],
+  ['PERUSAHAAN_ALAMAT','','v12: alamat di kop dokumen'],
+  ['PERUSAHAAN_TELP','','v12: telepon / WA di kop dokumen'],
+  ['PERUSAHAAN_EMAIL','','v12: email di kop dokumen'],
+  ['PERUSAHAAN_BANK','','v12: rekening pembayaran (bank, nomor, atas nama) di invoice'],
+  ['DOK_CATATAN_INVOICE','','v12: catatan bawah invoice (syarat pembayaran dll)'],
+  ['DOK_CATATAN_PO','','v12: catatan bawah dokumen PO']
 ];
 
 /* ------------------------------------------------------------------ *
