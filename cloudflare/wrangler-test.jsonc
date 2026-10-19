@@ -1,0 +1,16 @@
+{
+  // IPC API — lingkungan TEST (database terpisah dari ipc-api / data asli).
+  // Deploy: npx wrangler deploy --config wrangler-test.jsonc
+  // Tanpa KV backup & tanpa cron: data test tidak perlu dibackup.
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "ipc-api-test",
+  "main": "src/worker.js",
+  "compatibility_date": "2025-09-01",
+  "workers_dev": true,
+  "observability": { "enabled": true },
+  "vars": { "LOKASI": "apac" },
+  "durable_objects": {
+    "bindings": [{ "name": "IPC_DB", "class_name": "IpcDb" }]
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["IpcDb"] }]
+}
