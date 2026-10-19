@@ -56,10 +56,10 @@ ok('manager isi laporan shift: pencatat = Manager', sS.pencatat==='Manager' && s
 ok('staf boleh LIHAT daftar shift, tanpa harga, tidak boleh edit', (()=>{ const d=ctx.daftarLaporanShift(YANTO, 7); return d.length===1 && d[0].bolehEdit===false && JSON.stringify(d).indexOf('harga')<0; })());
 const YS = {nama:'Yansen', pin:'2211'}, DN = {nama:'Deny', pin:'3322'}, BS = {nama:'Bastari', pin:'4433'};
 ok('v11: Yansen/Deny/Bastari = SUPERVISOR (lihat laporan & harga) dengan modul masing-masing', (()=>{ const y=ctx.getKonteks(YS), d=ctx.getKonteks(DN), b=ctx.getKonteks(BS);
-  return y.bisaReview && y.lihatHpp && y.bisaPo && !y.bisaSo && y.modul.PO && y.modul.GUDANG && !y.modul.MANAJEMEN
+  return y.bisaReview && y.lihatHpp && y.bisaPo && y.bisaSo && y.modul.PO && y.modul.SO && y.modul.GUDANG && !y.modul.MANAJEMEN
       && d.bisaSo && !d.bisaPo && d.modul.SO && !d.modul.PRODUKSI
       && b.modul.PRODUKSI && !b.bisaPo && !b.bisaSo && b.lihatHpp; })(), [ctx.getKonteks(YS).modul, ctx.getKonteks(DN).modul, ctx.getKonteks(BS).modul]);
-tolak('Yansen tidak bisa buat SO', ()=>ctx.simpanSo({customer:'PT Nursery Hijau Lestari', tanggalKirim:ctx.tglStr_(new Date()), topHari:0, baris:[{kode:'FG-PB-KW', qty:1, harga:1000}]}, YS), /Sales order/);
+ok('v12.0.1: Yansen BISA buat SO', (()=>{ try { const r = ctx.simpanSo({customer:'PT Nursery Hijau Lestari', tanggalKirim:ctx.tglStr_(new Date()), topHari:0, baris:[{kode:'FG-PB-KW', qty:1, harga:1000}]}, YS); return r.ok===true; } catch(e){ return false; } })());
 tolak('Deny tidak bisa buat PO', ()=>ctx.simpanPo({supplier:'PT Sumber Biji Plastik', baris:[{kode:'RM-BP-KW', qty:1, harga:1}]}, DN), /pesanan pembelian/);
 tolak('Bastari tidak bisa buat PO', ()=>ctx.simpanPo({supplier:'PT Sumber Biji Plastik', baris:[{kode:'RM-BP-KW', qty:1, harga:1}]}, BS), /pesanan pembelian/);
 tolak('Yansen tidak bisa isi laporan shift', ()=>ctx.simpanLaporanShift({ shift:'1', blowing:{ operator:'Sri', ambil:[{kode:'RM-BP-KW', qty:1}] } }, YS), /Manager|Admin/);
@@ -82,7 +82,7 @@ const MAX={nama:'Direktur',pin:'2468'};
 ok('admin bisaAdmin', ctx.getKonteks(MAX).bisaAdmin===true);
 tolak('supervisor tidak boleh kelola pengguna', ()=>ctx.daftarPengguna(ANTO), /Admin/);
 const dp = ctx.daftarPengguna(MAX);
-ok('daftar pengguna 7 orang, PIN tidak bocor, akses ikut', dp.length===7 && dp.find(x=>x.nama==='Yansen').akses==='PO,GUDANG' && dp.find(x=>x.nama==='Manager').akses==='' && dp.every(x=>x.pin===undefined) && dp.find(x=>x.nama==='Staff Gudang').punyaPin===true, dp);
+ok('daftar pengguna 7 orang, PIN tidak bocor, akses ikut', dp.length===7 && dp.find(x=>x.nama==='Yansen').akses==='PO,SO,GUDANG' && dp.find(x=>x.nama==='Manager').akses==='' && dp.every(x=>x.pin===undefined) && dp.find(x=>x.nama==='Staff Gudang').punyaPin===true, dp);
 ctx.simpanPengguna({nama:'Budi', peran:'STAF', lokasi:'GBJ', pin:'5555'}, MAX);
 ok('tambah user baru', ctx.daftarPengguna(MAX).some(x=>x.nama==='Budi'));
 tolak('nama dobel ditolak', ()=>ctx.simpanPengguna({nama:'budi', peran:'STAF', pin:'1234'}, MAX), /sudah dipakai/);

@@ -18,6 +18,7 @@ function migrasiSkema() {
   migrasiV10_1_(ss);
   migrasiV11_(ss);
   migrasiV11_1_(ss);
+  migrasiV12_0_1_(ss);
   Object.keys(SHEET).forEach(function (k) {
     var nama = SHEET[k], head = HEADER[nama];
     var sh = ss.getSheetByName(nama);
@@ -193,6 +194,22 @@ function migrasiV11_1_(ss) {
     if (lama && nama === 'staff gudang' && String(r.Aktif).toUpperCase() !== 'TIDAK') { ubahBaris_(SHEET.PENGGUNA, r._baris, { Aktif: 'TIDAK' }); n++; }
   });
   if (n) { lupakanMemo_(SHEET.PENGGUNA); catatLog_('MIGRASI_V11_1', '', 'Yansen → PO,GUDANG; Staff Gudang nonaktif'); }
+}
+
+/** v12.0.1: Yansen juga membuat SO (sekali saja — kalau admin nanti mencabut SO, tidak dikembalikan). */
+function migrasiV12_0_1_(ss) {
+  if (!ss.getSheetByName(SHEET.PENGGUNA) || !ss.getSheetByName(SHEET.LOG)) return;
+  if (baca_(SHEET.LOG).some(function (l) { return l.Aksi === 'MIGRASI_V12_0_1'; })) return;
+  var n = 0;
+  baca_(SHEET.PENGGUNA).forEach(function (r) {
+    if (String(r.Nama || '').trim().toLowerCase() !== 'yansen') return;
+    var ak = aksesTeks_(r.Akses);
+    if (!ak || ak.split(',').indexOf('SO') >= 0) return;
+    var baru = ak.split(','); baru.splice(Math.min(1, baru.length), 0, 'SO');
+    ubahBaris_(SHEET.PENGGUNA, r._baris, { Akses: aksesTeks_(baru) }); n++;
+  });
+  lupakanMemo_(SHEET.PENGGUNA);
+  catatLog_('MIGRASI_V12_0_1', '', n ? 'Yansen + SO' : 'tidak ada perubahan');
 }
 
 /** Dipanggil di awal tiap request: migrasi hanya kalau versi skema berubah (1 property read). */

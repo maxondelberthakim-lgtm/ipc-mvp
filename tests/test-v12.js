@@ -47,7 +47,7 @@ tolak('Bastari tidak boleh lihat kontak', ()=>ctx.daftarKontakWa(MP), /akses PO/
 console.log('\n— Invoice dari SO (Deny) —');
 const so = ctx.simpanSo({customer:CUS, tanggalKirim:ctx.tglStr_(new Date()), topHari:14, baris:[{kode:FG, qty:600, harga:25000},{kode:'FG-PB-SUP', qty:150, harga:27000}]}, SM);
 const noSo = ctx.baca_(ctx.SHEET.SO)[0].No_SO;
-tolak('Yansen (PO saja) tidak bisa buat invoice', ()=>ctx.buatDokumen({jenis:'INVOICE', ref:noSo}, YS), /Sales order/);
+tolak('Bastari (PRODUKSI) tidak bisa buat invoice', ()=>ctx.buatDokumen({jenis:'INVOICE', ref:noSo}, MP), /Sales order/);
 tolak('SO yang tidak ada ditolak', ()=>ctx.buatDokumen({jenis:'INVOICE', ref:'SO-000000-99'}, SM), /tidak ditemukan/);
 const inv = ctx.buatDokumen({jenis:'INVOICE', ref:noSo, catatan:'Mohon transfer sebelum jatuh tempo'}, SM);
 const thnBln = ctx.tglStr_(new Date()).slice(0,7).replace('-','/');
