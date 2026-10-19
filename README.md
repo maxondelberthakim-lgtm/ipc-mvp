@@ -68,6 +68,9 @@ There are no per-job records and no approvals on the production floor — the sy
 | ④ | Goods out, sold (GBJ → customer), picked from an SO | required | required | GBJ − |
 | ↩ | Return from customer | required | — | GBJ + |
 
+- **v12.1:** per-line size note on SO/PO lines, SO document (sales order confirmation), real PDF download (html2pdf.js 0.10.1
+  from cdnjs, print fallback; `?unduh=1` auto-downloads), payment terms counted from the document date or the actual first
+  shipment/receipt (`TOP_Dari` DOKUMEN|KIRIM, recomputed on every shipment/receipt), TOP prefilled 0, Yansen = PO+SO+GUDANG.
 - **Invoices & PO documents (v12).** From a sales order Deny (module SO) creates a customer **invoice** (no VAT; number
   `INV/YYYY/MM/NNN` or typed), and from a purchase order Yansen (module PO) creates a **PO document**; both are snapshots
   stored in `Dokumen` and served by the Worker at `GET /dok/<token>` as a printable page ("Simpan PDF" = browser print).

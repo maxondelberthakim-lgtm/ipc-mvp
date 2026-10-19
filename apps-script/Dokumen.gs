@@ -111,8 +111,9 @@ function barisDokumen_(kode, nama, qty, harga, kgPerBal, spesifikasi) {
 function buatDokumen(p, ident) {
   var u = penggunaSaatIni_(ident);
   p = p || {};
-  var jenis = p.jenis === 'PO' ? 'PO' : 'INVOICE';
+  var jenis = p.jenis === 'PO' ? 'PO' : p.jenis === 'SO' ? 'SO' : 'INVOICE';   // v12.1: + dokumen SO (konfirmasi pesanan)
   if (jenis === 'INVOICE' && !bolehSo_(u)) throw new Error('Hanya akun dengan akses Sales order yang bisa membuat invoice.');
+  if (jenis === 'SO' && !bolehSo_(u)) throw new Error('Hanya akun dengan akses Sales order yang bisa membuat dokumen SO.');
   if (jenis === 'PO' && !bolehPo_(u)) throw new Error('Hanya akun dengan akses PO yang bisa membuat dokumen PO.');
   var ref = String(p.ref || '').trim();
   if (!ref) throw new Error('Nomor SO / PO belum dipilih.');
@@ -120,29 +121,32 @@ function buatDokumen(p, ident) {
   var kgPerBal = kgPerBal_(), per = infoPerusahaan_();
   if (p.perusahaan) Object.keys(KUNCI_PERUSAHAAN_).forEach(function (k) { if (p.perusahaan[k] !== undefined) per[k] = String(p.perusahaan[k] || ''); });
   var peta = petaItem_(), baris = [], pihak = {}, d = {};
-  if (jenis === 'INVOICE') {
+  if (jenis === 'INVOICE' || jenis === 'SO') {
     var so = baca_(SHEET.SO).filter(function (r) { return String(r.No_SO) === ref && r.Status !== STATUS_SO.DIBATALKAN; });
     if (!so.length) throw new Error('SO ' + ref + ' tidak ditemukan / sudah dibatalkan.');
-    so.forEach(function (r) { baris.push(barisDokumen_(r.Kode_Item, r.Nama_Item, angka_(r.Qty_Kg), angka_(r.Harga_Per_Kg), kgPerBal, '')); });
+    so.forEach(function (r) { var b = barisDokumen_(r.Kode_Item, r.Nama_Item, angka_(r.Qty_Kg), angka_(r.Harga_Per_Kg), kgPerBal, ''); b.ukuranBaris = String(r.Ukuran || ''); baris.push(b); });
     pihak = { label: 'Customer', nama: so[0].Customer };
     d.tanggalKirim = so[0].Tanggal_Kirim || ''; d.topHari = angka_(so[0].TOP_Hari); d.jatuhTempo = p.jatuhTempo || so[0].Jatuh_Tempo || '';
-    d.catatanBawah = per.catatanInvoice;
+    d.topDari = topDariValid_(so[0].TOP_Dari); d.tanggalRef = so[0].Tanggal || '';
+    d.catatanBawah = jenis === 'INVOICE' ? per.catatanInvoice : '';
   } else {
     var po = baca_(SHEET.PO).filter(function (r) { return String(r.No_PO) === ref && r.Status !== STATUS_PO.DIBATALKAN; });
     if (!po.length) throw new Error('PO ' + ref + ' tidak ditemukan / sudah dibatalkan.');
-    po.forEach(function (r) { baris.push(barisDokumen_(r.Kode_Item, r.Nama_Item, angka_(r.Qty_Kg), angka_(r.Harga_Per_Kg), kgPerBal, r.Spesifikasi)); });
+    po.forEach(function (r) { var b = barisDokumen_(r.Kode_Item, r.Nama_Item, angka_(r.Qty_Kg), angka_(r.Harga_Per_Kg), kgPerBal, r.Spesifikasi); b.ukuranBaris = String(r.Ukuran || ''); baris.push(b); });
     pihak = { label: 'Supplier', nama: po[0].Supplier };
     d.perkiraanDatang = po[0].Perkiraan_Datang || ''; d.topHari = angka_(po[0].TOP_Hari); d.jatuhTempo = po[0].Jatuh_Tempo || '';
+    d.topDari = topDariValid_(po[0].TOP_Dari);
     d.catatanBawah = per.catatanPo;
   }
-  baris.forEach(function (b) { var it = peta[b.kode]; if (it && it.ukuran) b.ukuran = it.ukuran; });
+  /* ukuran: catatan di baris SO/PO (v12.1) diutamakan, kalau kosong pakai ukuran dari master SKU */
+  baris.forEach(function (b) { var it = peta[b.kode]; b.ukuran = b.ukuranBaris || (it && it.ukuran) || ''; delete b.ukuranBaris; });
   var total = 0, totalKg = 0; baris.forEach(function (b) { total += b.nilai; totalKg += b.qty; });
-  var nomor = String(p.nomor || '').trim() || (jenis === 'INVOICE' ? nomorInvoiceBaru_(tanggal) : ref);
+  var nomor = String(p.nomor || '').trim() || (jenis === 'INVOICE' ? nomorInvoiceBaru_(tanggal) : ref);   // SO / PO: nomor = No_SO / No_PO
   var lock = LockService.getScriptLock();
   lock.waitLock(20000);
   lupakanMemo_(SHEET.DOKUMEN);
   try {
-    var id = buatId_(jenis === 'INVOICE' ? 'INV' : 'DPO'), token = tokenDokumen_();
+    var id = buatId_(jenis === 'INVOICE' ? 'INV' : jenis === 'SO' ? 'DSO' : 'DPO'), token = tokenDokumen_();
     var lama = baca_(SHEET.DOKUMEN).filter(function (r) { return r.Jenis === jenis && String(r.Nomor) === nomor && r.Status === 'AKTIF'; });
     if (lama.length && jenis === 'INVOICE') throw new Error('Nomor ' + nomor + ' sudah dipakai invoice lain — batalkan yang lama atau pakai nomor lain.');
     /* dokumen PO: satu yang berlaku per nomor — versi lama otomatis diganti (link lama mati) */
@@ -155,7 +159,7 @@ function buatDokumen(p, ident) {
     Object.keys(d).forEach(function (k) { data[k] = d[k]; });
     tambah_(SHEET.DOKUMEN, { ID: id, Jenis: jenis, Nomor: nomor, Ref: ref, Tanggal: tanggal, Waktu: new Date(), Dibuat_Oleh: penandaPencatat_(u), Nama_Pembuat: u.nama,
                              Token: token, Data_JSON: JSON.stringify(data), Status: 'AKTIF', Log_Edit: '' });
-    catatLog_(jenis === 'INVOICE' ? 'INVOICE_BUAT' : 'DOK_PO_BUAT', id, nomor + ' · ' + pihak.nama + ' · ' + bulat_(total, 0));
+    catatLog_(jenis === 'INVOICE' ? 'INVOICE_BUAT' : jenis === 'SO' ? 'DOK_SO_BUAT' : 'DOK_PO_BUAT', id, nomor + ' · ' + pihak.nama + ' · ' + bulat_(total, 0));
     return { ok: true, id: id, nomor: nomor, token: token, jenis: jenis, total: bulat_(total, 0), pihak: pihak.nama };
   } finally { lock.releaseLock(); }
 }

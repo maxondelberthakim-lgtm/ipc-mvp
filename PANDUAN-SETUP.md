@@ -177,6 +177,13 @@ data uji, lalu isi stok awal lewat opname. Kalau pemakaian sungguhan sudah dimul
 `hapusTransaksiSebelum("YYYY-MM-DD")` (v11.1.1, lewat `hapus-data-uji.command` di Mac): hanya transaksi sebelum tanggal
 itu yang dibuang, master/pengguna/transaksi sesudahnya tetap — lalu tetap isi stok awal lewat opname.
 
+## v12.1 (19 Okt 2026)
+
+Yansen sekarang juga bisa membuat SO. Kolom TOP di form SO/PO langsung terisi 0. Setiap baris SO/PO punya **Ukuran (cm × cm)**
+(terisi dari master SKU, bisa diubah per baris). **TOP dihitung dari**: tanggal SO/PO dibuat, atau tanggal barang benar-benar
+dikirim/diterima (pengiriman/penerimaan pertama; sebelum ada pakai rencana tanggal kirim/datang). Di kartu SO ada **Dokumen SO**
+dan **Invoice**, di kartu PO **Dokumen PO**; setiap dokumen bisa **⬇ Download PDF** (file .pdf langsung) atau **🖨 Cetak**.
+
 ## v12 (16 Okt 2026)
 
 **Invoice & dokumen PO.** Di kartu SO ada tombol **Invoice** (akun Sales order / Admin), di kartu PO ada **Dokumen PO**

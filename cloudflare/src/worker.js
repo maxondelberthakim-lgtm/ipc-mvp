@@ -44,7 +44,7 @@ export default {
       const d = await stub.ambilDokumen(m[1]);
       const h = new Headers({ 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store', 'X-Robots-Tag': 'noindex' });
       if (!d) return new Response(halamanDokumen(null), { status: 404, headers: h });
-      return new Response(halamanDokumen(d), { headers: h });
+      return new Response(halamanDokumen(d, url.searchParams.has('unduh')), { headers: h });
     }
 
     if (req.method === 'GET' && (url.pathname === '/' || url.pathname === '/ping')) {
@@ -179,10 +179,10 @@ function tglId(s) {
   if (isNaN(d)) return String(s);
   return d.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
 }
-function halamanDokumen(d) {
+function halamanDokumen(d, unduh) {
   const css = `*{box-sizing:border-box}body{margin:0;font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;color:#111;background:#f3f4f6}
-  .bar{position:sticky;top:0;background:#0f766e;color:#fff;padding:10px 14px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-  .bar b{flex:1}.bar button{background:#fff;color:#0f766e;border:0;border-radius:8px;padding:8px 14px;font-weight:700;cursor:pointer;font-size:14px}
+  .bar{position:sticky;top:0;background:#0f766e;color:#fff;padding:10px 14px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;z-index:5}
+  .bar b{flex:1;min-width:160px}.bar button{background:#fff;color:#0f766e;border:0;border-radius:8px;padding:8px 14px;font-weight:700;cursor:pointer;font-size:14px}.bar button.sec{background:rgba(255,255,255,.18);color:#fff}
   .sheet{background:#fff;max-width:800px;margin:16px auto;padding:28px 32px;box-shadow:0 2px 12px rgba(0,0,0,.08)}
   h1{font-size:24px;margin:0 0 2px;letter-spacing:.5px}.kop{display:flex;justify-content:space-between;gap:16px;border-bottom:3px solid #0f766e;padding-bottom:12px;margin-bottom:16px}
   .kop .p{font-size:12.5px;color:#374151;white-space:pre-line}.meta{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;font-size:13px}
@@ -195,16 +195,20 @@ function halamanDokumen(d) {
   @media print{body{background:#fff}.bar{display:none}.sheet{box-shadow:none;margin:0;max-width:none;padding:0}@page{margin:14mm}}`;
   if (!d) return `<!doctype html><html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Dokumen tidak ditemukan</title><style>${css}</style></head><body><div class="batal"><h2>Dokumen tidak ditemukan</h2><p>Link salah atau dokumen sudah dihapus.</p></div></body></html>`;
   if (d.dibatalkan) return `<!doctype html><html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Dokumen dibatalkan</title><style>${css}</style></head><body><div class="batal"><h2>${esc(d.nomor)} sudah dibatalkan</h2><p>Minta dokumen yang baru ke pengirim.</p></div></body></html>`;
-  const inv = d.jenis === 'INVOICE', judul = inv ? 'INVOICE' : 'PURCHASE ORDER', per = d.perusahaan || {}, pihak = d.pihak || {};
+  const inv = d.jenis === 'INVOICE', isSo = d.jenis === 'SO', judul = inv ? 'INVOICE' : isSo ? 'SALES ORDER' : 'PURCHASE ORDER', per = d.perusahaan || {}, pihak = d.pihak || {};
+  const dasarTop = d.topHari ? (d.topDari === 'DOKUMEN' ? (d.jenis === 'PO' ? 'dari tanggal PO' : 'dari tanggal SO') : (d.jenis === 'PO' ? 'dari tanggal barang diterima' : 'dari tanggal barang dikirim')) : '';
   const adaBal = (d.baris || []).some((b) => b.bal > 0), adaUkuran = (d.baris || []).some((b) => b.ukuran);
   const baris = (d.baris || []).map((b, i) => `<tr><td>${i + 1}</td><td>${esc(b.nama)}${b.ukuran ? `<div class="small">Ukuran ${esc(b.ukuran)}</div>` : ''}${b.spesifikasi ? `<div class="small">${esc(b.spesifikasi)}</div>` : ''}</td>` +
     (adaBal ? `<td class="n">${kg(b.bal)}</td>` : '') + `<td class="n">${kg(b.qty)}</td><td class="n">${rp(b.harga)}</td><td class="n">${rp(b.nilai)}</td></tr>`).join('');
+  const top = d.topHari ? d.topHari + ' hari ' + dasarTop : 'Tunai';
   const meta = inv
-    ? [['Nomor invoice', d.nomor], ['Tanggal', tglId(d.tanggal)], ['Referensi SO', d.ref], ['Tanggal kirim', tglId(d.tanggalKirim)], ['Termin (TOP)', d.topHari ? d.topHari + ' hari' : 'Tunai'], ['Jatuh tempo', tglId(d.jatuhTempo)]]
-    : [['Nomor PO', d.nomor], ['Tanggal', tglId(d.tanggal)], ['Perkiraan datang', tglId(d.perkiraanDatang)], ['Termin (TOP)', d.topHari ? d.topHari + ' hari' : 'Tunai'], ['Jatuh tempo', tglId(d.jatuhTempo)]];
+    ? [['Nomor invoice', d.nomor], ['Tanggal', tglId(d.tanggal)], ['Referensi SO', d.ref], ['Tanggal kirim', tglId(d.tanggalKirim)], ['Termin (TOP)', top], ['Jatuh tempo', tglId(d.jatuhTempo)]]
+    : isSo
+    ? [['Nomor SO', d.nomor], ['Tanggal SO', tglId(d.tanggalRef || d.tanggal)], ['Tanggal kirim', tglId(d.tanggalKirim)], ['Termin (TOP)', top], ['Jatuh tempo', tglId(d.jatuhTempo)]]
+    : [['Nomor PO', d.nomor], ['Tanggal', tglId(d.tanggal)], ['Perkiraan datang', tglId(d.perkiraanDatang)], ['Termin (TOP)', top], ['Jatuh tempo', tglId(d.jatuhTempo)]];
   return `<!doctype html><html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(judul)} ${esc(d.nomor)} — ${esc(per.nama || '')}</title><style>${css}</style></head><body>
-<div class="bar"><b>${esc(judul)} ${esc(d.nomor)}</b><button onclick="window.print()">⬇ Simpan PDF / Cetak</button></div>
-<div class="sheet">
+<div class="bar"><b>${esc(judul)} ${esc(d.nomor)}</b><button id="btnPdf" onclick="unduhPdf()">⬇ Download PDF</button><button class="sec" onclick="window.print()">🖨 Cetak</button></div>
+<div class="sheet" id="lembar">
   <div class="kop"><div><h1>${esc(per.nama || 'H-Plast')}</h1><div class="p">${esc([per.alamat, per.telp, per.email].filter(Boolean).join('\n'))}</div></div>
     <div style="text-align:right"><div style="font-size:20px;font-weight:800;color:#0f766e">${esc(judul)}</div><div class="small">${esc(d.nomor)}</div></div></div>
   <div class="meta"><div><div class="k">${esc(pihak.label || (inv ? 'Customer' : 'Supplier'))}</div><div class="v">${esc(pihak.nama || '')}</div></div>
@@ -217,5 +221,22 @@ function halamanDokumen(d) {
   ${d.catatanBawah ? `<div class="catatan small">${esc(d.catatanBawah)}</div>` : ''}
   <div class="ttd"><div><div class="garis">${esc(per.nama || '')}<br><span class="small">${esc(d.dibuatOleh || '')}</span></div></div><div><div class="garis">${esc(pihak.nama || '')}</div></div></div>
   <div class="small" style="margin-top:24px">Dibuat ${esc(d.waktu || '')} · ${esc(judul.toLowerCase())} tanpa PPN</div>
-</div></body></html>`;
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<script>
+var NAMA_PDF = ${JSON.stringify((judul + ' ' + d.nomor).replace(/[^A-Za-z0-9 _-]+/g, '-').replace(/\s+/g, '_') + '.pdf')};
+function unduhPdf(){
+  var b = document.getElementById('btnPdf');
+  if (!window.html2pdf) { window.print(); return; }
+  b.disabled = true; b.textContent = 'Menyiapkan PDF…';
+  html2pdf().set({ margin: [10, 10, 12, 10], filename: NAMA_PDF, image: { type: 'jpeg', quality: 0.96 },
+    html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff' }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+    pagebreak: { mode: ['css', 'legacy'] } })
+    .from(document.getElementById('lembar')).save()
+    .then(function(){ b.disabled = false; b.textContent = '⬇ Download PDF'; })
+    .catch(function(){ b.disabled = false; b.textContent = '⬇ Download PDF'; window.print(); });
+}
+${unduh ? "window.addEventListener('load', function(){ setTimeout(unduhPdf, 300); });" : ''}
+</script>
+</body></html>`;
 }

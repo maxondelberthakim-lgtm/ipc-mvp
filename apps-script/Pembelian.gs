@@ -324,7 +324,8 @@ function simpanPo(p, ident) {
     var now = new Date(), tanggal = tglValid_(p.tanggal);
     var datang = String(p.perkiraanDatang || '').trim();
     if (datang && !/^\d{4}-\d{2}-\d{2}$/.test(datang)) throw new Error('Format perkiraan datang harus YYYY-MM-DD.');
-    var top = topValid_(p.topHari), jatuhTempo = jatuhTempo_(datang || tanggal, top);
+    var top = topValid_(p.topHari), topDari = topDariValid_(p.topDari);
+    var jatuhTempo = jatuhTempo_(topDari === 'DOKUMEN' ? tanggal : (datang || tanggal), top);
     var noPo = nomorPoBaru_(), ids = [], total = 0, nilai = 0;
     p.baris.forEach(function (b) {
       var it = peta[b.kode]; if (!it) throw new Error('Item tidak dikenal: ' + b.kode);
@@ -337,7 +338,8 @@ function simpanPo(p, ident) {
         Kode_Item: it.kode, Nama_Item: it.nama, Qty_Kg: q, Harga_Per_Kg: h,
         Spesifikasi: b.spesifikasi || '', Perkiraan_Datang: datang, Qty_Diterima_Kg: 0,
         Status: STATUS_PO.TERBUKA, Dibuat_Oleh: penandaPencatat_(u), Nama_Pembuat: u.nama,
-        Catatan: p.catatan || '', Log_Edit: '', TOP_Hari: top, Jatuh_Tempo: jatuhTempo
+        Catatan: p.catatan || '', Log_Edit: '', TOP_Hari: top, Jatuh_Tempo: jatuhTempo,
+        Ukuran: ukuranBaris_(b.ukuran, it), TOP_Dari: topDari
       });
     });
     catatLog_('PO_BUAT', noPo, p.supplier + ' • ' + ids.length + ' item • ' + bulat_(total, 2) + ' kg • ' + mataUang_() + ' ' + bulat_(nilai, 0));
@@ -371,13 +373,14 @@ function ubahPo(id, perubahan, ident) {
     if (perubahan.spesifikasi !== undefined && String(perubahan.spesifikasi) !== String(r.Spesifikasi || '')) { ubah.Spesifikasi = perubahan.spesifikasi; log.push('spesifikasi diubah'); }
     if (perubahan.perkiraanDatang !== undefined && String(perubahan.perkiraanDatang) !== String(r.Perkiraan_Datang || '')) { ubah.Perkiraan_Datang = perubahan.perkiraanDatang; log.push('perkiraan datang: ' + (r.Perkiraan_Datang || '—') + ' → ' + (perubahan.perkiraanDatang || '—')); }
     if (perubahan.topHari !== undefined && topValid_(perubahan.topHari) !== angka_(r.TOP_Hari)) { ubah.TOP_Hari = topValid_(perubahan.topHari); log.push('TOP: ' + angka_(r.TOP_Hari) + ' → ' + ubah.TOP_Hari + ' hari'); }
-    if (ubah.Perkiraan_Datang !== undefined || ubah.TOP_Hari !== undefined) ubah.Jatuh_Tempo = jatuhTempo_(ubah.Perkiraan_Datang !== undefined ? ubah.Perkiraan_Datang : (r.Perkiraan_Datang || r.Tanggal), ubah.TOP_Hari !== undefined ? ubah.TOP_Hari : angka_(r.TOP_Hari));
+    if (perubahan.ukuran !== undefined && String(perubahan.ukuran || '').trim() !== String(r.Ukuran || '')) { ubah.Ukuran = String(perubahan.ukuran || '').trim().slice(0, 60); log.push('ukuran: ' + (r.Ukuran || '—') + ' → ' + (ubah.Ukuran || '—')); }
+    if (perubahan.topDari !== undefined && topDariValid_(perubahan.topDari) !== topDariValid_(r.TOP_Dari)) { ubah.TOP_Dari = topDariValid_(perubahan.topDari); log.push('TOP dihitung dari ' + (ubah.TOP_Dari === 'DOKUMEN' ? 'tanggal PO' : 'tanggal diterima')); }
     if (perubahan.catatan !== undefined && String(perubahan.catatan) !== String(r.Catatan || '')) { ubah.Catatan = perubahan.catatan; log.push('catatan diubah'); }
     if (!log.length) return { ok: true, berubah: false };
     var stempel = Utilities.formatDate(new Date(), APP.zona, 'dd/MM HH:mm') + ' ' + u.nama + ': ' + log.join('; ');
     ubah.Log_Edit = [r.Log_Edit, stempel].filter(String).join('\n');
     ubahBaris_(SHEET.PO, r._baris, ubah);
-    if (ubah.Qty_Kg !== undefined) sinkronPo_(id);
+    if (ubah.Qty_Kg !== undefined) sinkronPo_(id); else sinkronJatuhTempoPo_(r.No_PO);
     catatLog_('PO_UBAH', id, log.join('; '));
     return { ok: true, berubah: true, log: log };
   } finally { lock.releaseLock(); }
@@ -413,6 +416,24 @@ function sinkronPo_(idPo) {
              : diterima <= 0 ? STATUS_PO.TERBUKA
              : diterima + 0.0001 >= angka_(r.Qty_Kg) ? STATUS_PO.SELESAI : STATUS_PO.SEBAGIAN;
   ubahBaris_(SHEET.PO, r._baris, { Qty_Diterima_Kg: bulat_(diterima, 3), Status: status });
+  sinkronJatuhTempoPo_(r.No_PO);
+}
+/** v12.1: jatuh tempo PO — DOKUMEN = tanggal PO; KIRIM = penerimaan pertama (selama belum ada: perkiraan datang / tanggal PO). */
+function sinkronJatuhTempoPo_(noPo) {
+  if (!noPo) return;
+  var rows = baca_(SHEET.PO).filter(function (r) { return String(r.No_PO) === String(noPo); });
+  if (!rows.length) return;
+  var ids = {}; rows.forEach(function (r) { ids[r.ID] = 1; });
+  var pertama = '';
+  baca_(SHEET.PENERIMAAN).forEach(function (p) {
+    if (!p.ID_PO || !ids[p.ID_PO] || p.Jenis !== JENIS_PENERIMAAN.MASUK || !dihitung_(p)) return;
+    var d = String(p.Tanggal || '').slice(0, 10); if (d && (!pertama || d < pertama)) pertama = d;
+  });
+  rows.forEach(function (r) {
+    var dasar = topDariValid_(r.TOP_Dari) === 'DOKUMEN' ? r.Tanggal : (pertama || r.Perkiraan_Datang || r.Tanggal);
+    var jt = jatuhTempo_(String(dasar || '').slice(0, 10), angka_(r.TOP_Hari));
+    if (jt && jt !== String(r.Jatuh_Tempo || '')) ubahBaris_(SHEET.PO, r._baris, { Jatuh_Tempo: jt });
+  });
 }
 
 function ringkasPo_(r, lihatHarga) {
@@ -422,7 +443,8 @@ function ringkasPo_(r, lihatHarga) {
     sisa: bulat_(Math.max(0, angka_(r.Qty_Kg) - angka_(r.Qty_Diterima_Kg)), 3),
     spesifikasi: r.Spesifikasi || '', perkiraanDatang: r.Perkiraan_Datang || '', status: r.Status,
     pembuat: r.Nama_Pembuat, catatan: r.Catatan || '', logEdit: r.Log_Edit || '',
-    topHari: angka_(r.TOP_Hari), jatuhTempo: r.Jatuh_Tempo || ''
+    topHari: angka_(r.TOP_Hari), jatuhTempo: r.Jatuh_Tempo || '',
+    ukuran: String(r.Ukuran || ''), topDari: topDariValid_(r.TOP_Dari)
   };
   if (lihatHarga) { o.harga = angka_(r.Harga_Per_Kg); o.nilai = bulat_(o.qty * o.harga, 0); }
   return o;

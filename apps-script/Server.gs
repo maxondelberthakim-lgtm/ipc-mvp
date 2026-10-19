@@ -1253,8 +1253,9 @@ function terapkanEdit_(nama, id, perubahan, olehNama, awalan) {
   var stempel = Utilities.formatDate(new Date(), APP.zona, 'dd/MM HH:mm') + ' ' + olehNama + ': ' + (awalan || '') + hasil.log.join('; ');
   hasil.ubah.Log_Edit = [r.Log_Edit, stempel].filter(String).join('\n');
   ubahBaris_(nama, r._baris, hasil.ubah);
-  if (nama === SHEET.PENERIMAAN && r.ID_PO && hasil.ubah.Qty_Kg !== undefined) sinkronPo_(r.ID_PO);
-  if (nama === SHEET.PENGIRIMAN && r.ID_SO && hasil.ubah.Qty_Kg !== undefined) sinkronSo_(r.ID_SO);
+  var ubahQtyTgl = hasil.ubah.Qty_Kg !== undefined || hasil.ubah.Tanggal !== undefined;   // v12.1: tanggal ikut (jatuh tempo dari tanggal kirim/terima)
+  if (nama === SHEET.PENERIMAAN && r.ID_PO && ubahQtyTgl) sinkronPo_(r.ID_PO);
+  if (nama === SHEET.PENGIRIMAN && r.ID_SO && ubahQtyTgl) sinkronSo_(r.ID_SO);
   catatLog_('EDIT', id, hasil.log.join('; '));
   return { ok: true, berubah: true, log: hasil.log };
 }

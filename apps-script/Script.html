@@ -182,9 +182,10 @@ var T = {
     skuT:'Daftar SKU', skuTambah:'+ Tambah SKU', skuBaru:'SKU baru', skuUbah:'Ubah SKU',
     skuKode:'Kode', skuNama:'Nama', skuKat:'Kategori', skuHarga:'Harga beli per kg (untuk HPP)', skuKualitas:'Kualitas (untuk biji / roll / polybag / BS)', skuKualitasHint:'Laporan shift memakai SKU per kualitas: biji → roll → polybag, dan BS-nya.',
     skuAwal:'Stok awal (kg)', skuAktif:'Aktif (muncul di daftar)', skuUkuran:'Ukuran (cm × cm) — catatan untuk polybag', skuUkuranT:'Ukuran polybag', skuUkuranS:'Catatan ukuran per SKU polybag (cm × cm) — ikut tampil di invoice / PO', belumUkuran:'belum diisi',
+    lblUkuranBaris:'Ukuran (cm × cm)', ukuranS:'ukuran', topDari:'TOP dihitung dari', topDariKirimSo:'Tanggal barang dikirim', topDariDokSo:'Tanggal SO dibuat', topDariKirimPo:'Tanggal barang diterima', topDariDokPo:'Tanggal PO dibuat', topDariHint:'"Barang dikirim/diterima" = pengiriman/penerimaan pertama; sebelum ada, pakai rencana tanggal kirim/datang.', dokSo:'Dokumen SO', dokUnduh:'Download PDF', dokCetak:'Cetak',
     satuanKg:'kg', satuanBal:'bal', balSamaDengan:'= {kg} kg ({n} bal × {per} kg)',
     dokInvoice:'Invoice', dokPo:'Dokumen PO', dokBuat:'Buat dokumen', dokNomor:'Nomor (kosong = otomatis)', dokTanggal:'Tanggal dokumen', dokCatatan:'Catatan di dokumen', dokKop:'Kop perusahaan (dari Pengaturan — bisa diubah untuk dokumen ini)', dokBuka:'Buka / Simpan PDF', dokKirimWa:'Kirim ke WA', dokSalin:'Salin link', dokTersalin:'Link tersalin', dokDaftar:'Dokumen yang sudah dibuat', dokKosong:'Belum ada dokumen untuk nomor ini', dokBatal:'Batalkan dokumen', alasanBatalDok:'Alasan membatalkan dokumen?', dokDibatalkan:'Dokumen dibatalkan — link tidak berlaku lagi', dokDibuat:'Dokumen dibuat', dokTotal:'Total', dokStatusDIGANTI:'Diganti versi baru',
-    waT:'Kirim lewat WhatsApp', waPilih:'Pilih kontak', waNomor:'Nomor WA (0812… / 62812…)', waNama:'Nama pemilik nomor', waSimpanKontak:'Simpan ke daftar kontak', waBuka:'Buka WhatsApp', waPesanInvoice:'Halo, berikut invoice {nomor} dari {perusahaan} untuk {pihak}.\nTotal {total}.\nUnduh / cetak di sini: {link}', waPesanPo:'Halo, berikut Purchase Order {nomor} dari {perusahaan}.\nTotal {total}.\nLihat / cetak di sini: {link}', waWajibNomor:'Pilih kontak atau ketik nomor WA.', waKontakTersimpan:'Kontak tersimpan',
+    waT:'Kirim lewat WhatsApp', waPilih:'Pilih kontak', waNomor:'Nomor WA (0812… / 62812…)', waNama:'Nama pemilik nomor', waSimpanKontak:'Simpan ke daftar kontak', waBuka:'Buka WhatsApp', waPesanInvoice:'Halo, berikut invoice {nomor} dari {perusahaan} untuk {pihak}.\nTotal {total}.\nUnduh / cetak di sini: {link}', waPesanPo:'Halo, berikut Purchase Order {nomor} dari {perusahaan}.\nTotal {total}.\nLihat / cetak di sini: {link}', waPesanSo:'Halo, berikut Sales Order {nomor} dari {perusahaan} untuk {pihak}.\nTotal {total}.\nLihat / unduh di sini: {link}', waWajibNomor:'Pilih kontak atau ketik nomor WA.', waKontakTersimpan:'Kontak tersimpan',
     segDok:'Dokumen', dokPengT:'Pengaturan dokumen & satuan', dokPengS:'Kop invoice / PO dan isi 1 bal = berapa kg. Hanya akun PO (Yansen) / Admin yang bisa mengubah.', kgPerBal:'1 bal = … kg', perNama:'Nama perusahaan', perAlamat:'Alamat', perTelp:'Telepon / WA', perEmail:'Email', perBank:'Rekening pembayaran (bank, nomor, atas nama)', perCatatanInvoice:'Catatan bawah invoice', perCatatanPo:'Catatan bawah PO', dokPengTersimpan:'Pengaturan tersimpan', kontakT:'Daftar kontak WA', kontakS:'Nomor tujuan kirim invoice / PO. Nomor disimpan dalam format 62…', kontakTambah:'+ Tambah kontak', kontakKosong:'Belum ada kontak', kontakHapus:'Hapus kontak ini dari daftar?',
     skuDipakai:'dipakai', skuScrap:'scrap', skuNonaktif:'nonaktif', aktif:'Berlaku',
     skuHapusKonfirm:'Hapus SKU ini? Kalau sudah pernah dipakai di transaksi, SKU hanya dinonaktifkan.',
@@ -258,7 +259,7 @@ var T = {
     bukaBulanT:'Buka lagi bulan ini', bukaBulanS:'Hanya Admin. Dipakai kalau ada laporan yang terlewat — setelah dibetulkan, tutup lagi.', alasanBuka:'Alasan membuka (wajib)',
     btnTutupBulan:'Tutup buku', btnBukaBulan:'Buka lagi', konfirmTutupBulan:'Tutup buku bulan {b}? Transaksi bulan itu akan terkunci.', konfirmBukaBulan:'Buka lagi bulan {b}?',
     bulanDitutupOk:'Bulan ditutup', bulanDibukaOk:'Bulan dibuka lagi', tutupUrut:'Bulan ini belum ditutup. Tutup bulan yang lebih lama dulu (urut).',
-    lblTop:'TOP (hari)', hintTop:'Termin pembayaran. 0 = tunai. Jatuh tempo = tanggal kirim/datang + TOP.', jatuhTempo:'jatuh tempo', wajibTop:'Isi TOP (0 kalau tunai).', wajibTanggalKirim:'Isi tanggal kirim.',
+    lblTop:'TOP (hari)', hintTop:'Termin pembayaran dalam hari. 0 = tunai.', jatuhTempo:'jatuh tempo', wajibTop:'Isi TOP (0 kalau tunai).', wajibTanggalKirim:'Isi tanggal kirim.',
     evSHIFT:'Laporan shift', btnTambahBahan:'+ Tambah bahan', lblFotoOpsi:'Foto (opsional)', btnBatal:'Batal', secJadi:'Barang jadi', scrap:'BS'
   },
   en: {
@@ -433,9 +434,10 @@ var T = {
     skuT:'SKU list', skuTambah:'+ Add SKU', skuBaru:'New SKU', skuUbah:'Edit SKU',
     skuKode:'Code', skuNama:'Name', skuKat:'Category', skuHarga:'Purchase price per kg (for COGS)', skuKualitas:'Grade (for pellets / roll / polybag / BS)', skuKualitasHint:'Shift reports use one SKU per grade: pellets → roll → polybag, plus its BS.',
     skuAwal:'Opening stock (kg)', skuAktif:'Active (shown in lists)', skuUkuran:'Size (cm × cm) — note for polybags', skuUkuranT:'Polybag sizes', skuUkuranS:'Size note per polybag SKU (cm × cm) — also printed on invoices / POs', belumUkuran:'not set',
+    lblUkuranBaris:'Size (cm × cm)', ukuranS:'size', topDari:'Terms counted from', topDariKirimSo:'Date goods are shipped', topDariDokSo:'SO date', topDariKirimPo:'Date goods are received', topDariDokPo:'PO date', topDariHint:'"Shipped/received" = first shipment/receipt; until then the planned ship/arrival date is used.', dokSo:'SO document', dokUnduh:'Download PDF', dokCetak:'Print',
     satuanKg:'kg', satuanBal:'bale', balSamaDengan:'= {kg} kg ({n} bales × {per} kg)',
     dokInvoice:'Invoice', dokPo:'PO document', dokBuat:'Create document', dokNomor:'Number (blank = automatic)', dokTanggal:'Document date', dokCatatan:'Note on the document', dokKop:'Company header (from Settings — editable for this document)', dokBuka:'Open / Save PDF', dokKirimWa:'Send via WhatsApp', dokSalin:'Copy link', dokTersalin:'Link copied', dokDaftar:'Documents created', dokKosong:'No document for this number yet', dokBatal:'Cancel document', alasanBatalDok:'Reason for cancelling the document?', dokDibatalkan:'Document cancelled — the link no longer works', dokDibuat:'Document created', dokTotal:'Total', dokStatusDIGANTI:'Replaced by a newer version',
-    waT:'Send via WhatsApp', waPilih:'Pick a contact', waNomor:'WhatsApp number (0812… / 62812…)', waNama:'Contact name', waSimpanKontak:'Save to contact list', waBuka:'Open WhatsApp', waPesanInvoice:'Hello, here is invoice {nomor} from {perusahaan} for {pihak}.\nTotal {total}.\nDownload / print here: {link}', waPesanPo:'Hello, here is Purchase Order {nomor} from {perusahaan}.\nTotal {total}.\nView / print here: {link}', waWajibNomor:'Pick a contact or type a WhatsApp number.', waKontakTersimpan:'Contact saved',
+    waT:'Send via WhatsApp', waPilih:'Pick a contact', waNomor:'WhatsApp number (0812… / 62812…)', waNama:'Contact name', waSimpanKontak:'Save to contact list', waBuka:'Open WhatsApp', waPesanInvoice:'Hello, here is invoice {nomor} from {perusahaan} for {pihak}.\nTotal {total}.\nDownload / print here: {link}', waPesanPo:'Hello, here is Purchase Order {nomor} from {perusahaan}.\nTotal {total}.\nView / print here: {link}', waPesanSo:'Hello, here is Sales Order {nomor} from {perusahaan} for {pihak}.\nTotal {total}.\nView / download here: {link}', waWajibNomor:'Pick a contact or type a WhatsApp number.', waKontakTersimpan:'Contact saved',
     segDok:'Documents', dokPengT:'Document & unit settings', dokPengS:'Invoice / PO header and how many kg in a bale. Only the PO account (Yansen) / Admin can change it.', kgPerBal:'1 bale = … kg', perNama:'Company name', perAlamat:'Address', perTelp:'Phone / WhatsApp', perEmail:'Email', perBank:'Payment account (bank, number, name)', perCatatanInvoice:'Invoice footer note', perCatatanPo:'PO footer note', dokPengTersimpan:'Settings saved', kontakT:'WhatsApp contacts', kontakS:'Numbers to send invoices / POs to. Stored as 62…', kontakTambah:'+ Add contact', kontakKosong:'No contacts yet', kontakHapus:'Remove this contact from the list?',
     skuDipakai:'in use', skuScrap:'scrap', skuNonaktif:'inactive', aktif:'Active',
     skuHapusKonfirm:'Delete this SKU? If it has been used in transactions it will only be deactivated.',
@@ -507,7 +509,7 @@ var T = {
     bukaBulanT:'Reopen this month', bukaBulanS:'Admin only. Use when a report was missed — fix it, then close again.', alasanBuka:'Reason for reopening (required)',
     btnTutupBulan:'Close books', btnBukaBulan:'Reopen', konfirmTutupBulan:'Close the books for {b}? Transactions in that month will be locked.', konfirmBukaBulan:'Reopen {b}?',
     bulanDitutupOk:'Month closed', bulanDibukaOk:'Month reopened', tutupUrut:'This month is not closed. Close older months first (in order).',
-    lblTop:'Terms (days)', hintTop:'Payment terms. 0 = cash. Due date = ship/arrival date + terms.', jatuhTempo:'due', wajibTop:'Enter payment terms (0 for cash).', wajibTanggalKirim:'Enter the ship date.',
+    lblTop:'Terms (days)', hintTop:'Payment terms in days. 0 = cash.', jatuhTempo:'due', wajibTop:'Enter payment terms (0 for cash).', wajibTanggalKirim:'Enter the ship date.',
     evSHIFT:'Shift report', btnTambahBahan:'+ Add material', lblFotoOpsi:'Photo (optional)', btnBatal:'Cancel', secJadi:'Finished goods', scrap:'BS'
   }
 };
@@ -1065,6 +1067,13 @@ function hintStok(k, i){
 }
 function ubahBaris(k, i, field, val){
   S.baris[k][i][field] = val;
+  /* v12.1: pilih SKU di SO/PO → ukuran terisi dari master SKU (bisa diubah per baris) */
+  if (field === 'kode' && (k === 'so' || k === 'po') && !S.baris[k][i].ukuranDiubah){
+    var it = (S.ctx && S.ctx.items || []).find(function(x){ return x.kode === val; });
+    S.baris[k][i].ukuran = (it && it.ukuran) || '';
+    var ue = $('uk-'+k+'-'+i); if (ue) ue.value = S.baris[k][i].ukuran;
+  }
+  if (field === 'ukuran') S.baris[k][i].ukuranDiubah = true;
   hintStok(k, i);
   if (k === 'ambil') ringkasShift();
   if (k === 'daurHasil') previewSusutDaur();
@@ -1085,6 +1094,7 @@ function gambarBaris(k){
         '</div>'
       : '<div class="combo"><input id="cb-'+k+'-'+i+'" autocomplete="off"><div class="combo-list hide"></div></div>';
     var ekstra = '';
+    var ukuranHtml = (k === 'so' || k === 'po') ? '<input style="margin-top:8px" id="uk-'+k+'-'+i+'" placeholder="'+esc(t('lblUkuranBaris'))+'" value="'+esc(b.ukuran||'')+'" oninput="ubahBaris(\''+k+'\','+i+',\'ukuran\',this.value)">' : '';
     if (k === 'so' && lihatHpp()){
       ekstra = '<div class="row" style="margin-top:8px">' +
         '<input type="number" inputmode="decimal" step="any" min="0" placeholder="'+esc(t('lblHargaJual'))+'" value="'+esc(b.harga||'')+'" oninput="ubahBaris(\'so\','+i+',\'harga\',this.value)">' +
@@ -1106,7 +1116,7 @@ function gambarBaris(k){
         (BARIS_BAL[k]
           ? '<div class="w90"><select onchange="ubahBaris(\''+k+'\','+i+',\'satuan\',this.value)" style="text-align:center;font-weight:650"><option value="kg"'+(b.satuan==='bal'?'':' selected')+'>'+esc(t('satuanKg'))+'</option><option value="bal"'+(b.satuan==='bal'?' selected':'')+'>'+esc(t('satuanBal'))+'</option></select></div>'
           : '<div class="w90"><input value="kg" readonly style="background:#f3f4f6;text-align:center;font-weight:650"></div>') +
-      '</div>' + ekstra + '</div>';
+      '</div>' + ekstra + ukuranHtml + '</div>';
   }).join('');
   S.baris[k].forEach(function(b, i){
     var inp = $('cb-'+k+'-'+i);
@@ -1123,8 +1133,8 @@ function ambilBaris(k){
                      if (b.idPo) o.idPo = b.idPo;
                      if (b.idAsal) o.idAsal = b.idAsal;
                      if (b.idSo) o.idSo = b.idSo;
-                     if (k === 'so'){ o.harga = parseFloat(b.harga) || 0; }
-                     if (k === 'po'){ o.harga = parseFloat(b.harga) || 0; o.spesifikasi = b.spesifikasi || ''; }
+                     if (k === 'so'){ o.harga = parseFloat(b.harga) || 0; o.ukuran = b.ukuran || ''; }
+                     if (k === 'po'){ o.harga = parseFloat(b.harga) || 0; o.spesifikasi = b.spesifikasi || ''; o.ukuran = b.ukuran || ''; }
                      return o;
                    });
 }
@@ -1148,9 +1158,9 @@ function asalApi(){
 function urlDok(token){ var a = asalApi(); return (a || location.origin) + '/dok/' + token; }
 function bukaDok(jenis, ref){
   S.dok = { jenis: jenis, ref: ref, hasil: null };
-  $('dokJudul').textContent = (jenis === 'PO' ? t('dokPo') : t('dokInvoice')) + ' · ' + ref;
+  $('dokJudul').textContent = (jenis === 'PO' ? t('dokPo') : jenis === 'SO' ? t('dokSo') : t('dokInvoice')) + ' · ' + ref;
   $('dokSub').textContent = '';
-  $('dokNomor').value = jenis === 'PO' ? ref : '';
+  $('dokNomor').value = (jenis === 'PO' || jenis === 'SO') ? ref : '';
   setTanggal('dokTanggal');
   $('dokCatatan').value = '';
   $('dokHasil').classList.add('hide'); $('dokHasil').innerHTML = '';
@@ -1175,7 +1185,7 @@ function muatDaftarDok(){
       var aktif = r.status === 'AKTIF';
       return '<div class="hist" style="flex-wrap:wrap"><span class="hx"><b>'+esc(r.nomor)+'</b><small>'+esc(r.tanggal)+' · '+esc(r.pembuat)+(r.total ? ' · '+rp(r.total) : '')+'</small></span>' +
         '<span class="hb">'+(aktif ? '<span class="pill ok">'+esc(t('aktif'))+'</span>' : '<span class="pill bad">'+esc(r.status==='DIGANTI' ? t('dokStatusDIGANTI') : t('dibatalkan'))+'</span>')+'</span>' +
-        (aktif ? '<div class="btnrow" style="flex-basis:100%;margin-top:6px"><button class="btn sec xs" onclick="window.open(urlDok(\''+esc(r.token)+'\'),\'_blank\')">⬇ '+esc(t('dokBuka'))+'</button><button class="btn sec xs" onclick="bukaWa('+i+')">💬 WA</button><button class="btn ghost xs" onclick="batalDokUI(\''+esc(r.id)+'\')">✕</button></div>' : '') +
+        (aktif ? '<div class="btnrow" style="flex-basis:100%;margin-top:6px"><button class="btn sec xs" onclick="window.open(urlDok(\''+esc(r.token)+'\')+\'?unduh=1\',\'_blank\')">⬇ PDF</button><button class="btn sec xs" onclick="window.open(urlDok(\''+esc(r.token)+'\'),\'_blank\')">🖨 '+esc(t('dokCetak'))+'</button><button class="btn sec xs" onclick="bukaWa('+i+')">💬 WA</button><button class="btn ghost xs" onclick="batalDokUI(\''+esc(r.id)+'\')">✕</button></div>' : '') +
         '</div>';
     }).join('');
   }).catch(function(e){ el.innerHTML = '<div class="banner bad">'+esc(e.message)+'</div>'; });
@@ -1193,7 +1203,8 @@ function buatDokUI(){
     $('dokHasil').classList.remove('hide');
     $('dokHasil').innerHTML = '<div class="banner ok"><b>✓ '+esc(t('dokDibuat'))+': '+esc(r.nomor)+'</b><br>'+esc(r.pihak)+' · '+esc(t('dokTotal'))+' '+rp(r.total)+'</div>' +
       '<div class="field"><input readonly value="'+esc(url)+'" onclick="this.select()" style="font-size:12px"></div>' +
-      '<div class="btnrow"><button class="btn sec" onclick="window.open(\''+esc(url)+'\',\'_blank\')">⬇ '+esc(t('dokBuka'))+'</button>' +
+      '<div class="btnrow"><button class="btn sec" onclick="window.open(\''+esc(url)+'?unduh=1\',\'_blank\')">⬇ '+esc(t('dokUnduh'))+'</button>' +
+      '<button class="btn sec" onclick="window.open(\''+esc(url)+'\',\'_blank\')">🖨 '+esc(t('dokCetak'))+'</button>' +
       '<button class="btn sec" onclick="salinTeks(\''+esc(url)+'\')">📋 '+esc(t('dokSalin'))+'</button>' +
       '<button class="btn ok" onclick="bukaWa(-1)">💬 '+esc(t('dokKirimWa'))+'</button></div>';
     toast(t('dokDibuat'),'ok');
@@ -1214,7 +1225,7 @@ function bukaWa(i){
   if (!d) return;
   var url = urlDok(d.token), per = (S.dokPeng && S.dokPeng.perusahaan && S.dokPeng.perusahaan.nama) || $('dokPerNama').value || '';
   var jenis = S.dok ? S.dok.jenis : 'INVOICE';
-  var pesan = t(jenis === 'PO' ? 'waPesanPo' : 'waPesanInvoice').replace('{nomor}', d.nomor).replace('{perusahaan}', per).replace('{pihak}', d.pihak || '').replace('{total}', rp(d.total)).replace('{link}', url);
+  var pesan = t(jenis === 'PO' ? 'waPesanPo' : jenis === 'SO' ? 'waPesanSo' : 'waPesanInvoice').replace('{nomor}', d.nomor).replace('{perusahaan}', per).replace('{pihak}', d.pihak || '').replace('{total}', rp(d.total)).replace('{link}', url);
   S.wa = { dok: d };
   $('waSub').textContent = d.nomor + ' · ' + (d.pihak || '');
   $('waPesan').value = pesan;
@@ -2791,6 +2802,7 @@ function barisPoHtml(b, lihat, tutup){
     '<div style="font-size:11.5px;color:var(--muted);font-variant-numeric:tabular-nums">'+esc(t('poDiterima'))+' '+n2(b.diterima)+' · '+esc(t('poSisa'))+' '+n2(b.sisa)+' kg' +
       (lihat ? ' · '+rp(b.harga)+'/kg = '+rp(b.nilai) : '')+'</div>' +
     (b.spesifikasi ? '<div class="spek">'+esc(t('spesifikasi'))+': '+esc(b.spesifikasi)+'</div>' : '') +
+    (b.ukuran ? '<div class="spek">📐 '+esc(t('ukuranS'))+' '+esc(b.ukuran)+'</div>' : '') +
     (b.logEdit ? '<div style="font-size:11px;color:var(--muted);white-space:pre-line;margin-top:3px"><i>'+esc(b.logEdit)+'</i></div>' : '') +
     (bisaUbah ? '<div class="btnrow" style="margin-top:7px;justify-content:flex-end">' +
         '<button class="btn ghost xs" onclick="batalPoUI(\''+esc(b.id)+'\')">✕ '+esc(t('batalPo'))+'</button>' +
@@ -2812,11 +2824,13 @@ function poEditBaris(id){
     '<input style="margin-top:8px" id="pe-spek-'+esc(id)+'" value="'+esc(b.spesifikasi)+'" placeholder="'+esc(t('lblSpek'))+'">' +
     '<div class="row" style="margin-top:8px"><div class="field" style="flex:1"><label>'+esc(t('lblPerkiraan'))+'</label><input type="date" id="pe-datang-'+esc(id)+'" value="'+esc(b.perkiraanDatang)+'"></div>' +
       '<div class="field" style="flex:1"><label>'+esc(t('lblTop'))+'</label><input type="number" inputmode="numeric" min="0" max="365" id="pe-top-'+esc(id)+'" value="'+esc(b.topHari||0)+'"></div></div>' +
+    '<div class="field"><label>'+esc(t('topDari'))+'</label><select id="pe-topdari-'+esc(id)+'"><option value="KIRIM"'+(b.topDari!=='DOKUMEN'?' selected':'')+'>'+esc(t('topDariKirimPo'))+'</option><option value="DOKUMEN"'+(b.topDari==='DOKUMEN'?' selected':'')+'>'+esc(t('topDariDokPo'))+'</option></select></div>' +
+    '<input style="margin-top:2px" id="pe-uk-'+esc(id)+'" value="'+esc(b.ukuran||'')+'" placeholder="'+esc(t('lblUkuranBaris'))+'">' +
     '<div class="btnrow"><button class="btn ghost sm" onclick="segPo(S.poTab)">'+esc(t('batal'))+'</button>' +
       '<button class="btn sm" id="pe-btn-'+esc(id)+'" onclick="simpanUbahPo(\''+esc(id)+'\')">'+esc(t('simpanPerubahan'))+'</button></div>';
 }
 function simpanUbahPo(id){
-  var p = { qty: $('pe-qty-'+id).value, spesifikasi: $('pe-spek-'+id).value, perkiraanDatang: $('pe-datang-'+id).value, topHari: $('pe-top-'+id).value };
+  var p = { qty: $('pe-qty-'+id).value, spesifikasi: $('pe-spek-'+id).value, perkiraanDatang: $('pe-datang-'+id).value, topHari: $('pe-top-'+id).value, topDari: $('pe-topdari-'+id).value, ukuran: $('pe-uk-'+id).value };
   var h = $('pe-harga-'+id); if (h) p.harga = h.value;
   var btn = $('pe-btn-'+id); sibuk(btn, true);
   panggil('ubahPo',[id, p, S.ident]).then(function(r){
@@ -2837,6 +2851,7 @@ function poFormBaru(){
     '<div class="row"><div class="field" style="flex:1"><label>'+esc(t('lblTanggal'))+'</label><input type="date" id="poTanggal"></div>' +
       '<div class="field" style="flex:1"><label>'+esc(t('lblPerkiraan'))+'</label><input type="date" id="poDatang"></div></div>' +
     '<div class="field"><label>'+esc(t('lblTop'))+'</label><input type="number" inputmode="numeric" min="0" max="365" id="poTop" value="0"><div class="hint">'+esc(t('hintTop'))+'</div></div>' +
+    '<div class="field"><label>'+esc(t('topDari'))+'</label><select id="poTopDari"><option value="KIRIM">'+esc(t('topDariKirimPo'))+'</option><option value="DOKUMEN">'+esc(t('topDariDokPo'))+'</option></select><div class="hint">'+esc(t('topDariHint'))+'</div></div>' +
     '<h3 class="sec">'+esc(t('item'))+' <span class="unit">kg</span></h3><div id="poLines"></div>' +
     '<button class="btn sec sm" onclick="tambahBaris(\'po\')">+ '+esc(t('item'))+'</button>' +
     '<div class="field" style="margin-top:12px"><label>'+esc(t('lblCatatan'))+'</label><textarea id="poCatatan"></textarea></div>' +
@@ -2851,7 +2866,7 @@ function simpanPoUI(){
   if (!baris.length){ toast(t('wajibItem'),'bad'); return; }
   for (var i=0;i<baris.length;i++) if (!(baris[i].harga > 0)){ toast(t('lblHargaBeli')+' — '+namaItem(baris[i].kode),'bad'); return; }
   var b = $('btnSimpanPo'); sibuk(b, true);
-  panggil('simpanPo',[{ supplier:comboNama('poSupplier'), tanggal:ambilTanggal('poTanggal'), perkiraanDatang:$('poDatang').value, topHari:$('poTop').value || 0,
+  panggil('simpanPo',[{ supplier:comboNama('poSupplier'), tanggal:ambilTanggal('poTanggal'), perkiraanDatang:$('poDatang').value, topHari:$('poTop').value || 0, topDari:$('poTopDari').value,
                         baris:baris, catatan:$('poCatatan').value }, S.ident]).then(function(r){
     toast(t('poTersimpan')+' · '+r.noPo+' · '+kg(r.totalKg)+' · '+rp(r.nilai), 'ok');
     muatKonteks(true); segPo('aktif');
@@ -3115,7 +3130,7 @@ function kartuSo(no, baris){
     '<div class="kv"><span>'+esc(t('total'))+'</span><b>'+n2(qty)+' kg · '+esc(t('soDikirim'))+' '+n2(kir)+' kg'+(lihat ? ' · '+rp(nilai) : '')+'</b></div>' +
     baris.map(function(b){ return barisSoHtml(b, lihat, tutup); }).join('') +
     (b0.catatan ? '<div class="kv"><span>'+esc(t('lblCatatan'))+'</span><b>'+esc(b0.catatan)+'</b></div>' : '') +
-    (S.ctx && S.ctx.bisaSo && st!=='DIBATALKAN' ? '<div class="btnrow" style="margin-top:10px"><button class="btn sec sm" onclick="bukaDok(\'INVOICE\',\''+esc(no)+'\')">🧾 '+esc(t('dokInvoice'))+'</button></div>' : '') +
+    (S.ctx && S.ctx.bisaSo && st!=='DIBATALKAN' ? '<div class="btnrow" style="margin-top:10px"><button class="btn sec sm" onclick="bukaDok(\'SO\',\''+esc(no)+'\')">📄 '+esc(t('dokSo'))+'</button><button class="btn sec sm" onclick="bukaDok(\'INVOICE\',\''+esc(no)+'\')">🧾 '+esc(t('dokInvoice'))+'</button></div>' : '') +
   '</div></div>';
 }
 function barisSoHtml(b, lihat, tutup){
@@ -3131,6 +3146,7 @@ function barisSoHtml(b, lihat, tutup){
     '<div style="font-size:11.5px;color:var(--muted);font-variant-numeric:tabular-nums">'+esc(t('soDikirim'))+' '+n2(b.dikirim)+' · '+esc(t('poSisa'))+' '+n2(b.sisa)+' kg' +
       (st ? ' · '+esc(t('tersedia'))+' GBJ <b'+(kurang?' style="color:var(--danger)"':'')+'>'+n2(st.gbj)+' kg</b>' : '') +
       (lihat ? ' · '+rp(b.harga)+'/kg = '+rp(b.nilai) : '')+'</div>' +
+    (b.ukuran ? '<div class="spek">📐 '+esc(t('ukuranS'))+' '+esc(b.ukuran)+'</div>' : '') +
     (b.logEdit ? '<div style="font-size:11px;color:var(--muted);white-space:pre-line;margin-top:3px"><i>'+esc(b.logEdit)+'</i></div>' : '') +
     (aktif && !tutup ? '<div class="btnrow" style="margin-top:7px;justify-content:flex-end">' +
         (bisaUbah ? '<button class="btn ghost xs" onclick="batalSoUI(\''+esc(b.id)+'\')">✕ '+esc(t('batalSo'))+'</button>' +
@@ -3152,12 +3168,14 @@ function soEditBaris(id){
       '<div class="w90"><input value="Rp/kg" readonly style="background:#f3f4f6;text-align:center;font-weight:650"></div></div>' : '') +
     '<div class="row" style="margin-top:8px"><div class="field" style="flex:1"><label>'+esc(t('lblTanggalKirim'))+'</label><input type="date" id="se-kirim-'+esc(id)+'" value="'+esc(b.tanggalKirim)+'"></div>' +
       '<div class="field" style="flex:1"><label>'+esc(t('lblTop'))+'</label><input type="number" inputmode="numeric" min="0" max="365" id="se-top-'+esc(id)+'" value="'+esc(b.topHari||0)+'"></div></div>' +
+    '<div class="field"><label>'+esc(t('topDari'))+'</label><select id="se-topdari-'+esc(id)+'"><option value="KIRIM"'+(b.topDari!=='DOKUMEN'?' selected':'')+'>'+esc(t('topDariKirimSo'))+'</option><option value="DOKUMEN"'+(b.topDari==='DOKUMEN'?' selected':'')+'>'+esc(t('topDariDokSo'))+'</option></select></div>' +
+    '<div class="field"><label>'+esc(t('lblUkuranBaris'))+'</label><input id="se-uk-'+esc(id)+'" value="'+esc(b.ukuran||'')+'"></div>' +
     '<div class="field"><label>'+esc(t('lblCatatan'))+'</label><input id="se-cat-'+esc(id)+'" value="'+esc(b.catatan)+'"></div>' +
     '<div class="btnrow"><button class="btn ghost sm" onclick="segSo(S.soTab)">'+esc(t('batal'))+'</button>' +
       '<button class="btn sm" id="se-btn-'+esc(id)+'" onclick="simpanUbahSo(\''+esc(id)+'\')">'+esc(t('simpanPerubahan'))+'</button></div>';
 }
 function simpanUbahSo(id){
-  var p = { qty: $('se-qty-'+id).value, tanggalKirim: $('se-kirim-'+id).value, catatan: $('se-cat-'+id).value, topHari: $('se-top-'+id).value };
+  var p = { qty: $('se-qty-'+id).value, tanggalKirim: $('se-kirim-'+id).value, catatan: $('se-cat-'+id).value, topHari: $('se-top-'+id).value, topDari: $('se-topdari-'+id).value, ukuran: $('se-uk-'+id).value };
   var h = $('se-harga-'+id); if (h) p.harga = h.value;
   var btn = $('se-btn-'+id); sibuk(btn, true);
   panggil('ubahSo',[id, p, S.ident]).then(function(r){
@@ -3178,6 +3196,7 @@ function soFormBaru(){
     '<div class="row"><div class="field" style="flex:1"><label>'+esc(t('lblTanggal'))+'</label><input type="date" id="soTanggal"></div>' +
       '<div class="field" style="flex:1"><label>'+esc(t('lblTanggalKirim'))+'</label><input type="date" id="soKirim"></div></div>' +
     '<div class="field"><label>'+esc(t('lblTop'))+'</label><input type="number" inputmode="numeric" min="0" max="365" id="soTop" value="0"><div class="hint">'+esc(t('hintTop'))+'</div></div>' +
+    '<div class="field"><label>'+esc(t('topDari'))+'</label><select id="soTopDari"><option value="KIRIM">'+esc(t('topDariKirimSo'))+'</option><option value="DOKUMEN">'+esc(t('topDariDokSo'))+'</option></select><div class="hint">'+esc(t('topDariHint'))+'</div></div>' +
     '<h3 class="sec">'+esc(t('item'))+' <span class="unit">kg</span></h3><div id="soLines"></div>' +
     '<button class="btn sec sm" onclick="tambahBaris(\'so\')">+ '+esc(t('item'))+'</button>' +
     '<div class="field" style="margin-top:12px"><label>'+esc(t('lblCatatan'))+'</label><textarea id="soCatatan"></textarea></div>' +
@@ -3194,7 +3213,7 @@ function simpanSoUI(){
   if ($('soTop').value === ''){ toast(t('wajibTop'),'bad'); return; }
   for (var i=0;i<baris.length;i++) if (!(baris[i].harga > 0)){ toast(t('lblHargaJual')+' — '+namaItem(baris[i].kode),'bad'); return; }
   var b = $('btnSimpanSo'); sibuk(b, true);
-  panggil('simpanSo',[{ customer:comboNama('soCustomer'), tanggal:ambilTanggal('soTanggal'), tanggalKirim:$('soKirim').value, topHari:$('soTop').value,
+  panggil('simpanSo',[{ customer:comboNama('soCustomer'), tanggal:ambilTanggal('soTanggal'), tanggalKirim:$('soKirim').value, topHari:$('soTop').value, topDari:$('soTopDari').value,
                         baris:baris, catatan:$('soCatatan').value }, S.ident]).then(function(r){
     toast(t('soTersimpan')+' · '+r.noSo+' · '+kg(r.totalKg)+(lihatHpp() ? ' · '+rp(r.nilai) : ''), 'ok');
     muatKonteks(true); segSo('aktif');

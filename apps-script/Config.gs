@@ -10,7 +10,7 @@
 
 var APP = {
   nama: 'IPC — Inventory & Production Control',
-  versi: '12.0.1',
+  versi: '12.1.0',
   zona: 'Asia/Jakarta',
   satuan: 'kg',
   folderFoto: 'IPC Foto Bukti'
@@ -128,7 +128,8 @@ HEADER[SHEET.PERMINTAAN] = [
 HEADER[SHEET.PO] = [
   'ID','No_PO','Waktu','Tanggal','Supplier','Kode_Item','Nama_Item','Qty_Kg','Harga_Per_Kg',
   'Spesifikasi','Perkiraan_Datang','Qty_Diterima_Kg','Status','Dibuat_Oleh','Nama_Pembuat','Catatan','Log_Edit',
-  'TOP_Hari','Jatuh_Tempo'   // v10: termin pembayaran (hari) & tanggal jatuh tempo
+  'TOP_Hari','Jatuh_Tempo',  // v10: termin pembayaran (hari) & tanggal jatuh tempo
+  'Ukuran','TOP_Dari'        // v12.1: catatan ukuran per baris; TOP dihitung dari DOKUMEN (tanggal PO) atau KIRIM (tanggal barang diterima)
 ];
 
 /* Invoice supplier per No_PO. Total_Sistem = Σ(qty diterima × harga PO). */
@@ -146,7 +147,8 @@ HEADER[SHEET.KERUSAKAN] = [
 HEADER[SHEET.SO] = [
   'ID','No_SO','Waktu','Tanggal','Customer','Kode_Item','Nama_Item','Qty_Kg','Harga_Per_Kg',
   'Tanggal_Kirim','Qty_Dikirim_Kg','Status','Dibuat_Oleh','Nama_Pembuat','Catatan','Log_Edit',
-  'TOP_Hari','Jatuh_Tempo'   // v10: termin pembayaran (hari) & tanggal jatuh tempo
+  'TOP_Hari','Jatuh_Tempo',  // v10: termin pembayaran (hari) & tanggal jatuh tempo
+  'Ukuran','TOP_Dari'        // v12.1: catatan ukuran per baris; TOP dihitung dari DOKUMEN (tanggal SO) atau KIRIM (tanggal barang benar-benar dikirim)
 ];
 
 /* v9: daur ulang scrap → biji plastik lewat mesin chassen pabrik lain (jasa). Satu baris per batch kirim. */

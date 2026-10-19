@@ -83,6 +83,41 @@ ok('dokumen PO baru untuk nomor yang sama → versi lama DIGANTI, link lama mati
 ok('ubah KG_PER_BAL tidak mengubah dokumen lama (snapshot)', (()=>{ ctx.simpanPengaturanDokumen({kgPerBal:25}, YS); return ctx.ambilDokumenPublik_(dpo2.token).baris[0].bal===50 && ctx.ambilDokumenPublik_(dpo2.token).kgPerBal===30; })());
 tolak('staf tidak lihat daftar dokumen', ()=>ctx.daftarDokumen(STAF), /akses PO/);
 
+console.log('\n— v12.1: ukuran per baris, dokumen SO, TOP dari tanggal dokumen / tanggal kirim-terima —');
+{
+  const hari = ctx.tglStr_(new Date());
+  const kemarin = ctx.tglStr_(new Date(Date.now()-864e5));
+  const so2 = ctx.simpanSo({customer:CUS, tanggal:kemarin, tanggalKirim:ctx.jatuhTempo_(hari,5), topHari:30, topDari:'KIRIM',
+    baris:[{kode:FG, qty:200, harga:24000, ukuran:'40 x 60'}, {kode:'FG-PB-SUP', qty:50, harga:26000}]}, SM);
+  const r2 = ctx.baca_(ctx.SHEET.SO).filter(r=>r.No_SO===so2.noSo);
+  ok('ukuran baris tersimpan; baris tanpa ukuran → kosong / dari master', r2[0].Ukuran==='40 x 60' && r2[1].Ukuran===(ctx.daftarSku(SPV).find(x=>x.kode==='FG-PB-SUP').ukuran||''), r2.map(r=>r.Ukuran));
+  ok('TOP dari KIRIM, belum dikirim → jatuh tempo = rencana kirim + 30', r2.every(r=>r.TOP_Dari==='KIRIM' && r.Jatuh_Tempo===ctx.jatuhTempo_(ctx.jatuhTempo_(hari,5),30)), r2.map(r=>r.Jatuh_Tempo));
+  ok('ringkasSo: ukuran & topDari ikut', ctx.daftarSo(SM).find(x=>x.id===r2[0].ID).ukuran==='40 x 60' && ctx.daftarSo(SM).find(x=>x.id===r2[0].ID).topDari==='KIRIM');
+  ctx.simpanPengiriman({jenis:'KELUAR', customer:CUS, noSuratJalan:'DO/V121', baris:[{kode:FG, qty:50, idSo:r2[0].ID}], ident:YS});
+  const r3 = ctx.baca_(ctx.SHEET.SO).filter(r=>r.No_SO===so2.noSo);
+  ok('setelah barang dikirim hari ini → semua baris SO jatuh tempo = hari ini + 30', r3.every(r=>r.Jatuh_Tempo===ctx.jatuhTempo_(hari,30)), r3.map(r=>r.Jatuh_Tempo));
+  const so3 = ctx.simpanSo({customer:CUS, tanggal:kemarin, tanggalKirim:hari, topHari:7, topDari:'DOKUMEN', baris:[{kode:FG, qty:10, harga:24000}]}, YS);
+  ok('Yansen buat SO, TOP dari tanggal SO → kemarin + 7', ctx.baca_(ctx.SHEET.SO).find(r=>r.No_SO===so3.noSo).Jatuh_Tempo===ctx.jatuhTempo_(kemarin,7));
+  const dso = ctx.buatDokumen({jenis:'SO', ref:so2.noSo}, SM);
+  const pso = ctx.ambilDokumenPublik_(dso.token);
+  ok('dokumen SO: nomor = No SO, harga ada, ukuran baris "40 x 60", TOP dari KIRIM', dso.nomor===so2.noSo && pso.jenis==='SO' && pso.baris[0].ukuran==='40 x 60' && pso.baris[0].harga===24000 && pso.topDari==='KIRIM' && pso.total===200*24000+50*26000, pso);
+  tolak('Bastari tidak bisa buat dokumen SO', ()=>ctx.buatDokumen({jenis:'SO', ref:so2.noSo}, MP), /Sales order/);
+  const dso2 = ctx.buatDokumen({jenis:'SO', ref:so2.noSo}, YS);
+  ok('dokumen SO baru menggantikan yang lama', ctx.ambilDokumenPublik_(dso.token).diganti===true && ctx.ambilDokumenPublik_(dso2.token).jenis==='SO');
+  ctx.ubahSo(r2[0].ID, {ukuran:'45 x 65'}, SM);
+  ok('ubah ukuran baris SO tercatat', ctx.baca_(ctx.SHEET.SO).find(r=>r.ID===r2[0].ID).Ukuran==='45 x 65' && /ukuran/.test(ctx.baca_(ctx.SHEET.SO).find(r=>r.ID===r2[0].ID).Log_Edit));
+  /* PO */
+  const po2 = ctx.simpanPo({supplier:SUP, tanggal:kemarin, perkiraanDatang:ctx.jatuhTempo_(hari,3), topHari:30, topDari:'KIRIM', baris:[{kode:KW, qty:300, harga:12000, ukuran:'karung 25 kg'}]}, YS);
+  const p2 = ctx.baca_(ctx.SHEET.PO).find(r=>r.No_PO===po2.noPo);
+  ok('PO: ukuran baris & TOP dari KIRIM → perkiraan datang + 30', p2.Ukuran==='karung 25 kg' && p2.Jatuh_Tempo===ctx.jatuhTempo_(ctx.jatuhTempo_(hari,3),30), [p2.Ukuran, p2.Jatuh_Tempo]);
+  ctx.simpanPenerimaan({jenis:'MASUK', supplier:SUP, noSuratJalan:'SJ/V121', baris:[{kode:KW, qty:100, idPo:p2.ID}], ident:YS});
+  ok('PO: setelah barang diterima hari ini → jatuh tempo = hari ini + 30', ctx.baca_(ctx.SHEET.PO).find(r=>r.ID===p2.ID).Jatuh_Tempo===ctx.jatuhTempo_(hari,30));
+  ctx.ubahPo(p2.ID, {topDari:'DOKUMEN'}, YS);
+  ok('PO: ganti ke TOP dari tanggal PO → kemarin + 30', ctx.baca_(ctx.SHEET.PO).find(r=>r.ID===p2.ID).Jatuh_Tempo===ctx.jatuhTempo_(kemarin,30));
+  const dpo3 = ctx.buatDokumen({jenis:'PO', ref:po2.noPo}, YS);
+  ok('dokumen PO: ukuran baris & topDari DOKUMEN', ctx.ambilDokumenPublik_(dpo3.token).baris[0].ukuran==='karung 25 kg' && ctx.ambilDokumenPublik_(dpo3.token).topDari==='DOKUMEN');
+}
+
 fs.unlinkSync(__dirname+'/.h12.js');
 console.log('\n================ '+pass+' lulus, '+fail+' gagal ================');
 process.exit(fail?1:0);
