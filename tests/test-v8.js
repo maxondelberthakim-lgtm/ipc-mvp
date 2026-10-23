@@ -44,7 +44,7 @@ const so2 = ctx.simpanSo({customer:'Toko Tani Sejahtera', topHari:0, tanggalKiri
 ok('SO kedua nomor -02, tunai → jatuh tempo = tanggal kirim', /-02$/.test(so2.noSo) && ctx.baca_(ctx.SHEET.SO).find(r=>r.ID===so2.ids[0]).Jatuh_Tempo===ctx.tglStr_(new Date(Date.now()+3*864e5)));
 const k = ctx.getKonteks(STAF);
 ok('stok konteks: dipesan 230 kg FG (100+50+80)', k.stok[FG].dipesan===230, k.stok[FG]);
-ok('soHariIni untuk staf: 2 baris jatuh tempo hari ini, tanpa harga', k.soHariIni.length===2 && k.soHariIni[0].harga===undefined && k.soHariIni[0].sisa===100, k.soHariIni);
+ok('soHariIni untuk staf: 1 SO (2 baris) jatuh tempo hari ini, tanpa harga (v12.2: per SO)', k.soHariIni.length===1 && k.soHariIni[0].jumlahBaris===2 && k.soHariIni[0].sisa===150 && k.soHariIni[0].baris[0].harga===undefined && k.soHariIni[0].baris[0].sisa===100, k.soHariIni);
 ok('poDatang di konteks staf: sisa 400 kg, tanpa harga', k.poDatang.length===1 && k.poDatang[0].sisa===400 && k.poDatang[0].harga===undefined, k.poDatang);
 const tb = ctx.soTerbuka(STAF);
 ok('soTerbuka staf: 3 baris, tanpa harga, urut tanggal kirim', tb.length===3 && tb.every(x=>x.harga===undefined) && tb[0].tanggalKirim===hariIni, tb);

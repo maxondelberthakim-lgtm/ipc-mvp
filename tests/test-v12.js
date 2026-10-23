@@ -118,6 +118,46 @@ console.log('\n— v12.1: ukuran per baris, dokumen SO, TOP dari tanggal dokumen
   ok('dokumen PO: ukuran baris & topDari DOKUMEN', ctx.ambilDokumenPublik_(dpo3.token).baris[0].ukuran==='karung 25 kg' && ctx.ambilDokumenPublik_(dpo3.token).topDari==='DOKUMEN');
 }
 
+console.log('\n— v12.2: gabung / pisah SO, beranda per SO —');
+{
+  const hari = ctx.tglStr_(new Date());
+  const a = ctx.simpanSo({customer:CUS, tanggal:hari, tanggalKirim:hari, topHari:0, baris:[{kode:FG, qty:25, harga:19000, ukuran:'10 x 15'}, {kode:FG, qty:75, harga:19000, ukuran:'30 x 30'}]}, SM);
+  const b = ctx.simpanSo({customer:CUS, tanggal:hari, tanggalKirim:hari, topHari:0, baris:[{kode:FG, qty:50, harga:19000, ukuran:'45 x 45'}]}, SM);
+  const c = ctx.simpanSo({customer:'PT Lain Sekali', tanggal:hari, tanggalKirim:hari, topHari:0, baris:[{kode:FG, qty:10, harga:19000}]}, SM);
+  const home = ctx.soKirimHariIni_(hari);
+  const ha = home.find(x=>x.noSo===a.noSo);
+  ok('beranda "kirim hari ini": satu entri per SO dengan sisa total & baris (ukuran ikut)', ha && ha.jumlahBaris===2 && ha.sisa===100 && ha.baris.length===2 && ha.baris[0].ukuran==='10 x 15' && home.filter(x=>x.noSo===a.noSo).length===1, ha);
+  const dokA = ctx.buatDokumen({jenis:'INVOICE', ref:b.noSo}, SM);
+  tolak('gabung 1 SO ditolak', ()=>ctx.gabungSo([a.noSo], SM), /minimal 2/i);
+  tolak('gabung SO beda customer ditolak', ()=>ctx.gabungSo([a.noSo, c.noSo], SM), /customer yang sama/);
+  tolak('Bastari tidak bisa gabung SO', ()=>ctx.gabungSo([a.noSo, b.noSo], MP), /Sales order/);
+  tolak('SO tidak dikenal ditolak', ()=>ctx.gabungSo([a.noSo, 'SO-000000-99'], SM), /tidak ditemukan/);
+  const g = ctx.gabungSo([b.noSo, a.noSo], YS);
+  const rowsG = ctx.baca_(ctx.SHEET.SO).filter(r=>r.No_SO===g.noSo);
+  ok('Yansen gabung 2 SO → nomor paling awal dipakai, 3 baris, ID baris tetap', g.ok && g.noSo===a.noSo && g.dari[0]===b.noSo && rowsG.length===3 && rowsG.some(r=>r.ID===b.ids[0]) && g.dokumenDiganti===1, g);
+  ok('baris dari SO lama dapat Log_Edit "digabung"', /digabung ke/.test(ctx.baca_(ctx.SHEET.SO).find(r=>r.ID===b.ids[0]).Log_Edit));
+  ok('invoice lama SO yang digabung → DIGANTI (link mati)', ctx.ambilDokumenPublik_(dokA.token).diganti===true);
+  ok('nomor SO lama tidak ada lagi di daftar', !ctx.daftarSo(SM).some(x=>x.noSo===b.noSo) && ctx.daftarSo(SM).filter(x=>x.noSo===a.noSo).length===3);
+  /* pisah */
+  tolak('pisah tanpa baris ditolak', ()=>ctx.pisahSo([], SM), /Pilih baris/);
+  tolak('pisah semua baris ditolak', ()=>ctx.pisahSo(rowsG.map(r=>r.ID), SM), /Minimal satu baris/);
+  tolak('pisah baris dari SO berbeda ditolak', ()=>ctx.pisahSo([rowsG[0].ID, c.ids[0]], SM), /SO yang sama/);
+  const dokG = ctx.buatDokumen({jenis:'SO', ref:a.noSo}, SM);
+  const p1 = ctx.pisahSo([b.ids[0]], SM);
+  ok('pisah 1 baris → SO baru <no>-P2, sisa 2 baris di SO asal, dokumen SO lama diganti', p1.ok && p1.noSo===a.noSo+'-P2' && p1.dari===a.noSo && ctx.baca_(ctx.SHEET.SO).filter(r=>r.No_SO===a.noSo).length===2 && ctx.baca_(ctx.SHEET.SO).find(r=>r.ID===b.ids[0]).No_SO===a.noSo+'-P2' && ctx.ambilDokumenPublik_(dokG.token).diganti===true, p1);
+  const p2 = ctx.pisahSo([a.ids[1]], SM);
+  ok('pisah lagi → -P3 (bukan -P2-P2)', p2.noSo===a.noSo+'-P3', p2);
+  ok('nomor SO baru hari ini tetap urut (parse -P tidak merusak)', /-0\d$/.test(ctx.nomorSoBaru_()) );
+  const inv = ctx.buatDokumen({jenis:'INVOICE', ref:a.noSo+'-P2'}, SM);
+  ok('invoice bisa dibuat dari SO hasil pisah (1 baris, 50 kg)', inv.ok && ctx.ambilDokumenPublik_(inv.token).baris.length===1 && ctx.ambilDokumenPublik_(inv.token).totalKg===50);
+  const g2 = ctx.gabungSo([a.noSo+'-P2', a.noSo+'-P3', a.noSo], SM);
+  ok('gabung kembali 3 nomor → nomor asal, 3 baris', g2.noSo===a.noSo && ctx.baca_(ctx.SHEET.SO).filter(r=>r.No_SO===a.noSo).length===3);
+  ctx.simpanPengiriman({jenis:'KELUAR', customer:CUS, noSuratJalan:'DO/V122', baris:[{kode:FG, qty:25, idSo:a.ids[0]}], ident:YS});
+  const g3 = ctx.pisahSo([a.ids[0]], SM);
+  ok('baris yang sudah sebagian dikirim tetap bisa dipisah (pengiriman ikut ID baris)', g3.ok && ctx.baca_(ctx.SHEET.SO).find(r=>r.ID===a.ids[0]).Qty_Dikirim_Kg===25 && ctx.baca_(ctx.SHEET.SO).find(r=>r.ID===a.ids[0]).Status==='SELESAI');
+  ok('log audit SO_GABUNG & SO_PISAH tercatat', ctx.baca_(ctx.SHEET.LOG).some(r=>r.Aksi==='SO_GABUNG') && ctx.baca_(ctx.SHEET.LOG).some(r=>r.Aksi==='SO_PISAH'));
+}
+
 fs.unlinkSync(__dirname+'/.h12.js');
 console.log('\n================ '+pass+' lulus, '+fail+' gagal ================');
 process.exit(fail?1:0);

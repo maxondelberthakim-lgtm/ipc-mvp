@@ -153,12 +153,12 @@
       <div class="field" id="rcvFotoWrap">
         <label id="rcvFotoLabel" data-i18n="lblFotoSJ">Foto surat jalan</label>
         <div class="photo" id="rcvPhoto" onclick="pilihFoto('rcv')">
-          <div class="p1">📷 <span data-i18n="fotoAmbil">Ambil foto</span></div>
+          <div class="p1">📷 <span data-i18n="fotoAmbil">Kamera atau galeri</span></div>
           <div class="p2" data-i18n="fotoHintSJ">Bukti silang untuk angka yang diketik</div>
         </div>
-        <input type="file" accept="image/*" capture="environment" id="rcvFile" class="hide" onchange="fotoTerpilih(event,'rcv')">
+        <input type="file" accept="image/*" id="rcvFile" class="hide" onchange="fotoTerpilih(event,'rcv')">
         <!-- v11.2: foto menyusul — satu input file bersama untuk "+ Foto" di riwayat / detail -->
-        <input type="file" accept="image/*" capture="environment" id="entriFile" class="hide" onchange="fotoEntriTerpilih(event)">
+        <input type="file" accept="image/*" id="entriFile" class="hide" onchange="fotoEntriTerpilih(event)">
         <div class="btnrow hide" id="rcvOcrRow">
           <button class="btn sec sm" onclick="jalankanOcr()" id="btnOcr" data-i18n="btnOcr">🔍 Baca surat jalan</button>
           <button class="btn sec sm" onclick="hapusFoto('rcv')" data-i18n="btnGanti">Ganti foto</button>
@@ -352,8 +352,8 @@
       <div class="card">
         <div class="field">
           <label data-i18n="lblFotoOpsi">Foto (opsional)</label>
-          <div class="photo" id="shiftPhoto" onclick="pilihFoto('shift')"><div class="p1">📷 <span data-i18n="fotoAmbil">Ambil foto</span></div></div>
-          <input type="file" accept="image/*" capture="environment" id="shiftFile" class="hide" onchange="fotoTerpilih(event,'shift')">
+          <div class="photo" id="shiftPhoto" onclick="pilihFoto('shift')"><div class="p1">📷 <span data-i18n="fotoAmbil">Kamera atau galeri</span></div></div>
+          <input type="file" accept="image/*" id="shiftFile" class="hide" onchange="fotoTerpilih(event,'shift')">
         </div>
         <div class="field">
           <label data-i18n="lblCatatan">Catatan (opsional)</label>
@@ -404,8 +404,8 @@
         <button class="btn sec sm" onclick="tambahBaris('daur')" data-i18n="btnTambahItem">+ Tambah item</button>
         <div class="field" style="margin-top:14px">
           <label data-i18n="lblFotoOpsi">Foto (opsional)</label>
-          <div class="photo" id="daurPhoto" onclick="pilihFoto('daur')"><div class="p1">📷 <span data-i18n="fotoAmbil">Ambil foto</span></div></div>
-          <input type="file" accept="image/*" capture="environment" id="daurFile" class="hide" onchange="fotoTerpilih(event,'daur')">
+          <div class="photo" id="daurPhoto" onclick="pilihFoto('daur')"><div class="p1">📷 <span data-i18n="fotoAmbil">Kamera atau galeri</span></div></div>
+          <input type="file" accept="image/*" id="daurFile" class="hide" onchange="fotoTerpilih(event,'daur')">
         </div>
         <div class="field">
           <label data-i18n="lblCatatan">Catatan (opsional)</label>
@@ -434,8 +434,8 @@
         </div>
         <div class="field">
           <label data-i18n="lblFotoOpsi">Foto (opsional)</label>
-          <div class="photo" id="daurFinPhoto" onclick="pilihFoto('daurFin')"><div class="p1">📷 <span data-i18n="fotoAmbil">Ambil foto</span></div></div>
-          <input type="file" accept="image/*" capture="environment" id="daurFinFile" class="hide" onchange="fotoTerpilih(event,'daurFin')">
+          <div class="photo" id="daurFinPhoto" onclick="pilihFoto('daurFin')"><div class="p1">📷 <span data-i18n="fotoAmbil">Kamera atau galeri</span></div></div>
+          <input type="file" accept="image/*" id="daurFinFile" class="hide" onchange="fotoTerpilih(event,'daurFin')">
         </div>
         <div class="field">
           <label data-i18n="lblCatatan">Catatan (opsional)</label>
@@ -498,9 +498,9 @@
       <div class="field">
         <label data-i18n="lblFotoOpsi">Foto (opsional)</label>
         <div class="photo" id="rusakFotoBox" onclick="document.getElementById('rusakFile').click()">
-          <div class="p1">📷 <span data-i18n="fotoAmbil">Ambil foto</span></div>
+          <div class="p1">📷 <span data-i18n="fotoAmbil">Kamera atau galeri</span></div>
         </div>
-        <input type="file" accept="image/*" capture="environment" id="rusakFile" class="hide" onchange="fotoTerpilih(event,'rusak')">
+        <input type="file" accept="image/*" id="rusakFile" class="hide" onchange="fotoTerpilih(event,'rusak')">
         <div class="btnrow hide" id="rusakFotoRow"><button class="btn sec sm" onclick="hapusFoto('rusak')" data-i18n="btnGanti">Ganti foto</button></div>
       </div>
       <div class="field">
