@@ -521,8 +521,9 @@ input:disabled,select:disabled,textarea:disabled{background:#f3f4f6;color:#37415
       </div>
 
       <div class="field" id="rcvSJWrap">
-        <label data-i18n="lblNoSJ">No. surat jalan</label>
+        <label data-i18n="lblNoSJ">No. surat jalan (opsional)</label>
         <input id="rcvNoSJ" placeholder="SJ/2026/09/0184">
+        <div class="hint" data-i18n="hintSJOpsional">Boleh kosong — bisa diisi nanti lewat Ubah di riwayat.</div>
       </div>
 
       <div class="field" id="rcvPoWrap">
@@ -1080,7 +1081,7 @@ input:disabled,select:disabled,textarea:disabled{background:#f3f4f6;color:#37415
 
 var APP = {
   nama: 'IPC — Inventory & Production Control',
-  versi: '12.2.0',
+  versi: '12.3.0',
   zona: 'Asia/Jakarta',
   satuan: 'kg',
   folderFoto: 'IPC Foto Bukti'
@@ -1358,7 +1359,7 @@ var DUMMY_PENGGUNA = [
 var DEFAULT_SETTING = [
   ['FOLDER_FOTO_ID','', 'ID folder Drive tempat foto bukti disimpan (diisi otomatis)'],
   ['OCR_AKTIF','YA','Auto-baca surat jalan pembelian (butuh Advanced Drive Service)'],
-  ['WAJIB_SJ_KELUAR','YA','Wajibkan no. surat jalan / DO saat barang keluar ke customer'],
+  ['WAJIB_SJ_KELUAR','TIDAK','YA = wajib isi no. surat jalan / DO saat barang keluar. TIDAK (bawaan v12.3) = opsional, bisa diisi belakangan lewat Ubah'],
   ['OCR_BAHASA','id','Bahasa OCR'],
   ['BAHASA_DEFAULT','id','Bahasa awal UI: id / en'],
   ['PAKSA_LOGIN_MANUAL','YA','YA = semua orang (termasuk pemilik Sheet) login dengan Nama + PIN dari Master_Pengguna. TIDAK = email Google yang terdaftar langsung masuk tanpa PIN.'],
@@ -1577,7 +1578,7 @@ var RPC_WL = {
   laporanNilaiStok:1, hitungUlangHpp:1,
   simpanKerusakan:1, daftarKerusakan:1, tinjauKerusakan:1,
   diagnosa:1, prediksiBeli:1,
-  simpanSo:1, ubahSo:1, batalkanSo:1, daftarSo:1, soTerbuka:1, gabungSo:1, pisahSo:1, eksporBulanan:1, statusBackup:1,
+  simpanSo:1, ubahSo:1, batalkanSo:1, daftarSo:1, soTerbuka:1, gabungSo:1, pisahSo:1, tambahBarisSo:1, eksporBulanan:1, statusBackup:1,
   /* v9 */
   tambahMaster:1, mulaiDaurUlang:1, selesaikanDaurUlang:1, daftarDaurUlang:1, ambilDaurUlang:1,
   ubahDaurUlang:1, batalkanDaurUlang:1, laporanDaurUlang:1,
@@ -2077,7 +2078,7 @@ function getKonteks(ident) {
     items: items,
     supplier: supplier,
     customer: customer,
-    wajibSjKeluar: (getSetting_('WAJIB_SJ_KELUAR') || 'YA').toUpperCase() === 'YA',
+    wajibSjKeluar: (getSetting_('WAJIB_SJ_KELUAR') || 'TIDAK').toUpperCase() === 'YA',
     poDatang: poDatang,
     soHariIni: soHariIni,
     leadTimeHari: leadTimeHari_(),
@@ -2115,9 +2116,7 @@ function simpanPenerimaan(p) {
   if (!p || !p.baris || !p.baris.length) throw new Error('Item belum diisi.');
   var jenis = p.jenis === JENIS_PENERIMAAN.RETUR ? JENIS_PENERIMAAN.RETUR : JENIS_PENERIMAAN.MASUK;
   if (!String(p.supplier || '').trim()) throw new Error('Supplier belum dipilih.');
-  if (jenis === JENIS_PENERIMAAN.MASUK && !String(p.noSuratJalan || '').trim()) {
-    throw new Error('No. surat jalan wajib diisi untuk penerimaan barang.');
-  }
+  /* v12.3: no. surat jalan opsional (bisa diisi belakangan lewat Ubah) */
 
   var peta = petaItem_();
   var foto = p.foto ? unggahFoto_(p.foto, jenis === JENIS_PENERIMAAN.RETUR ? 'RTR' : 'RCV')
@@ -2208,7 +2207,8 @@ function simpanPengiriman(p) {
                                                        : JENIS_PENGIRIMAN.KELUAR;
   if (!String(p.customer || '').trim()) throw new Error('Customer belum dipilih.');
 
-  var wajibSJ = (getSetting_('WAJIB_SJ_KELUAR') || 'YA').toUpperCase() === 'YA';
+  /* v12.3: no. surat jalan opsional — setting WAJIB_SJ_KELUAR tetap ada (YA = wajib), bawaan sekarang TIDAK */
+  var wajibSJ = (getSetting_('WAJIB_SJ_KELUAR') || 'TIDAK').toUpperCase() === 'YA';
   if (jenis === JENIS_PENGIRIMAN.KELUAR && wajibSJ && !String(p.noSuratJalan || '').trim()) {
     throw new Error('No. surat jalan wajib diisi untuk barang keluar.');
   }
@@ -3605,6 +3605,7 @@ function migrasiSkema() {
   migrasiV11_(ss);
   migrasiV11_1_(ss);
   migrasiV12_0_1_(ss);
+  migrasiV12_3_(ss);
   Object.keys(SHEET).forEach(function (k) {
     var nama = SHEET[k], head = HEADER[nama];
     var sh = ss.getSheetByName(nama);
@@ -3796,6 +3797,15 @@ function migrasiV12_0_1_(ss) {
   });
   lupakanMemo_(SHEET.PENGGUNA);
   catatLog_('MIGRASI_V12_0_1', '', n ? 'Yansen + SO' : 'tidak ada perubahan');
+}
+
+/** v12.3: no. surat jalan jadi opsional — setting WAJIB_SJ_KELUAR YA (bawaan lama) → TIDAK, sekali saja (admin boleh menyalakan lagi). */
+function migrasiV12_3_(ss) {
+  if (!ss.getSheetByName(SHEET.SETTING) || !ss.getSheetByName(SHEET.LOG)) return;
+  if (baca_(SHEET.LOG).some(function (l) { return l.Aksi === 'MIGRASI_V12_3'; })) return;
+  var ubah = (getSetting_('WAJIB_SJ_KELUAR') || '').toUpperCase() === 'YA';
+  if (ubah) setSetting_('WAJIB_SJ_KELUAR', 'TIDAK');
+  catatLog_('MIGRASI_V12_3', '', ubah ? 'WAJIB_SJ_KELUAR YA → TIDAK (no. surat jalan opsional)' : 'tidak ada perubahan');
 }
 
 /** Dipanggil di awal tiap request: migrasi hanya kalau versi skema berubah (1 property read). */
@@ -4782,6 +4792,46 @@ function gabungSo(daftarNo, ident) {
     sinkronJatuhTempoSo_(tujuan);
     catatLog_('SO_GABUNG', tujuan, daftar.join(' + ') + ' • ' + rows.length + ' baris' + (dok ? ' • ' + dok + ' dokumen diganti' : ''));
     return { ok: true, noSo: tujuan, dari: hilang, baris: rows.length, dokumenDiganti: dok };
+  } finally { lock.releaseLock(); }
+}
+
+/** v12.3: tambah item ke SO yang masih terbuka (customer tiba-tiba menambah SKU). baris: [{kode, qty, harga, ukuran}]. */
+function tambahBarisSo(noSo, baris, ident) {
+  var u = penggunaSaatIni_(ident);
+  if (!bolehSo_(u)) throw new Error('Hanya akun dengan akses Sales order yang bisa menambah item SO.');
+  noSo = String(noSo || '').trim();
+  if (!noSo) throw new Error('Nomor SO belum dipilih.');
+  if (!baris || !baris.length) throw new Error('Item belum diisi.');
+  var peta = petaItem_();
+  var lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  lupakanMemo_();
+  try {
+    var ada = baca_(SHEET.SO).filter(function (r) { return String(r.No_SO) === noSo && r.Status !== STATUS_SO.DIBATALKAN; });
+    if (!ada.length) throw new Error('SO ' + noSo + ' tidak ditemukan / sudah dibatalkan.');
+    var acuan = ada[0];
+    if (bulanTertutup_(acuan.Tanggal)) throw new Error('Bulan ' + String(acuan.Tanggal).slice(0, 7) + ' sudah ditutup.');
+    var now = new Date(), ids = [], total = 0, nilai = 0;
+    var stempel = Utilities.formatDate(now, APP.zona, 'dd/MM HH:mm') + ' ' + u.nama + ': item ditambahkan ke SO';
+    baris.forEach(function (b) {
+      var it = peta[b.kode]; if (!it) throw new Error('Item tidak dikenal: ' + b.kode);
+      var q = angka_(b.qty), h = angka_(b.harga);
+      if (q <= 0) throw new Error('Qty harus > 0 (' + it.nama + ')');
+      if (b.harga === undefined || b.harga === null || String(b.harga).trim() === '' || h <= 0) throw new Error('Harga jual belum diisi (' + it.nama + ')');
+      var id = buatId_('SO'); ids.push(id); total += q; nilai += q * h;
+      tambah_(SHEET.SO, {
+        ID: id, No_SO: noSo, Waktu: now, Tanggal: acuan.Tanggal, Customer: acuan.Customer,
+        Kode_Item: it.kode, Nama_Item: it.nama, Qty_Kg: q, Harga_Per_Kg: h,
+        Tanggal_Kirim: acuan.Tanggal_Kirim || '', Qty_Dikirim_Kg: 0, Status: STATUS_SO.TERBUKA,
+        Dibuat_Oleh: penandaPencatat_(u), Nama_Pembuat: u.nama, Catatan: '', Log_Edit: stempel,
+        TOP_Hari: angka_(acuan.TOP_Hari), Jatuh_Tempo: acuan.Jatuh_Tempo || '',
+        Ukuran: ukuranBaris_(b.ukuran, it), TOP_Dari: topDariValid_(acuan.TOP_Dari)
+      });
+    });
+    var dok = gantiDokumenSo_([noSo], 'item SO ditambah — buat dokumen baru', u);
+    sinkronJatuhTempoSo_(noSo);
+    catatLog_('SO_TAMBAH', noSo, ids.length + ' item • ' + bulat_(total, 2) + ' kg • ' + mataUang_() + ' ' + bulat_(nilai, 0) + (dok ? ' • ' + dok + ' dokumen diganti' : ''));
+    return { ok: true, noSo: noSo, ids: ids, totalKg: bulat_(total, 2), nilai: bulat_(nilai, 0), dokumenDiganti: dok };
   } finally { lock.releaseLock(); }
 }
 
@@ -6534,7 +6584,7 @@ var T = {
     lblFoto:'Foto bukti', fotoAmbil:'Kamera atau galeri',
     fotoHint:'Wajib — jadi bukti silang angka yang diketik',
     btnOcr:'🔍 Baca surat jalan', btnGanti:'Ganti foto',
-    lblNoSJ:'No. surat jalan', secItem:'Item', btnTambahItem:'+ Tambah item',
+    lblNoSJ:'No. surat jalan (opsional)', hintSJOpsional:'Boleh kosong — bisa diisi nanti lewat Ubah di riwayat.', secItem:'Item', btnTambahItem:'+ Tambah item',
     lblCatatan:'Catatan (opsional)', btnSimpan:'Simpan',
     hintPost:'Langsung tercatat. Supervisor meninjau setelahnya — produksi tidak menunggu.',
                             revT:'Antrian review', revS:'Foto di sebelah angka yang diketik. Setujui atau tandai.',
@@ -6547,7 +6597,7 @@ var T = {
     returCustT:'Retur dari customer', returCustS:'Masuk lagi ke GBJ — stok bertambah',
     pilihCustomer:'— pilih customer —', wajibCustomer:'Pilih customer dulu.',
     wajibSJKeluar:'No. surat jalan / DO wajib diisi.',
-    lblNoDO:'No. surat jalan / DO', lblFotoKirim:'Foto barang / surat jalan',
+    lblNoDO:'No. surat jalan / DO (opsional)', lblFotoKirim:'Foto barang / surat jalan',
     fotoHintKirim:'Bukti apa yang benar-benar keluar dari gudang',
     totalKeluar:'Total keluar', totalReturCust:'Retur dari customer',
     perCustomer:'Per customer', perItemJual:'Per item', riwayatJual:'Barang keluar & retur 30 hari',
@@ -6679,6 +6729,7 @@ var T = {
     soPilihHint:'Centang SO yang mau digabung (customer harus sama)', soPisahHint:'Centang baris yang mau dipindah ke SO baru', soBedaCustomer:'Customer berbeda — hanya SO customer yang sama yang bisa digabung',
     soGabungKonfirmasi:'Gabung {n} SO menjadi {no}? Dokumen SO / invoice lama dari SO yang digabung tidak berlaku lagi.', soPisahKonfirmasi:'Pindahkan {n} baris ke SO baru?',
     soGabungOk:'SO digabung → {no}', soPisahOk:'{n} baris dipindah ke {no}', selesaiPilih:'Selesai',
+    soTambahItem:'+ Item', soTambahItemT:'Tambah item ke {no}', soTambahItemS:'Tanggal, tanggal kirim, dan TOP ikut SO ini. Dokumen SO / invoice lama perlu dibuat ulang.', soTambahOk:'{n} item ditambahkan ke {no}', btnTambahKeSo:'Simpan ke SO',
     segEkspor:'Ekspor', eksporT:'Ekspor bulanan untuk keuangan', eksporS:'7 file CSV (buka di Excel): ringkasan, pembelian, penjualan, produksi, rusak, daur ulang, nilai stok. Angka harga hanya di sini — staf tidak melihatnya.',
     lblBulan:'Bulan', btnEkspor:'Siapkan file', btnUnduhSemua:'Unduh semua', unduh:'Unduh', eksporSiap:'File siap — tekan Unduh',
     segBackup:'Backup', backupT:'Backup otomatis', backupS:'Salinan Sheet dibuat tiap malam ke folder Google Drive "IPC Backup". 30 salinan terakhir disimpan.',
@@ -6796,7 +6847,7 @@ var T = {
     lblFoto:'Proof photo', fotoAmbil:'Camera or gallery',
     fotoHint:'Required — cross-checks the number you typed',
     btnOcr:'🔍 Read delivery note', btnGanti:'Replace photo',
-    lblNoSJ:'Delivery note no.', secItem:'Items', btnTambahItem:'+ Add item',
+    lblNoSJ:'Delivery note no. (optional)', hintSJOpsional:'Can be left empty — add it later via Edit in the history.', secItem:'Items', btnTambahItem:'+ Add item',
     lblCatatan:'Note (optional)', btnSimpan:'Save',
     hintPost:'Posts immediately. A supervisor reviews after — production never waits.',
                             revT:'Review queue', revS:'Photo next to the typed number. Approve or flag.',
@@ -6809,7 +6860,7 @@ var T = {
     returCustT:'Return from customer', returCustS:'Back into GBJ — stock goes up',
     pilihCustomer:'— select customer —', wajibCustomer:'Select a customer first.',
     wajibSJKeluar:'Delivery note / DO number is required.',
-    lblNoDO:'Delivery note / DO no.', lblFotoKirim:'Photo of goods / delivery note',
+    lblNoDO:'Delivery note / DO no. (optional)', lblFotoKirim:'Photo of goods / delivery note',
     fotoHintKirim:'Proof of what actually left the warehouse',
     totalKeluar:'Total out', totalReturCust:'Returned by customers',
     perCustomer:'By customer', perItemJual:'By item', riwayatJual:'Goods out & returns, 30 days',
@@ -6936,6 +6987,7 @@ var T = {
     soPilihHint:'Tick the SOs to merge (same customer)', soPisahHint:'Tick the lines to move to a new SO', soBedaCustomer:'Different customers — only SOs of the same customer can be merged',
     soGabungKonfirmasi:'Merge {n} SOs into {no}? Old SO documents / invoices of the merged SOs will no longer be valid.', soPisahKonfirmasi:'Move {n} lines to a new SO?',
     soGabungOk:'SOs merged → {no}', soPisahOk:'{n} lines moved to {no}', selesaiPilih:'Done',
+    soTambahItem:'+ Item', soTambahItemT:'Add items to {no}', soTambahItemS:'Date, ship date and terms follow this SO. Old SO document / invoice must be re-created.', soTambahOk:'{n} items added to {no}', btnTambahKeSo:'Save to SO',
     segEkspor:'Export', eksporT:'Monthly export for finance', eksporS:'7 CSV files (open in Excel): summary, purchases, sales, production, damage, recycling, stock value. Prices appear only here — staff never see them.',
     lblBulan:'Month', btnEkspor:'Prepare files', btnUnduhSemua:'Download all', unduh:'Download', eksporSiap:'Files ready — press Download',
     segBackup:'Backup', backupT:'Automatic backup', backupS:'A copy of the Sheet is made every night into the Google Drive folder "IPC Backup". The last 30 copies are kept.',
@@ -8078,7 +8130,7 @@ function simpanMutasiUI(){
   var partner = comboNama('rcvPartner');
   if (!partner){ toast($('rcvPartner').value.trim() ? t('pilihDulu') : (i.jual ? t('wajibCustomer') : t('wajibSupplier')),'bad'); return; }
   /* v11.2: foto tidak wajib saat input — bisa menyusul dari riwayat (+ Foto) */
-  if (S.modeExt==='BELI_MASUK' && !$('rcvNoSJ').value.trim()){ toast(t('wajibSJ'),'bad'); return; }
+  /* v12.3: no. surat jalan opsional (kecuali admin menyalakan WAJIB_SJ_KELUAR) */
   if (S.modeExt==='JUAL_KELUAR' && S.ctx && S.ctx.wajibSjKeluar && !$('rcvNoSJ').value.trim()){
     toast(t('wajibSJKeluar'),'bad'); return;
   }
@@ -9664,6 +9716,29 @@ function gambarSoDaftar(){
   }
   $('soBody').innerHTML = bar + urut.map(function(no){ return kartuSo(no, grup[no]); }).join('');
 }
+/* v12.3: tambah item ke SO terbuka — form kecil di dalam kartu SO (pakai baris 'so' yang sama dengan form SO baru) */
+function soTambahItem(no){
+  document.querySelectorAll('[id^="soTambah-"]').forEach(function(e){ e.innerHTML=''; });
+  var wrap = $('soTambah-'+no); if (!wrap) return;
+  S.baris.so = [{ kode:'', qty:'', harga:'' }];
+  wrap.innerHTML = '<div class="card" style="margin:10px 0 0;padding:12px;background:#f7f8fa"><h3 class="sec" style="margin-top:0">'+esc(t('soTambahItemT').replace('{no}', no))+' <span class="unit">kg</span></h3>' +
+    '<div class="hint" style="margin-bottom:8px">'+esc(t('soTambahItemS'))+'</div><div id="soLines"></div>' +
+    '<button class="btn sec sm" onclick="tambahBaris(\'so\')">+ '+esc(t('item'))+'</button>' +
+    '<div class="btnrow" style="margin-top:10px"><button class="btn ghost sm" onclick="$(\'soTambah-'+esc(no)+'\').innerHTML=\'\'">'+esc(t('batal'))+'</button>' +
+    '<button class="btn sm" id="btnTambahKeSo" onclick="simpanTambahSoUI(\''+esc(no)+'\')">'+esc(t('btnTambahKeSo'))+'</button></div></div>';
+  gambarBaris('so');
+  wrap.scrollIntoView({ behavior:'smooth', block:'center' });
+}
+function simpanTambahSoUI(no){
+  var baris = ambilBaris('so');
+  if (!baris.length){ toast(t('wajibItem'),'bad'); return; }
+  for (var i=0;i<baris.length;i++) if (!(baris[i].harga > 0)){ toast(t('lblHargaJual')+' — '+namaItem(baris[i].kode),'bad'); return; }
+  var b = $('btnTambahKeSo'); sibuk(b, true);
+  panggil('tambahBarisSo',[no, baris, S.ident]).then(function(r){
+    toast(t('soTambahOk').replace('{n}', r.ids.length).replace('{no}', r.noSo)+' · '+kg(r.totalKg), 'ok');
+    muatKonteks(true); segSo('aktif');
+  }).catch(function(e){ sibuk(b,false,t('btnTambahKeSo')); toast(e.message,'bad'); });
+}
 function togglePilihSo(no, on){ if (!S.soPilih) S.soPilih = {}; if (on) S.soPilih[no] = true; else delete S.soPilih[no]; gambarSoDaftar(); }
 function mulaiPisahSo(no){ S.soPisah = { no:no, ids:{} }; S.soPilih = null; gambarSoDaftar(); var el = $('so-'+no); if (el) el.scrollIntoView({ behavior:'smooth', block:'start' }); }
 function togglePisahBaris(id, on){ if (!S.soPisah) return; if (on) S.soPisah.ids[id] = true; else delete S.soPisah.ids[id]; gambarSoDaftar(); }
@@ -9703,7 +9778,9 @@ function kartuSo(no, baris){
     baris.map(function(b){ return barisSoHtml(b, lihat, tutup); }).join('') +
     (b0.catatan ? '<div class="kv"><span>'+esc(t('lblCatatan'))+'</span><b>'+esc(b0.catatan)+'</b></div>' : '') +
     (S.ctx && S.ctx.bisaSo && st!=='DIBATALKAN' && !modePilih && !modePisah ? '<div class="btnrow" style="margin-top:10px;flex-wrap:wrap"><button class="btn sec sm" onclick="bukaDok(\'SO\',\''+esc(no)+'\')">📄 '+esc(t('dokSo'))+'</button><button class="btn sec sm" onclick="bukaDok(\'INVOICE\',\''+esc(no)+'\')">🧾 '+esc(t('dokInvoice'))+'</button>' +
+      (!tutup ? '<button class="btn sec sm" onclick="soTambahItem(\''+esc(no)+'\')">'+esc(t('soTambahItem'))+'</button>' : '') +
       (!tutup && aktifN >= 2 ? '<button class="btn ghost sm" onclick="mulaiPisahSo(\''+esc(no)+'\')">'+esc(t('soPisah'))+'</button>' : '') + '</div>' : '') +
+    '<div id="soTambah-'+esc(no)+'"></div>' +
   '</div></div>';
 }
 function barisSoHtml(b, lihat, tutup){

@@ -124,7 +124,7 @@ console.log('— 6. Migrasi v9 → v10 di atas data sungguhan (cloudflare/ipc-li
     ok('impor data v9 jalan', hasil.some((x) => /^Master_Item:/.test(x)), hasil);
     const ADM6 = { nama: 'Admin', pin: String(data.Master_Pengguna.find((r) => r[1] === 'Admin')[4]) };
     const k = JSON.parse(G6.m.panggil('getKonteks', [ADM6], 'mig-1'));
-    ok('getKonteks setelah migrasi ok (versi 11.1)', k.ok && k.data.app.versi === '12.2.0', k.error);
+    ok('getKonteks setelah migrasi ok (versi 11.1)', k.ok && k.data.app.versi === '12.3.0', k.error);
     ok('peta kualitas lengkap (roll/polybag/BS ditambahkan)', k.data.kualitas.length === 3 && k.data.kualitas.every((q) => q.biji && q.roll && q.jadi && q.bs), k.data.kualitas);
     ok('RM-BS-* lama dinonaktifkan, SCR-BS-* aktif', !k.data.items.some((i) => /^RM-BS-/.test(i.kode)) && k.data.items.some((i) => i.kode === 'SCR-BS-KW' && i.kategori === 'SCRAP'));
     ok('item lama (FG-PB-HP, RM-BIJI-PLASTIK-DAUR-UL) tetap ada', k.data.items.some((i) => i.kode === 'FG-PB-HP') && k.data.items.some((i) => i.kode === 'RM-BIJI-PLASTIK-DAUR-UL'));

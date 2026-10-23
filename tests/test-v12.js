@@ -158,6 +158,34 @@ console.log('\n— v12.2: gabung / pisah SO, beranda per SO —');
   ok('log audit SO_GABUNG & SO_PISAH tercatat', ctx.baca_(ctx.SHEET.LOG).some(r=>r.Aksi==='SO_GABUNG') && ctx.baca_(ctx.SHEET.LOG).some(r=>r.Aksi==='SO_PISAH'));
 }
 
+console.log('\n— v12.3: tambah item ke SO terbuka, no. surat jalan opsional —');
+{
+  const hari = ctx.tglStr_(new Date());
+  const s1 = ctx.simpanSo({customer:CUS, tanggal:hari, tanggalKirim:ctx.jatuhTempo_(hari,3), topHari:14, topDari:'DOKUMEN', baris:[{kode:FG, qty:100, harga:20000, ukuran:'30 x 30'}]}, SM);
+  tolak('Bastari tidak bisa tambah item SO', ()=>ctx.tambahBarisSo(s1.noSo, [{kode:FG, qty:10, harga:20000}], MP), /Sales order/);
+  tolak('SO tidak dikenal ditolak', ()=>ctx.tambahBarisSo('SO-000000-77', [{kode:FG, qty:10, harga:20000}], SM), /tidak ditemukan/);
+  tolak('tanpa harga ditolak', ()=>ctx.tambahBarisSo(s1.noSo, [{kode:FG, qty:10}], SM), /Harga jual/);
+  tolak('qty 0 ditolak', ()=>ctx.tambahBarisSo(s1.noSo, [{kode:'FG-PB-SUP', qty:0, harga:1}], SM), /Qty/);
+  const dok1 = ctx.buatDokumen({jenis:'SO', ref:s1.noSo}, SM);
+  const t1 = ctx.tambahBarisSo(s1.noSo, [{kode:'FG-PB-SUP', qty:50, harga:22000, ukuran:'40 x 60'}, {kode:FG, qty:25, harga:20000}], YS);
+  const rows1 = ctx.baca_(ctx.SHEET.SO).filter(r=>r.No_SO===s1.noSo);
+  const baru = rows1.find(r=>r.ID===t1.ids[0]);
+  ok('Yansen tambah 2 item → SO punya 3 baris, 75 kg ditambah', t1.ok && t1.ids.length===2 && t1.totalKg===75 && rows1.length===3, t1);
+  ok('baris baru ikut tanggal, tanggal kirim, TOP, TOP_Dari, customer SO; ukuran tersimpan; status TERBUKA', baru.Tanggal===hari && baru.Tanggal_Kirim===ctx.jatuhTempo_(hari,3) && ctx.angka_(baru.TOP_Hari)===14 && baru.TOP_Dari==='DOKUMEN' && baru.Customer===CUS && baru.Ukuran==='40 x 60' && baru.Status==='TERBUKA' && baru.Jatuh_Tempo===ctx.jatuhTempo_(hari,14), baru);
+  ok('baris baru punya Log_Edit "item ditambahkan"', /item ditambahkan/.test(baru.Log_Edit));
+  ok('dokumen SO lama → DIGANTI', ctx.ambilDokumenPublik_(dok1.token).diganti===true && t1.dokumenDiganti===1);
+  ok('daftarSo & dokumen baru memuat 3 baris', ctx.daftarSo(SM).filter(x=>x.noSo===s1.noSo).length===3 && ctx.ambilDokumenPublik_(ctx.buatDokumen({jenis:'INVOICE', ref:s1.noSo}, SM).token).baris.length===3);
+  ok('konteks: wajibSjKeluar false (bawaan v12.3)', ctx.getKonteks(YS).wajibSjKeluar===false);
+  const rc = ctx.simpanPenerimaan({jenis:'MASUK', supplier:SUP, baris:[{kode:KW, qty:10}], ident:YS});
+  ok('penerimaan TANPA no. surat jalan tersimpan', rc.ok!==false && ctx.baca_(ctx.SHEET.PENERIMAAN).find(r=>r.ID===(rc.ids||[rc.id])[0]).No_Surat_Jalan==='', rc);
+  const kr = ctx.simpanPengiriman({jenis:'KELUAR', customer:CUS, baris:[{kode:FG, qty:5, idSo:t1.ids[1]}], ident:YS});
+  ok('pengiriman TANPA no. surat jalan tersimpan (SO baris baru ikut terkirim 5 kg)', kr.ok!==false && ctx.baca_(ctx.SHEET.SO).find(r=>r.ID===t1.ids[1]).Qty_Dikirim_Kg===5, kr);
+  ctx.setSetting_('WAJIB_SJ_KELUAR', 'YA');
+  tolak('admin nyalakan WAJIB_SJ_KELUAR=YA → tanpa SJ ditolak lagi', ()=>ctx.simpanPengiriman({jenis:'KELUAR', customer:CUS, baris:[{kode:FG, qty:1, idSo:t1.ids[1]}], ident:YS}), /surat jalan wajib/);
+  ctx.setSetting_('WAJIB_SJ_KELUAR', 'TIDAK');
+  ok('log SO_TAMBAH tercatat', ctx.baca_(ctx.SHEET.LOG).some(r=>r.Aksi==='SO_TAMBAH'));
+}
+
 fs.unlinkSync(__dirname+'/.h12.js');
 console.log('\n================ '+pass+' lulus, '+fail+' gagal ================');
 process.exit(fail?1:0);

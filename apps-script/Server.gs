@@ -40,7 +40,7 @@ var RPC_WL = {
   laporanNilaiStok:1, hitungUlangHpp:1,
   simpanKerusakan:1, daftarKerusakan:1, tinjauKerusakan:1,
   diagnosa:1, prediksiBeli:1,
-  simpanSo:1, ubahSo:1, batalkanSo:1, daftarSo:1, soTerbuka:1, gabungSo:1, pisahSo:1, eksporBulanan:1, statusBackup:1,
+  simpanSo:1, ubahSo:1, batalkanSo:1, daftarSo:1, soTerbuka:1, gabungSo:1, pisahSo:1, tambahBarisSo:1, eksporBulanan:1, statusBackup:1,
   /* v9 */
   tambahMaster:1, mulaiDaurUlang:1, selesaikanDaurUlang:1, daftarDaurUlang:1, ambilDaurUlang:1,
   ubahDaurUlang:1, batalkanDaurUlang:1, laporanDaurUlang:1,
@@ -540,7 +540,7 @@ function getKonteks(ident) {
     items: items,
     supplier: supplier,
     customer: customer,
-    wajibSjKeluar: (getSetting_('WAJIB_SJ_KELUAR') || 'YA').toUpperCase() === 'YA',
+    wajibSjKeluar: (getSetting_('WAJIB_SJ_KELUAR') || 'TIDAK').toUpperCase() === 'YA',
     poDatang: poDatang,
     soHariIni: soHariIni,
     leadTimeHari: leadTimeHari_(),
@@ -578,9 +578,7 @@ function simpanPenerimaan(p) {
   if (!p || !p.baris || !p.baris.length) throw new Error('Item belum diisi.');
   var jenis = p.jenis === JENIS_PENERIMAAN.RETUR ? JENIS_PENERIMAAN.RETUR : JENIS_PENERIMAAN.MASUK;
   if (!String(p.supplier || '').trim()) throw new Error('Supplier belum dipilih.');
-  if (jenis === JENIS_PENERIMAAN.MASUK && !String(p.noSuratJalan || '').trim()) {
-    throw new Error('No. surat jalan wajib diisi untuk penerimaan barang.');
-  }
+  /* v12.3: no. surat jalan opsional (bisa diisi belakangan lewat Ubah) */
 
   var peta = petaItem_();
   var foto = p.foto ? unggahFoto_(p.foto, jenis === JENIS_PENERIMAAN.RETUR ? 'RTR' : 'RCV')
@@ -671,7 +669,8 @@ function simpanPengiriman(p) {
                                                        : JENIS_PENGIRIMAN.KELUAR;
   if (!String(p.customer || '').trim()) throw new Error('Customer belum dipilih.');
 
-  var wajibSJ = (getSetting_('WAJIB_SJ_KELUAR') || 'YA').toUpperCase() === 'YA';
+  /* v12.3: no. surat jalan opsional — setting WAJIB_SJ_KELUAR tetap ada (YA = wajib), bawaan sekarang TIDAK */
+  var wajibSJ = (getSetting_('WAJIB_SJ_KELUAR') || 'TIDAK').toUpperCase() === 'YA';
   if (jenis === JENIS_PENGIRIMAN.KELUAR && wajibSJ && !String(p.noSuratJalan || '').trim()) {
     throw new Error('No. surat jalan wajib diisi untuk barang keluar.');
   }

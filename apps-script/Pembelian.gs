@@ -19,6 +19,7 @@ function migrasiSkema() {
   migrasiV11_(ss);
   migrasiV11_1_(ss);
   migrasiV12_0_1_(ss);
+  migrasiV12_3_(ss);
   Object.keys(SHEET).forEach(function (k) {
     var nama = SHEET[k], head = HEADER[nama];
     var sh = ss.getSheetByName(nama);
@@ -210,6 +211,15 @@ function migrasiV12_0_1_(ss) {
   });
   lupakanMemo_(SHEET.PENGGUNA);
   catatLog_('MIGRASI_V12_0_1', '', n ? 'Yansen + SO' : 'tidak ada perubahan');
+}
+
+/** v12.3: no. surat jalan jadi opsional — setting WAJIB_SJ_KELUAR YA (bawaan lama) → TIDAK, sekali saja (admin boleh menyalakan lagi). */
+function migrasiV12_3_(ss) {
+  if (!ss.getSheetByName(SHEET.SETTING) || !ss.getSheetByName(SHEET.LOG)) return;
+  if (baca_(SHEET.LOG).some(function (l) { return l.Aksi === 'MIGRASI_V12_3'; })) return;
+  var ubah = (getSetting_('WAJIB_SJ_KELUAR') || '').toUpperCase() === 'YA';
+  if (ubah) setSetting_('WAJIB_SJ_KELUAR', 'TIDAK');
+  catatLog_('MIGRASI_V12_3', '', ubah ? 'WAJIB_SJ_KELUAR YA → TIDAK (no. surat jalan opsional)' : 'tidak ada perubahan');
 }
 
 /** Dipanggil di awal tiap request: migrasi hanya kalau versi skema berubah (1 property read). */
