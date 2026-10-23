@@ -4,7 +4,7 @@ export function pasangBackend(G) {
   var SpreadsheetApp = G.SpreadsheetApp, LockService = G.LockService, Utilities = G.Utilities, Session = G.Session, DriveApp = G.DriveApp, PropertiesService = G.PropertiesService, CacheService = G.CacheService, ScriptApp = G.ScriptApp, HtmlService = G.HtmlService, ContentService = G.ContentService, DocumentApp = G.DocumentApp, Logger = G.Logger, Sheets = G.Sheets;
   var console = G.console;
   /* doPost() memakai globalThis[fn]; di sini "globalThis" = peta fungsi backend (bukan global Worker) */
-  var globalThis = { setupSistem: setupSistem, seedJika: seedJika, seedUlangMaster: seedUlangMaster, resetUntukGoLive: resetUntukGoLive, hapusTransaksiSebelum: hapusTransaksiSebelum, ambilAtauBuatFolder_: ambilAtauBuatFolder_, doGet: doGet, include: include, doPost: doPost, jsonOut_: jsonOut_, ss_: ss_, sheet_: sheet_, lupakanMemo_: lupakanMemo_, salinBaris_: salinBaris_, baca_: baca_, offsetZonaMs_: offsetZonaMs_, serialKeDate_: serialKeDate_, bacaSemuaBatch_: bacaSemuaBatch_, bacaSheet_: bacaSheet_, tambah_: tambah_, ubahBaris_: ubahBaris_, getSetting_: getSetting_, setSetting_: setSetting_, catatLog_: catatLog_, emailAktif_: emailAktif_, tglStr_: tglStr_, tglValid_: tglValid_, buatId_: buatId_, angka_: angka_, bulat_: bulat_, jam_: jam_, penggunaSaatIni_: penggunaSaatIni_, aksesPengguna_: aksesPengguna_, bolehModul_: bolehModul_, wajibModul_: wajibModul_, aksesTeks_: aksesTeks_, bolehReview_: bolehReview_, bolehAdmin_: bolehAdmin_, bolehLihatHpp_: bolehLihatHpp_, dihitung_: dihitung_, biayaProsesPerKg_: biayaProsesPerKg_, mataUang_: mataUang_, petaItem_: petaItem_, tambahMaster: tambahMaster, getKonteks: getKonteks, simpanPenerimaan: simpanPenerimaan, simpanPengiriman: simpanPengiriman, antrianReview: antrianReview, tinjauTransfer: tinjauTransfer, tinjauMassal: tinjauMassal, hitungStokSemua_: hitungStokSemua_, laporanStok: laporanStok, riwayatPenerimaan: riwayatPenerimaan, laporanPenjualan: laporanPenjualan, penandaPencatat_: penandaPencatat_, maksEditHari_: maksEditHari_, umurHari_: umurHari_, dalamBatasEdit_: dalamBatasEdit_, alasanKunci_: alasanKunci_, bolehEditEntri_: bolehEditEntri_, alasanWajib_: alasanWajib_, modulSheet_: modulSheet_, bolehFoto_: bolehFoto_, sheetFoto_: sheetFoto_, tambahFoto: tambahFoto, sheetDariId_: sheetDariId_, ringkasEntri_: ringkasEntri_, riwayatInput: riwayatInput, ambilEntri: ambilEntri, susunEdit_: susunEdit_, cariEntri_: cariEntri_, terapkanEdit_: terapkanEdit_, simpanEditEntri: simpanEditEntri, pesanKunci_: pesanKunci_, batalkanEntriSendiri: batalkanEntriSendiri, ajukanPermintaan_: ajukanPermintaan_, permintaanTertunda_: permintaanTertunda_, daftarPermintaan: daftarPermintaan, tinjauPermintaan: tinjauPermintaan, daftarPengguna: daftarPengguna, simpanPengguna: simpanPengguna, aktivitasStaf: aktivitasStaf, daftarSku: daftarSku, skuDipakai_: skuDipakai_, simpanSku: simpanSku, hapusSku: hapusSku, siapkanOpname: siapkanOpname, simpanOpname: simpanOpname, riwayatOpname: riwayatOpname, kalender: kalender, dataUrlKeBlob_: dataUrlKeBlob_, unggahFoto_: unggahFoto_, unggahFoto: unggahFoto, ocrSuratJalan: ocrSuratJalan, parseSuratJalan_: parseSuratJalan_, normalisasiAngka_: normalisasiAngka_, potongSekitar_: potongSekitar_, tesParserSuratJalan: tesParserSuratJalan, migrasiSkema: migrasiSkema, migrasiV9_: migrasiV9_, migrasiV10_: migrasiV10_, migrasiV11_: migrasiV11_, migrasiV11_1_: migrasiV11_1_, migrasiV12_0_1_: migrasiV12_0_1_, migrasiV10_1_: migrasiV10_1_, pastikanSkema_: pastikanSkema_, metodeHpp_: metodeHpp_, wajibPo_: wajibPo_, kunciWaktu_: kunciWaktu_, bolehPo_: bolehPo_, bolehSo_: bolehSo_, nomorPoBaru_: nomorPoBaru_, simpanPo: simpanPo, ubahPo: ubahPo, batalkanPo: batalkanPo, sinkronPo_: sinkronPo_, sinkronJatuhTempoPo_: sinkronJatuhTempoPo_, ringkasPo_: ringkasPo_, topValid_: topValid_, jatuhTempo_: jatuhTempo_, daftarPo: daftarPo, poTerbuka: poTerbuka, returTersedia: returTersedia, hitungReturSisa_: hitungReturSisa_, ringkasanPo: ringkasanPo, statusPoGabungan_: statusPoGabungan_, ringkasInvoice_: ringkasInvoice_, simpanInvoice: simpanInvoice, validasiInvoice: validasiInvoice, daftarInvoice: daftarInvoice, hitungRata_: hitungRata_, hargaRataItem_: hargaRataItem_, laporanNilaiStok: laporanNilaiStok, hitungUlangHpp: hitungUlangHpp, simpanKerusakan: simpanKerusakan, ringkasKerusakan_: ringkasKerusakan_, daftarKerusakan: daftarKerusakan, tinjauKerusakan: tinjauKerusakan, leadTimeHari_: leadTimeHari_, prediksiBeli: prediksiBeli, diagnosa: diagnosa, nomorSoBaru_: nomorSoBaru_, simpanSo: simpanSo, ubahSo: ubahSo, batalkanSo: batalkanSo, sinkronSo_: sinkronSo_, topDariValid_: topDariValid_, ukuranBaris_: ukuranBaris_, kirimPertamaSo_: kirimPertamaSo_, sinkronJatuhTempoSo_: sinkronJatuhTempoSo_, ringkasSo_: ringkasSo_, daftarSo: daftarSo, soTerbuka: soTerbuka, soKirimHariIni_: soKirimHariIni_, soDipesan_: soDipesan_, csvBaris_: csvBaris_, csv_: csv_, dalamBulan_: dalamBulan_, akhirBulan_: akhirBulan_, eksporBulanan: eksporBulanan, folderBackup_: folderBackup_, backupHarian: backupHarian, pasangBackupHarian: pasangBackupHarian, statusBackup: statusBackup, standarChassen_: standarChassen_, hitungSusutChassen_: hitungSusutChassen_, cariDaur_: cariDaur_, detailDaur_: detailDaur_, mulaiDaurUlang: mulaiDaurUlang, selesaikanDaurUlang: selesaikanDaurUlang, ringkasDaur_: ringkasDaur_, daftarDaurUlang: daftarDaurUlang, ambilDaurUlang: ambilDaurUlang, ubahDaurUlang: ubahDaurUlang, batalkanDaurUlang: batalkanDaurUlang, laporanDaurUlang: laporanDaurUlang, petaKualitas_: petaKualitas_, daftarOperator_: daftarOperator_, konfigurasiShift: konfigurasiShift, bolehShift_: bolehShift_, bolehOpnameProd_: bolehOpnameProd_, simpanLaporanShift: simpanLaporanShift, kolomShift_: kolomShift_, operatorStr_: operatorStr_, susunShift_: susunShift_, tulisDetailShift_: tulisDetailShift_, pecahOperator_: pecahOperator_, ringkasShift_: ringkasShift_, daftarLaporanShift: daftarLaporanShift, ambilLaporanShift: ambilLaporanShift, ubahLaporanShift: ubahLaporanShift, batalkanLaporanShift: batalkanLaporanShift, shiftAktif_: shiftAktif_, laporanProduksi: laporanProduksi, simpanOpnameProduksi: simpanOpnameProduksi, ringkasOpnameProd_: ringkasOpnameProd_, daftarOpnameProduksi: daftarOpnameProduksi, keluarGudangKeProduksi_: keluarGudangKeProduksi_, posisiStokTanggal_: posisiStokTanggal_, rekonsiliasiProduksi: rekonsiliasiProduksi, bulanStr_: bulanStr_, petaTutup_: petaTutup_, bulanTertutup_: bulanTertutup_, bulanTerakhirTertutup_: bulanTerakhirTertutup_, bulanSebelum_: bulanSebelum_, bulanValid_: bulanValid_, laporanBulanan_: laporanBulanan_, ringkasTutup_: ringkasTutup_, laporanBulanan: laporanBulanan, tutupBulan: tutupBulan, bukaBulan: bukaBulan, daftarTutupBulan: daftarTutupBulan, kgPerBal_: kgPerBal_, infoPerusahaan_: infoPerusahaan_, bolehDokumen_: bolehDokumen_, pengaturanDokumen: pengaturanDokumen, simpanPengaturanDokumen: simpanPengaturanDokumen, nomorWa_: nomorWa_, daftarKontakWa: daftarKontakWa, simpanKontakWa: simpanKontakWa, hapusKontakWa: hapusKontakWa, tokenDokumen_: tokenDokumen_, nomorInvoiceBaru_: nomorInvoiceBaru_, barisDokumen_: barisDokumen_, buatDokumen: buatDokumen, daftarDokumen: daftarDokumen, batalkanDokumen: batalkanDokumen, ambilDokumenPublik_: ambilDokumenPublik_ };
+  var globalThis = { setupSistem: setupSistem, seedJika: seedJika, seedUlangMaster: seedUlangMaster, resetUntukGoLive: resetUntukGoLive, hapusTransaksiSebelum: hapusTransaksiSebelum, ambilAtauBuatFolder_: ambilAtauBuatFolder_, doGet: doGet, include: include, doPost: doPost, jsonOut_: jsonOut_, ss_: ss_, sheet_: sheet_, lupakanMemo_: lupakanMemo_, salinBaris_: salinBaris_, baca_: baca_, offsetZonaMs_: offsetZonaMs_, serialKeDate_: serialKeDate_, bacaSemuaBatch_: bacaSemuaBatch_, bacaSheet_: bacaSheet_, tambah_: tambah_, ubahBaris_: ubahBaris_, getSetting_: getSetting_, setSetting_: setSetting_, catatLog_: catatLog_, emailAktif_: emailAktif_, tglStr_: tglStr_, tglValid_: tglValid_, buatId_: buatId_, angka_: angka_, bulat_: bulat_, jam_: jam_, penggunaSaatIni_: penggunaSaatIni_, aksesPengguna_: aksesPengguna_, bolehModul_: bolehModul_, wajibModul_: wajibModul_, aksesTeks_: aksesTeks_, bolehReview_: bolehReview_, bolehAdmin_: bolehAdmin_, bolehLihatHpp_: bolehLihatHpp_, dihitung_: dihitung_, biayaProsesPerKg_: biayaProsesPerKg_, mataUang_: mataUang_, petaItem_: petaItem_, tambahMaster: tambahMaster, getKonteks: getKonteks, simpanPenerimaan: simpanPenerimaan, simpanPengiriman: simpanPengiriman, antrianReview: antrianReview, tinjauTransfer: tinjauTransfer, tinjauMassal: tinjauMassal, hitungStokSemua_: hitungStokSemua_, laporanStok: laporanStok, riwayatPenerimaan: riwayatPenerimaan, laporanPenjualan: laporanPenjualan, penandaPencatat_: penandaPencatat_, maksEditHari_: maksEditHari_, umurHari_: umurHari_, dalamBatasEdit_: dalamBatasEdit_, alasanKunci_: alasanKunci_, bolehEditEntri_: bolehEditEntri_, alasanWajib_: alasanWajib_, modulSheet_: modulSheet_, bolehFoto_: bolehFoto_, sheetFoto_: sheetFoto_, tambahFoto: tambahFoto, sheetDariId_: sheetDariId_, ringkasEntri_: ringkasEntri_, riwayatInput: riwayatInput, ambilEntri: ambilEntri, susunEdit_: susunEdit_, cariEntri_: cariEntri_, terapkanEdit_: terapkanEdit_, simpanEditEntri: simpanEditEntri, pesanKunci_: pesanKunci_, batalkanEntriSendiri: batalkanEntriSendiri, ajukanPermintaan_: ajukanPermintaan_, permintaanTertunda_: permintaanTertunda_, daftarPermintaan: daftarPermintaan, tinjauPermintaan: tinjauPermintaan, daftarPengguna: daftarPengguna, simpanPengguna: simpanPengguna, aktivitasStaf: aktivitasStaf, daftarSku: daftarSku, skuDipakai_: skuDipakai_, simpanSku: simpanSku, hapusSku: hapusSku, siapkanOpname: siapkanOpname, simpanOpname: simpanOpname, riwayatOpname: riwayatOpname, kalender: kalender, dataUrlKeBlob_: dataUrlKeBlob_, unggahFoto_: unggahFoto_, unggahFoto: unggahFoto, ocrSuratJalan: ocrSuratJalan, parseSuratJalan_: parseSuratJalan_, normalisasiAngka_: normalisasiAngka_, potongSekitar_: potongSekitar_, tesParserSuratJalan: tesParserSuratJalan, migrasiSkema: migrasiSkema, migrasiV9_: migrasiV9_, migrasiV10_: migrasiV10_, migrasiV11_: migrasiV11_, migrasiV11_1_: migrasiV11_1_, migrasiV12_0_1_: migrasiV12_0_1_, migrasiV10_1_: migrasiV10_1_, pastikanSkema_: pastikanSkema_, metodeHpp_: metodeHpp_, wajibPo_: wajibPo_, kunciWaktu_: kunciWaktu_, bolehPo_: bolehPo_, bolehSo_: bolehSo_, nomorPoBaru_: nomorPoBaru_, simpanPo: simpanPo, ubahPo: ubahPo, batalkanPo: batalkanPo, sinkronPo_: sinkronPo_, sinkronJatuhTempoPo_: sinkronJatuhTempoPo_, ringkasPo_: ringkasPo_, topValid_: topValid_, jatuhTempo_: jatuhTempo_, daftarPo: daftarPo, poTerbuka: poTerbuka, returTersedia: returTersedia, hitungReturSisa_: hitungReturSisa_, ringkasanPo: ringkasanPo, statusPoGabungan_: statusPoGabungan_, ringkasInvoice_: ringkasInvoice_, simpanInvoice: simpanInvoice, validasiInvoice: validasiInvoice, daftarInvoice: daftarInvoice, hitungRata_: hitungRata_, hargaRataItem_: hargaRataItem_, laporanNilaiStok: laporanNilaiStok, hitungUlangHpp: hitungUlangHpp, simpanKerusakan: simpanKerusakan, ringkasKerusakan_: ringkasKerusakan_, daftarKerusakan: daftarKerusakan, tinjauKerusakan: tinjauKerusakan, leadTimeHari_: leadTimeHari_, prediksiBeli: prediksiBeli, diagnosa: diagnosa, nomorSoBaru_: nomorSoBaru_, simpanSo: simpanSo, ubahSo: ubahSo, batalkanSo: batalkanSo, sinkronSo_: sinkronSo_, topDariValid_: topDariValid_, ukuranBaris_: ukuranBaris_, kirimPertamaSo_: kirimPertamaSo_, sinkronJatuhTempoSo_: sinkronJatuhTempoSo_, ringkasSo_: ringkasSo_, daftarSo: daftarSo, soTerbuka: soTerbuka, soKirimHariIni_: soKirimHariIni_, gantiDokumenSo_: gantiDokumenSo_, gabungSo: gabungSo, pisahSo: pisahSo, soDipesan_: soDipesan_, csvBaris_: csvBaris_, csv_: csv_, dalamBulan_: dalamBulan_, akhirBulan_: akhirBulan_, eksporBulanan: eksporBulanan, folderBackup_: folderBackup_, backupHarian: backupHarian, pasangBackupHarian: pasangBackupHarian, statusBackup: statusBackup, standarChassen_: standarChassen_, hitungSusutChassen_: hitungSusutChassen_, cariDaur_: cariDaur_, detailDaur_: detailDaur_, mulaiDaurUlang: mulaiDaurUlang, selesaikanDaurUlang: selesaikanDaurUlang, ringkasDaur_: ringkasDaur_, daftarDaurUlang: daftarDaurUlang, ambilDaurUlang: ambilDaurUlang, ubahDaurUlang: ubahDaurUlang, batalkanDaurUlang: batalkanDaurUlang, laporanDaurUlang: laporanDaurUlang, petaKualitas_: petaKualitas_, daftarOperator_: daftarOperator_, konfigurasiShift: konfigurasiShift, bolehShift_: bolehShift_, bolehOpnameProd_: bolehOpnameProd_, simpanLaporanShift: simpanLaporanShift, kolomShift_: kolomShift_, operatorStr_: operatorStr_, susunShift_: susunShift_, tulisDetailShift_: tulisDetailShift_, pecahOperator_: pecahOperator_, ringkasShift_: ringkasShift_, daftarLaporanShift: daftarLaporanShift, ambilLaporanShift: ambilLaporanShift, ubahLaporanShift: ubahLaporanShift, batalkanLaporanShift: batalkanLaporanShift, shiftAktif_: shiftAktif_, laporanProduksi: laporanProduksi, simpanOpnameProduksi: simpanOpnameProduksi, ringkasOpnameProd_: ringkasOpnameProd_, daftarOpnameProduksi: daftarOpnameProduksi, keluarGudangKeProduksi_: keluarGudangKeProduksi_, posisiStokTanggal_: posisiStokTanggal_, rekonsiliasiProduksi: rekonsiliasiProduksi, bulanStr_: bulanStr_, petaTutup_: petaTutup_, bulanTertutup_: bulanTertutup_, bulanTerakhirTertutup_: bulanTerakhirTertutup_, bulanSebelum_: bulanSebelum_, bulanValid_: bulanValid_, laporanBulanan_: laporanBulanan_, ringkasTutup_: ringkasTutup_, laporanBulanan: laporanBulanan, tutupBulan: tutupBulan, bukaBulan: bukaBulan, daftarTutupBulan: daftarTutupBulan, kgPerBal_: kgPerBal_, infoPerusahaan_: infoPerusahaan_, bolehDokumen_: bolehDokumen_, pengaturanDokumen: pengaturanDokumen, simpanPengaturanDokumen: simpanPengaturanDokumen, nomorWa_: nomorWa_, daftarKontakWa: daftarKontakWa, simpanKontakWa: simpanKontakWa, hapusKontakWa: hapusKontakWa, tokenDokumen_: tokenDokumen_, nomorInvoiceBaru_: nomorInvoiceBaru_, barisDokumen_: barisDokumen_, buatDokumen: buatDokumen, daftarDokumen: daftarDokumen, batalkanDokumen: batalkanDokumen, ambilDokumenPublik_: ambilDokumenPublik_ };
 /* ==== Config.gs ==== */
 /**********************************************************************
  * IPC — Inventory & Production Control (v9)
@@ -18,7 +18,7 @@ export function pasangBackend(G) {
 
 var APP = {
   nama: 'IPC — Inventory & Production Control',
-  versi: '12.1.0',
+  versi: '12.2.0',
   zona: 'Asia/Jakarta',
   satuan: 'kg',
   folderFoto: 'IPC Foto Bukti'
@@ -516,7 +516,7 @@ var RPC_WL = {
   laporanNilaiStok:1, hitungUlangHpp:1,
   simpanKerusakan:1, daftarKerusakan:1, tinjauKerusakan:1,
   diagnosa:1, prediksiBeli:1,
-  simpanSo:1, ubahSo:1, batalkanSo:1, daftarSo:1, soTerbuka:1, eksporBulanan:1, statusBackup:1,
+  simpanSo:1, ubahSo:1, batalkanSo:1, daftarSo:1, soTerbuka:1, gabungSo:1, pisahSo:1, eksporBulanan:1, statusBackup:1,
   /* v9 */
   tambahMaster:1, mulaiDaurUlang:1, selesaikanDaurUlang:1, daftarDaurUlang:1, ambilDaurUlang:1,
   ubahDaurUlang:1, batalkanDaurUlang:1, laporanDaurUlang:1,
@@ -3665,14 +3665,98 @@ function soTerbuka(ident) {
     .sort(function (a, b) { return String(a.tanggalKirim || '9999').localeCompare(String(b.tanggalKirim || '9999')); });
 }
 
-/** Beranda: SO yang jatuh tempo hari ini atau sudah lewat (tanpa harga). */
+/** Beranda: SO yang jatuh tempo hari ini atau sudah lewat (tanpa harga). v12.2: satu entri per No_SO (baris dikelompokkan). */
 function soKirimHariIni_(hariIni) {
-  return baca_(SHEET.SO).filter(function (r) {
+  var grup = {}, urut = [];
+  baca_(SHEET.SO).filter(function (r) {
     return (r.Status === STATUS_SO.TERBUKA || r.Status === STATUS_SO.SEBAGIAN) && r.Tanggal_Kirim && String(r.Tanggal_Kirim) <= hariIni;
-  }).map(function (r) {
-    var o = ringkasSo_(r, false);
-    return { id: o.id, noSo: o.noSo, customer: o.customer, item: o.item, kode: o.kode, sisa: o.sisa, kirim: o.tanggalKirim };
-  }).sort(function (a, b) { return String(a.kirim).localeCompare(String(b.kirim)); });
+  }).forEach(function (r) {
+    var o = ringkasSo_(r, false), g = grup[o.noSo];
+    if (!g) { g = grup[o.noSo] = { noSo: o.noSo, customer: o.customer, kirim: o.tanggalKirim, sisa: 0, jumlahBaris: 0, baris: [] }; urut.push(g); }
+    g.sisa = bulat_(g.sisa + o.sisa, 3); g.jumlahBaris++;
+    if (o.tanggalKirim && o.tanggalKirim < g.kirim) g.kirim = o.tanggalKirim;
+    g.baris.push({ id: o.id, item: o.item, kode: o.kode, sisa: o.sisa, ukuran: o.ukuran });
+  });
+  return urut.sort(function (a, b) { return String(a.kirim).localeCompare(String(b.kirim)); });
+}
+
+/* =================================================================
+   v12.2: GABUNG / PISAH SO — nomor SO hanya pengelompokan baris; stok,
+   pengiriman, harga, dan ID baris tidak berubah. Akses sama dengan SO.
+   ================================================================= */
+
+/** Dokumen (SO / INVOICE) aktif yang merujuk nomor SO lama → DIGANTI (link lama mati; buat ulang dari SO baru). */
+function gantiDokumenSo_(daftarNo, alasan, u) {
+  var n = 0, peta = {}; daftarNo.forEach(function (x) { peta[x] = 1; });
+  baca_(SHEET.DOKUMEN).forEach(function (r) {
+    if (r.Status !== 'AKTIF' || (r.Jenis !== 'SO' && r.Jenis !== 'INVOICE') || !peta[String(r.Ref)]) return;
+    ubahBaris_(SHEET.DOKUMEN, r._baris, { Status: 'DIGANTI', Log_Edit: [r.Log_Edit, Utilities.formatDate(new Date(), APP.zona, 'dd/MM HH:mm') + ' ' + u.nama + ': ' + alasan].filter(String).join('\n') });
+    n++;
+  });
+  return n;
+}
+
+/** Gabung beberapa SO (customer sama) jadi satu nomor — nomor paling awal dipakai, yang lain hilang. */
+function gabungSo(daftarNo, ident) {
+  var u = penggunaSaatIni_(ident);
+  if (!bolehSo_(u)) throw new Error('Hanya akun dengan akses Sales order yang bisa menggabung SO.');
+  var peta = {}; (daftarNo || []).forEach(function (n) { n = String(n || '').trim(); if (n) peta[n] = 1; });
+  var daftar = Object.keys(peta).sort();
+  if (daftar.length < 2) throw new Error('Pilih minimal 2 SO untuk digabung.');
+  var lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  lupakanMemo_();
+  try {
+    var rows = baca_(SHEET.SO).filter(function (r) { return peta[String(r.No_SO)]; });
+    daftar.forEach(function (n) { if (!rows.some(function (r) { return String(r.No_SO) === n; })) throw new Error('SO tidak ditemukan: ' + n); });
+    var aktif = rows.filter(function (r) { return r.Status !== STATUS_SO.DIBATALKAN; });
+    if (!aktif.length) throw new Error('Semua baris SO yang dipilih sudah dibatalkan.');
+    var cust = {}; aktif.forEach(function (r) { cust[String(r.Customer)] = 1; });
+    if (Object.keys(cust).length > 1) throw new Error('SO yang digabung harus untuk customer yang sama (' + Object.keys(cust).join(' ≠ ') + ').');
+    rows.forEach(function (r) { if (bulanTertutup_(r.Tanggal)) throw new Error('Bulan ' + String(r.Tanggal).slice(0, 7) + ' sudah ditutup — SO ' + r.No_SO + ' tidak bisa diubah.'); });
+    var tujuan = daftar[0], hilang = daftar.slice(1);
+    var stempel = Utilities.formatDate(new Date(), APP.zona, 'dd/MM HH:mm') + ' ' + u.nama + ': digabung ke ' + tujuan;
+    rows.forEach(function (r) {
+      if (String(r.No_SO) === tujuan) return;
+      ubahBaris_(SHEET.SO, r._baris, { No_SO: tujuan, Log_Edit: [r.Log_Edit, stempel + ' (dari ' + r.No_SO + ')'].filter(String).join('\n') });
+    });
+    var dok = gantiDokumenSo_(hilang, 'SO digabung ke ' + tujuan + ' — buat dokumen baru dari SO gabungan', u);
+    sinkronJatuhTempoSo_(tujuan);
+    catatLog_('SO_GABUNG', tujuan, daftar.join(' + ') + ' • ' + rows.length + ' baris' + (dok ? ' • ' + dok + ' dokumen diganti' : ''));
+    return { ok: true, noSo: tujuan, dari: hilang, baris: rows.length, dokumenDiganti: dok };
+  } finally { lock.releaseLock(); }
+}
+
+/** Pisah baris SO (ID) yang dipilih menjadi nomor SO baru: <No_SO>-P2, -P3, … Minimal 1 baris tetap di SO asal. */
+function pisahSo(ids, ident) {
+  var u = penggunaSaatIni_(ident);
+  if (!bolehSo_(u)) throw new Error('Hanya akun dengan akses Sales order yang bisa memisah SO.');
+  var pilih = {}; (ids || []).forEach(function (x) { x = String(x || '').trim(); if (x) pilih[x] = 1; });
+  if (!Object.keys(pilih).length) throw new Error('Pilih baris SO yang mau dipisah.');
+  var lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  lupakanMemo_();
+  try {
+    var semua = baca_(SHEET.SO), dipilih = semua.filter(function (r) { return pilih[r.ID]; });
+    if (dipilih.length !== Object.keys(pilih).length) throw new Error('Ada baris SO yang tidak ditemukan.');
+    var noAsal = String(dipilih[0].No_SO);
+    dipilih.forEach(function (r) {
+      if (String(r.No_SO) !== noAsal) throw new Error('Baris yang dipisah harus dari SO yang sama.');
+      if (r.Status === STATUS_SO.DIBATALKAN) throw new Error('Baris yang sudah dibatalkan tidak bisa dipisah.');
+      if (bulanTertutup_(r.Tanggal)) throw new Error('Bulan ' + String(r.Tanggal).slice(0, 7) + ' sudah ditutup.');
+    });
+    var sisa = semua.filter(function (r) { return String(r.No_SO) === noAsal && !pilih[r.ID] && r.Status !== STATUS_SO.DIBATALKAN; });
+    if (!sisa.length) throw new Error('Minimal satu baris harus tetap di ' + noAsal + ' — kalau semua, tidak perlu dipisah.');
+    var dasar = noAsal.replace(/-P\d+$/, ''), n = 1;
+    semua.forEach(function (r) { var m = String(r.No_SO).match(/^(.+)-P(\d+)$/); if (m && m[1] === dasar) n = Math.max(n, parseInt(m[2], 10)); });
+    var noBaru = dasar + '-P' + (n + 1);
+    var stempel = Utilities.formatDate(new Date(), APP.zona, 'dd/MM HH:mm') + ' ' + u.nama + ': dipisah dari ' + noAsal + ' ke ' + noBaru;
+    dipilih.forEach(function (r) { ubahBaris_(SHEET.SO, r._baris, { No_SO: noBaru, Log_Edit: [r.Log_Edit, stempel].filter(String).join('\n') }); });
+    var dok = gantiDokumenSo_([noAsal], 'SO dipisah (' + noBaru + ') — buat dokumen baru', u);
+    sinkronJatuhTempoSo_(noAsal); sinkronJatuhTempoSo_(noBaru);
+    catatLog_('SO_PISAH', noBaru, 'dari ' + noAsal + ' • ' + dipilih.length + ' baris' + (dok ? ' • ' + dok + ' dokumen diganti' : ''));
+    return { ok: true, noSo: noBaru, dari: noAsal, baris: dipilih.length, dokumenDiganti: dok };
+  } finally { lock.releaseLock(); }
 }
 
 /** kg per item yang sudah dipesan customer tapi belum dikirim (stok "dicadangkan"). */

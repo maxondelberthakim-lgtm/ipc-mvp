@@ -18,7 +18,7 @@ var T = {
     a11t:'Daur ulang BS', a11s:'BS → mesin chassen (pabrik lain) → biji plastik daur ulang · susut & jasa',
     a4t:'Antrian review', a4s:'Foto di sebelah angka · setuju / tandai',
     lblSupplier:'Supplier', lblCustomer:'Customer', lblFotoSJ:'Foto surat jalan', fotoHintSJ:'Bukti silang untuk angka yang diketik',
-    lblFoto:'Foto bukti', fotoAmbil:'Ambil foto',
+    lblFoto:'Foto bukti', fotoAmbil:'Kamera atau galeri',
     fotoHint:'Wajib — jadi bukti silang angka yang diketik',
     btnOcr:'🔍 Baca surat jalan', btnGanti:'Ganti foto',
     lblNoSJ:'No. surat jalan', secItem:'Item', btnTambahItem:'+ Tambah item',
@@ -46,7 +46,7 @@ var T = {
     kosongRev:'Antrian bersih. Tidak ada yang perlu ditinjau.',
     kosongData:'Belum ada data.',
     wajibFoto:'Foto bukti wajib diisi.', wajibItem:'Isi minimal satu item dengan qty.',
-    fotoMenyusul:'Foto boleh menyusul — bisa diunggah nanti dari riwayat', tambahFoto:'+ Foto', belumFoto:'belum ada foto', fotoTersimpan:'Foto tersimpan', wajibFotoSJChassen:'Foto surat jalan chassen wajib diunggah.', alasanWajib:'Alasan wajib diisi (minimal 3 huruf).', fotoHintChassen:'Wajib: foto surat jalan dari/ke tempat chassen', tanpaFotoBanner:'{n} entri belum ada foto — buka riwayat lalu tekan "+ Foto"',
+    fotoMenyusul:'Dari kamera atau galeri HP · boleh juga ditambah nanti', tambahFoto:'+ Foto', belumFoto:'belum ada foto', fotoTersimpan:'Foto tersimpan', wajibFotoSJChassen:'Foto surat jalan chassen wajib diunggah.', alasanWajib:'Alasan wajib diisi (minimal 3 huruf).', fotoHintChassen:'Wajib: foto surat jalan dari/ke tempat chassen', tanpaFotoBanner:'{n} entri belum ada foto — buka riwayat lalu tekan "+ Foto"',
     wajibSupplier:'Pilih supplier dulu.', wajibSJ:'No. surat jalan wajib diisi.',
     menyimpan:'Menyimpan…', tersimpan:'Tersimpan', gagal:'Gagal', keluar:'Keluar',
     lblTanggal:'Tanggal transaksi', hintTanggal:'Default hari ini. Ganti kalau barangnya masuk/keluar kemarin tapi baru dicatat sekarang.',
@@ -162,6 +162,10 @@ var T = {
     lblTanggalKirim:'Tanggal kirim', lblHargaJual:'Harga jual / kg', btnSimpanSo:'Simpan SO', soTersimpan:'SO tersimpan', kosongSo:'Tidak ada SO',
     soDikirim:'dikirim', ubahSo:'Ubah', batalSo:'Batalkan SO', alasanBatalSo:'Alasan pembatalan', soDibatalkan:'SO dibatalkan',
     kirimSo:'Kirim', soTerkirim:'terkirim',
+    soModePilih:'☑ Pilih SO', soGabung:'Gabung jadi 1 SO', soPisah:'✂ Pisah', soPisahKe:'Pisah ke SO baru', soTerpilih:'{n} SO dipilih', barisTerpilih:'{n} baris dipilih',
+    soPilihHint:'Centang SO yang mau digabung (customer harus sama)', soPisahHint:'Centang baris yang mau dipindah ke SO baru', soBedaCustomer:'Customer berbeda — hanya SO customer yang sama yang bisa digabung',
+    soGabungKonfirmasi:'Gabung {n} SO menjadi {no}? Dokumen SO / invoice lama dari SO yang digabung tidak berlaku lagi.', soPisahKonfirmasi:'Pindahkan {n} baris ke SO baru?',
+    soGabungOk:'SO digabung → {no}', soPisahOk:'{n} baris dipindah ke {no}', selesaiPilih:'Selesai',
     segEkspor:'Ekspor', eksporT:'Ekspor bulanan untuk keuangan', eksporS:'7 file CSV (buka di Excel): ringkasan, pembelian, penjualan, produksi, rusak, daur ulang, nilai stok. Angka harga hanya di sini — staf tidak melihatnya.',
     lblBulan:'Bulan', btnEkspor:'Siapkan file', btnUnduhSemua:'Unduh semua', unduh:'Unduh', eksporSiap:'File siap — tekan Unduh',
     segBackup:'Backup', backupT:'Backup otomatis', backupS:'Salinan Sheet dibuat tiap malam ke folder Google Drive "IPC Backup". 30 salinan terakhir disimpan.',
@@ -276,7 +280,7 @@ var T = {
     a11t:'Scrap (BS) recycling', a11s:'BS → crusher (another factory) → recycled pellets · shrinkage & fee',
     a4t:'Review queue', a4s:'Photo next to the typed number · approve / flag',
     lblSupplier:'Supplier', lblCustomer:'Customer', lblFotoSJ:'Delivery-note photo', fotoHintSJ:'Cross-checks the number you typed',
-    lblFoto:'Proof photo', fotoAmbil:'Take photo',
+    lblFoto:'Proof photo', fotoAmbil:'Camera or gallery',
     fotoHint:'Required — cross-checks the number you typed',
     btnOcr:'🔍 Read delivery note', btnGanti:'Replace photo',
     lblNoSJ:'Delivery note no.', secItem:'Items', btnTambahItem:'+ Add item',
@@ -304,7 +308,7 @@ var T = {
     kosongRev:'Queue is clear. Nothing to review.',
     kosongData:'No data yet.',
     wajibFoto:'A proof photo is required.', wajibItem:'Add at least one item with a quantity.',
-    fotoMenyusul:'Photo can follow later — upload it from the history list', tambahFoto:'+ Photo', belumFoto:'no photo yet', fotoTersimpan:'Photo saved', wajibFotoSJChassen:'A photo of the crusher delivery note is required.', alasanWajib:'A reason is required (at least 3 characters).', fotoHintChassen:'Required: photo of the delivery note to/from the crusher', tanpaFotoBanner:'{n} entries have no photo yet — open the history and tap "+ Photo"',
+    fotoMenyusul:'From the camera or the phone gallery · can also be added later', tambahFoto:'+ Photo', belumFoto:'no photo yet', fotoTersimpan:'Photo saved', wajibFotoSJChassen:'A photo of the crusher delivery note is required.', alasanWajib:'A reason is required (at least 3 characters).', fotoHintChassen:'Required: photo of the delivery note to/from the crusher', tanpaFotoBanner:'{n} entries have no photo yet — open the history and tap "+ Photo"',
     wajibSupplier:'Select a supplier first.', wajibSJ:'Delivery note number is required.',
     menyimpan:'Saving…', tersimpan:'Saved', gagal:'Failed', keluar:'Log out',
     lblTanggal:'Transaction date', hintTanggal:'Defaults to today. Change it if the goods moved yesterday but are only being logged now.',
@@ -415,6 +419,10 @@ var T = {
     lblTanggalKirim:'Ship date', lblHargaJual:'Selling price / kg', btnSimpanSo:'Save SO', soTersimpan:'SO saved', kosongSo:'No SOs',
     soDikirim:'shipped', ubahSo:'Edit', batalSo:'Cancel SO', alasanBatalSo:'Cancellation reason', soDibatalkan:'SO cancelled',
     kirimSo:'Ship', soTerkirim:'shipped',
+    soModePilih:'☑ Select SOs', soGabung:'Merge into 1 SO', soPisah:'✂ Split', soPisahKe:'Split into new SO', soTerpilih:'{n} SOs selected', barisTerpilih:'{n} lines selected',
+    soPilihHint:'Tick the SOs to merge (same customer)', soPisahHint:'Tick the lines to move to a new SO', soBedaCustomer:'Different customers — only SOs of the same customer can be merged',
+    soGabungKonfirmasi:'Merge {n} SOs into {no}? Old SO documents / invoices of the merged SOs will no longer be valid.', soPisahKonfirmasi:'Move {n} lines to a new SO?',
+    soGabungOk:'SOs merged → {no}', soPisahOk:'{n} lines moved to {no}', selesaiPilih:'Done',
     segEkspor:'Export', eksporT:'Monthly export for finance', eksporS:'7 CSV files (open in Excel): summary, purchases, sales, production, damage, recycling, stock value. Prices appear only here — staff never see them.',
     lblBulan:'Month', btnEkspor:'Prepare files', btnUnduhSemua:'Download all', unduh:'Download', eksporSiap:'Files ready — press Download',
     segBackup:'Backup', backupT:'Automatic backup', backupS:'A copy of the Sheet is made every night into the Google Drive folder "IPC Backup". The last 30 copies are kept.',
@@ -547,7 +555,7 @@ var S = {
   baris:{ rcv:[], ambil:[], rusak:[], po:[], so:[], daur:[], daurHasil:[] },
   shift:null, shiftEdit:null, shiftCfg:null, shiftCache:null, shiftSemua:false,
   poTerbuka:[], returSisa:[], poTab:'aktif', poDetail:null,
-  soTerbuka:[], soTab:'aktif', soCache:null, soAuto:null,
+  soTerbuka:[], soTab:'aktif', soCache:null, soUrut:null, soAuto:null, soPilih:null, soPisah:null,
   daurTab:'list', daurAktif:null,
   edit:null, edJob:null, admTab:'opname', opname:null, opprod:null, rekonBulan:null, sku:null, userEdit:null,
   ocr:null, modeExt:'BELI_MASUK',
@@ -625,7 +633,7 @@ function keluar(){
   ['dokWrap','waWrap'].forEach(function(id){ var el=$(id); if (el) el.classList.add('hide'); });
   var wp = $('waPesan'); if (wp) wp.value = '';
   S.dok = null; S.dokRows = null; S.dokPeng = null; S.kontakWa = null; S.wa = null;
-  S.daurCache = null; S.daurCacheDone = null; S.soCache = null; S.poCache = null; S.ekspor = null; S.shiftCache = null; S.shiftKunci = null; S.shiftCfg = null; S.shiftEdit = null; S.opprod = null; S.rekonBulan = null; STOK_CACHE = {};
+  S.daurCache = null; S.daurCacheDone = null; S.soCache = null; S.soUrut = null; S.soPilih = null; S.soPisah = null; S.poCache = null; S.ekspor = null; S.shiftCache = null; S.shiftKunci = null; S.shiftCfg = null; S.shiftEdit = null; S.opprod = null; S.rekonBulan = null; STOK_CACHE = {};
   ['nav-review','nav-admin'].forEach(function(id){ var el=$(id); if(el) el.classList.add('hide'); });
   tampil('ident');
 }
@@ -751,10 +759,13 @@ function gambarKirimHariIni(rows){
   var card = $('kirimHariIniCard'), el = $('kirimHariIni'); if (!card) return;
   card.classList.toggle('hide', !rows.length);
   var hari = hariIniStr();
+  /* v12.2: satu baris per SO (bukan per item) — tekan → form barang keluar dengan semua baris SO terisi */
   el.innerHTML = rows.map(function(p){
-    var telat = p.kirim && p.kirim < hari;
-    return '<div class="hist tap" onclick="bukaKirimSo(\''+esc(p.id||'')+'\')"><span class="hq">'+n2(p.sisa)+' kg</span>' +
-      '<span class="hx"><b>'+esc(p.item)+'</b><small>'+esc(p.customer)+' · '+esc(p.noSo)+'</small></span>' +
+    var telat = p.kirim && p.kirim < hari, baris = p.baris || [];
+    var ids = baris.map(function(b){ return b.id; }).join(',');
+    var rinci = baris.map(function(b){ return esc(b.item)+(b.ukuran?' '+esc(b.ukuran):'')+' '+n2(b.sisa)+' kg'; }).join(' · ');
+    return '<div class="hist tap" onclick="bukaKirimSo(\''+esc(ids)+'\')"><span class="hq">'+n2(p.sisa)+' kg</span>' +
+      '<span class="hx"><b>'+esc(p.noSo)+' · '+esc(p.customer)+'</b><small>'+(p.jumlahBaris||baris.length)+' '+esc(t('item'))+(rinci?' — '+rinci:'')+'</small></span>' +
       '<span class="hb"><span class="pill '+(telat?'bad':'warn')+'">'+esc(p.kirim||'')+'</span></span></div>';
   }).join('');
 }
@@ -1090,7 +1101,7 @@ function gambarBaris(k){
           (b.idPo ? '<small>'+esc(b.noPo||'PO')+' · '+esc(t('sisaPo'))+' <b>'+n2(b.sisa||0)+' kg</b>'+(b.datang?' · '+esc(t('datang'))+' '+esc(b.datang):'')+'</small>' +
                     (b.spesifikasi ? '<small class="spek">'+esc(t('spesifikasi'))+': '+esc(b.spesifikasi)+'</small>' : '') : '') +
           (b.idAsal ? '<small>'+esc(b.tanggalAsal||'')+' · '+esc(b.noSj||'')+' · '+esc(t('bisaRetur'))+' <b>'+n2(b.sisa||0)+' kg</b></small>' : '') +
-          (b.idSo ? '<small>'+esc(b.noSo||'SO')+' · '+esc(t('sisaSo'))+' <b>'+n2(b.sisa||0)+' kg</b>'+(b.kirim?' · '+esc(t('kirim'))+' '+esc(b.kirim):'')+'</small>' : '') +
+          (b.idSo ? '<small>'+esc(b.noSo||'SO')+(b.ukuran?' · 📐 '+esc(b.ukuran):'')+' · '+esc(t('sisaSo'))+' <b>'+n2(b.sisa||0)+' kg</b>'+(b.kirim?' · '+esc(t('kirim'))+' '+esc(b.kirim):'')+'</small>' : '') +
         '</div>'
       : '<div class="combo"><input id="cb-'+k+'-'+i+'" autocomplete="off"><div class="combo-list hide"></div></div>';
     var ekstra = '';
@@ -1443,13 +1454,13 @@ function bukaMutasi(mode){
   if (mode === 'JUAL_KELUAR') muatSoTerbuka();
 }
 /* dari kartu "Kirim hari ini" di beranda: buka form barang keluar dengan baris SO sudah terpilih */
-function bukaKirimSo(idSo){ S.soAuto = idSo || null; bukaMutasi('JUAL_KELUAR'); }
+function bukaKirimSo(idSo){ S.soAuto = idSo || null; bukaMutasi('JUAL_KELUAR'); }   /* idSo boleh beberapa ID dipisah koma (v12.2) */
 function muatSoTerbuka(){
   var sel = $('rcvSoPilih'); if (sel) sel.innerHTML = '<option value="">…</option>';
   panggil('soTerbuka',[S.ident]).then(function(rows){
     S.soTerbuka = rows;
     isiPilihSo();
-    if (S.soAuto && S.modeExt === 'JUAL_KELUAR'){ var id = S.soAuto; S.soAuto = null; pilihSoBaris(id); }
+    if (S.soAuto && S.modeExt === 'JUAL_KELUAR'){ var ids = String(S.soAuto).split(','); S.soAuto = null; ids.forEach(function(id){ pilihSoBaris(id.trim()); }); }
   }).catch(function(e){ toast(e.message,'bad'); });
 }
 function isiPilihSo(){
@@ -1457,7 +1468,7 @@ function isiPilihSo(){
   var cus = comboNama('rcvPartner');
   var rows = S.soTerbuka.filter(function(p){ return !cus || p.customer === cus; });
   sel.innerHTML = '<option value="">'+esc(rows.length ? t('pilihSo') : t('tanpaSoTersedia'))+'</option>' +
-    rows.map(function(p){ return '<option value="'+esc(p.id)+'">'+esc(p.noSo)+' · '+esc(p.item)+' · '+esc(t('sisaSo'))+' '+n2(p.sisa)+' kg'+(p.tanggalKirim?' · '+esc(p.tanggalKirim):'')+(cus?'':' · '+esc(p.customer))+'</option>'; }).join('');
+    rows.map(function(p){ return '<option value="'+esc(p.id)+'">'+esc(p.noSo)+' · '+esc(p.item)+(p.ukuran?' '+esc(p.ukuran):'')+' · '+esc(t('sisaSo'))+' '+n2(p.sisa)+' kg'+(p.tanggalKirim?' · '+esc(p.tanggalKirim):'')+(cus?'':' · '+esc(p.customer))+'</option>'; }).join('');
 }
 function pilihSoBaris(id){
   if (!id) return;
@@ -1466,7 +1477,7 @@ function pilihSoBaris(id){
   if (S.baris.rcv.some(function(b){ return b.idSo === id; })){ $('rcvSoPilih').value=''; return; }
   if (!comboNama('rcvPartner')){ pasangCombo($('rcvPartner'), Object.assign({}, $('rcvPartner')._combo, { nilai: p.customer })); isiPilihSo(); }
   S.baris.rcv = S.baris.rcv.filter(function(b){ return b.kode || b.qty; });
-  S.baris.rcv.push({ kode:p.kode, qty:String(p.sisa), idSo:p.id, noSo:p.noSo, sisa:p.sisa, kirim:p.tanggalKirim });
+  S.baris.rcv.push({ kode:p.kode, qty:String(p.sisa), idSo:p.id, noSo:p.noSo, sisa:p.sisa, kirim:p.tanggalKirim, ukuran:p.ukuran||'' });
   gambarBaris('rcv');
   $('rcvSoPilih').value = '';
 }
@@ -2896,7 +2907,7 @@ function poInvoice(){
       '<div class="field"><label>'+esc(t('lblTotalInv'))+'</label><input type="number" inputmode="decimal" step="any" min="0" id="invTotal"></div>' +
       '<div class="field"><label>'+esc(t('lblFileInv'))+'</label>' +
         '<div class="photo" id="invFotoBox" onclick="document.getElementById(\'invFile\').click()"><div class="p1">📷 '+esc(t('fotoAmbil'))+'</div></div>' +
-        '<input type="file" accept="image/*" capture="environment" id="invFile" class="hide" onchange="fotoTerpilih(event,\'inv\')"></div>' +
+        '<input type="file" accept="image/*" id="invFile" class="hide" onchange="fotoTerpilih(event,\'inv\')"></div>' +
       '<div class="field"><label>'+esc(t('lblCatatan'))+'</label><textarea id="invCatatan"></textarea></div>' +
       '<button class="btn" id="btnSimpanInv" onclick="simpanInvUI()">'+esc(t('invUnggah'))+'</button></div>';
     h += '<div class="card"><h2>'+esc(t('invT'))+'</h2>' +
@@ -3096,7 +3107,7 @@ function statusSoGabung(baris){
   return 'TERBUKA';
 }
 function segSo(tab){
-  S.soTab = tab || 'aktif';
+  S.soTab = tab || 'aktif'; S.soPilih = null; S.soPisah = null;
   ['aktif','selesai','baru'].forEach(function(x){
     var el = $('segSo'+x.charAt(0).toUpperCase()+x.slice(1)); if (el) el.classList.toggle('on', x===S.soTab);
   });
@@ -3112,8 +3123,52 @@ function soDaftar(tab){
     rows.forEach(function(r){ if (!grup[r.noSo]){ grup[r.noSo] = []; urut.push(r.noSo); } grup[r.noSo].push(r); });
     S.soCache = grup;
     if (!urut.length){ $('soBody').innerHTML = '<div class="empty"><span class="g">🧾</span>'+esc(t('kosongSo'))+'</div>'; return; }
-    $('soBody').innerHTML = urut.map(function(no){ return kartuSo(no, grup[no]); }).join('');
+    S.soUrut = urut; gambarSoDaftar();
   }).catch(function(e){ $('soBody').innerHTML = '<div class="banner bad">'+esc(e.message)+'</div>'; });
+}
+/* v12.2: gabung / pisah SO langsung di halaman daftar — tanpa menu tambahan.
+   S.soPilih = {no:true,…} saat mode "Pilih SO" (gabung); S.soPisah = {no, ids:{}} saat memilih baris untuk dipisah. */
+function gambarSoDaftar(){
+  var urut = S.soUrut || [], grup = S.soCache || {}, bisa = S.ctx && S.ctx.bisaSo && S.soTab === 'aktif';
+  var bar = '';
+  if (bisa && S.soPilih){
+    var nos = Object.keys(S.soPilih), cust = {}; nos.forEach(function(no){ var b = (grup[no]||[])[0]; if (b) cust[b.customer] = 1; });
+    var beda = Object.keys(cust).length > 1;
+    bar = '<div class="card" style="position:sticky;top:0;z-index:5;padding:10px 12px;margin-bottom:10px">' +
+      '<div style="font-weight:700">'+esc(t('soTerpilih').replace('{n}', nos.length))+'</div>' +
+      '<div class="hint" style="margin:2px 0 8px">'+esc(beda ? t('soBedaCustomer') : t('soPilihHint'))+'</div>' +
+      '<div class="btnrow"><button class="btn ghost sm" onclick="S.soPilih=null;gambarSoDaftar()">'+esc(t('batal'))+'</button>' +
+      '<button class="btn sm" id="btnGabungSo" onclick="gabungSoUI()"'+(nos.length < 2 || beda ? ' disabled' : '')+'>'+esc(t('soGabung'))+'</button></div></div>';
+  } else if (bisa && S.soPisah){
+    var n = Object.keys(S.soPisah.ids).length, aktifN = (grup[S.soPisah.no]||[]).filter(function(b){ return b.status!=='SELESAI' && b.status!=='DIBATALKAN'; }).length;
+    bar = '<div class="card" style="position:sticky;top:0;z-index:5;padding:10px 12px;margin-bottom:10px">' +
+      '<div style="font-weight:700">'+esc(S.soPisah.no)+' · '+esc(t('barisTerpilih').replace('{n}', n))+'</div>' +
+      '<div class="hint" style="margin:2px 0 8px">'+esc(t('soPisahHint'))+'</div>' +
+      '<div class="btnrow"><button class="btn ghost sm" onclick="S.soPisah=null;gambarSoDaftar()">'+esc(t('batal'))+'</button>' +
+      '<button class="btn sm" id="btnPisahSo" onclick="pisahSoUI()"'+(n < 1 || n >= aktifN ? ' disabled' : '')+'>'+esc(t('soPisahKe'))+'</button></div></div>';
+  } else if (bisa && urut.length >= 2){
+    bar = '<div class="btnrow" style="justify-content:flex-end;margin-bottom:10px"><button class="btn sec sm" onclick="S.soPilih={};gambarSoDaftar()">'+esc(t('soModePilih'))+'</button></div>';
+  }
+  $('soBody').innerHTML = bar + urut.map(function(no){ return kartuSo(no, grup[no]); }).join('');
+}
+function togglePilihSo(no, on){ if (!S.soPilih) S.soPilih = {}; if (on) S.soPilih[no] = true; else delete S.soPilih[no]; gambarSoDaftar(); }
+function mulaiPisahSo(no){ S.soPisah = { no:no, ids:{} }; S.soPilih = null; gambarSoDaftar(); var el = $('so-'+no); if (el) el.scrollIntoView({ behavior:'smooth', block:'start' }); }
+function togglePisahBaris(id, on){ if (!S.soPisah) return; if (on) S.soPisah.ids[id] = true; else delete S.soPisah.ids[id]; gambarSoDaftar(); }
+function gabungSoUI(){
+  var nos = Object.keys(S.soPilih || {}).sort(); if (nos.length < 2) return;
+  if (!confirm(t('soGabungKonfirmasi').replace('{n}', nos.length).replace('{no}', nos[0]))) return;
+  var btn = $('btnGabungSo'); sibuk(btn, true);
+  panggil('gabungSo',[nos, S.ident]).then(function(r){
+    toast(t('soGabungOk').replace('{no}', r.noSo), 'ok'); S.soPilih = null; muatKonteks(true); segSo('aktif');
+  }).catch(function(e){ sibuk(btn,false); toast(e.message,'bad'); });
+}
+function pisahSoUI(){
+  var ids = Object.keys((S.soPisah||{}).ids || {}); if (!ids.length) return;
+  if (!confirm(t('soPisahKonfirmasi').replace('{n}', ids.length))) return;
+  var btn = $('btnPisahSo'); sibuk(btn, true);
+  panggil('pisahSo',[ids, S.ident]).then(function(r){
+    toast(t('soPisahOk').replace('{n}', r.baris).replace('{no}', r.noSo), 'ok'); S.soPisah = null; muatKonteks(true); segSo('aktif');
+  }).catch(function(e){ sibuk(btn,false); toast(e.message,'bad'); });
 }
 function kartuSo(no, baris){
   var b0 = baris[0], lihat = lihatHpp(), st = statusSoGabung(baris), hari = hariIniStr();
@@ -3121,8 +3176,12 @@ function kartuSo(no, baris){
   baris.forEach(function(b){ if (b.status==='DIBATALKAN') return; qty += b.qty; kir += b.dikirim; if (lihat) nilai += b.nilai||0; });
   var tutup = st==='SELESAI' || st==='DIBATALKAN';
   var telat = !tutup && b0.tanggalKirim && b0.tanggalKirim < hari;
-  return '<div class="rev" id="so-'+esc(no)+'"><div class="body">' +
-    '<div style="display:flex;align-items:flex-start;gap:10px"><div style="flex:1">' +
+  var modePilih = !!S.soPilih && !tutup, modePisah = !!(S.soPisah && S.soPisah.no === no);
+  var aktifN = baris.filter(function(b){ return b.status!=='SELESAI' && b.status!=='DIBATALKAN'; }).length;
+  return '<div class="rev" id="so-'+esc(no)+'"'+(modePisah ? ' style="outline:2px solid var(--primary)"' : '')+'><div class="body">' +
+    '<div style="display:flex;align-items:flex-start;gap:10px">' +
+    (modePilih ? '<label style="display:flex;align-items:center;padding:2px 0"><input type="checkbox" style="width:22px;height:22px;margin:0" '+(S.soPilih[no]?'checked ':'')+'onchange="togglePilihSo(\''+esc(no)+'\',this.checked)"></label>' : '') +
+    '<div style="flex:1">' +
       '<div style="font-weight:700;font-size:15px">'+esc(no)+' · '+esc(b0.customer)+'</div>' +
       '<div class="meta">'+esc(b0.tanggal)+(b0.tanggalKirim ? ' · '+esc(t('kirim'))+' <b'+(telat?' style="color:var(--danger)"':'')+'>'+esc(b0.tanggalKirim)+'</b>' : '')+' · '+esc(b0.pembuat)+'</div>' +
       (lihat ? '<div class="meta">TOP '+n2(b0.topHari||0)+' '+esc(t('pHari'))+(b0.jatuhTempo ? ' · '+esc(t('jatuhTempo'))+' <b>'+esc(b0.jatuhTempo)+'</b>' : '')+'</div>' : '') +
@@ -3130,7 +3189,8 @@ function kartuSo(no, baris){
     '<div class="kv"><span>'+esc(t('total'))+'</span><b>'+n2(qty)+' kg · '+esc(t('soDikirim'))+' '+n2(kir)+' kg'+(lihat ? ' · '+rp(nilai) : '')+'</b></div>' +
     baris.map(function(b){ return barisSoHtml(b, lihat, tutup); }).join('') +
     (b0.catatan ? '<div class="kv"><span>'+esc(t('lblCatatan'))+'</span><b>'+esc(b0.catatan)+'</b></div>' : '') +
-    (S.ctx && S.ctx.bisaSo && st!=='DIBATALKAN' ? '<div class="btnrow" style="margin-top:10px"><button class="btn sec sm" onclick="bukaDok(\'SO\',\''+esc(no)+'\')">📄 '+esc(t('dokSo'))+'</button><button class="btn sec sm" onclick="bukaDok(\'INVOICE\',\''+esc(no)+'\')">🧾 '+esc(t('dokInvoice'))+'</button></div>' : '') +
+    (S.ctx && S.ctx.bisaSo && st!=='DIBATALKAN' && !modePilih && !modePisah ? '<div class="btnrow" style="margin-top:10px;flex-wrap:wrap"><button class="btn sec sm" onclick="bukaDok(\'SO\',\''+esc(no)+'\')">📄 '+esc(t('dokSo'))+'</button><button class="btn sec sm" onclick="bukaDok(\'INVOICE\',\''+esc(no)+'\')">🧾 '+esc(t('dokInvoice'))+'</button>' +
+      (!tutup && aktifN >= 2 ? '<button class="btn ghost sm" onclick="mulaiPisahSo(\''+esc(no)+'\')">'+esc(t('soPisah'))+'</button>' : '') + '</div>' : '') +
   '</div></div>';
 }
 function barisSoHtml(b, lihat, tutup){
@@ -3139,8 +3199,11 @@ function barisSoHtml(b, lihat, tutup){
   var bisaUbah = !tutup && aktif && S.ctx && S.ctx.bisaSo;
   var st = (S.ctx && S.ctx.stok && S.ctx.stok[b.kode]) || null;
   var kurang = st && aktif && b.sisa > st.gbj + 0.0001;
+  var modePisah = !!(S.soPisah && S.soPisah.no === b.noSo), modeMana = modePisah || !!S.soPilih;
   return '<div class="listrow" id="sor-'+esc(b.id)+'">' +
-    '<div style="display:flex;align-items:baseline;gap:9px"><b style="flex:1;font-size:14px">'+esc(b.item)+'</b>' +
+    '<div style="display:flex;align-items:baseline;gap:9px">' +
+    (modePisah && aktif ? '<input type="checkbox" style="width:20px;height:20px;margin:0;align-self:center" '+(S.soPisah.ids[b.id]?'checked ':'')+'onchange="togglePisahBaris(\''+esc(b.id)+'\',this.checked)">' : '') +
+    '<b style="flex:1;font-size:14px">'+esc(b.item)+'</b>' +
       '<span style="font-size:16px;font-weight:700;font-variant-numeric:tabular-nums">'+n2(b.qty)+' kg</span>'+(b.status==='DIBATALKAN'?pillPo(b.status):'')+'</div>' +
     '<div class="bar"><i style="width:'+pct+'%;background:'+(pct>=100?'var(--ok)':'var(--primary)')+'"></i></div>' +
     '<div style="font-size:11.5px;color:var(--muted);font-variant-numeric:tabular-nums">'+esc(t('soDikirim'))+' '+n2(b.dikirim)+' · '+esc(t('poSisa'))+' '+n2(b.sisa)+' kg' +
@@ -3148,7 +3211,7 @@ function barisSoHtml(b, lihat, tutup){
       (lihat ? ' · '+rp(b.harga)+'/kg = '+rp(b.nilai) : '')+'</div>' +
     (b.ukuran ? '<div class="spek">📐 '+esc(t('ukuranS'))+' '+esc(b.ukuran)+'</div>' : '') +
     (b.logEdit ? '<div style="font-size:11px;color:var(--muted);white-space:pre-line;margin-top:3px"><i>'+esc(b.logEdit)+'</i></div>' : '') +
-    (aktif && !tutup ? '<div class="btnrow" style="margin-top:7px;justify-content:flex-end">' +
+    (aktif && !tutup && !modeMana ? '<div class="btnrow" style="margin-top:7px;justify-content:flex-end">' +
         (bisaUbah ? '<button class="btn ghost xs" onclick="batalSoUI(\''+esc(b.id)+'\')">✕ '+esc(t('batalSo'))+'</button>' +
                     '<button class="btn sec xs" onclick="soEditBaris(\''+esc(b.id)+'\')">✎ '+esc(t('ubahSo'))+'</button>' : '') +
         '<button class="btn xs" onclick="bukaKirimSo(\''+esc(b.id)+'\')">🚚 '+esc(t('kirimSo'))+'</button></div>' : '') +
