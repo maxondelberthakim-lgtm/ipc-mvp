@@ -124,7 +124,7 @@ console.log('— 6. Migrasi v9 → v10 di atas data sungguhan (cloudflare/ipc-li
     ok('impor data v9 jalan', hasil.some((x) => /^Master_Item:/.test(x)), hasil);
     const ADM6 = { nama: 'Admin', pin: String(data.Master_Pengguna.find((r) => r[1] === 'Admin')[4]) };
     const k = JSON.parse(G6.m.panggil('getKonteks', [ADM6], 'mig-1'));
-    ok('getKonteks setelah migrasi ok (versi 11.1)', k.ok && k.data.app.versi === '12.2.0', k.error);
+    ok('getKonteks setelah migrasi ok (versi 11.1)', k.ok && k.data.app.versi === '12.4.1', k.error);
     ok('peta kualitas lengkap (roll/polybag/BS ditambahkan)', k.data.kualitas.length === 3 && k.data.kualitas.every((q) => q.biji && q.roll && q.jadi && q.bs), k.data.kualitas);
     ok('RM-BS-* lama dinonaktifkan, SCR-BS-* aktif', !k.data.items.some((i) => /^RM-BS-/.test(i.kode)) && k.data.items.some((i) => i.kode === 'SCR-BS-KW' && i.kategori === 'SCRAP'));
     ok('item lama (FG-PB-HP, RM-BIJI-PLASTIK-DAUR-UL) tetap ada', k.data.items.some((i) => i.kode === 'FG-PB-HP') && k.data.items.some((i) => i.kode === 'RM-BIJI-PLASTIK-DAUR-UL'));
@@ -291,6 +291,35 @@ console.log('— 9. hapusTransaksiSebelum(tanggal): data uji sebelum go-live dib
   const tolak = JSON.parse(Z.m.panggil('hapusTransaksiSebelum', [batas], 'z8'));
   ok('tidak bisa dipanggil dari aplikasi (bukan daftar putih RPC)', !tolak.ok && /tidak dikenal/.test(tolak.error), tolak);
   Z.db.close();
+}
+console.log('\n— 10. v12.4: panggilan gagal di tengah → rollback (tidak ada SO/PO setengah jadi) —');
+{
+  const R = bukaMesin();
+  const ADM = { nama: 'Admin', pin: '1234' }, DN = { nama: 'Deny', pin: '3322' };
+  JSON.parse(R.m.panggil('getKonteks', [ADM], 'r0'));
+  const cus = R.m.vars.DUMMY_CUSTOMER[0][1], hari = R.m.fns.tglStr_(new Date());
+  const sebelum = R.m.fns.baca_(R.m.vars.SHEET.SO).length, logSebelum = R.m.fns.baca_(R.m.vars.SHEET.LOG).length;
+  const baris = []; for (let i = 0; i < 18; i++) baris.push({ kode: 'FG-PB-KW', qty: 25 + i, harga: i === 7 ? '' : 20000, ukuran: (10 + i) + ' x ' + (20 + i) });
+  const g = JSON.parse(R.m.panggil('simpanSo', [{ customer: cus, tanggal: hari, tanggalKirim: hari, topHari: 0, baris }, DN], 'r1'));
+  ok('SO 18 baris dengan baris #8 tanpa harga → ditolak, pesan menyebut "Baris #8"', !g.ok && /Baris #8/.test(g.error), g.error);
+  ok('TIDAK ada baris SO yang tersisa di memori (rollback)', R.m.fns.baca_(R.m.vars.SHEET.SO).length === sebelum, R.m.fns.baca_(R.m.vars.SHEET.SO).length);
+  ok('log audit juga tidak bertambah', R.m.fns.baca_(R.m.vars.SHEET.LOG).length === logSebelum);
+  baris[7].harga = 20000;
+  const okSo = JSON.parse(R.m.panggil('simpanSo', [{ customer: cus, tanggal: hari, tanggalKirim: hari, topHari: 0, baris }, DN], 'r2'));
+  ok('setelah diperbaiki: SO 18 baris tersimpan sekaligus', okSo.ok && okSo.data.ids.length === 18 && R.m.fns.baca_(R.m.vars.SHEET.SO).filter((r) => r.No_SO === okSo.data.noSo).length === 18, okSo.error);
+  /* mesin baru dari SQLite yang sama → 18 baris tetap ada, tidak ada sisa dari percobaan gagal */
+  const R2 = bukaMesin();
+  const rows = R2.m.fns.baca_(R2.m.vars.SHEET.SO);
+  ok('dibuka ulang dari SQLite: 18 baris SO itu ada, total baris = sebelum + 18', rows.filter((r) => r.No_SO === okSo.data.noSo).length === 18 && rows.length === sebelum + 18, [rows.length, sebelum]);
+  const gp = JSON.parse(R2.m.panggil('simpanPo', [{ supplier: R2.m.vars.DUMMY_SUPPLIER[0][1], baris: [{ kode: 'RM-BP-KW', qty: 10, harga: 1 }, { kode: 'RM-BP-KW', qty: 0, harga: 1 }] }, { nama: 'Yansen', pin: '2211' }], 'r3'));
+  ok('PO dengan baris #2 qty 0 → ditolak dengan nomor baris, tidak ada PO setengah jadi', !gp.ok && /Baris #2/.test(gp.error) && !R2.m.fns.baca_(R2.m.vars.SHEET.PO).some((r) => r.Qty_Kg === 10 && r.Harga_Per_Kg === 1), gp.error);
+  /* fungsi yang MENULIS lalu baru gagal di baris berikutnya (simpanPengiriman: baris 1 ditulis, baris 2 'Item tidak dikenal') → mesin membuang tulisan baris 1 */
+  const kirimSebelum = R2.m.fns.baca_(R2.m.vars.SHEET.PENGIRIMAN).length;
+  const gk = JSON.parse(R2.m.panggil('simpanPengiriman', [{ jenis: 'KELUAR', customer: cus, baris: [{ kode: 'FG-PB-KW', qty: 1 }, { kode: 'XX-TIDAK-ADA', qty: 1 }], ident: { nama: 'Yansen', pin: '2211' } }], 'r4'));
+  ok('pengiriman: baris 1 sudah ditulis lalu baris 2 gagal → ditolak DAN baris 1 ikut dibuang (rollback mesin)', !gk.ok && /tidak dikenal/.test(gk.error) && R2.m.fns.baca_(R2.m.vars.SHEET.PENGIRIMAN).length === kirimSebelum, [gk.error, R2.m.fns.baca_(R2.m.vars.SHEET.PENGIRIMAN).length, kirimSebelum]);
+  const R3 = bukaMesin();
+  ok('dibuka ulang: SQLite juga tidak menyimpan baris 1 yang gagal', R3.m.fns.baca_(R3.m.vars.SHEET.PENGIRIMAN).length === kirimSebelum);
+  R.db.close(); R2.db.close(); R3.db.close();
 }
 try { fs.unlinkSync(file); } catch (e) {}
 console.log('\n================ ' + pass + ' lulus, ' + fail + ' gagal ================');

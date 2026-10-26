@@ -39,11 +39,16 @@ function simpanSo(p, ident) {
     var top = topValid_(p.topHari), topDari = topDariValid_(p.topDari);
     var jatuhTempo = jatuhTempo_(topDari === 'DOKUMEN' ? tanggal : (kirim || tanggal), top);
     var noSo = nomorSoBaru_(), ids = [], total = 0, nilai = 0;
-    p.baris.forEach(function (b) {
-      var it = peta[b.kode]; if (!it) throw new Error('Item tidak dikenal: ' + b.kode);
+    /* v12.4: periksa SEMUA baris dulu (pesan menyebut nomor baris), baru tulis — tidak ada SO setengah jadi */
+    var siap = p.baris.map(function (b, i) {
+      var it = peta[b.kode]; if (!it) throw new Error('Baris #' + (i + 1) + ': item tidak dikenal (' + b.kode + ')');
       var q = angka_(b.qty), h = angka_(b.harga);
-      if (q <= 0) throw new Error('Qty harus > 0 (' + it.nama + ')');
-      if (b.harga === undefined || b.harga === null || String(b.harga).trim() === '' || h <= 0) throw new Error('Harga jual belum diisi (' + it.nama + ')');
+      if (q <= 0) throw new Error('Baris #' + (i + 1) + ' (' + it.nama + '): qty harus > 0');
+      if (b.harga === undefined || b.harga === null || String(b.harga).trim() === '' || h <= 0) throw new Error('Baris #' + (i + 1) + ' (' + it.nama + '): harga jual belum diisi');
+      return { it: it, q: q, h: h, ukuran: b.ukuran };
+    });
+    siap.forEach(function (b) {
+      var it = b.it, q = b.q, h = b.h;
       var id = buatId_('SO'); ids.push(id); total += q; nilai += q * h;
       tambah_(SHEET.SO, {
         ID: id, No_SO: noSo, Waktu: now, Tanggal: tanggal, Customer: p.customer,
@@ -249,6 +254,50 @@ function gabungSo(daftarNo, ident) {
     sinkronJatuhTempoSo_(tujuan);
     catatLog_('SO_GABUNG', tujuan, daftar.join(' + ') + ' • ' + rows.length + ' baris' + (dok ? ' • ' + dok + ' dokumen diganti' : ''));
     return { ok: true, noSo: tujuan, dari: hilang, baris: rows.length, dokumenDiganti: dok };
+  } finally { lock.releaseLock(); }
+}
+
+/** v12.3: tambah item ke SO yang masih terbuka (customer tiba-tiba menambah SKU). baris: [{kode, qty, harga, ukuran}]. */
+function tambahBarisSo(noSo, baris, ident) {
+  var u = penggunaSaatIni_(ident);
+  if (!bolehSo_(u)) throw new Error('Hanya akun dengan akses Sales order yang bisa menambah item SO.');
+  noSo = String(noSo || '').trim();
+  if (!noSo) throw new Error('Nomor SO belum dipilih.');
+  if (!baris || !baris.length) throw new Error('Item belum diisi.');
+  var peta = petaItem_();
+  var lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  lupakanMemo_();
+  try {
+    var ada = baca_(SHEET.SO).filter(function (r) { return String(r.No_SO) === noSo && r.Status !== STATUS_SO.DIBATALKAN; });
+    if (!ada.length) throw new Error('SO ' + noSo + ' tidak ditemukan / sudah dibatalkan.');
+    var acuan = ada[0];
+    if (bulanTertutup_(acuan.Tanggal)) throw new Error('Bulan ' + String(acuan.Tanggal).slice(0, 7) + ' sudah ditutup.');
+    var now = new Date(), ids = [], total = 0, nilai = 0;
+    var stempel = Utilities.formatDate(now, APP.zona, 'dd/MM HH:mm') + ' ' + u.nama + ': item ditambahkan ke SO';
+    var siap = baris.map(function (b, i) {
+      var it = peta[b.kode]; if (!it) throw new Error('Baris #' + (i + 1) + ': item tidak dikenal (' + b.kode + ')');
+      var q = angka_(b.qty), h = angka_(b.harga);
+      if (q <= 0) throw new Error('Baris #' + (i + 1) + ' (' + it.nama + '): qty harus > 0');
+      if (b.harga === undefined || b.harga === null || String(b.harga).trim() === '' || h <= 0) throw new Error('Baris #' + (i + 1) + ' (' + it.nama + '): harga jual belum diisi');
+      return { it: it, q: q, h: h, ukuran: b.ukuran };
+    });
+    siap.forEach(function (b) {
+      var it = b.it, q = b.q, h = b.h;
+      var id = buatId_('SO'); ids.push(id); total += q; nilai += q * h;
+      tambah_(SHEET.SO, {
+        ID: id, No_SO: noSo, Waktu: now, Tanggal: acuan.Tanggal, Customer: acuan.Customer,
+        Kode_Item: it.kode, Nama_Item: it.nama, Qty_Kg: q, Harga_Per_Kg: h,
+        Tanggal_Kirim: acuan.Tanggal_Kirim || '', Qty_Dikirim_Kg: 0, Status: STATUS_SO.TERBUKA,
+        Dibuat_Oleh: penandaPencatat_(u), Nama_Pembuat: u.nama, Catatan: '', Log_Edit: stempel,
+        TOP_Hari: angka_(acuan.TOP_Hari), Jatuh_Tempo: acuan.Jatuh_Tempo || '',
+        Ukuran: ukuranBaris_(b.ukuran, it), TOP_Dari: topDariValid_(acuan.TOP_Dari)
+      });
+    });
+    var dok = gantiDokumenSo_([noSo], 'item SO ditambah — buat dokumen baru', u);
+    sinkronJatuhTempoSo_(noSo);
+    catatLog_('SO_TAMBAH', noSo, ids.length + ' item • ' + bulat_(total, 2) + ' kg • ' + mataUang_() + ' ' + bulat_(nilai, 0) + (dok ? ' • ' + dok + ' dokumen diganti' : ''));
+    return { ok: true, noSo: noSo, ids: ids, totalKg: bulat_(total, 2), nilai: bulat_(nilai, 0), dokumenDiganti: dok };
   } finally { lock.releaseLock(); }
 }
 

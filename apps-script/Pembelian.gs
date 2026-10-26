@@ -19,6 +19,7 @@ function migrasiSkema() {
   migrasiV11_(ss);
   migrasiV11_1_(ss);
   migrasiV12_0_1_(ss);
+  migrasiV12_3_(ss);
   Object.keys(SHEET).forEach(function (k) {
     var nama = SHEET[k], head = HEADER[nama];
     var sh = ss.getSheetByName(nama);
@@ -212,6 +213,15 @@ function migrasiV12_0_1_(ss) {
   catatLog_('MIGRASI_V12_0_1', '', n ? 'Yansen + SO' : 'tidak ada perubahan');
 }
 
+/** v12.3: no. surat jalan jadi opsional — setting WAJIB_SJ_KELUAR YA (bawaan lama) → TIDAK, sekali saja (admin boleh menyalakan lagi). */
+function migrasiV12_3_(ss) {
+  if (!ss.getSheetByName(SHEET.SETTING) || !ss.getSheetByName(SHEET.LOG)) return;
+  if (baca_(SHEET.LOG).some(function (l) { return l.Aksi === 'MIGRASI_V12_3'; })) return;
+  var ubah = (getSetting_('WAJIB_SJ_KELUAR') || '').toUpperCase() === 'YA';
+  if (ubah) setSetting_('WAJIB_SJ_KELUAR', 'TIDAK');
+  catatLog_('MIGRASI_V12_3', '', ubah ? 'WAJIB_SJ_KELUAR YA → TIDAK (no. surat jalan opsional)' : 'tidak ada perubahan');
+}
+
 /** Dipanggil di awal tiap request: migrasi hanya kalau versi skema berubah (1 property read). */
 /**
  * v10.1: Laporan_Shift dari "satu baris per mesin" (kolom Mesin + Operator) → "satu baris per shift" (Operator_Blowing / Operator_Cutting,
@@ -327,11 +337,16 @@ function simpanPo(p, ident) {
     var top = topValid_(p.topHari), topDari = topDariValid_(p.topDari);
     var jatuhTempo = jatuhTempo_(topDari === 'DOKUMEN' ? tanggal : (datang || tanggal), top);
     var noPo = nomorPoBaru_(), ids = [], total = 0, nilai = 0;
-    p.baris.forEach(function (b) {
-      var it = peta[b.kode]; if (!it) throw new Error('Item tidak dikenal: ' + b.kode);
+    /* v12.4: periksa semua baris dulu, baru tulis */
+    var siap = p.baris.map(function (b, i) {
+      var it = peta[b.kode]; if (!it) throw new Error('Baris #' + (i + 1) + ': item tidak dikenal (' + b.kode + ')');
       var q = angka_(b.qty), h = angka_(b.harga);
-      if (q <= 0) throw new Error('Qty harus > 0 (' + it.nama + ')');
-      if (h <= 0) throw new Error('Harga beli per kg harus diisi (' + it.nama + ')');
+      if (q <= 0) throw new Error('Baris #' + (i + 1) + ' (' + it.nama + '): qty harus > 0');
+      if (h <= 0) throw new Error('Baris #' + (i + 1) + ' (' + it.nama + '): harga beli per kg belum diisi');
+      return { it: it, q: q, h: h, ukuran: b.ukuran, spesifikasi: b.spesifikasi };
+    });
+    siap.forEach(function (b) {
+      var it = b.it, q = b.q, h = b.h;
       var id = buatId_('PO'); ids.push(id); total += q; nilai += q * h;
       tambah_(SHEET.PO, {
         ID: id, No_PO: noPo, Waktu: now, Tanggal: tanggal, Supplier: p.supplier,

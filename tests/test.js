@@ -29,7 +29,7 @@ const rcv = ctx.baca_(ctx.SHEET.PENERIMAAN);
 ok('status langsung DISETUJUI (v11: tanpa review)', rcv[0].Status==='DISETUJUI' && rcv[0].Ditinjau_Oleh==='otomatis');
 ok('selisih OCR = 0 (cocok)', rcv[0].Selisih_OCR===0, rcv[0].Selisih_OCR);
 ok('supplier tersimpan', rcv[0].Supplier===SUP);
-tolak('masuk tanpa surat jalan ditolak', ()=>ctx.simpanPenerimaan({jenis:'MASUK',supplier:'X',baris:[{kode:'RM-BP-KW',qty:1}]}), /surat jalan/);
+tolak('masuk tanpa supplier ditolak (v12.3: no. surat jalan opsional)', ()=>ctx.simpanPenerimaan({jenis:'MASUK',supplier:'',baris:[{kode:'RM-BP-KW',qty:1}]}), /Supplier/);
 tolak('tanpa supplier ditolak', ()=>ctx.simpanPenerimaan({jenis:'MASUK',noSuratJalan:'A',baris:[{kode:'RM-BP-KW',qty:1}]}), /[Ss]upplier/);
 
 console.log('\n— 3. Stok GBJ naik dari pembelian —');
@@ -134,7 +134,7 @@ ok('GBJ polybag KW turun jadi 140', fg.gbj===140, fg);
 ok('kolom jual = 300', fg.jual===300, fg);
 ok('total keluar di ringkasan', stokJ.total.jual===305, stokJ.total);
 tolak('keluar tanpa customer ditolak', ()=>ctx.simpanPengiriman({jenis:'KELUAR',noSuratJalan:'X',baris:[{kode:'FG-PB-KW',qty:1}]}), /[Cc]ustomer/);
-tolak('keluar tanpa surat jalan ditolak', ()=>ctx.simpanPengiriman({jenis:'KELUAR',customer:CUS,baris:[{kode:'FG-PB-KW',qty:1}]}), /surat jalan/);
+tolak('keluar tanpa customer ditolak (v12.3: no. surat jalan opsional)', ()=>ctx.simpanPengiriman({jenis:'KELUAR',customer:'',baris:[{kode:'FG-PB-KW',qty:1}]}), /Customer/);
 
 console.log('\n— 9c. Retur dari customer menambah stok —');
 ctx.simpanPengiriman({ jenis:'RETUR_MASUK', customer:CUS, baris:[{kode:'FG-PB-KW', qty:25}], catatan:'kemasan sobek', ident:{nama:'Sri'} });

@@ -10,7 +10,7 @@
 
 var APP = {
   nama: 'IPC — Inventory & Production Control',
-  versi: '12.2.0',
+  versi: '12.4.1',
   zona: 'Asia/Jakarta',
   satuan: 'kg',
   folderFoto: 'IPC Foto Bukti'
@@ -288,7 +288,7 @@ var DUMMY_PENGGUNA = [
 var DEFAULT_SETTING = [
   ['FOLDER_FOTO_ID','', 'ID folder Drive tempat foto bukti disimpan (diisi otomatis)'],
   ['OCR_AKTIF','YA','Auto-baca surat jalan pembelian (butuh Advanced Drive Service)'],
-  ['WAJIB_SJ_KELUAR','YA','Wajibkan no. surat jalan / DO saat barang keluar ke customer'],
+  ['WAJIB_SJ_KELUAR','TIDAK','YA = wajib isi no. surat jalan / DO saat barang keluar. TIDAK (bawaan v12.3) = opsional, bisa diisi belakangan lewat Ubah'],
   ['OCR_BAHASA','id','Bahasa OCR'],
   ['BAHASA_DEFAULT','id','Bahasa awal UI: id / en'],
   ['PAKSA_LOGIN_MANUAL','YA','YA = semua orang (termasuk pemilik Sheet) login dengan Nama + PIN dari Master_Pengguna. TIDAK = email Google yang terdaftar langsung masuk tanpa PIN.'],

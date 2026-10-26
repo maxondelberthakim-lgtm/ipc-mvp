@@ -519,8 +519,9 @@ input:disabled,select:disabled,textarea:disabled{background:#f3f4f6;color:#37415
       </div>
 
       <div class="field" id="rcvSJWrap">
-        <label data-i18n="lblNoSJ">No. surat jalan</label>
+        <label data-i18n="lblNoSJ">No. surat jalan (opsional)</label>
         <input id="rcvNoSJ" placeholder="SJ/2026/09/0184">
+        <div class="hint" data-i18n="hintSJOpsional">Boleh kosong — bisa diisi nanti lewat Ubah di riwayat.</div>
       </div>
 
       <div class="field" id="rcvPoWrap">
@@ -1023,7 +1024,7 @@ var T = {
     lblFoto:'Foto bukti', fotoAmbil:'Kamera atau galeri',
     fotoHint:'Wajib — jadi bukti silang angka yang diketik',
     btnOcr:'🔍 Baca surat jalan', btnGanti:'Ganti foto',
-    lblNoSJ:'No. surat jalan', secItem:'Item', btnTambahItem:'+ Tambah item',
+    lblNoSJ:'No. surat jalan (opsional)', hintSJOpsional:'Boleh kosong — bisa diisi nanti lewat Ubah di riwayat.', secItem:'Item', btnTambahItem:'+ Tambah item',
     lblCatatan:'Catatan (opsional)', btnSimpan:'Simpan',
     hintPost:'Langsung tercatat. Supervisor meninjau setelahnya — produksi tidak menunggu.',
                             revT:'Antrian review', revS:'Foto di sebelah angka yang diketik. Setujui atau tandai.',
@@ -1036,7 +1037,7 @@ var T = {
     returCustT:'Retur dari customer', returCustS:'Masuk lagi ke GBJ — stok bertambah',
     pilihCustomer:'— pilih customer —', wajibCustomer:'Pilih customer dulu.',
     wajibSJKeluar:'No. surat jalan / DO wajib diisi.',
-    lblNoDO:'No. surat jalan / DO', lblFotoKirim:'Foto barang / surat jalan',
+    lblNoDO:'No. surat jalan / DO (opsional)', lblFotoKirim:'Foto barang / surat jalan',
     fotoHintKirim:'Bukti apa yang benar-benar keluar dari gudang',
     totalKeluar:'Total keluar', totalReturCust:'Retur dari customer',
     perCustomer:'Per customer', perItemJual:'Per item', riwayatJual:'Barang keluar & retur 30 hari',
@@ -1049,7 +1050,7 @@ var T = {
     kosongData:'Belum ada data.',
     wajibFoto:'Foto bukti wajib diisi.', wajibItem:'Isi minimal satu item dengan qty.',
     fotoMenyusul:'Dari kamera atau galeri HP · boleh juga ditambah nanti', tambahFoto:'+ Foto', belumFoto:'belum ada foto', fotoTersimpan:'Foto tersimpan', wajibFotoSJChassen:'Foto surat jalan chassen wajib diunggah.', alasanWajib:'Alasan wajib diisi (minimal 3 huruf).', fotoHintChassen:'Wajib: foto surat jalan dari/ke tempat chassen', tanpaFotoBanner:'{n} entri belum ada foto — buka riwayat lalu tekan "+ Foto"',
-    wajibSupplier:'Pilih supplier dulu.', wajibSJ:'No. surat jalan wajib diisi.',
+    wajibSupplier:'Pilih supplier dulu.', wajibSJ:'No. surat jalan wajib diisi.', barisKe:'Baris #{n}', barisTanpaItem:'item belum dipilih', barisTanpaQty:'qty belum diisi', barisTanpaHarga:'harga belum diisi', barisPeriksa:'periksa lalu simpan lagi — belum ada yang tersimpan',
     menyimpan:'Menyimpan…', tersimpan:'Tersimpan', gagal:'Gagal', keluar:'Keluar',
     lblTanggal:'Tanggal transaksi', hintTanggal:'Default hari ini. Ganti kalau barangnya masuk/keluar kemarin tapi baru dicatat sekarang.',
     lblAlasan:'Alasan perubahan', tersedia:'Tersedia', melebihi:'melebihi stok', stokKosong:'stok 0',
@@ -1168,6 +1169,7 @@ var T = {
     soPilihHint:'Centang SO yang mau digabung (customer harus sama)', soPisahHint:'Centang baris yang mau dipindah ke SO baru', soBedaCustomer:'Customer berbeda — hanya SO customer yang sama yang bisa digabung',
     soGabungKonfirmasi:'Gabung {n} SO menjadi {no}? Dokumen SO / invoice lama dari SO yang digabung tidak berlaku lagi.', soPisahKonfirmasi:'Pindahkan {n} baris ke SO baru?',
     soGabungOk:'SO digabung → {no}', soPisahOk:'{n} baris dipindah ke {no}', selesaiPilih:'Selesai',
+    soTambahItem:'+ Item', soTambahItemT:'Tambah item ke {no}', soTambahItemS:'Tanggal, tanggal kirim, dan TOP ikut SO ini. Dokumen SO / invoice lama perlu dibuat ulang.', soTambahOk:'{n} item ditambahkan ke {no}', btnTambahKeSo:'Simpan ke SO',
     segEkspor:'Ekspor', eksporT:'Ekspor bulanan untuk keuangan', eksporS:'7 file CSV (buka di Excel): ringkasan, pembelian, penjualan, produksi, rusak, daur ulang, nilai stok. Angka harga hanya di sini — staf tidak melihatnya.',
     lblBulan:'Bulan', btnEkspor:'Siapkan file', btnUnduhSemua:'Unduh semua', unduh:'Unduh', eksporSiap:'File siap — tekan Unduh',
     segBackup:'Backup', backupT:'Backup otomatis', backupS:'Salinan Sheet dibuat tiap malam ke folder Google Drive "IPC Backup". 30 salinan terakhir disimpan.',
@@ -1285,7 +1287,7 @@ var T = {
     lblFoto:'Proof photo', fotoAmbil:'Camera or gallery',
     fotoHint:'Required — cross-checks the number you typed',
     btnOcr:'🔍 Read delivery note', btnGanti:'Replace photo',
-    lblNoSJ:'Delivery note no.', secItem:'Items', btnTambahItem:'+ Add item',
+    lblNoSJ:'Delivery note no. (optional)', hintSJOpsional:'Can be left empty — add it later via Edit in the history.', secItem:'Items', btnTambahItem:'+ Add item',
     lblCatatan:'Note (optional)', btnSimpan:'Save',
     hintPost:'Posts immediately. A supervisor reviews after — production never waits.',
                             revT:'Review queue', revS:'Photo next to the typed number. Approve or flag.',
@@ -1298,7 +1300,7 @@ var T = {
     returCustT:'Return from customer', returCustS:'Back into GBJ — stock goes up',
     pilihCustomer:'— select customer —', wajibCustomer:'Select a customer first.',
     wajibSJKeluar:'Delivery note / DO number is required.',
-    lblNoDO:'Delivery note / DO no.', lblFotoKirim:'Photo of goods / delivery note',
+    lblNoDO:'Delivery note / DO no. (optional)', lblFotoKirim:'Photo of goods / delivery note',
     fotoHintKirim:'Proof of what actually left the warehouse',
     totalKeluar:'Total out', totalReturCust:'Returned by customers',
     perCustomer:'By customer', perItemJual:'By item', riwayatJual:'Goods out & returns, 30 days',
@@ -1311,7 +1313,7 @@ var T = {
     kosongData:'No data yet.',
     wajibFoto:'A proof photo is required.', wajibItem:'Add at least one item with a quantity.',
     fotoMenyusul:'From the camera or the phone gallery · can also be added later', tambahFoto:'+ Photo', belumFoto:'no photo yet', fotoTersimpan:'Photo saved', wajibFotoSJChassen:'A photo of the crusher delivery note is required.', alasanWajib:'A reason is required (at least 3 characters).', fotoHintChassen:'Required: photo of the delivery note to/from the crusher', tanpaFotoBanner:'{n} entries have no photo yet — open the history and tap "+ Photo"',
-    wajibSupplier:'Select a supplier first.', wajibSJ:'Delivery note number is required.',
+    wajibSupplier:'Select a supplier first.', wajibSJ:'Delivery note number is required.', barisKe:'Line #{n}', barisTanpaItem:'no item selected', barisTanpaQty:'qty missing', barisTanpaHarga:'price missing', barisPeriksa:'fix it and save again — nothing was saved yet',
     menyimpan:'Saving…', tersimpan:'Saved', gagal:'Failed', keluar:'Log out',
     lblTanggal:'Transaction date', hintTanggal:'Defaults to today. Change it if the goods moved yesterday but are only being logged now.',
     lblAlasan:'Reason for change', tersedia:'Available', melebihi:'exceeds stock', stokKosong:'stock 0',
@@ -1425,6 +1427,7 @@ var T = {
     soPilihHint:'Tick the SOs to merge (same customer)', soPisahHint:'Tick the lines to move to a new SO', soBedaCustomer:'Different customers — only SOs of the same customer can be merged',
     soGabungKonfirmasi:'Merge {n} SOs into {no}? Old SO documents / invoices of the merged SOs will no longer be valid.', soPisahKonfirmasi:'Move {n} lines to a new SO?',
     soGabungOk:'SOs merged → {no}', soPisahOk:'{n} lines moved to {no}', selesaiPilih:'Done',
+    soTambahItem:'+ Item', soTambahItemT:'Add items to {no}', soTambahItemS:'Date, ship date and terms follow this SO. Old SO document / invoice must be re-created.', soTambahOk:'{n} items added to {no}', btnTambahKeSo:'Save to SO',
     segEkspor:'Export', eksporT:'Monthly export for finance', eksporS:'7 CSV files (open in Excel): summary, purchases, sales, production, damage, recycling, stock value. Prices appear only here — staff never see them.',
     lblBulan:'Month', btnEkspor:'Prepare files', btnUnduhSemua:'Download all', unduh:'Download', eksporSiap:'Files ready — press Download',
     segBackup:'Backup', backupT:'Automatic backup', backupS:'A copy of the Sheet is made every night into the Google Drive folder "IPC Backup". The last 30 copies are kept.',
@@ -1971,13 +1974,26 @@ function pasangCombo(el, cfg){
     if (!cocok.length) h += '<div class="combo-kosong">'+esc(cfg.tambah ? t('comboKosong') : t('kosongData'))+'</div>';
     if (cfg.tambah && q && !persis) h += '<div class="combo-tambah">+ '+esc(t('comboTambah'))+' “'+esc(el.value.trim())+'”</div>';
     list.innerHTML = h; list.classList.remove('hide');
-    list.querySelectorAll('.combo-item').forEach(function(d){ d.onpointerdown = function(ev){ ev.preventDefault(); pilih(cocok[+d.dataset.i]); }; });
+    /* v12.4.1: pilih saat CLICK (bukan pointerdown). Dulu daftar ditutup saat jari menyentuh, lalu "click" yang
+       menyusul jatuh ke elemen di bawahnya (menu bawah Laporan/Admin, tombol ✕ Hapus, dst.) → app pindah halaman
+       sendiri. pointerdown hanya menahan fokus supaya daftar tidak tertutup oleh blur. */
+    list.querySelectorAll('.combo-item').forEach(function(d){
+      d.onpointerdown = function(ev){ ev.preventDefault(); list._tekan = true; };
+      d._pilih = function(){ pilih(cocok[+d.dataset.i]); };
+      d.onclick = function(ev){ ev.preventDefault(); ev.stopPropagation(); list._tekan = false; d._pilih(); };
+    });
     var tb = list.querySelector('.combo-tambah');
-    if (tb) tb.onpointerdown = function(ev){ ev.preventDefault(); tutup(); tambahMasterUI(cfg.tambah, el.value.trim(), pilih); };
+    if (tb){
+      tb.onpointerdown = function(ev){ ev.preventDefault(); list._tekan = true; };
+      tb._pilih = function(){ tutup(); tambahMasterUI(cfg.tambah, el.value.trim(), pilih); };
+      tb.onclick = function(ev){ ev.preventDefault(); ev.stopPropagation(); list._tekan = false; tb._pilih(); };
+    }
+    list.onpointercancel = function(){ list._tekan = false; };
   }
   el.oninput = function(){ delete el.dataset.kode; render(); if (cfg.onKetik) cfg.onKetik(el.value); };
   el.onfocus = function(){ render(); };
   el.onblur  = function(){ setTimeout(function(){
+    if (list._tekan) return;   // jari masih di atas daftar → biarkan click yang memilih
     tutup();
     if (!el.dataset.kode){   // teks diketik tanpa memilih: cocokkan persis dengan daftar
       var q = el.value.trim().toLowerCase();
@@ -1986,7 +2002,7 @@ function pasangCombo(el, cfg){
     }
   }, 180); };
   el.onkeydown = function(ev){
-    if (ev.key === 'Enter'){ ev.preventDefault(); var f = list.querySelector('.combo-item') || list.querySelector('.combo-tambah'); if (f && !list.classList.contains('hide')) f.onpointerdown(ev); }
+    if (ev.key === 'Enter'){ ev.preventDefault(); var f = list.querySelector('.combo-item') || list.querySelector('.combo-tambah'); if (f && f._pilih && !list.classList.contains('hide')) f._pilih(); }
     if (ev.key === 'Escape') tutup();
   };
   if (cfg.nilai !== undefined){
@@ -2150,6 +2166,26 @@ function ambilBaris(k){
                      if (k === 'po'){ o.harga = parseFloat(b.harga) || 0; o.spesifikasi = b.spesifikasi || ''; o.ukuran = b.ukuran || ''; }
                      return o;
                    });
+}
+/* v12.4: periksa tiap baris sebelum kirim — pesan menyebut NOMOR baris (18 baris "Polybag KW" tidak bisa dibedakan dari nama saja),
+   baris yang bermasalah disorot & digulir ke layar. Baris benar-benar kosong (tanpa item & qty) dilewati. */
+function periksaBaris(k, perluHarga){
+  var rows = S.baris[k] || [];
+  for (var i=0;i<rows.length;i++){
+    var b = rows[i], adaQty = String(b.qty||'').trim() !== '', qtyOk = parseFloat(b.qty) > 0;
+    if (!b.kode && !adaQty && !(perluHarga && String(b.harga||'').trim())) continue;
+    var m = !b.kode ? t('barisTanpaItem') : !qtyOk ? t('barisTanpaQty') : (perluHarga && !(parseFloat(b.harga) > 0)) ? t('barisTanpaHarga') : '';
+    if (m){ sorotBaris(k, i); toast(t('barisKe').replace('{n}', i+1)+(b.kode ? ' ('+namaItem(b.kode)+')' : '')+': '+m+' — '+t('barisPeriksa'), 'bad'); return false; }
+  }
+  return true;
+}
+function sorotBaris(k, i){
+  var el = $(WADAH[k]); if (!el) return;
+  var lines = el.querySelectorAll('.line');
+  lines.forEach(function(x){ x.style.outline=''; });
+  var ln = lines[i]; if (!ln) return;
+  ln.style.outline = '2px solid var(--danger)'; ln.style.outlineOffset = '2px';
+  ln.scrollIntoView({ behavior:'smooth', block:'center' });
 }
 function totalBaris(k){
   return S.baris[k].reduce(function(a,b){ return a + qtyKg(b); }, 0);
@@ -2567,10 +2603,11 @@ function simpanMutasiUI(){
   var partner = comboNama('rcvPartner');
   if (!partner){ toast($('rcvPartner').value.trim() ? t('pilihDulu') : (i.jual ? t('wajibCustomer') : t('wajibSupplier')),'bad'); return; }
   /* v11.2: foto tidak wajib saat input — bisa menyusul dari riwayat (+ Foto) */
-  if (S.modeExt==='BELI_MASUK' && !$('rcvNoSJ').value.trim()){ toast(t('wajibSJ'),'bad'); return; }
+  /* v12.3: no. surat jalan opsional (kecuali admin menyalakan WAJIB_SJ_KELUAR) */
   if (S.modeExt==='JUAL_KELUAR' && S.ctx && S.ctx.wajibSjKeluar && !$('rcvNoSJ').value.trim()){
     toast(t('wajibSJKeluar'),'bad'); return;
   }
+  if (!periksaBaris('rcv', false)) return;
   if (!baris.length){ toast(t('wajibItem'),'bad'); return; }
   if (S.modeExt==='BELI_RETUR' && baris.some(function(x){ return !x.idAsal; })){ toast(t('hintDariPenerimaan'),'bad'); return; }
   if (S.ctx && S.ctx.wajibPo && S.modeExt==='BELI_MASUK' && baris.some(function(x){ return !x.idPo; })){ toast(t('lblDariPo'),'bad'); return; }
@@ -3874,10 +3911,10 @@ function poFormBaru(){
   gambarBaris('po');
 }
 function simpanPoUI(){
-  var baris = ambilBaris('po');
   if (!comboNama('poSupplier')){ toast($('poSupplier').value.trim() ? t('pilihDulu') : t('pilihSupplier'),'bad'); return; }
+  if (!periksaBaris('po', true)) return;
+  var baris = ambilBaris('po');
   if (!baris.length){ toast(t('wajibItem'),'bad'); return; }
-  for (var i=0;i<baris.length;i++) if (!(baris[i].harga > 0)){ toast(t('lblHargaBeli')+' — '+namaItem(baris[i].kode),'bad'); return; }
   var b = $('btnSimpanPo'); sibuk(b, true);
   panggil('simpanPo',[{ supplier:comboNama('poSupplier'), tanggal:ambilTanggal('poTanggal'), perkiraanDatang:$('poDatang').value, topHari:$('poTop').value || 0, topDari:$('poTopDari').value,
                         baris:baris, catatan:$('poCatatan').value }, S.ident]).then(function(r){
@@ -4153,6 +4190,29 @@ function gambarSoDaftar(){
   }
   $('soBody').innerHTML = bar + urut.map(function(no){ return kartuSo(no, grup[no]); }).join('');
 }
+/* v12.3: tambah item ke SO terbuka — form kecil di dalam kartu SO (pakai baris 'so' yang sama dengan form SO baru) */
+function soTambahItem(no){
+  document.querySelectorAll('[id^="soTambah-"]').forEach(function(e){ e.innerHTML=''; });
+  var wrap = $('soTambah-'+no); if (!wrap) return;
+  S.baris.so = [{ kode:'', qty:'', harga:'' }];
+  wrap.innerHTML = '<div class="card" style="margin:10px 0 0;padding:12px;background:#f7f8fa"><h3 class="sec" style="margin-top:0">'+esc(t('soTambahItemT').replace('{no}', no))+' <span class="unit">kg</span></h3>' +
+    '<div class="hint" style="margin-bottom:8px">'+esc(t('soTambahItemS'))+'</div><div id="soLines"></div>' +
+    '<button class="btn sec sm" onclick="tambahBaris(\'so\')">+ '+esc(t('item'))+'</button>' +
+    '<div class="btnrow" style="margin-top:10px"><button class="btn ghost sm" onclick="$(\'soTambah-'+esc(no)+'\').innerHTML=\'\'">'+esc(t('batal'))+'</button>' +
+    '<button class="btn sm" id="btnTambahKeSo" onclick="simpanTambahSoUI(\''+esc(no)+'\')">'+esc(t('btnTambahKeSo'))+'</button></div></div>';
+  gambarBaris('so');
+  wrap.scrollIntoView({ behavior:'smooth', block:'center' });
+}
+function simpanTambahSoUI(no){
+  if (!periksaBaris('so', lihatHpp())) return;
+  var baris = ambilBaris('so');
+  if (!baris.length){ toast(t('wajibItem'),'bad'); return; }
+  var b = $('btnTambahKeSo'); sibuk(b, true);
+  panggil('tambahBarisSo',[no, baris, S.ident]).then(function(r){
+    toast(t('soTambahOk').replace('{n}', r.ids.length).replace('{no}', r.noSo)+' · '+kg(r.totalKg), 'ok');
+    muatKonteks(true); segSo('aktif');
+  }).catch(function(e){ sibuk(b,false,t('btnTambahKeSo')); toast(e.message,'bad'); });
+}
 function togglePilihSo(no, on){ if (!S.soPilih) S.soPilih = {}; if (on) S.soPilih[no] = true; else delete S.soPilih[no]; gambarSoDaftar(); }
 function mulaiPisahSo(no){ S.soPisah = { no:no, ids:{} }; S.soPilih = null; gambarSoDaftar(); var el = $('so-'+no); if (el) el.scrollIntoView({ behavior:'smooth', block:'start' }); }
 function togglePisahBaris(id, on){ if (!S.soPisah) return; if (on) S.soPisah.ids[id] = true; else delete S.soPisah.ids[id]; gambarSoDaftar(); }
@@ -4192,7 +4252,9 @@ function kartuSo(no, baris){
     baris.map(function(b){ return barisSoHtml(b, lihat, tutup); }).join('') +
     (b0.catatan ? '<div class="kv"><span>'+esc(t('lblCatatan'))+'</span><b>'+esc(b0.catatan)+'</b></div>' : '') +
     (S.ctx && S.ctx.bisaSo && st!=='DIBATALKAN' && !modePilih && !modePisah ? '<div class="btnrow" style="margin-top:10px;flex-wrap:wrap"><button class="btn sec sm" onclick="bukaDok(\'SO\',\''+esc(no)+'\')">📄 '+esc(t('dokSo'))+'</button><button class="btn sec sm" onclick="bukaDok(\'INVOICE\',\''+esc(no)+'\')">🧾 '+esc(t('dokInvoice'))+'</button>' +
+      (!tutup ? '<button class="btn sec sm" onclick="soTambahItem(\''+esc(no)+'\')">'+esc(t('soTambahItem'))+'</button>' : '') +
       (!tutup && aktifN >= 2 ? '<button class="btn ghost sm" onclick="mulaiPisahSo(\''+esc(no)+'\')">'+esc(t('soPisah'))+'</button>' : '') + '</div>' : '') +
+    '<div id="soTambah-'+esc(no)+'"></div>' +
   '</div></div>';
 }
 function barisSoHtml(b, lihat, tutup){
@@ -4271,12 +4333,12 @@ function soFormBaru(){
   gambarBaris('so');
 }
 function simpanSoUI(){
-  var baris = ambilBaris('so');
   if (!comboNama('soCustomer')){ toast($('soCustomer').value.trim() ? t('pilihDulu') : t('wajibCustomer'),'bad'); return; }
+  if (!periksaBaris('so', lihatHpp())) return;
+  var baris = ambilBaris('so');
   if (!baris.length){ toast(t('wajibItem'),'bad'); return; }
   if (!$('soKirim').value){ toast(t('wajibTanggalKirim'),'bad'); return; }
   if ($('soTop').value === ''){ toast(t('wajibTop'),'bad'); return; }
-  for (var i=0;i<baris.length;i++) if (!(baris[i].harga > 0)){ toast(t('lblHargaJual')+' — '+namaItem(baris[i].kode),'bad'); return; }
   var b = $('btnSimpanSo'); sibuk(b, true);
   panggil('simpanSo',[{ customer:comboNama('soCustomer'), tanggal:ambilTanggal('soTanggal'), tanggalKirim:$('soKirim').value, topHari:$('soTop').value, topDari:$('soTopDari').value,
                         baris:baris, catatan:$('soCatatan').value }, S.ident]).then(function(r){
