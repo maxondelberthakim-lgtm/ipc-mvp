@@ -971,13 +971,26 @@ function pasangCombo(el, cfg){
     if (!cocok.length) h += '<div class="combo-kosong">'+esc(cfg.tambah ? t('comboKosong') : t('kosongData'))+'</div>';
     if (cfg.tambah && q && !persis) h += '<div class="combo-tambah">+ '+esc(t('comboTambah'))+' “'+esc(el.value.trim())+'”</div>';
     list.innerHTML = h; list.classList.remove('hide');
-    list.querySelectorAll('.combo-item').forEach(function(d){ d.onpointerdown = function(ev){ ev.preventDefault(); pilih(cocok[+d.dataset.i]); }; });
+    /* v12.4.1: pilih saat CLICK (bukan pointerdown). Dulu daftar ditutup saat jari menyentuh, lalu "click" yang
+       menyusul jatuh ke elemen di bawahnya (menu bawah Laporan/Admin, tombol ✕ Hapus, dst.) → app pindah halaman
+       sendiri. pointerdown hanya menahan fokus supaya daftar tidak tertutup oleh blur. */
+    list.querySelectorAll('.combo-item').forEach(function(d){
+      d.onpointerdown = function(ev){ ev.preventDefault(); list._tekan = true; };
+      d._pilih = function(){ pilih(cocok[+d.dataset.i]); };
+      d.onclick = function(ev){ ev.preventDefault(); ev.stopPropagation(); list._tekan = false; d._pilih(); };
+    });
     var tb = list.querySelector('.combo-tambah');
-    if (tb) tb.onpointerdown = function(ev){ ev.preventDefault(); tutup(); tambahMasterUI(cfg.tambah, el.value.trim(), pilih); };
+    if (tb){
+      tb.onpointerdown = function(ev){ ev.preventDefault(); list._tekan = true; };
+      tb._pilih = function(){ tutup(); tambahMasterUI(cfg.tambah, el.value.trim(), pilih); };
+      tb.onclick = function(ev){ ev.preventDefault(); ev.stopPropagation(); list._tekan = false; tb._pilih(); };
+    }
+    list.onpointercancel = function(){ list._tekan = false; };
   }
   el.oninput = function(){ delete el.dataset.kode; render(); if (cfg.onKetik) cfg.onKetik(el.value); };
   el.onfocus = function(){ render(); };
   el.onblur  = function(){ setTimeout(function(){
+    if (list._tekan) return;   // jari masih di atas daftar → biarkan click yang memilih
     tutup();
     if (!el.dataset.kode){   // teks diketik tanpa memilih: cocokkan persis dengan daftar
       var q = el.value.trim().toLowerCase();
@@ -986,7 +999,7 @@ function pasangCombo(el, cfg){
     }
   }, 180); };
   el.onkeydown = function(ev){
-    if (ev.key === 'Enter'){ ev.preventDefault(); var f = list.querySelector('.combo-item') || list.querySelector('.combo-tambah'); if (f && !list.classList.contains('hide')) f.onpointerdown(ev); }
+    if (ev.key === 'Enter'){ ev.preventDefault(); var f = list.querySelector('.combo-item') || list.querySelector('.combo-tambah'); if (f && f._pilih && !list.classList.contains('hide')) f._pilih(); }
     if (ev.key === 'Escape') tutup();
   };
   if (cfg.nilai !== undefined){
