@@ -39,11 +39,16 @@ function simpanSo(p, ident) {
     var top = topValid_(p.topHari), topDari = topDariValid_(p.topDari);
     var jatuhTempo = jatuhTempo_(topDari === 'DOKUMEN' ? tanggal : (kirim || tanggal), top);
     var noSo = nomorSoBaru_(), ids = [], total = 0, nilai = 0;
-    p.baris.forEach(function (b) {
-      var it = peta[b.kode]; if (!it) throw new Error('Item tidak dikenal: ' + b.kode);
+    /* v12.4: periksa SEMUA baris dulu (pesan menyebut nomor baris), baru tulis — tidak ada SO setengah jadi */
+    var siap = p.baris.map(function (b, i) {
+      var it = peta[b.kode]; if (!it) throw new Error('Baris #' + (i + 1) + ': item tidak dikenal (' + b.kode + ')');
       var q = angka_(b.qty), h = angka_(b.harga);
-      if (q <= 0) throw new Error('Qty harus > 0 (' + it.nama + ')');
-      if (b.harga === undefined || b.harga === null || String(b.harga).trim() === '' || h <= 0) throw new Error('Harga jual belum diisi (' + it.nama + ')');
+      if (q <= 0) throw new Error('Baris #' + (i + 1) + ' (' + it.nama + '): qty harus > 0');
+      if (b.harga === undefined || b.harga === null || String(b.harga).trim() === '' || h <= 0) throw new Error('Baris #' + (i + 1) + ' (' + it.nama + '): harga jual belum diisi');
+      return { it: it, q: q, h: h, ukuran: b.ukuran };
+    });
+    siap.forEach(function (b) {
+      var it = b.it, q = b.q, h = b.h;
       var id = buatId_('SO'); ids.push(id); total += q; nilai += q * h;
       tambah_(SHEET.SO, {
         ID: id, No_SO: noSo, Waktu: now, Tanggal: tanggal, Customer: p.customer,
@@ -270,11 +275,15 @@ function tambahBarisSo(noSo, baris, ident) {
     if (bulanTertutup_(acuan.Tanggal)) throw new Error('Bulan ' + String(acuan.Tanggal).slice(0, 7) + ' sudah ditutup.');
     var now = new Date(), ids = [], total = 0, nilai = 0;
     var stempel = Utilities.formatDate(now, APP.zona, 'dd/MM HH:mm') + ' ' + u.nama + ': item ditambahkan ke SO';
-    baris.forEach(function (b) {
-      var it = peta[b.kode]; if (!it) throw new Error('Item tidak dikenal: ' + b.kode);
+    var siap = baris.map(function (b, i) {
+      var it = peta[b.kode]; if (!it) throw new Error('Baris #' + (i + 1) + ': item tidak dikenal (' + b.kode + ')');
       var q = angka_(b.qty), h = angka_(b.harga);
-      if (q <= 0) throw new Error('Qty harus > 0 (' + it.nama + ')');
-      if (b.harga === undefined || b.harga === null || String(b.harga).trim() === '' || h <= 0) throw new Error('Harga jual belum diisi (' + it.nama + ')');
+      if (q <= 0) throw new Error('Baris #' + (i + 1) + ' (' + it.nama + '): qty harus > 0');
+      if (b.harga === undefined || b.harga === null || String(b.harga).trim() === '' || h <= 0) throw new Error('Baris #' + (i + 1) + ' (' + it.nama + '): harga jual belum diisi');
+      return { it: it, q: q, h: h, ukuran: b.ukuran };
+    });
+    siap.forEach(function (b) {
+      var it = b.it, q = b.q, h = b.h;
       var id = buatId_('SO'); ids.push(id); total += q; nilai += q * h;
       tambah_(SHEET.SO, {
         ID: id, No_SO: noSo, Waktu: now, Tanggal: acuan.Tanggal, Customer: acuan.Customer,

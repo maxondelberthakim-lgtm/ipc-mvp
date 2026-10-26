@@ -129,6 +129,20 @@ export class Mesin {
     return ditulis;
   }
 
+  /* v12.4: panggilan gagal di tengah jalan (mis. baris ke-8 dari 18 tidak valid) → semua perubahan sheet yang belum
+     tersimpan dibuang: sheet yang kotor dimuat ulang dari SQLite, supaya tidak ada SO/PO/laporan setengah jadi. */
+  buangPerubahan() {
+    const nama = Array.from(this.kotor.keys());
+    for (const n of nama) {
+      const rows = this.sql.exec('SELECT data FROM chunk WHERE sheet = ? ORDER BY i', n).toArray();
+      if (!rows.length) { delete this.SS.sheets[n]; }
+      else { const arr = []; for (const r of rows) arr.push(...dariJson(r.data)); this.SS.muat(n, arr); }
+      if (this.be) this.be.fns.lupakanMemo_(n);
+    }
+    this.kotor.clear();
+    return nama;
+  }
+
   /** Sama persis dengan doPost() di Server.gs: daftar putih, idempotensi, format balasan. */
   panggil(fn, args, idKlien) {
     const out = { ok: false };
@@ -145,6 +159,7 @@ export class Mesin {
     } catch (err) {
       out.ok = false;
       out.error = (err && err.message) ? err.message : String(err);
+      try { const d = this.buangPerubahan(); if (d.length) this.log('rollback', { fn, sheet: d }); } catch (e) { this.log('rollback-gagal', String(e)); }
     }
     const teks = JSON.stringify(out);
     try { this.simpan(); } catch (e) { this.log('simpan-gagal', String(e)); return JSON.stringify({ ok: false, error: 'Gagal menyimpan: ' + e }); }

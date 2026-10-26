@@ -337,11 +337,16 @@ function simpanPo(p, ident) {
     var top = topValid_(p.topHari), topDari = topDariValid_(p.topDari);
     var jatuhTempo = jatuhTempo_(topDari === 'DOKUMEN' ? tanggal : (datang || tanggal), top);
     var noPo = nomorPoBaru_(), ids = [], total = 0, nilai = 0;
-    p.baris.forEach(function (b) {
-      var it = peta[b.kode]; if (!it) throw new Error('Item tidak dikenal: ' + b.kode);
+    /* v12.4: periksa semua baris dulu, baru tulis */
+    var siap = p.baris.map(function (b, i) {
+      var it = peta[b.kode]; if (!it) throw new Error('Baris #' + (i + 1) + ': item tidak dikenal (' + b.kode + ')');
       var q = angka_(b.qty), h = angka_(b.harga);
-      if (q <= 0) throw new Error('Qty harus > 0 (' + it.nama + ')');
-      if (h <= 0) throw new Error('Harga beli per kg harus diisi (' + it.nama + ')');
+      if (q <= 0) throw new Error('Baris #' + (i + 1) + ' (' + it.nama + '): qty harus > 0');
+      if (h <= 0) throw new Error('Baris #' + (i + 1) + ' (' + it.nama + '): harga beli per kg belum diisi');
+      return { it: it, q: q, h: h, ukuran: b.ukuran, spesifikasi: b.spesifikasi };
+    });
+    siap.forEach(function (b) {
+      var it = b.it, q = b.q, h = b.h;
       var id = buatId_('PO'); ids.push(id); total += q; nilai += q * h;
       tambah_(SHEET.PO, {
         ID: id, No_PO: noPo, Waktu: now, Tanggal: tanggal, Supplier: p.supplier,

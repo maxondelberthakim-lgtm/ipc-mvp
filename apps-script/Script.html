@@ -47,7 +47,7 @@ var T = {
     kosongData:'Belum ada data.',
     wajibFoto:'Foto bukti wajib diisi.', wajibItem:'Isi minimal satu item dengan qty.',
     fotoMenyusul:'Dari kamera atau galeri HP · boleh juga ditambah nanti', tambahFoto:'+ Foto', belumFoto:'belum ada foto', fotoTersimpan:'Foto tersimpan', wajibFotoSJChassen:'Foto surat jalan chassen wajib diunggah.', alasanWajib:'Alasan wajib diisi (minimal 3 huruf).', fotoHintChassen:'Wajib: foto surat jalan dari/ke tempat chassen', tanpaFotoBanner:'{n} entri belum ada foto — buka riwayat lalu tekan "+ Foto"',
-    wajibSupplier:'Pilih supplier dulu.', wajibSJ:'No. surat jalan wajib diisi.',
+    wajibSupplier:'Pilih supplier dulu.', wajibSJ:'No. surat jalan wajib diisi.', barisKe:'Baris #{n}', barisTanpaItem:'item belum dipilih', barisTanpaQty:'qty belum diisi', barisTanpaHarga:'harga belum diisi', barisPeriksa:'periksa lalu simpan lagi — belum ada yang tersimpan',
     menyimpan:'Menyimpan…', tersimpan:'Tersimpan', gagal:'Gagal', keluar:'Keluar',
     lblTanggal:'Tanggal transaksi', hintTanggal:'Default hari ini. Ganti kalau barangnya masuk/keluar kemarin tapi baru dicatat sekarang.',
     lblAlasan:'Alasan perubahan', tersedia:'Tersedia', melebihi:'melebihi stok', stokKosong:'stok 0',
@@ -310,7 +310,7 @@ var T = {
     kosongData:'No data yet.',
     wajibFoto:'A proof photo is required.', wajibItem:'Add at least one item with a quantity.',
     fotoMenyusul:'From the camera or the phone gallery · can also be added later', tambahFoto:'+ Photo', belumFoto:'no photo yet', fotoTersimpan:'Photo saved', wajibFotoSJChassen:'A photo of the crusher delivery note is required.', alasanWajib:'A reason is required (at least 3 characters).', fotoHintChassen:'Required: photo of the delivery note to/from the crusher', tanpaFotoBanner:'{n} entries have no photo yet — open the history and tap "+ Photo"',
-    wajibSupplier:'Select a supplier first.', wajibSJ:'Delivery note number is required.',
+    wajibSupplier:'Select a supplier first.', wajibSJ:'Delivery note number is required.', barisKe:'Line #{n}', barisTanpaItem:'no item selected', barisTanpaQty:'qty missing', barisTanpaHarga:'price missing', barisPeriksa:'fix it and save again — nothing was saved yet',
     menyimpan:'Saving…', tersimpan:'Saved', gagal:'Failed', keluar:'Log out',
     lblTanggal:'Transaction date', hintTanggal:'Defaults to today. Change it if the goods moved yesterday but are only being logged now.',
     lblAlasan:'Reason for change', tersedia:'Available', melebihi:'exceeds stock', stokKosong:'stock 0',
@@ -1151,6 +1151,26 @@ function ambilBaris(k){
                      return o;
                    });
 }
+/* v12.4: periksa tiap baris sebelum kirim — pesan menyebut NOMOR baris (18 baris "Polybag KW" tidak bisa dibedakan dari nama saja),
+   baris yang bermasalah disorot & digulir ke layar. Baris benar-benar kosong (tanpa item & qty) dilewati. */
+function periksaBaris(k, perluHarga){
+  var rows = S.baris[k] || [];
+  for (var i=0;i<rows.length;i++){
+    var b = rows[i], adaQty = String(b.qty||'').trim() !== '', qtyOk = parseFloat(b.qty) > 0;
+    if (!b.kode && !adaQty && !(perluHarga && String(b.harga||'').trim())) continue;
+    var m = !b.kode ? t('barisTanpaItem') : !qtyOk ? t('barisTanpaQty') : (perluHarga && !(parseFloat(b.harga) > 0)) ? t('barisTanpaHarga') : '';
+    if (m){ sorotBaris(k, i); toast(t('barisKe').replace('{n}', i+1)+(b.kode ? ' ('+namaItem(b.kode)+')' : '')+': '+m+' — '+t('barisPeriksa'), 'bad'); return false; }
+  }
+  return true;
+}
+function sorotBaris(k, i){
+  var el = $(WADAH[k]); if (!el) return;
+  var lines = el.querySelectorAll('.line');
+  lines.forEach(function(x){ x.style.outline=''; });
+  var ln = lines[i]; if (!ln) return;
+  ln.style.outline = '2px solid var(--danger)'; ln.style.outlineOffset = '2px';
+  ln.scrollIntoView({ behavior:'smooth', block:'center' });
+}
 function totalBaris(k){
   return S.baris[k].reduce(function(a,b){ return a + qtyKg(b); }, 0);
 }
@@ -1571,6 +1591,7 @@ function simpanMutasiUI(){
   if (S.modeExt==='JUAL_KELUAR' && S.ctx && S.ctx.wajibSjKeluar && !$('rcvNoSJ').value.trim()){
     toast(t('wajibSJKeluar'),'bad'); return;
   }
+  if (!periksaBaris('rcv', false)) return;
   if (!baris.length){ toast(t('wajibItem'),'bad'); return; }
   if (S.modeExt==='BELI_RETUR' && baris.some(function(x){ return !x.idAsal; })){ toast(t('hintDariPenerimaan'),'bad'); return; }
   if (S.ctx && S.ctx.wajibPo && S.modeExt==='BELI_MASUK' && baris.some(function(x){ return !x.idPo; })){ toast(t('lblDariPo'),'bad'); return; }
@@ -2874,10 +2895,10 @@ function poFormBaru(){
   gambarBaris('po');
 }
 function simpanPoUI(){
-  var baris = ambilBaris('po');
   if (!comboNama('poSupplier')){ toast($('poSupplier').value.trim() ? t('pilihDulu') : t('pilihSupplier'),'bad'); return; }
+  if (!periksaBaris('po', true)) return;
+  var baris = ambilBaris('po');
   if (!baris.length){ toast(t('wajibItem'),'bad'); return; }
-  for (var i=0;i<baris.length;i++) if (!(baris[i].harga > 0)){ toast(t('lblHargaBeli')+' — '+namaItem(baris[i].kode),'bad'); return; }
   var b = $('btnSimpanPo'); sibuk(b, true);
   panggil('simpanPo',[{ supplier:comboNama('poSupplier'), tanggal:ambilTanggal('poTanggal'), perkiraanDatang:$('poDatang').value, topHari:$('poTop').value || 0, topDari:$('poTopDari').value,
                         baris:baris, catatan:$('poCatatan').value }, S.ident]).then(function(r){
@@ -3167,9 +3188,9 @@ function soTambahItem(no){
   wrap.scrollIntoView({ behavior:'smooth', block:'center' });
 }
 function simpanTambahSoUI(no){
+  if (!periksaBaris('so', lihatHpp())) return;
   var baris = ambilBaris('so');
   if (!baris.length){ toast(t('wajibItem'),'bad'); return; }
-  for (var i=0;i<baris.length;i++) if (!(baris[i].harga > 0)){ toast(t('lblHargaJual')+' — '+namaItem(baris[i].kode),'bad'); return; }
   var b = $('btnTambahKeSo'); sibuk(b, true);
   panggil('tambahBarisSo',[no, baris, S.ident]).then(function(r){
     toast(t('soTambahOk').replace('{n}', r.ids.length).replace('{no}', r.noSo)+' · '+kg(r.totalKg), 'ok');
@@ -3296,12 +3317,12 @@ function soFormBaru(){
   gambarBaris('so');
 }
 function simpanSoUI(){
-  var baris = ambilBaris('so');
   if (!comboNama('soCustomer')){ toast($('soCustomer').value.trim() ? t('pilihDulu') : t('wajibCustomer'),'bad'); return; }
+  if (!periksaBaris('so', lihatHpp())) return;
+  var baris = ambilBaris('so');
   if (!baris.length){ toast(t('wajibItem'),'bad'); return; }
   if (!$('soKirim').value){ toast(t('wajibTanggalKirim'),'bad'); return; }
   if ($('soTop').value === ''){ toast(t('wajibTop'),'bad'); return; }
-  for (var i=0;i<baris.length;i++) if (!(baris[i].harga > 0)){ toast(t('lblHargaJual')+' — '+namaItem(baris[i].kode),'bad'); return; }
   var b = $('btnSimpanSo'); sibuk(b, true);
   panggil('simpanSo',[{ customer:comboNama('soCustomer'), tanggal:ambilTanggal('soTanggal'), tanggalKirim:$('soKirim').value, topHari:$('soTop').value, topDari:$('soTopDari').value,
                         baris:baris, catatan:$('soCatatan').value }, S.ident]).then(function(r){

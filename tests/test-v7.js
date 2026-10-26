@@ -18,7 +18,7 @@ ok('header PO & SO punya TOP_Hari & Jatuh_Tempo', ctx.HEADER['Pesanan_Pembelian'
 
 console.log('\n— PO + TOP —');
 tolak('staf tidak boleh buat PO', ()=>ctx.simpanPo({supplier:SUP,baris:[{kode:KW,qty:100,harga:1000}]},STAF), /Manager/);
-tolak('PO tanpa harga ditolak', ()=>ctx.simpanPo({supplier:SUP,baris:[{kode:KW,qty:100}]},SPV), /Harga beli/);
+tolak('PO tanpa harga ditolak', ()=>ctx.simpanPo({supplier:SUP,baris:[{kode:KW,qty:100}]},SPV), /harga beli/i);
 tolak('TOP > 365 ditolak', ()=>ctx.simpanPo({supplier:SUP,topHari:400,baris:[{kode:KW,qty:100,harga:1000}]},SPV), /TOP maksimal/);
 const po1 = ctx.simpanPo({supplier:SUP, perkiraanDatang:'2026-09-20', topHari:30, baris:[
   {kode:KW, qty:1000, harga:12000, spesifikasi:'KW hitam, MFI 0.3–0.5'},

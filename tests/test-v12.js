@@ -164,8 +164,8 @@ console.log('\nâ€” v12.3: tambah item ke SO terbuka, no. surat jalan opsional â€
   const s1 = ctx.simpanSo({customer:CUS, tanggal:hari, tanggalKirim:ctx.jatuhTempo_(hari,3), topHari:14, topDari:'DOKUMEN', baris:[{kode:FG, qty:100, harga:20000, ukuran:'30 x 30'}]}, SM);
   tolak('Bastari tidak bisa tambah item SO', ()=>ctx.tambahBarisSo(s1.noSo, [{kode:FG, qty:10, harga:20000}], MP), /Sales order/);
   tolak('SO tidak dikenal ditolak', ()=>ctx.tambahBarisSo('SO-000000-77', [{kode:FG, qty:10, harga:20000}], SM), /tidak ditemukan/);
-  tolak('tanpa harga ditolak', ()=>ctx.tambahBarisSo(s1.noSo, [{kode:FG, qty:10}], SM), /Harga jual/);
-  tolak('qty 0 ditolak', ()=>ctx.tambahBarisSo(s1.noSo, [{kode:'FG-PB-SUP', qty:0, harga:1}], SM), /Qty/);
+  tolak('tanpa harga ditolak', ()=>ctx.tambahBarisSo(s1.noSo, [{kode:FG, qty:10}], SM), /harga jual/i);
+  tolak('qty 0 ditolak', ()=>ctx.tambahBarisSo(s1.noSo, [{kode:'FG-PB-SUP', qty:0, harga:1}], SM), /qty/i);
   const dok1 = ctx.buatDokumen({jenis:'SO', ref:s1.noSo}, SM);
   const t1 = ctx.tambahBarisSo(s1.noSo, [{kode:'FG-PB-SUP', qty:50, harga:22000, ukuran:'40 x 60'}, {kode:FG, qty:25, harga:20000}], YS);
   const rows1 = ctx.baca_(ctx.SHEET.SO).filter(r=>r.No_SO===s1.noSo);
