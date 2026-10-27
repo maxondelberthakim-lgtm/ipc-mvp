@@ -186,7 +186,8 @@
       <div class="field" id="rcvSoWrap">
         <label data-i18n="lblDariSo">Dari sales order (SO)</label>
         <select id="rcvSoPilih" onchange="pilihSoBaris(this.value)"></select>
-        <div class="hint" data-i18n="hintDariSo">Pilih pesanan customer yang dikirim — item terisi otomatis, qty tidak boleh melebihi sisa SO. Bisa pilih lebih dari satu.</div>
+        <div class="hint" data-i18n="hintDariSo">Pilih nomor SO yang dikirim — semua ukurannya langsung terisi (qty = sisa). Boleh pilih lebih dari satu SO.</div>
+        <div class="banner ok hide" id="rcvSoInfo" style="margin-top:8px"></div>
       </div>
       <div class="field" id="rcvReturWrap">
         <label data-i18n="lblDariPenerimaan">Barang yang diretur (dari penerimaan)</label>
