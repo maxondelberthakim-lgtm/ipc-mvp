@@ -534,7 +534,8 @@ input:disabled,select:disabled,textarea:disabled{background:#f3f4f6;color:#37415
       <div class="field" id="rcvSoWrap">
         <label data-i18n="lblDariSo">Dari sales order (SO)</label>
         <select id="rcvSoPilih" onchange="pilihSoBaris(this.value)"></select>
-        <div class="hint" data-i18n="hintDariSo">Pilih pesanan customer yang dikirim — item terisi otomatis, qty tidak boleh melebihi sisa SO. Bisa pilih lebih dari satu.</div>
+        <div class="hint" data-i18n="hintDariSo">Pilih nomor SO yang dikirim — semua ukurannya langsung terisi (qty = sisa). Boleh pilih lebih dari satu SO.</div>
+        <div class="banner ok hide" id="rcvSoInfo" style="margin-top:8px"></div>
       </div>
       <div class="field" id="rcvReturWrap">
         <label data-i18n="lblDariPenerimaan">Barang yang diretur (dari penerimaan)</label>
@@ -1081,7 +1082,7 @@ input:disabled,select:disabled,textarea:disabled{background:#f3f4f6;color:#37415
 
 var APP = {
   nama: 'IPC — Inventory & Production Control',
-  versi: '12.4.1',
+  versi: '12.5.0',
   zona: 'Asia/Jakarta',
   satuan: 'kg',
   folderFoto: 'IPC Foto Bukti'
@@ -6732,8 +6733,9 @@ var T = {
     disegarkan:'Data diperbarui',
     /* v8: sales order, ekspor, backup */
     a10t:'Sales order (SO)', a10s:'Pesanan customer · apa yang harus dikirim & kapan',
-    lblDariSo:'Dari sales order (SO)', hintDariSo:'Pilih pesanan customer yang dikirim — item terisi otomatis, qty tidak boleh melebihi sisa SO. Bisa pilih lebih dari satu.',
+    lblDariSo:'Dari sales order (SO)', hintDariSo:'Pilih nomor SO yang dikirim — semua ukurannya langsung terisi (qty = sisa). Boleh pilih lebih dari satu SO.',
     pilihSo:'— pilih SO yang dikirim —', tanpaSoTersedia:'Tidak ada SO terbuka untuk customer ini', sisaSo:'sisa SO', kirim:'kirim', dipesan:'dipesan',
+    ukuranJamak:'ukuran', ukuranTunggal:'ukuran', soTerisiSemua:'{no}: {n} ukuran terisi — hapus (✕) yang tidak ikut dikirim, kurangi qty kalau sebagian', ikutDikirim:'ikut dikirim', centangSemua:'Centang semua', kosongkanSo:'Kosongkan', soTerisiCara:'Hapus (✕) ukuran yang tidak ikut dikirim, kurangi qty kalau dikirim sebagian. Satu surat jalan & satu foto untuk semuanya.',
     segSoAktif:'Terbuka', segSoSelesai:'Selesai', segSoBaru:'+ Buat SO',
     soBaruT:'Buat sales order', soBaruS:'Sales mencatat pesanan customer supaya gudang tahu apa yang harus dikirim hari ini, stok yang sudah dipesan terlihat, dan harga jual jadi dasar laba.',
     lblTanggalKirim:'Tanggal kirim', lblHargaJual:'Harga jual / kg', btnSimpanSo:'Simpan SO', soTersimpan:'SO tersimpan', kosongSo:'Tidak ada SO',
@@ -6990,8 +6992,9 @@ var T = {
     stPERLU_BELI:'REORDER', stPO_JALAN:'PO OPEN', stAMAN:'OK', stTIDAK_DIPAKAI:'UNUSED', buatPoDari:'Create PO',
     disegarkan:'Data refreshed',
     a10t:'Sales orders (SO)', a10s:'Customer orders · what to ship & when',
-    lblDariSo:'From sales order (SO)', hintDariSo:'Pick the customer order being shipped — item fills in automatically, qty cannot exceed the SO balance. You can pick more than one.',
+    lblDariSo:'From sales order (SO)', hintDariSo:'Pick the SO number being shipped — all its sizes fill in at once (qty = remaining). You can pick more than one SO.',
     pilihSo:'— pick the SO being shipped —', tanpaSoTersedia:'No open SO for this customer', sisaSo:'SO remaining', kirim:'ship', dipesan:'reserved',
+    ukuranJamak:'sizes', ukuranTunggal:'size', soTerisiSemua:'{no}: {n} sizes added — remove (✕) the ones not shipped, lower qty for partial shipments', ikutDikirim:'shipping', centangSemua:'Select all', kosongkanSo:'Clear', soTerisiCara:'Remove (✕) the sizes not shipped, lower qty if shipping partially. One delivery note & one photo covers all of them.',
     segSoAktif:'Open', segSoSelesai:'Done', segSoBaru:'+ New SO',
     soBaruT:'Create sales order', soBaruS:'Sales records the customer order so the warehouse knows what to ship today, reserved stock is visible, and the selling price feeds gross profit.',
     lblTanggalKirim:'Ship date', lblHargaJual:'Selling price / kg', btnSimpanSo:'Save SO', soTersimpan:'SO saved', kosongSo:'No SOs',
@@ -7630,6 +7633,7 @@ function hapusBaris(k, i){
   S.baris[k].splice(i,1);
   if (!S.baris[k].length) S.baris[k].push({ kode:'', qty:'' });
   gambarBaris(k);
+  if (k === 'rcv' && typeof gambarSoInfo === 'function') gambarSoInfo();
 }
 /* baris yang MENGELUARKAN barang dari gudang → tampilkan stok tersedia & peringatan melebihi */
 function lokasiSumber(k){
@@ -8045,6 +8049,7 @@ function kecilkanGambar(file, maxSisi, mutu){
 function bukaMutasi(mode){
   S.modeExt = mode;
   S.baris.rcv = [{ kode:'', qty:'' }];
+  var rsi = $('rcvSoInfo'); if (rsi){ rsi.classList.add('hide'); rsi.innerHTML=''; }
   S.foto.rcv = null; S.ocr = null;
   $('rcvNoSJ').value = ''; $('rcvCatatan').value = '';
   setTanggal('rcvTanggal');
@@ -8072,27 +8077,59 @@ function muatSoTerbuka(){
   panggil('soTerbuka',[S.ident]).then(function(rows){
     S.soTerbuka = rows;
     isiPilihSo();
-    if (S.soAuto && S.modeExt === 'JUAL_KELUAR'){ var ids = String(S.soAuto).split(','); S.soAuto = null; ids.forEach(function(id){ pilihSoBaris(id.trim()); }); }
+    if (S.soAuto && S.modeExt === 'JUAL_KELUAR'){ var ids = String(S.soAuto).split(','); S.soAuto = null; ids.forEach(function(id){ pilihSoBaris(id.trim()); }); gambarSoInfo(); }
   }).catch(function(e){ toast(e.message,'bad'); });
 }
+/* v12.5: pilihan SO di form barang keluar per NOMOR SO (bukan per baris ukuran). Pilih satu SO → semua ukuran yang masih
+   harus dikirim masuk sekaligus (qty = sisa); baris yang tidak ikut dikirim dihapus dengan ✕, qty bisa dikurangi.
+   Satu surat jalan + satu foto untuk semua ukuran. Baris SO yang sudah ada di form tidak ditambah dua kali. */
 function isiPilihSo(){
   var sel = $('rcvSoPilih'); if (!sel) return;
   var cus = comboNama('rcvPartner');
   var rows = S.soTerbuka.filter(function(p){ return !cus || p.customer === cus; });
-  sel.innerHTML = '<option value="">'+esc(rows.length ? t('pilihSo') : t('tanpaSoTersedia'))+'</option>' +
-    rows.map(function(p){ return '<option value="'+esc(p.id)+'">'+esc(p.noSo)+' · '+esc(p.item)+(p.ukuran?' '+esc(p.ukuran):'')+' · '+esc(t('sisaSo'))+' '+n2(p.sisa)+' kg'+(p.tanggalKirim?' · '+esc(p.tanggalKirim):'')+(cus?'':' · '+esc(p.customer))+'</option>'; }).join('');
+  var grup = {}, urut = [];
+  rows.forEach(function(p){
+    var g = grup[p.noSo]; if (!g){ g = grup[p.noSo] = { noSo:p.noSo, customer:p.customer, kirim:p.tanggalKirim||'', sisa:0, n:0 }; urut.push(g); }
+    g.sisa += p.sisa; g.n++; if (p.tanggalKirim && (!g.kirim || p.tanggalKirim < g.kirim)) g.kirim = p.tanggalKirim;
+  });
+  sel.innerHTML = '<option value="">'+esc(urut.length ? t('pilihSo') : t('tanpaSoTersedia'))+'</option>' +
+    urut.map(function(g){ return '<option value="SO:'+esc(g.noSo)+'">'+esc(g.noSo)+' · '+(cus?'':esc(g.customer)+' · ')+g.n+' '+esc(t(g.n>1?'ukuranJamak':'ukuranTunggal'))+' · '+n2(g.sisa)+' kg'+(g.kirim?' · '+esc(t('kirim'))+' '+esc(g.kirim):'')+'</option>'; }).join('');
 }
-function pilihSoBaris(id){
-  if (!id) return;
-  var p = null; S.soTerbuka.forEach(function(x){ if (x.id === id) p = x; });
-  if (!p) return;
-  if (S.baris.rcv.some(function(b){ return b.idSo === id; })){ $('rcvSoPilih').value=''; return; }
-  if (!comboNama('rcvPartner')){ pasangCombo($('rcvPartner'), Object.assign({}, $('rcvPartner')._combo, { nilai: p.customer })); isiPilihSo(); }
-  S.baris.rcv = S.baris.rcv.filter(function(b){ return b.kode || b.qty; });
+function tambahBarisDariSo_(p){
+  if (S.baris.rcv.some(function(b){ return b.idSo === p.id; })) return false;
   S.baris.rcv.push({ kode:p.kode, qty:String(p.sisa), idSo:p.id, noSo:p.noSo, sisa:p.sisa, kirim:p.tanggalKirim, ukuran:p.ukuran||'' });
+  return true;
+}
+function pilihSoBaris(v){
+  if (!v) return;
+  var pilih = [];
+  if (String(v).indexOf('SO:') === 0){ var no = String(v).slice(3); pilih = S.soTerbuka.filter(function(x){ return x.noSo === no; }); }
+  else S.soTerbuka.forEach(function(x){ if (x.id === v) pilih.push(x); });
+  if (!pilih.length){ $('rcvSoPilih').value=''; return; }
+  if (!comboNama('rcvPartner')){ pasangCombo($('rcvPartner'), Object.assign({}, $('rcvPartner')._combo, { nilai: pilih[0].customer })); isiPilihSo(); }
+  S.baris.rcv = S.baris.rcv.filter(function(b){ return b.kode || b.qty; });
+  var n = 0; pilih.forEach(function(p){ if (tambahBarisDariSo_(p)) n++; });
   gambarBaris('rcv');
   $('rcvSoPilih').value = '';
+  if (n > 1) toast(t('soTerisiSemua').replace('{no}', pilih[0].noSo).replace('{n}', n), 'ok');
+  gambarSoInfo();
 }
+/* panel kecil di bawah pilihan SO: per nomor SO yang ada di form — berapa ukuran ikut, tombol "Centang semua" / "Kosongkan" */
+function gambarSoInfo(){
+  var info = $('rcvSoInfo'); if (!info) return;
+  var nos = []; S.baris.rcv.forEach(function(b){ if (b.noSo && nos.indexOf(b.noSo) < 0) nos.push(b.noSo); });
+  if (!nos.length){ info.classList.add('hide'); info.innerHTML = ''; return; }
+  info.classList.remove('hide');
+  info.innerHTML = nos.map(function(no){
+    var semua = S.soTerbuka.filter(function(x){ return x.noSo === no; }).length;
+    var ikut = S.baris.rcv.filter(function(b){ return b.noSo === no; }).length;
+    return '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span style="flex:1"><b>'+esc(no)+'</b> · '+ikut+'/'+semua+' '+esc(t('ukuranJamak'))+' '+esc(t('ikutDikirim'))+'</span>' +
+      (ikut < semua ? '<button class="btn sec xs" onclick="centangSemuaSo(\''+esc(no)+'\')">☑ '+esc(t('centangSemua'))+'</button>' : '') +
+      '<button class="btn ghost xs" onclick="kosongkanSo(\''+esc(no)+'\')">'+esc(t('kosongkanSo'))+'</button></div>';
+  }).join('') + '<div class="hint" style="margin-top:4px">'+esc(t('soTerisiCara'))+'</div>';
+}
+function centangSemuaSo(no){ S.soTerbuka.filter(function(x){ return x.noSo === no; }).forEach(tambahBarisDariSo_); S.baris.rcv = S.baris.rcv.filter(function(b){ return b.kode || b.qty; }); gambarBaris('rcv'); gambarSoInfo(); }
+function kosongkanSo(no){ S.baris.rcv = S.baris.rcv.filter(function(b){ return b.noSo !== no; }); gambarBaris('rcv'); gambarSoInfo(); }
 function muatPoTerbuka(){
   var sel = $('rcvPoPilih'); sel.innerHTML = '<option value="">…</option>';
   panggil('poTerbuka',[S.ident]).then(function(rows){
