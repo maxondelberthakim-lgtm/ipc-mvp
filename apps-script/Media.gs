@@ -35,6 +35,14 @@ function unggahFoto_(dataUrl, prefix) {
   }
 }
 
+/** v12.7: hapus file foto lama (saat foto diganti). id boleh kosong → diambil dari URL /foto/<id>.jpg. Gagal = diabaikan (foto yatim dibersihkan belakangan). */
+function hapusFotoFile_(id, url) {
+  var fid = String(id || '').trim();
+  if (!fid) { var m = String(url || '').match(/\/foto\/([A-Za-z0-9_-]+)\.jpg/); if (m) fid = m[1]; }
+  if (!fid) return false;
+  try { DriveApp.getFileById(fid).setTrashed(true); return true; } catch (e) { return false; }
+}
+
 /** Dipanggil dari UI (upload duluan, lalu simpan transfer). */
 function unggahFoto(dataUrl, prefix) {
   penggunaSaatIni_();

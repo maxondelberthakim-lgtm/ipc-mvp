@@ -844,7 +844,7 @@ function simpanKerusakan(p) {
 
 function ringkasKerusakan_(r, lihatNilai, u) {
   var o = { id: r.ID, waktu: jam_(r.Waktu), tanggal: r.Tanggal, lokasi: r.Lokasi, kode: r.Kode_Item, item: r.Nama_Item,
-            qty: angka_(r.Qty_Kg), penyebab: r.Penyebab, foto: r.Foto_URL, fotoId: r.Foto_ID, bolehFoto: !r.Foto_URL && (u ? bolehFoto_(u, SHEET.KERUSAKAN, r) : false), pencatat: r.Nama_Pencatat,
+            qty: angka_(r.Qty_Kg), penyebab: r.Penyebab, foto: r.Foto_URL, fotoId: r.Foto_ID, bolehFoto: !r.Foto_URL && (u ? bolehFoto_(u, SHEET.KERUSAKAN, r) : false), bolehGanti: !!r.Foto_URL && (u ? bolehFoto_(u, SHEET.KERUSAKAN, r) : false), pencatat: r.Nama_Pencatat,
             status: r.Status, ditinjau: r.Ditinjau_Oleh || '', catatanTinjau: r.Catatan_Tinjau || '', catatan: r.Catatan || '' };
   if (lihatNilai) o.nilaiKerugian = angka_(r.Nilai_Kerugian);
   return o;

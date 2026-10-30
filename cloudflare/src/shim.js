@@ -129,7 +129,8 @@ export function buatLayanan(opt) {
     getFoldersByName() { return { hasNext() { return true; }, next() { return folder; } }; },
     createFolder() { return folder; },
     getFolderById() { return folder; },
-    getFileById() { throw new Error('Tidak didukung.'); }
+    /* v12.7: hapus foto lama saat diganti */
+    getFileById(id) { return { setTrashed() { if (foto && foto.hapus) foto.hapus(String(id)); return this; } }; }
   };
   const ScriptApp = {
     getProjectTriggers() { return jadwal.ada() ? [{ getHandlerFunction() { return 'backupHarian'; } }] : []; },

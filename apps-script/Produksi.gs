@@ -194,7 +194,7 @@ function ringkasShift_(r, u, detCache) {
     totalBs: bulat_(bsB + bsC, 3),
     pencatat: r.Nama_Pencatat, foto: r.Foto_URL || '', catatan: r.Catatan || '', logEdit: r.Log_Edit || '', status: r.Status,
     bolehEdit: !!u && bolehShift_(u) && r.Status !== STATUS_SHIFT.DIBATALKAN && !bulanTertutup_(r.Tanggal),
-    bolehFoto: !r.Foto_URL && bolehFoto_(u, SHEET.SHIFT, r)
+    bolehFoto: !r.Foto_URL && bolehFoto_(u, SHEET.SHIFT, r), bolehGanti: !!r.Foto_URL && bolehFoto_(u, SHEET.SHIFT, r)
   };
 }
 

@@ -4,7 +4,7 @@ export function pasangBackend(G) {
   var SpreadsheetApp = G.SpreadsheetApp, LockService = G.LockService, Utilities = G.Utilities, Session = G.Session, DriveApp = G.DriveApp, PropertiesService = G.PropertiesService, CacheService = G.CacheService, ScriptApp = G.ScriptApp, HtmlService = G.HtmlService, ContentService = G.ContentService, DocumentApp = G.DocumentApp, Logger = G.Logger, Sheets = G.Sheets;
   var console = G.console;
   /* doPost() memakai globalThis[fn]; di sini "globalThis" = peta fungsi backend (bukan global Worker) */
-  var globalThis = { setupSistem: setupSistem, seedJika: seedJika, seedUlangMaster: seedUlangMaster, resetUntukGoLive: resetUntukGoLive, hapusTransaksiSebelum: hapusTransaksiSebelum, ambilAtauBuatFolder_: ambilAtauBuatFolder_, doGet: doGet, include: include, doPost: doPost, jsonOut_: jsonOut_, ss_: ss_, sheet_: sheet_, lupakanMemo_: lupakanMemo_, salinBaris_: salinBaris_, baca_: baca_, offsetZonaMs_: offsetZonaMs_, serialKeDate_: serialKeDate_, bacaSemuaBatch_: bacaSemuaBatch_, bacaSheet_: bacaSheet_, tambah_: tambah_, ubahBaris_: ubahBaris_, getSetting_: getSetting_, setSetting_: setSetting_, catatLog_: catatLog_, emailAktif_: emailAktif_, tglStr_: tglStr_, tglValid_: tglValid_, buatId_: buatId_, angka_: angka_, bulat_: bulat_, jam_: jam_, penggunaSaatIni_: penggunaSaatIni_, aksesPengguna_: aksesPengguna_, bolehModul_: bolehModul_, wajibModul_: wajibModul_, aksesTeks_: aksesTeks_, bolehReview_: bolehReview_, bolehAdmin_: bolehAdmin_, bolehLihatHpp_: bolehLihatHpp_, dihitung_: dihitung_, biayaProsesPerKg_: biayaProsesPerKg_, mataUang_: mataUang_, petaItem_: petaItem_, tambahMaster: tambahMaster, getKonteks: getKonteks, simpanPenerimaan: simpanPenerimaan, simpanPengiriman: simpanPengiriman, antrianReview: antrianReview, tinjauTransfer: tinjauTransfer, tinjauMassal: tinjauMassal, hitungStokSemua_: hitungStokSemua_, tanggalOpname_: tanggalOpname_, laporanStok: laporanStok, riwayatPenerimaan: riwayatPenerimaan, laporanPenjualan: laporanPenjualan, penandaPencatat_: penandaPencatat_, maksEditHari_: maksEditHari_, umurHari_: umurHari_, dalamBatasEdit_: dalamBatasEdit_, alasanKunci_: alasanKunci_, bolehEditEntri_: bolehEditEntri_, alasanWajib_: alasanWajib_, modulSheet_: modulSheet_, bolehFoto_: bolehFoto_, sheetFoto_: sheetFoto_, tambahFoto: tambahFoto, sheetDariId_: sheetDariId_, ringkasEntri_: ringkasEntri_, riwayatInput: riwayatInput, ambilEntri: ambilEntri, susunEdit_: susunEdit_, cariEntri_: cariEntri_, terapkanEdit_: terapkanEdit_, simpanEditEntri: simpanEditEntri, pesanKunci_: pesanKunci_, batalkanEntriSendiri: batalkanEntriSendiri, ajukanPermintaan_: ajukanPermintaan_, permintaanTertunda_: permintaanTertunda_, daftarPermintaan: daftarPermintaan, tinjauPermintaan: tinjauPermintaan, daftarPengguna: daftarPengguna, simpanPengguna: simpanPengguna, aktivitasStaf: aktivitasStaf, daftarSku: daftarSku, skuDipakai_: skuDipakai_, simpanSku: simpanSku, hapusSku: hapusSku, siapkanOpname: siapkanOpname, simpanOpname: simpanOpname, riwayatOpname: riwayatOpname, kalender: kalender, dataUrlKeBlob_: dataUrlKeBlob_, unggahFoto_: unggahFoto_, unggahFoto: unggahFoto, ocrSuratJalan: ocrSuratJalan, parseSuratJalan_: parseSuratJalan_, normalisasiAngka_: normalisasiAngka_, potongSekitar_: potongSekitar_, tesParserSuratJalan: tesParserSuratJalan, migrasiSkema: migrasiSkema, migrasiV9_: migrasiV9_, migrasiV10_: migrasiV10_, migrasiV11_: migrasiV11_, migrasiV11_1_: migrasiV11_1_, migrasiV12_0_1_: migrasiV12_0_1_, migrasiV12_3_: migrasiV12_3_, migrasiV10_1_: migrasiV10_1_, pastikanSkema_: pastikanSkema_, metodeHpp_: metodeHpp_, wajibPo_: wajibPo_, kunciWaktu_: kunciWaktu_, bolehPo_: bolehPo_, bolehSo_: bolehSo_, nomorPoBaru_: nomorPoBaru_, simpanPo: simpanPo, ubahPo: ubahPo, batalkanPo: batalkanPo, sinkronPo_: sinkronPo_, sinkronJatuhTempoPo_: sinkronJatuhTempoPo_, ringkasPo_: ringkasPo_, topValid_: topValid_, jatuhTempo_: jatuhTempo_, daftarPo: daftarPo, poTerbuka: poTerbuka, returTersedia: returTersedia, hitungReturSisa_: hitungReturSisa_, ringkasanPo: ringkasanPo, statusPoGabungan_: statusPoGabungan_, ringkasInvoice_: ringkasInvoice_, simpanInvoice: simpanInvoice, validasiInvoice: validasiInvoice, daftarInvoice: daftarInvoice, hitungRata_: hitungRata_, hargaRataItem_: hargaRataItem_, laporanNilaiStok: laporanNilaiStok, hitungUlangHpp: hitungUlangHpp, simpanKerusakan: simpanKerusakan, ringkasKerusakan_: ringkasKerusakan_, daftarKerusakan: daftarKerusakan, tinjauKerusakan: tinjauKerusakan, leadTimeHari_: leadTimeHari_, prediksiBeli: prediksiBeli, diagnosa: diagnosa, nomorSoBaru_: nomorSoBaru_, simpanSo: simpanSo, ubahSo: ubahSo, batalkanSo: batalkanSo, sinkronSo_: sinkronSo_, topDariValid_: topDariValid_, ukuranBaris_: ukuranBaris_, kirimPertamaSo_: kirimPertamaSo_, sinkronJatuhTempoSo_: sinkronJatuhTempoSo_, ringkasSo_: ringkasSo_, daftarSo: daftarSo, soTerbuka: soTerbuka, soKirimHariIni_: soKirimHariIni_, gantiDokumenSo_: gantiDokumenSo_, gabungSo: gabungSo, tambahBarisSo: tambahBarisSo, pisahSo: pisahSo, soDipesan_: soDipesan_, csvBaris_: csvBaris_, csv_: csv_, dalamBulan_: dalamBulan_, akhirBulan_: akhirBulan_, eksporBulanan: eksporBulanan, folderBackup_: folderBackup_, backupHarian: backupHarian, pasangBackupHarian: pasangBackupHarian, statusBackup: statusBackup, standarChassen_: standarChassen_, hitungSusutChassen_: hitungSusutChassen_, cariDaur_: cariDaur_, detailDaur_: detailDaur_, mulaiDaurUlang: mulaiDaurUlang, selesaikanDaurUlang: selesaikanDaurUlang, ringkasDaur_: ringkasDaur_, daftarDaurUlang: daftarDaurUlang, ambilDaurUlang: ambilDaurUlang, ubahDaurUlang: ubahDaurUlang, batalkanDaurUlang: batalkanDaurUlang, laporanDaurUlang: laporanDaurUlang, petaKualitas_: petaKualitas_, daftarOperator_: daftarOperator_, konfigurasiShift: konfigurasiShift, bolehShift_: bolehShift_, bolehOpnameProd_: bolehOpnameProd_, simpanLaporanShift: simpanLaporanShift, kolomShift_: kolomShift_, operatorStr_: operatorStr_, susunShift_: susunShift_, tulisDetailShift_: tulisDetailShift_, pecahOperator_: pecahOperator_, ringkasShift_: ringkasShift_, daftarLaporanShift: daftarLaporanShift, ambilLaporanShift: ambilLaporanShift, ubahLaporanShift: ubahLaporanShift, batalkanLaporanShift: batalkanLaporanShift, shiftAktif_: shiftAktif_, laporanProduksi: laporanProduksi, simpanOpnameProduksi: simpanOpnameProduksi, ringkasOpnameProd_: ringkasOpnameProd_, daftarOpnameProduksi: daftarOpnameProduksi, keluarGudangKeProduksi_: keluarGudangKeProduksi_, posisiStokTanggal_: posisiStokTanggal_, rekonsiliasiProduksi: rekonsiliasiProduksi, bulanStr_: bulanStr_, petaTutup_: petaTutup_, bulanTertutup_: bulanTertutup_, bulanTerakhirTertutup_: bulanTerakhirTertutup_, bulanSebelum_: bulanSebelum_, bulanValid_: bulanValid_, laporanBulanan_: laporanBulanan_, ringkasTutup_: ringkasTutup_, laporanBulanan: laporanBulanan, tutupBulan: tutupBulan, bukaBulan: bukaBulan, daftarTutupBulan: daftarTutupBulan, kgPerBal_: kgPerBal_, infoPerusahaan_: infoPerusahaan_, bolehDokumen_: bolehDokumen_, pengaturanDokumen: pengaturanDokumen, simpanPengaturanDokumen: simpanPengaturanDokumen, nomorWa_: nomorWa_, daftarKontakWa: daftarKontakWa, simpanKontakWa: simpanKontakWa, hapusKontakWa: hapusKontakWa, tokenDokumen_: tokenDokumen_, nomorInvoiceBaru_: nomorInvoiceBaru_, barisDokumen_: barisDokumen_, buatDokumen: buatDokumen, daftarDokumen: daftarDokumen, batalkanDokumen: batalkanDokumen, ambilDokumenPublik_: ambilDokumenPublik_ };
+  var globalThis = { setupSistem: setupSistem, seedJika: seedJika, seedUlangMaster: seedUlangMaster, resetUntukGoLive: resetUntukGoLive, hapusTransaksiSebelum: hapusTransaksiSebelum, ambilAtauBuatFolder_: ambilAtauBuatFolder_, doGet: doGet, include: include, doPost: doPost, jsonOut_: jsonOut_, ss_: ss_, sheet_: sheet_, lupakanMemo_: lupakanMemo_, salinBaris_: salinBaris_, baca_: baca_, offsetZonaMs_: offsetZonaMs_, serialKeDate_: serialKeDate_, bacaSemuaBatch_: bacaSemuaBatch_, bacaSheet_: bacaSheet_, tambah_: tambah_, ubahBaris_: ubahBaris_, getSetting_: getSetting_, setSetting_: setSetting_, catatLog_: catatLog_, emailAktif_: emailAktif_, tglStr_: tglStr_, tglValid_: tglValid_, buatId_: buatId_, angka_: angka_, bulat_: bulat_, jam_: jam_, penggunaSaatIni_: penggunaSaatIni_, aksesPengguna_: aksesPengguna_, bolehModul_: bolehModul_, wajibModul_: wajibModul_, aksesTeks_: aksesTeks_, bolehReview_: bolehReview_, bolehAdmin_: bolehAdmin_, bolehLihatHpp_: bolehLihatHpp_, dihitung_: dihitung_, biayaProsesPerKg_: biayaProsesPerKg_, mataUang_: mataUang_, petaItem_: petaItem_, tambahMaster: tambahMaster, getKonteks: getKonteks, simpanPenerimaan: simpanPenerimaan, simpanPengiriman: simpanPengiriman, antrianReview: antrianReview, tinjauTransfer: tinjauTransfer, tinjauMassal: tinjauMassal, hitungStokSemua_: hitungStokSemua_, tanggalOpname_: tanggalOpname_, laporanStok: laporanStok, riwayatPenerimaan: riwayatPenerimaan, laporanPenjualan: laporanPenjualan, penandaPencatat_: penandaPencatat_, maksEditHari_: maksEditHari_, umurHari_: umurHari_, dalamBatasEdit_: dalamBatasEdit_, alasanKunci_: alasanKunci_, bolehEditEntri_: bolehEditEntri_, alasanWajib_: alasanWajib_, modulSheet_: modulSheet_, bolehFoto_: bolehFoto_, sheetFoto_: sheetFoto_, tambahFoto: tambahFoto, sheetDariId_: sheetDariId_, ringkasEntri_: ringkasEntri_, riwayatInput: riwayatInput, ambilEntri: ambilEntri, susunEdit_: susunEdit_, cariEntri_: cariEntri_, terapkanEdit_: terapkanEdit_, simpanEditEntri: simpanEditEntri, pesanKunci_: pesanKunci_, batalkanEntriSendiri: batalkanEntriSendiri, ajukanPermintaan_: ajukanPermintaan_, permintaanTertunda_: permintaanTertunda_, daftarPermintaan: daftarPermintaan, tinjauPermintaan: tinjauPermintaan, daftarPengguna: daftarPengguna, simpanPengguna: simpanPengguna, aktivitasStaf: aktivitasStaf, daftarSku: daftarSku, skuDipakai_: skuDipakai_, simpanSku: simpanSku, hapusSku: hapusSku, siapkanOpname: siapkanOpname, simpanOpname: simpanOpname, riwayatOpname: riwayatOpname, kalender: kalender, dataUrlKeBlob_: dataUrlKeBlob_, unggahFoto_: unggahFoto_, hapusFotoFile_: hapusFotoFile_, unggahFoto: unggahFoto, ocrSuratJalan: ocrSuratJalan, parseSuratJalan_: parseSuratJalan_, normalisasiAngka_: normalisasiAngka_, potongSekitar_: potongSekitar_, tesParserSuratJalan: tesParserSuratJalan, migrasiSkema: migrasiSkema, migrasiV9_: migrasiV9_, migrasiV10_: migrasiV10_, migrasiV11_: migrasiV11_, migrasiV11_1_: migrasiV11_1_, migrasiV12_0_1_: migrasiV12_0_1_, migrasiV12_3_: migrasiV12_3_, migrasiV10_1_: migrasiV10_1_, pastikanSkema_: pastikanSkema_, metodeHpp_: metodeHpp_, wajibPo_: wajibPo_, kunciWaktu_: kunciWaktu_, bolehPo_: bolehPo_, bolehSo_: bolehSo_, nomorPoBaru_: nomorPoBaru_, simpanPo: simpanPo, ubahPo: ubahPo, batalkanPo: batalkanPo, sinkronPo_: sinkronPo_, sinkronJatuhTempoPo_: sinkronJatuhTempoPo_, ringkasPo_: ringkasPo_, topValid_: topValid_, jatuhTempo_: jatuhTempo_, daftarPo: daftarPo, poTerbuka: poTerbuka, returTersedia: returTersedia, hitungReturSisa_: hitungReturSisa_, ringkasanPo: ringkasanPo, statusPoGabungan_: statusPoGabungan_, ringkasInvoice_: ringkasInvoice_, simpanInvoice: simpanInvoice, validasiInvoice: validasiInvoice, daftarInvoice: daftarInvoice, hitungRata_: hitungRata_, hargaRataItem_: hargaRataItem_, laporanNilaiStok: laporanNilaiStok, hitungUlangHpp: hitungUlangHpp, simpanKerusakan: simpanKerusakan, ringkasKerusakan_: ringkasKerusakan_, daftarKerusakan: daftarKerusakan, tinjauKerusakan: tinjauKerusakan, leadTimeHari_: leadTimeHari_, prediksiBeli: prediksiBeli, diagnosa: diagnosa, nomorSoBaru_: nomorSoBaru_, simpanSo: simpanSo, ubahSo: ubahSo, batalkanSo: batalkanSo, sinkronSo_: sinkronSo_, topDariValid_: topDariValid_, ukuranBaris_: ukuranBaris_, kirimPertamaSo_: kirimPertamaSo_, sinkronJatuhTempoSo_: sinkronJatuhTempoSo_, ringkasSo_: ringkasSo_, daftarSo: daftarSo, soTerbuka: soTerbuka, soKirimHariIni_: soKirimHariIni_, gantiDokumenSo_: gantiDokumenSo_, gabungSo: gabungSo, tambahBarisSo: tambahBarisSo, pisahSo: pisahSo, soDipesan_: soDipesan_, csvBaris_: csvBaris_, csv_: csv_, dalamBulan_: dalamBulan_, akhirBulan_: akhirBulan_, eksporBulanan: eksporBulanan, folderBackup_: folderBackup_, backupHarian: backupHarian, pasangBackupHarian: pasangBackupHarian, statusBackup: statusBackup, standarChassen_: standarChassen_, hitungSusutChassen_: hitungSusutChassen_, cariDaur_: cariDaur_, detailDaur_: detailDaur_, mulaiDaurUlang: mulaiDaurUlang, selesaikanDaurUlang: selesaikanDaurUlang, ringkasDaur_: ringkasDaur_, daftarDaurUlang: daftarDaurUlang, ambilDaurUlang: ambilDaurUlang, ubahDaurUlang: ubahDaurUlang, batalkanDaurUlang: batalkanDaurUlang, laporanDaurUlang: laporanDaurUlang, petaKualitas_: petaKualitas_, daftarOperator_: daftarOperator_, konfigurasiShift: konfigurasiShift, bolehShift_: bolehShift_, bolehOpnameProd_: bolehOpnameProd_, simpanLaporanShift: simpanLaporanShift, kolomShift_: kolomShift_, operatorStr_: operatorStr_, susunShift_: susunShift_, tulisDetailShift_: tulisDetailShift_, pecahOperator_: pecahOperator_, ringkasShift_: ringkasShift_, daftarLaporanShift: daftarLaporanShift, ambilLaporanShift: ambilLaporanShift, ubahLaporanShift: ubahLaporanShift, batalkanLaporanShift: batalkanLaporanShift, shiftAktif_: shiftAktif_, laporanProduksi: laporanProduksi, simpanOpnameProduksi: simpanOpnameProduksi, ringkasOpnameProd_: ringkasOpnameProd_, daftarOpnameProduksi: daftarOpnameProduksi, keluarGudangKeProduksi_: keluarGudangKeProduksi_, posisiStokTanggal_: posisiStokTanggal_, rekonsiliasiProduksi: rekonsiliasiProduksi, bulanStr_: bulanStr_, petaTutup_: petaTutup_, bulanTertutup_: bulanTertutup_, bulanTerakhirTertutup_: bulanTerakhirTertutup_, bulanSebelum_: bulanSebelum_, bulanValid_: bulanValid_, laporanBulanan_: laporanBulanan_, ringkasTutup_: ringkasTutup_, laporanBulanan: laporanBulanan, tutupBulan: tutupBulan, bukaBulan: bukaBulan, daftarTutupBulan: daftarTutupBulan, kgPerBal_: kgPerBal_, infoPerusahaan_: infoPerusahaan_, bolehDokumen_: bolehDokumen_, pengaturanDokumen: pengaturanDokumen, simpanPengaturanDokumen: simpanPengaturanDokumen, nomorWa_: nomorWa_, daftarKontakWa: daftarKontakWa, simpanKontakWa: simpanKontakWa, hapusKontakWa: hapusKontakWa, tokenDokumen_: tokenDokumen_, nomorInvoiceBaru_: nomorInvoiceBaru_, barisDokumen_: barisDokumen_, buatDokumen: buatDokumen, daftarDokumen: daftarDokumen, batalkanDokumen: batalkanDokumen, ambilDokumenPublik_: ambilDokumenPublik_ };
 /* ==== Config.gs ==== */
 /**********************************************************************
  * IPC — Inventory & Production Control (v9)
@@ -18,7 +18,7 @@ export function pasangBackend(G) {
 
 var APP = {
   nama: 'IPC — Inventory & Production Control',
-  versi: '12.6.0',
+  versi: '12.7.0',
   zona: 'Asia/Jakarta',
   satuan: 'kg',
   folderFoto: 'IPC Foto Bukti'
@@ -1611,15 +1611,19 @@ function tambahFoto(id, foto, ident, opsi) {
     } else if (nama === SHEET.SHIFT) { kolId = ''; prefix = 'SHIFT'; }
     else if (nama === SHEET.KERUSAKAN) prefix = 'RUSAK';
     else prefix = String(id).slice(0, 3);
-    if (r[kolUrl]) throw new Error('Entri ini sudah punya foto.');
+    /* v12.7: foto yang sudah ada boleh DIGANTI (opsi.ganti) — foto lama dihapus dari penyimpanan */
+    var ganti = !!r[kolUrl];
+    if (ganti && !(opsi && opsi.ganti)) throw new Error('Entri ini sudah punya foto — pakai "Ganti foto".');
     var f = unggahFoto_(foto, prefix);
+    if (!f.url) throw new Error('Foto gagal disimpan' + (f.error ? ': ' + f.error : '.'));
+    if (ganti) hapusFotoFile_(kolId ? r[kolId] : '', r[kolUrl]);
     var ubah = {}; ubah[kolUrl] = f.url; if (kolId) ubah[kolId] = f.id;
     if (HEADER[nama].indexOf('Log_Edit') >= 0) {
-      ubah.Log_Edit = [r.Log_Edit, Utilities.formatDate(new Date(), APP.zona, 'dd/MM HH:mm') + ' ' + u.nama + ': foto ditambahkan'].filter(String).join('\n');
+      ubah.Log_Edit = [r.Log_Edit, Utilities.formatDate(new Date(), APP.zona, 'dd/MM HH:mm') + ' ' + u.nama + ': ' + (ganti ? 'foto diganti' : 'foto ditambahkan')].filter(String).join('\n');
     }
     ubahBaris_(nama, r._baris, ubah);
-    catatLog_('FOTO_TAMBAH', id, nama + (kolUrl !== 'Foto_URL' ? ' ' + kolUrl : ''));
-    return { ok: true, foto: f.url };
+    catatLog_(ganti ? 'FOTO_GANTI' : 'FOTO_TAMBAH', id, nama + (kolUrl !== 'Foto_URL' ? ' ' + kolUrl : ''));
+    return { ok: true, foto: f.url, ganti: ganti };
   } finally { lock.releaseLock(); }
 }
 
@@ -1637,7 +1641,7 @@ function ringkasEntri_(r, nama, u, tertunda) {
     item: r.Nama_Item, kode: r.Kode_Item, qty: angka_(r.Qty_Kg),
     status: r.Status, pencatat: r.Nama_Pencatat, catatan: r.Catatan,
     noSuratJalan: r.No_Surat_Jalan || '',
-    foto: r.Foto_URL, fotoId: r.Foto_ID, bolehFoto: !r.Foto_URL && bolehFoto_(u, nama, r),
+    foto: r.Foto_URL, fotoId: r.Foto_ID, bolehFoto: !r.Foto_URL && bolehFoto_(u, nama, r), bolehGanti: !!r.Foto_URL && bolehFoto_(u, nama, r),
     catatanTinjau: r.Catatan_Tinjau || '', logEdit: r.Log_Edit || '',
     idPo: r.ID_PO || '', idAsal: r.ID_Penerimaan_Asal || '', catatanQc: r.Catatan_QC || '', idSo: r.ID_SO || '',
     bolehEdit: bolehEditEntri_(u, r),
@@ -2372,6 +2376,14 @@ function unggahFoto_(dataUrl, prefix) {
     catatLog_('FOTO_GAGAL', '', String(e));
     return { url: '', id: '', error: String(e) };
   }
+}
+
+/** v12.7: hapus file foto lama (saat foto diganti). id boleh kosong → diambil dari URL /foto/<id>.jpg. Gagal = diabaikan (foto yatim dibersihkan belakangan). */
+function hapusFotoFile_(id, url) {
+  var fid = String(id || '').trim();
+  if (!fid) { var m = String(url || '').match(/\/foto\/([A-Za-z0-9_-]+)\.jpg/); if (m) fid = m[1]; }
+  if (!fid) return false;
+  try { DriveApp.getFileById(fid).setTrashed(true); return true; } catch (e) { return false; }
 }
 
 /** Dipanggil dari UI (upload duluan, lalu simpan transfer). */
@@ -3382,7 +3394,7 @@ function simpanKerusakan(p) {
 
 function ringkasKerusakan_(r, lihatNilai, u) {
   var o = { id: r.ID, waktu: jam_(r.Waktu), tanggal: r.Tanggal, lokasi: r.Lokasi, kode: r.Kode_Item, item: r.Nama_Item,
-            qty: angka_(r.Qty_Kg), penyebab: r.Penyebab, foto: r.Foto_URL, fotoId: r.Foto_ID, bolehFoto: !r.Foto_URL && (u ? bolehFoto_(u, SHEET.KERUSAKAN, r) : false), pencatat: r.Nama_Pencatat,
+            qty: angka_(r.Qty_Kg), penyebab: r.Penyebab, foto: r.Foto_URL, fotoId: r.Foto_ID, bolehFoto: !r.Foto_URL && (u ? bolehFoto_(u, SHEET.KERUSAKAN, r) : false), bolehGanti: !!r.Foto_URL && (u ? bolehFoto_(u, SHEET.KERUSAKAN, r) : false), pencatat: r.Nama_Pencatat,
             status: r.Status, ditinjau: r.Ditinjau_Oleh || '', catatanTinjau: r.Catatan_Tinjau || '', catatan: r.Catatan || '' };
   if (lihatNilai) o.nilaiKerugian = angka_(r.Nilai_Kerugian);
   return o;
@@ -4199,13 +4211,14 @@ function selesaikanDaurUlang(p) {
   } finally { lock.releaseLock(); }
 }
 
-function ringkasDaur_(r, lihatHarga, detCache) {
+function ringkasDaur_(r, lihatHarga, detCache, u) {
   var o = {
     id: r.ID, tanggal: r.Tanggal, tanggalTerima: r.Tanggal_Terima || '', kirim: jam_(r.Waktu_Kirim),
     terima: r.Waktu_Terima ? jam_(r.Waktu_Terima) : '', vendor: r.Vendor, noSuratJalan: r.No_Surat_Jalan || '',
     scrapKg: angka_(r.Total_Scrap_Kg), hasilKg: angka_(r.Total_Hasil_Kg), susut: angka_(r.Susut_Kg), persen: angka_(r.Susut_Persen),
     statusSusut: r.Status_Susut || '', status: r.Status, pencatat: r.Nama_Pencatat, penerima: r.Nama_Penerima || '',
     fotoKirim: r.Foto_Kirim_URL || '', fotoTerima: r.Foto_Terima_URL || '', catatan: r.Catatan || '',
+    bolehGantiFoto: !!(u && bolehFoto_(u, SHEET.DAUR, r)),   // v12.7: ganti foto surat jalan chassen
     /* log edit: angka jasa disaring untuk staf */
     logEdit: lihatHarga ? (r.Log_Edit || '') : String(r.Log_Edit || '').split('\n').map(function (l) { return l.replace(/;?\s*jasa: [^;\n]*/g, '').replace(/:\s*$/, ': (biaya diubah)'); }).join('\n'),
     scrap: detailDaur_(r.ID, JENIS_DAUR_DETAIL.SCRAP, detCache), hasil: detailDaur_(r.ID, JENIS_DAUR_DETAIL.HASIL, detCache)
@@ -4228,7 +4241,7 @@ function daftarDaurUlang(ident, status, hari) {
     if (status === 'SEMUA') return new Date(r.Waktu_Kirim) >= batas;
     return r.Status === status && new Date(r.Waktu_Kirim) >= batas;
   }).map(function (r) {
-    var o = ringkasDaur_(r, lihat, det);
+    var o = ringkasDaur_(r, lihat, det, u);
     o.bolehUbah = bolehReview_(u) && bolehModul_(u, MODUL.GUDANG);
     o.bolehBatal = bolehModul_(u, MODUL.GUDANG) && (bolehReview_(u) || (r.Status === STATUS_DAUR.BERJALAN && r.Dicatat_Oleh === penandaPencatat_(u))) && r.Status !== STATUS_DAUR.DIBATALKAN;
     o.batas = standarChassen_().normal + standarChassen_().toleransi;
@@ -4239,7 +4252,7 @@ function daftarDaurUlang(ident, status, hari) {
 function ambilDaurUlang(id, ident) {
   var u = penggunaSaatIni_(ident);
   var r = cariDaur_(id);
-  var o = ringkasDaur_(r, bolehLihatHpp_(u));
+  var o = ringkasDaur_(r, bolehLihatHpp_(u), null, u);
   o.bolehUbah = bolehReview_(u) && bolehModul_(u, MODUL.GUDANG);
   o.bolehBatal = bolehModul_(u, MODUL.GUDANG) && (bolehReview_(u) || (r.Status === STATUS_DAUR.BERJALAN && r.Dicatat_Oleh === penandaPencatat_(u))) && r.Status !== STATUS_DAUR.DIBATALKAN;
   o.batas = standarChassen_().normal + standarChassen_().toleransi;
@@ -4540,7 +4553,7 @@ function ringkasShift_(r, u, detCache) {
     totalBs: bulat_(bsB + bsC, 3),
     pencatat: r.Nama_Pencatat, foto: r.Foto_URL || '', catatan: r.Catatan || '', logEdit: r.Log_Edit || '', status: r.Status,
     bolehEdit: !!u && bolehShift_(u) && r.Status !== STATUS_SHIFT.DIBATALKAN && !bulanTertutup_(r.Tanggal),
-    bolehFoto: !r.Foto_URL && bolehFoto_(u, SHEET.SHIFT, r)
+    bolehFoto: !r.Foto_URL && bolehFoto_(u, SHEET.SHIFT, r), bolehGanti: !!r.Foto_URL && bolehFoto_(u, SHEET.SHIFT, r)
   };
 }
 
