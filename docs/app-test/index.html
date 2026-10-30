@@ -1183,7 +1183,7 @@ var T = {
     identPin:'PIN', identPinHint:'PIN kamu dari admin. Kalau belum punya, kosongkan.',
     /* admin */
     navAdmin:'Admin', segOpname:'Opname gudang', segAkt:'Aktivitas', segUser:'Pengguna',
-    opT:'Stock opname', opS:'Hitung fisik, isi angkanya. Kosongkan yang tidak dihitung. Selisih jadi penyesuaian stok.',
+    opTanggal:'Posisi stok akhir tanggal', opTanggalHint:'Hitung pagi sebelum produksi? Pilih TANGGAL KEMARIN (stok akhir hari kemarin = stok pagi ini). Hitung sore setelah semua laporan masuk? Pilih hari ini.', opAkhirHari:'Kolom Sistem = posisi stok akhir {t} (transaksi setelah tanggal itu tidak ikut). Selisih tetap jadi penyesuaian stok sekarang.', opPosisi:'posisi', opT:'Stock opname', opS:'Hitung fisik, isi angkanya. Kosongkan yang tidak dihitung. Selisih jadi penyesuaian stok.',
     opSistem:'Sistem', opFisik:'Fisik', opItem:'Item',
     opSimpan:'Simpan opname', opRingkas:'item dihitung', opLebih:'lebih', opKurang:'kurang',
     opKonfirm:'Simpan opname? Stok sistem akan disamakan dengan angka fisik.',
@@ -1441,7 +1441,7 @@ var T = {
     diubah:'edited',
     identPin:'PIN', identPinHint:'Your PIN from the admin. Leave blank if you have none.',
     navAdmin:'Admin', segOpname:'Warehouse count', segAkt:'Activity', segUser:'Users',
-    opT:'Stock count (opname)', opS:'Count what is physically there, type it in. Leave uncounted items blank. The difference becomes a stock adjustment.',
+    opTanggal:'Stock position at end of date', opTanggalHint:'Counting in the morning before production? Pick YESTERDAY (end of yesterday = this morning). Counting after all reports are in? Pick today.', opAkhirHari:'System column = stock at the end of {t} (later transactions excluded). The difference still adjusts current stock.', opPosisi:'as of', opT:'Stock count (opname)', opS:'Count what is physically there, type it in. Leave uncounted items blank. The difference becomes a stock adjustment.',
     opSistem:'System', opFisik:'Counted', opItem:'Item',
     opSimpan:'Save count', opRingkas:'items counted', opLebih:'over', opKurang:'short',
     opKonfirm:'Save this count? System stock will be set to the counted figures.',
@@ -3354,12 +3354,19 @@ function admRekon(bulan){
 function geserRekon(n){ var b = new Date((S.rekonBulan || bulanStr(new Date()))+'-01T00:00:00'); b.setMonth(b.getMonth()+n); admRekon(bulanStr(b)); }
 
 /* ---------- opname ---------- */
-function admOpname(){
-  panggil('siapkanOpname',[S.ident]).then(function(d){
+function admOpname(tanggal){
+  if (!tanggal && S.opname && S.opname.tanggal) tanggal = S.opname.tanggal;
+  panggil('siapkanOpname',[S.ident, tanggal || '']).then(function(d){
     if (S.admTab !== 'opname') return;
-    S.opname = { lokasi:d.lokasi, items:d.items, fisik:{} };
+    S.opname = { lokasi:d.lokasi, items:d.items, fisik:{}, tanggal:d.tanggal, akhirHari:d.akhirHari };
+    var min = new Date(); min.setDate(min.getDate() - ((S.ctx && S.ctx.maksMundurHari) || 60));
+    var minStr = min.getFullYear()+'-'+String(min.getMonth()+1).padStart(2,'0')+'-'+String(min.getDate()).padStart(2,'0');
     var h = '<div class="card">' +
       '<h2>'+esc(t('opT'))+'</h2><div class="sub">'+esc(t('opS'))+'</div>' +
+      /* v12.6: opname bertanggal — kolom Sistem = posisi stok akhir tanggal itu */
+      '<div class="field"><label>'+esc(t('opTanggal'))+'</label><input type="date" id="opTanggal" value="'+esc(d.tanggal)+'" min="'+minStr+'" max="'+esc(hariIniStr())+'" onchange="admOpname(this.value)">' +
+      '<div class="hint">'+esc(t('opTanggalHint'))+'</div></div>' +
+      (d.akhirHari ? '<div class="banner warn" style="margin-bottom:10px">'+esc(t('opAkhirHari').replace('{t}', d.tanggal))+'</div>' : '') +
       '<div class="ophead"><span>'+esc(t('opItem'))+'</span><span>'+esc(t('opSistem'))+'</span><span>'+esc(t('opFisik'))+'</span></div>' +
       d.items.map(function(i, idx){
         return '<div class="oprow" id="opr-'+idx+'">' +
@@ -3397,9 +3404,9 @@ function simpanOpnameUI(){
   if (!baris.length){ toast(t('opSemua'),'bad'); return; }
   if (!window.confirm(t('opKonfirm'))) return;
   var b = $('btnOpSimpan'); sibuk(b, true);
-  panggil('simpanOpname',[{ baris:baris, catatan:$('opCatatan').value }, S.ident]).then(function(r){
+  panggil('simpanOpname',[{ baris:baris, catatan:$('opCatatan').value, tanggal:S.opname.tanggal }, S.ident]).then(function(r){
     sibuk(b,false,t('opSimpan'));
-    toast(t('opTersimpan')+' · '+r.jumlahItem+' item · +'+n2(r.lebih)+' / −'+n2(r.kurang)+' kg','ok');
+    toast(t('opTersimpan')+' · '+esc(r.tanggal||'')+' · '+r.jumlahItem+' item · +'+n2(r.lebih)+' / −'+n2(r.kurang)+' kg','ok');
     S.opname = null;
     admOpname(); muatKonteks(true);
   }).catch(function(e){ sibuk(b,false,t('opSimpan')); toast(e.message,'bad'); });
@@ -3410,7 +3417,7 @@ function muatRiwayatOpname(){
     if (!rows.length){ el.innerHTML = '<div style="font-size:12.5px;color:var(--muted)">'+esc(t('opKosong'))+'</div>'; return; }
     el.innerHTML = rows.map(function(s, i){
       return '<div class="listrow"><button class="stokrow" onclick="var d=$(\'opd-'+i+'\');d.classList.toggle(\'hide\')">' +
-        '<span class="nm">'+esc(s.waktu)+' · '+esc(s.oleh)+'</span>' +
+        '<span class="nm">'+(s.tanggal ? esc(t('opPosisi'))+' '+esc(s.tanggal)+' · ' : '')+esc(s.waktu)+' · '+esc(s.oleh)+'</span>' +
         '<span class="vl" style="font-size:13px"><span style="color:var(--ok)">+'+n2(s.lebih)+'</span> / <span style="color:var(--danger)">−'+n2(s.kurang)+'</span></span><span class="cv">▾</span></button>' +
         '<div class="sub2">'+s.jumlahItem+' '+esc(t('opRingkas'))+'</div>' +
         '<div class="neraca hide" id="opd-'+i+'"><div class="nblok">' +
