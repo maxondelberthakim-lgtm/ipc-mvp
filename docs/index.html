@@ -1082,7 +1082,7 @@ input:disabled,select:disabled,textarea:disabled{background:#f3f4f6;color:#37415
 
 var APP = {
   nama: 'IPC — Inventory & Production Control',
-  versi: '12.5.0',
+  versi: '12.6.0',
   zona: 'Asia/Jakarta',
   satuan: 'kg',
   folderFoto: 'IPC Foto Bukti'
@@ -2386,9 +2386,13 @@ function tinjauMassal(ids, aksi, catatan, ident) {
  *       − biji plastik diambil blowing + roll hasil blowing − roll dipakai cutting + polybag hasil cutting + BS
  *       − BS ke chassen + biji plastik daur ulang − rusak (disetujui) ± penyesuaian opname
  */
-function hitungStokSemua_() {
+/* v12.6: sampaiTanggal (YYYY-MM-DD, opsional) = posisi stok AKHIR hari itu — hanya transaksi bertanggal ≤ tanggal itu.
+   Dipakai stock opname bertanggal: hitung pagi sebelum produksi = posisi akhir hari sebelumnya. */
+function hitungStokSemua_(sampaiTanggal) {
   var peta = petaItem_();
   var stok = {};
+  var batas = String(sampaiTanggal || '').slice(0, 10);
+  function masuk(t) { return !batas || String(t || '').slice(0, 10) <= batas; }
 
   function sel(kode) {
     if (!stok[kode]) {
@@ -2405,14 +2409,14 @@ function hitungStokSemua_() {
   Object.keys(peta).forEach(sel);
 
   baca_(SHEET.PENERIMAAN).forEach(function (r) {
-    if (!dihitung_(r)) return;
+    if (!dihitung_(r) || !masuk(r.Tanggal)) return;
     var s = sel(r.Kode_Item), q = angka_(r.Qty_Kg);
     if (r.Jenis === JENIS_PENERIMAAN.RETUR) { s.retur += q; s.gbj -= q; }
     else { s.beli += q; s.gbj += q; }
   });
 
   baca_(SHEET.PENGIRIMAN).forEach(function (r) {
-    if (!dihitung_(r)) return;
+    if (!dihitung_(r) || !masuk(r.Tanggal)) return;
     var s = sel(r.Kode_Item), q = angka_(r.Qty_Kg);
     if (r.Jenis === JENIS_PENGIRIMAN.RETUR_MASUK) { s.returCust += q; s.gbj += q; }
     else { s.jual += q; s.gbj -= q; }
@@ -2421,7 +2425,7 @@ function hitungStokSemua_() {
   /* v10: laporan shift — AMBIL (biji plastik keluar) & PAKAI_ROLL (roll keluar) mengurangi; HASIL (roll/polybag) & BS menambah */
   var shiftOk = shiftAktif_();
   baca_(SHEET.SHIFT_DETAIL).forEach(function (d) {
-    if (!shiftOk[d.ID_Shift]) return;
+    if (!shiftOk[d.ID_Shift] || !masuk(shiftOk[d.ID_Shift].Tanggal)) return;
     var s = sel(d.Kode_Item), q = angka_(d.Qty_Kg);
     if (d.Jenis === JENIS_SHIFT.AMBIL || d.Jenis === JENIS_SHIFT.PAKAI_ROLL) { s.dipakai += q; s.gbj -= q; }
     else { s.dihasilkan += q; s.gbj += q; }
@@ -2429,27 +2433,35 @@ function hitungStokSemua_() {
 
   /* v9: daur ulang — scrap keluar ke chassen, biji plastik kembali (batch DIBATALKAN tidak dihitung) */
   var daurAktif = {};
-  baca_(SHEET.DAUR).forEach(function (r) { if (r.Status !== STATUS_DAUR.DIBATALKAN) daurAktif[r.ID] = true; });
+  baca_(SHEET.DAUR).forEach(function (r) { if (r.Status !== STATUS_DAUR.DIBATALKAN) daurAktif[r.ID] = r; });
   baca_(SHEET.DAUR_DETAIL).forEach(function (d) {
-    if (!daurAktif[d.ID_Daur]) return;
+    var dr = daurAktif[d.ID_Daur]; if (!dr) return;
     var s = sel(d.Kode_Item), q = angka_(d.Qty_Kg);
-    if (d.Jenis === JENIS_DAUR_DETAIL.SCRAP) { s.daurKirim += q; s.gbj -= q; }
-    else { s.daurHasil += q; s.gbj += q; }
+    if (d.Jenis === JENIS_DAUR_DETAIL.SCRAP) { if (!masuk(dr.Tanggal)) return; s.daurKirim += q; s.gbj -= q; }
+    else { if (!masuk(dr.Tanggal_Terima || dr.Tanggal)) return; s.daurHasil += q; s.gbj += q; }
   });
 
   /* barang rusak yang sudah disetujui manager */
   baca_(SHEET.KERUSAKAN).forEach(function (r) {
-    if (r.Status !== STATUS_TRANSFER.DISETUJUI) return;
+    if (r.Status !== STATUS_TRANSFER.DISETUJUI || !masuk(r.Tanggal)) return;
     var s = sel(r.Kode_Item), q = angka_(r.Qty_Kg);
     s.rusak += q; s.gbj -= q;
   });
 
   /* penyesuaian dari stock opname: selisih = fisik − sistem saat dihitung */
   baca_(SHEET.OPNAME).forEach(function (r) {
+    if (!masuk(r.Tanggal)) return;
     var s = sel(r.Kode_Item), d = angka_(r.Selisih);
     s.opname += d; s.gbj += d;
   });
   return stok;
+}
+/** v12.6: tanggal opname = posisi akhir hari itu. Kosong / hari ini → stok saat ini (tanpa batas tanggal). */
+function tanggalOpname_(tanggal) {
+  var hariIni = tglStr_(new Date());
+  var t = String(tanggal || '').trim();
+  if (!t || t === hariIni) return { tanggal: hariIni, batas: '' };
+  return { tanggal: tglValid_(t), batas: tglValid_(t) };
 }
 
 function laporanStok(ident) {
@@ -3179,19 +3191,19 @@ function hapusSku(kode, ident) {
 /**
  * Daftar item + stok sistem, siap diisi stok fisik. v9: satu lokasi (GBJ).
  */
-function siapkanOpname(ident) {
+function siapkanOpname(ident, tanggal) {
   var u = penggunaSaatIni_(ident);
   if (!bolehReview_(u) || !bolehModul_(u, MODUL.MANAJEMEN)) throw new Error('Hanya akun dengan akses Manajemen (Manager / Admin).');
   var lokasi = LOKASI.GBJ;
-  var stok = {};
-  laporanStok(ident).daftar.forEach(function (s) { stok[s.kode] = s; });
+  var to = tanggalOpname_(tanggal);
+  var stok = hitungStokSemua_(to.batas);
   var items = baca_(SHEET.ITEM).filter(function (r) {
     return r.Kode_Item && String(r.Aktif).toUpperCase() !== 'TIDAK';
   }).map(function (r) {
     var s = stok[r.Kode_Item];
     return { kode: r.Kode_Item, nama: r.Nama_Item, kategori: r.Kategori, sistem: s ? s.gbj : 0 };
   });
-  return { lokasi: lokasi, waktu: jam_(new Date()), items: items };
+  return { lokasi: lokasi, waktu: jam_(new Date()), tanggal: to.tanggal, akhirHari: !!to.batas, items: items };
 }
 
 /**
@@ -3209,8 +3221,8 @@ function simpanOpname(p, ident) {
   lupakanMemo_();   // di dalam lock: baca ulang dari sheet, jangan pakai memo sebelum lock
   try {
     var peta = petaItem_();
-    var stok = {};
-    laporanStok(ident).daftar.forEach(function (s) { stok[s.kode] = s; });
+    var to = tanggalOpname_(p.tanggal);
+    var stok = hitungStokSemua_(to.batas);
     var now = new Date();
     var idSesi = buatId_('OPN');
     var n = 0, totalSelisih = 0, plus = 0, minus = 0;
@@ -3226,7 +3238,7 @@ function simpanOpname(p, ident) {
       n++; totalSelisih += selisih;
       if (selisih > 0) plus += selisih; else minus += -selisih;
       tambah_(SHEET.OPNAME, {
-        ID: buatId_('OPI'), ID_Sesi: idSesi, Waktu: now, Tanggal: tglStr_(now), Lokasi: lokasi,
+        ID: buatId_('OPI'), ID_Sesi: idSesi, Waktu: now, Tanggal: to.tanggal, Lokasi: lokasi,
         Kode_Item: it.kode, Nama_Item: it.nama,
         Stok_Sistem: bulat_(sistem, 3), Stok_Fisik: fisik, Selisih: selisih,
         Catatan: b.catatan || p.catatan || '',
@@ -3235,8 +3247,8 @@ function simpanOpname(p, ident) {
     });
     if (!n) throw new Error('Belum ada item yang diisi stok fisiknya.');
 
-    catatLog_('OPNAME', idSesi, lokasi + ' • ' + n + ' item • selisih ' + bulat_(totalSelisih, 2) + ' kg');
-    return { ok: true, idSesi: idSesi, lokasi: lokasi, jumlahItem: n,
+    catatLog_('OPNAME', idSesi, lokasi + ' • ' + to.tanggal + ' • ' + n + ' item • selisih ' + bulat_(totalSelisih, 2) + ' kg');
+    return { ok: true, idSesi: idSesi, lokasi: lokasi, tanggal: to.tanggal, jumlahItem: n,
              selisih: bulat_(totalSelisih, 2), lebih: bulat_(plus, 2), kurang: bulat_(minus, 2) };
   } finally {
     lock.releaseLock();
@@ -3251,7 +3263,7 @@ function riwayatOpname(hari, ident) {
   baca_(SHEET.OPNAME).forEach(function (r) {
     if (new Date(r.Waktu) < batas) return;
     var k = r.ID_Sesi;
-    if (!sesi[k]) sesi[k] = { idSesi: k, waktuRaw: new Date(r.Waktu).getTime(), waktu: jam_(r.Waktu),
+    if (!sesi[k]) sesi[k] = { idSesi: k, waktuRaw: new Date(r.Waktu).getTime(), waktu: jam_(r.Waktu), tanggal: String(r.Tanggal || '').slice(0, 10),
                               lokasi: r.Lokasi, oleh: r.Nama_Pencatat, jumlahItem: 0,
                               lebih: 0, kurang: 0, item: [] };
     var x = sesi[k], d = angka_(r.Selisih);
@@ -6756,7 +6768,7 @@ var T = {
     identPin:'PIN', identPinHint:'PIN kamu dari admin. Kalau belum punya, kosongkan.',
     /* admin */
     navAdmin:'Admin', segOpname:'Opname gudang', segAkt:'Aktivitas', segUser:'Pengguna',
-    opT:'Stock opname', opS:'Hitung fisik, isi angkanya. Kosongkan yang tidak dihitung. Selisih jadi penyesuaian stok.',
+    opTanggal:'Posisi stok akhir tanggal', opTanggalHint:'Hitung pagi sebelum produksi? Pilih TANGGAL KEMARIN (stok akhir hari kemarin = stok pagi ini). Hitung sore setelah semua laporan masuk? Pilih hari ini.', opAkhirHari:'Kolom Sistem = posisi stok akhir {t} (transaksi setelah tanggal itu tidak ikut). Selisih tetap jadi penyesuaian stok sekarang.', opPosisi:'posisi', opT:'Stock opname', opS:'Hitung fisik, isi angkanya. Kosongkan yang tidak dihitung. Selisih jadi penyesuaian stok.',
     opSistem:'Sistem', opFisik:'Fisik', opItem:'Item',
     opSimpan:'Simpan opname', opRingkas:'item dihitung', opLebih:'lebih', opKurang:'kurang',
     opKonfirm:'Simpan opname? Stok sistem akan disamakan dengan angka fisik.',
@@ -7014,7 +7026,7 @@ var T = {
     diubah:'edited',
     identPin:'PIN', identPinHint:'Your PIN from the admin. Leave blank if you have none.',
     navAdmin:'Admin', segOpname:'Warehouse count', segAkt:'Activity', segUser:'Users',
-    opT:'Stock count (opname)', opS:'Count what is physically there, type it in. Leave uncounted items blank. The difference becomes a stock adjustment.',
+    opTanggal:'Stock position at end of date', opTanggalHint:'Counting in the morning before production? Pick YESTERDAY (end of yesterday = this morning). Counting after all reports are in? Pick today.', opAkhirHari:'System column = stock at the end of {t} (later transactions excluded). The difference still adjusts current stock.', opPosisi:'as of', opT:'Stock count (opname)', opS:'Count what is physically there, type it in. Leave uncounted items blank. The difference becomes a stock adjustment.',
     opSistem:'System', opFisik:'Counted', opItem:'Item',
     opSimpan:'Save count', opRingkas:'items counted', opLebih:'over', opKurang:'short',
     opKonfirm:'Save this count? System stock will be set to the counted figures.',
@@ -8927,12 +8939,19 @@ function admRekon(bulan){
 function geserRekon(n){ var b = new Date((S.rekonBulan || bulanStr(new Date()))+'-01T00:00:00'); b.setMonth(b.getMonth()+n); admRekon(bulanStr(b)); }
 
 /* ---------- opname ---------- */
-function admOpname(){
-  panggil('siapkanOpname',[S.ident]).then(function(d){
+function admOpname(tanggal){
+  if (!tanggal && S.opname && S.opname.tanggal) tanggal = S.opname.tanggal;
+  panggil('siapkanOpname',[S.ident, tanggal || '']).then(function(d){
     if (S.admTab !== 'opname') return;
-    S.opname = { lokasi:d.lokasi, items:d.items, fisik:{} };
+    S.opname = { lokasi:d.lokasi, items:d.items, fisik:{}, tanggal:d.tanggal, akhirHari:d.akhirHari };
+    var min = new Date(); min.setDate(min.getDate() - ((S.ctx && S.ctx.maksMundurHari) || 60));
+    var minStr = min.getFullYear()+'-'+String(min.getMonth()+1).padStart(2,'0')+'-'+String(min.getDate()).padStart(2,'0');
     var h = '<div class="card">' +
       '<h2>'+esc(t('opT'))+'</h2><div class="sub">'+esc(t('opS'))+'</div>' +
+      /* v12.6: opname bertanggal — kolom Sistem = posisi stok akhir tanggal itu */
+      '<div class="field"><label>'+esc(t('opTanggal'))+'</label><input type="date" id="opTanggal" value="'+esc(d.tanggal)+'" min="'+minStr+'" max="'+esc(hariIniStr())+'" onchange="admOpname(this.value)">' +
+      '<div class="hint">'+esc(t('opTanggalHint'))+'</div></div>' +
+      (d.akhirHari ? '<div class="banner warn" style="margin-bottom:10px">'+esc(t('opAkhirHari').replace('{t}', d.tanggal))+'</div>' : '') +
       '<div class="ophead"><span>'+esc(t('opItem'))+'</span><span>'+esc(t('opSistem'))+'</span><span>'+esc(t('opFisik'))+'</span></div>' +
       d.items.map(function(i, idx){
         return '<div class="oprow" id="opr-'+idx+'">' +
@@ -8970,9 +8989,9 @@ function simpanOpnameUI(){
   if (!baris.length){ toast(t('opSemua'),'bad'); return; }
   if (!window.confirm(t('opKonfirm'))) return;
   var b = $('btnOpSimpan'); sibuk(b, true);
-  panggil('simpanOpname',[{ baris:baris, catatan:$('opCatatan').value }, S.ident]).then(function(r){
+  panggil('simpanOpname',[{ baris:baris, catatan:$('opCatatan').value, tanggal:S.opname.tanggal }, S.ident]).then(function(r){
     sibuk(b,false,t('opSimpan'));
-    toast(t('opTersimpan')+' · '+r.jumlahItem+' item · +'+n2(r.lebih)+' / −'+n2(r.kurang)+' kg','ok');
+    toast(t('opTersimpan')+' · '+esc(r.tanggal||'')+' · '+r.jumlahItem+' item · +'+n2(r.lebih)+' / −'+n2(r.kurang)+' kg','ok');
     S.opname = null;
     admOpname(); muatKonteks(true);
   }).catch(function(e){ sibuk(b,false,t('opSimpan')); toast(e.message,'bad'); });
@@ -8983,7 +9002,7 @@ function muatRiwayatOpname(){
     if (!rows.length){ el.innerHTML = '<div style="font-size:12.5px;color:var(--muted)">'+esc(t('opKosong'))+'</div>'; return; }
     el.innerHTML = rows.map(function(s, i){
       return '<div class="listrow"><button class="stokrow" onclick="var d=$(\'opd-'+i+'\');d.classList.toggle(\'hide\')">' +
-        '<span class="nm">'+esc(s.waktu)+' · '+esc(s.oleh)+'</span>' +
+        '<span class="nm">'+(s.tanggal ? esc(t('opPosisi'))+' '+esc(s.tanggal)+' · ' : '')+esc(s.waktu)+' · '+esc(s.oleh)+'</span>' +
         '<span class="vl" style="font-size:13px"><span style="color:var(--ok)">+'+n2(s.lebih)+'</span> / <span style="color:var(--danger)">−'+n2(s.kurang)+'</span></span><span class="cv">▾</span></button>' +
         '<div class="sub2">'+s.jumlahItem+' '+esc(t('opRingkas'))+'</div>' +
         '<div class="neraca hide" id="opd-'+i+'"><div class="nblok">' +
