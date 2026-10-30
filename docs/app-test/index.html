@@ -1051,7 +1051,7 @@ var T = {
     kosongRev:'Antrian bersih. Tidak ada yang perlu ditinjau.',
     kosongData:'Belum ada data.',
     wajibFoto:'Foto bukti wajib diisi.', wajibItem:'Isi minimal satu item dengan qty.',
-    fotoMenyusul:'Dari kamera atau galeri HP · boleh juga ditambah nanti', tambahFoto:'+ Foto', belumFoto:'belum ada foto', fotoTersimpan:'Foto tersimpan', wajibFotoSJChassen:'Foto surat jalan chassen wajib diunggah.', alasanWajib:'Alasan wajib diisi (minimal 3 huruf).', fotoHintChassen:'Wajib: foto surat jalan dari/ke tempat chassen', tanpaFotoBanner:'{n} entri belum ada foto — buka riwayat lalu tekan "+ Foto"',
+    fotoMenyusul:'Dari kamera atau galeri HP · boleh juga ditambah nanti', fotoSumberT:'Ambil foto dari', fotoKamera:'Kamera (foto langsung)', fotoGaleri:'Galeri / file di HP', gantiFoto:'Ganti foto', gantiFotoKonfirm:'Ganti foto? Foto lama akan dihapus dan diganti dengan foto baru.', fotoDiganti:'Foto diganti', fotoKirimLbl:'kirim:', fotoTerimaLbl:'terima:', tambahFoto:'+ Foto', belumFoto:'belum ada foto', fotoTersimpan:'Foto tersimpan', wajibFotoSJChassen:'Foto surat jalan chassen wajib diunggah.', alasanWajib:'Alasan wajib diisi (minimal 3 huruf).', fotoHintChassen:'Wajib: foto surat jalan dari/ke tempat chassen', tanpaFotoBanner:'{n} entri belum ada foto — buka riwayat lalu tekan "+ Foto"',
     wajibSupplier:'Pilih supplier dulu.', wajibSJ:'No. surat jalan wajib diisi.', barisKe:'Baris #{n}', barisTanpaItem:'item belum dipilih', barisTanpaQty:'qty belum diisi', barisTanpaHarga:'harga belum diisi', barisPeriksa:'periksa lalu simpan lagi — belum ada yang tersimpan',
     menyimpan:'Menyimpan…', tersimpan:'Tersimpan', gagal:'Gagal', keluar:'Keluar',
     lblTanggal:'Tanggal transaksi', hintTanggal:'Default hari ini. Ganti kalau barangnya masuk/keluar kemarin tapi baru dicatat sekarang.',
@@ -1315,7 +1315,7 @@ var T = {
     kosongRev:'Queue is clear. Nothing to review.',
     kosongData:'No data yet.',
     wajibFoto:'A proof photo is required.', wajibItem:'Add at least one item with a quantity.',
-    fotoMenyusul:'From the camera or the phone gallery · can also be added later', tambahFoto:'+ Photo', belumFoto:'no photo yet', fotoTersimpan:'Photo saved', wajibFotoSJChassen:'A photo of the crusher delivery note is required.', alasanWajib:'A reason is required (at least 3 characters).', fotoHintChassen:'Required: photo of the delivery note to/from the crusher', tanpaFotoBanner:'{n} entries have no photo yet — open the history and tap "+ Photo"',
+    fotoMenyusul:'From the camera or the phone gallery · can also be added later', fotoSumberT:'Take the photo from', fotoKamera:'Camera (shoot now)', fotoGaleri:'Gallery / files on the phone', gantiFoto:'Replace photo', gantiFotoKonfirm:'Replace the photo? The old photo will be deleted and replaced by the new one.', fotoDiganti:'Photo replaced', fotoKirimLbl:'out:', fotoTerimaLbl:'in:', tambahFoto:'+ Photo', belumFoto:'no photo yet', fotoTersimpan:'Photo saved', wajibFotoSJChassen:'A photo of the crusher delivery note is required.', alasanWajib:'A reason is required (at least 3 characters).', fotoHintChassen:'Required: photo of the delivery note to/from the crusher', tanpaFotoBanner:'{n} entries have no photo yet — open the history and tap "+ Photo"',
     wajibSupplier:'Select a supplier first.', wajibSJ:'Delivery note number is required.', barisKe:'Line #{n}', barisTanpaItem:'no item selected', barisTanpaQty:'qty missing', barisTanpaHarga:'price missing', barisPeriksa:'fix it and save again — nothing was saved yet',
     menyimpan:'Saving…', tersimpan:'Saved', gagal:'Failed', keluar:'Log out',
     lblTanggal:'Transaction date', hintTanggal:'Defaults to today. Change it if the goods moved yesterday but are only being logged now.',
@@ -2361,7 +2361,26 @@ function hapusKontakUI(id){
 var KOTAK = { rcv:'rcvPhoto', shift:'shiftPhoto', rusak:'rusakFotoBox', inv:'invFotoBox', daur:'daurPhoto', daurFin:'daurFinPhoto' };
 var FILEIN = { rcv:'rcvFile', shift:'shiftFile', rusak:'rusakFile', inv:'invFile', daur:'daurFile', daurFin:'daurFinFile' };
 
-function pilihFoto(k){ $(FILEIN[k]).click(); }
+/* v12.7: pilih sumber foto — Kamera (capture) atau Galeri — lembar pilihan kecil di bawah layar. cb(sumber) dipanggil
+   dari klik tombol (tetap "user gesture" supaya input.click() dibolehkan browser). */
+function bukaSumberFoto(cb){
+  var lama = $('fotoSumber'); if (lama) lama.remove();
+  var d = document.createElement('div'); d.id = 'fotoSumber';
+  d.style.cssText = 'position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.45);display:flex;align-items:flex-end;justify-content:center';
+  d.innerHTML = '<div style="background:#fff;border-radius:16px 16px 0 0;padding:14px 16px calc(16px + env(safe-area-inset-bottom));width:100%;max-width:560px">' +
+    '<div style="font-weight:700;margin-bottom:10px">'+esc(t('fotoSumberT'))+'</div>' +
+    '<button class="btn" style="width:100%;margin-bottom:8px" data-s="kamera">📷 '+esc(t('fotoKamera'))+'</button>' +
+    '<button class="btn sec" style="width:100%;margin-bottom:8px" data-s="galeri">🖼 '+esc(t('fotoGaleri'))+'</button>' +
+    '<button class="btn ghost" style="width:100%" data-s="">'+esc(t('batal'))+'</button></div>';
+  d.querySelectorAll('button').forEach(function(b){ b.onclick = function(ev){ ev.stopPropagation(); var sb = b.dataset.s; d.remove(); if (sb) cb(sb); }; });
+  d.onclick = function(){ d.remove(); };
+  document.body.appendChild(d);
+}
+function siapkanInputFoto(inp, sumber){
+  if (sumber === 'kamera') inp.setAttribute('capture', 'environment'); else inp.removeAttribute('capture');
+  inp.value = '';
+}
+function pilihFoto(k){ bukaSumberFoto(function(sb){ var inp = $(FILEIN[k]); siapkanInputFoto(inp, sb); inp.click(); }); }
 
 function fotoTerpilih(ev, k){
   var f = ev.target.files && ev.target.files[0];
@@ -2394,10 +2413,12 @@ function mintaAlasan(key){
 }
 
 /* v11.2: foto menyusul — "+ Foto" di riwayat / layar detail: pilih file → unggah ke entri yang sudah tersimpan */
-function fotoEntri(id, bagian, ev){
+function fotoEntri(id, bagian, ev, ganti){
   if (ev) ev.stopPropagation();
-  S.fotoTarget = { id: id, bagian: bagian || '' };
-  $('entriFile').click();
+  bukaSumberFoto(function(sb){
+    S.fotoTarget = { id: id, bagian: bagian || '', ganti: !!ganti };
+    var inp = $('entriFile'); siapkanInputFoto(inp, sb); inp.click();
+  });
 }
 function fotoEntriTerpilih(ev){
   var f = ev.target.files && ev.target.files[0]; ev.target.value = '';
@@ -2405,29 +2426,41 @@ function fotoEntriTerpilih(ev){
   if (!f || !tg) return;
   toast('⏳ ' + t('menyimpan'), '');
   kecilkanGambar(f, 1400, 0.72).then(function(dataUrl){
-    return panggil('tambahFoto', [tg.id, dataUrl, S.ident, tg.bagian ? { bagian: tg.bagian } : null]);
+    return panggil('tambahFoto', [tg.id, dataUrl, S.ident, { bagian: tg.bagian || '', ganti: !!tg.ganti }]);
   }).then(function(r){
-    toast(t('fotoTersimpan'), 'ok');
-    if (S.edit && S.edit.id === tg.id){ S.edit.foto = r.foto; S.edit.bolehFoto = false; tampilFotoEdit(); }
-    if (S.shiftEdit && S.shiftEdit.id === tg.id){ var fb = $('shiftPhoto'); fb.innerHTML = '<img src="'+esc(r.foto)+'">'; fb.className = 'photo filled'; fb.onclick = null; }
+    toast(r.ganti ? t('fotoDiganti') : t('fotoTersimpan'), 'ok');
+    if (S.edit && S.edit.id === tg.id){ S.edit.foto = r.foto; S.edit.bolehFoto = false; S.edit.bolehGanti = true; tampilFotoEdit(); }
+    if (S.shiftEdit && S.shiftEdit.id === tg.id){ var fb = $('shiftPhoto'); fb.innerHTML = '<img src="'+esc(r.foto)+'">'+'<div class="btnrow" style="justify-content:flex-end;padding:6px">'+tombolGantiFoto(tg.id)+'</div>'; fb.className = 'photo filled'; fb.onclick = null; }
     if (S.view === 'beli' || S.view === 'jual') muatRiwayat('rcv');
     if (S.view === 'rusak') muatRusakRiwayat();
     if (S.view === 'shift') muatShift();
+    if (S.view === 'daur') segDaur(S.daurTab);
     muatKonteks(true);
   }).catch(function(e){ toast(e.message || t('gagal'), 'bad'); });
 }
 function tombolFoto(r, bagian){
-  if (r.foto || !r.bolehFoto) return '';
-  return ' <button class="btn ghost xs" title="'+esc(t('belumFoto'))+'" onclick="fotoEntri(\''+esc(r.id)+'\',\''+(bagian||'')+'\',event)">📷 '+esc(t('tambahFoto'))+'</button>';
+  if (!r.foto && r.bolehFoto) return ' <button class="btn ghost xs" title="'+esc(t('belumFoto'))+'" onclick="fotoEntri(\''+esc(r.id)+'\',\''+(bagian||'')+'\',event)">📷 '+esc(t('tambahFoto'))+'</button>';
+  if (r.foto && r.bolehGanti) return tombolGantiFoto(r.id, bagian);
+  return '';
+}
+/* v12.7: ganti foto yang salah — foto lama dihapus, foto baru menggantikan (butuh hak yang sama dengan "+ Foto") */
+function tombolGantiFoto(id, bagian){
+  return ' <button class="btn ghost xs" onclick="gantiFotoUI(\''+esc(id)+'\',\''+(bagian||'')+'\',event)">🔁 '+esc(t('gantiFoto'))+'</button>';
+}
+function gantiFotoUI(id, bagian, ev){
+  if (ev) ev.stopPropagation();
+  if (!confirm(t('gantiFotoKonfirm'))) return;
+  fotoEntri(id, bagian, null, true);
 }
 function tampilFotoEdit(){
   var r = S.edit; if (!r) return;
   var src = r.foto && r.foto.indexOf('data:') === 0 ? r.foto : (r.fotoId && !r.foto ? 'https://drive.google.com/thumbnail?id='+r.fotoId+'&sz=w1200' : (r.foto || ''));
   var fb = $('editFoto');
   if (src){
-    fb.innerHTML = '<img src="'+esc(src)+'" onerror="this.parentNode.innerHTML=\'<div class=&quot;p2&quot;>'+esc(t('tidakAdaFoto'))+'</div>\'">';
+    fb.innerHTML = '<img src="'+esc(src)+'" onerror="this.parentNode.innerHTML=\'<div class=&quot;p2&quot;>'+esc(t('tidakAdaFoto'))+'</div>\'">' +
+      (r.bolehGanti ? '<div class="btnrow" style="justify-content:flex-end;padding:6px">'+tombolGantiFoto(r.id)+'</div>' : '');
     fb.className = 'photo filled';
-    fb.onclick = (r.foto && r.foto.indexOf('http') === 0) ? function(){ window.open(r.foto, '_blank'); } : null;
+    fb.onclick = (r.foto && r.foto.indexOf('http') === 0) ? function(ev){ if (ev && ev.target.closest && ev.target.closest('button')) return; window.open(r.foto, '_blank'); } : null;
   } else if (r.bolehFoto){
     fb.innerHTML = '<div class="p1">📷 '+esc(t('tambahFoto'))+'</div><div class="p2">'+esc(t('belumFoto'))+'</div>';
     fb.className = 'photo';
@@ -2775,7 +2808,7 @@ function kartuShift(r){
   var h = '<div class="job" onclick="bukaEditShift(\''+esc(r.id)+'\')" style="cursor:pointer">' +
     '<div style="display:flex;align-items:flex-start;gap:10px">' +
       '<div style="flex:1;min-width:0"><b>'+esc(t('shiftKe'))+' '+esc(r.shift)+' <small style="font-weight:500;color:var(--muted)">'+esc(r.jam || jamShift(r.shift))+'</small></b>' +
-        '<div class="m">'+esc(r.pencatat)+(r.logEdit?' · <i>'+esc(t('diubah'))+'</i>':'')+(r.foto ? ' · 📷' : (r.bolehFoto ? ' · <span style="color:var(--warn,#b45309)">📷 '+esc(t('belumFoto'))+'</span>' : ''))+'</div>'+(r.bolehFoto && !r.foto ? '<div style="margin-top:4px">'+tombolFoto(r)+'</div>' : '')+'</div>' +
+        '<div class="m">'+esc(r.pencatat)+(r.logEdit?' · <i>'+esc(t('diubah'))+'</i>':'')+(r.foto ? ' · 📷' : (r.bolehFoto ? ' · <span style="color:var(--warn,#b45309)">📷 '+esc(t('belumFoto'))+'</span>' : ''))+'</div>'+((r.bolehFoto && !r.foto) || (r.foto && r.bolehGanti) ? '<div style="margin-top:4px">'+tombolFoto(r)+'</div>' : '')+'</div>' +
       '<div style="text-align:right;flex:0 0 auto"><div class="big" style="font-size:24px">'+n2(c.totalHasil)+'<span class="u">kg</span></div>' +
         '<div class="m" style="margin-top:1px">'+esc(t('polybagJadi'))+'</div></div></div>' +
     '<div class="bb">';
@@ -2954,7 +2987,7 @@ function bukaEditShift(id){
     setBacaSaja(['shiftTanggal','blowingOperator','cuttingOperator','shiftCatatan'], baca);
     if (baca) $('shiftForm').querySelectorAll('input[type=number], input[type=checkbox], #ambilLines input, #ambilLines button, #shiftPilihWrap button, .chip button, #shiftForm .btn.sm').forEach(function(x){ x.disabled = true; });
     var fb = $('shiftPhoto');
-    if (r.foto){ fb.innerHTML = '<img src="'+esc(r.foto)+'">'; fb.className = 'photo filled'; fb.onclick = null; }
+    if (r.foto){ fb.innerHTML = '<img src="'+esc(r.foto)+'">'+(r.bolehGanti ? '<div class="btnrow" style="justify-content:flex-end;padding:6px">'+tombolGantiFoto(r.id)+'</div>' : ''); fb.className = 'photo filled'; fb.onclick = null; }
     else if (r.bolehFoto){ fb.innerHTML = '<div class="p1">📷 '+esc(t('tambahFoto'))+'</div><div class="p2">'+esc(t('belumFoto'))+'</div>'; fb.className = 'photo'; fb.onclick = function(){ fotoEntri(r.id); }; }
     window.scrollTo(0,0);
   }).catch(function(e){ toast(e.message,'bad'); });
@@ -4590,7 +4623,10 @@ function kartuDaur(d, penuh){
     (lihat && d.status === 'SELESAI' ? '<div class="kv"><span>'+esc(t('biayaJasa'))+'</span><b>'+(d.hpp.jasaKosong ? '<span class="pill warn">'+esc(t('jasaBelumDiisi'))+'</span>' : rp(d.hpp.jasa))+'</b></div>' +
       '<div class="kv"><span>'+esc(t('hppDaurPerKg'))+'</span><b>'+rp(d.hpp.perKg)+(d.hpp.nilaiScrap?' <small style="color:var(--muted)">('+esc(t('nilaiScrap'))+' '+rp(d.hpp.nilaiScrap)+')</small>':'')+'</b></div>' : '') +
     (d.catatan ? '<div class="kv"><span>'+esc(t('lblCatatan'))+'</span><b style="text-align:right;max-width:65%">'+esc(d.catatan)+'</b></div>' : '') +
-    ((d.fotoKirim || d.fotoTerima) ? '<div class="kv"><span>'+esc(t('thFoto'))+'</span><b>'+foto(d.fotoKirim)+(d.fotoKirim&&d.fotoTerima?' · ':'')+foto(d.fotoTerima)+'</b></div>' : '') +
+    ((d.fotoKirim || d.fotoTerima) ? '<div class="kv"><span>'+esc(t('thFoto'))+'</span><b>' +
+        (d.fotoKirim ? esc(t('fotoKirimLbl'))+' '+foto(d.fotoKirim)+(d.bolehGantiFoto && d.status!=='DIBATALKAN' ? tombolGantiFoto(d.id,'kirim') : '') : '') +
+        (d.fotoKirim&&d.fotoTerima?' · ':'') +
+        (d.fotoTerima ? esc(t('fotoTerimaLbl'))+' '+foto(d.fotoTerima)+(d.bolehGantiFoto && d.status!=='DIBATALKAN' ? tombolGantiFoto(d.id,'terima') : '') : '') + '</b></div>' : '') +
     (d.logEdit ? '<div style="font-size:11px;color:var(--muted);white-space:pre-line;margin-top:3px"><i>'+esc(d.logEdit)+'</i></div>' : '') +
     (d.status !== 'DIBATALKAN' && (d.bolehUbah || d.bolehBatal) ?
       '<div id="jasa-'+esc(d.id)+'"></div><div class="btnrow" style="margin-top:8px;justify-content:flex-end">' +
