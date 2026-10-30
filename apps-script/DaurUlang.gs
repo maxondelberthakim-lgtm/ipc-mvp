@@ -131,13 +131,14 @@ function selesaikanDaurUlang(p) {
   } finally { lock.releaseLock(); }
 }
 
-function ringkasDaur_(r, lihatHarga, detCache) {
+function ringkasDaur_(r, lihatHarga, detCache, u) {
   var o = {
     id: r.ID, tanggal: r.Tanggal, tanggalTerima: r.Tanggal_Terima || '', kirim: jam_(r.Waktu_Kirim),
     terima: r.Waktu_Terima ? jam_(r.Waktu_Terima) : '', vendor: r.Vendor, noSuratJalan: r.No_Surat_Jalan || '',
     scrapKg: angka_(r.Total_Scrap_Kg), hasilKg: angka_(r.Total_Hasil_Kg), susut: angka_(r.Susut_Kg), persen: angka_(r.Susut_Persen),
     statusSusut: r.Status_Susut || '', status: r.Status, pencatat: r.Nama_Pencatat, penerima: r.Nama_Penerima || '',
     fotoKirim: r.Foto_Kirim_URL || '', fotoTerima: r.Foto_Terima_URL || '', catatan: r.Catatan || '',
+    bolehGantiFoto: !!(u && bolehFoto_(u, SHEET.DAUR, r)),   // v12.7: ganti foto surat jalan chassen
     /* log edit: angka jasa disaring untuk staf */
     logEdit: lihatHarga ? (r.Log_Edit || '') : String(r.Log_Edit || '').split('\n').map(function (l) { return l.replace(/;?\s*jasa: [^;\n]*/g, '').replace(/:\s*$/, ': (biaya diubah)'); }).join('\n'),
     scrap: detailDaur_(r.ID, JENIS_DAUR_DETAIL.SCRAP, detCache), hasil: detailDaur_(r.ID, JENIS_DAUR_DETAIL.HASIL, detCache)
@@ -160,7 +161,7 @@ function daftarDaurUlang(ident, status, hari) {
     if (status === 'SEMUA') return new Date(r.Waktu_Kirim) >= batas;
     return r.Status === status && new Date(r.Waktu_Kirim) >= batas;
   }).map(function (r) {
-    var o = ringkasDaur_(r, lihat, det);
+    var o = ringkasDaur_(r, lihat, det, u);
     o.bolehUbah = bolehReview_(u) && bolehModul_(u, MODUL.GUDANG);
     o.bolehBatal = bolehModul_(u, MODUL.GUDANG) && (bolehReview_(u) || (r.Status === STATUS_DAUR.BERJALAN && r.Dicatat_Oleh === penandaPencatat_(u))) && r.Status !== STATUS_DAUR.DIBATALKAN;
     o.batas = standarChassen_().normal + standarChassen_().toleransi;
@@ -171,7 +172,7 @@ function daftarDaurUlang(ident, status, hari) {
 function ambilDaurUlang(id, ident) {
   var u = penggunaSaatIni_(ident);
   var r = cariDaur_(id);
-  var o = ringkasDaur_(r, bolehLihatHpp_(u));
+  var o = ringkasDaur_(r, bolehLihatHpp_(u), null, u);
   o.bolehUbah = bolehReview_(u) && bolehModul_(u, MODUL.GUDANG);
   o.bolehBatal = bolehModul_(u, MODUL.GUDANG) && (bolehReview_(u) || (r.Status === STATUS_DAUR.BERJALAN && r.Dicatat_Oleh === penandaPencatat_(u))) && r.Status !== STATUS_DAUR.DIBATALKAN;
   o.batas = standarChassen_().normal + standarChassen_().toleransi;

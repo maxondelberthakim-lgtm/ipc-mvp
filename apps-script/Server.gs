@@ -1135,15 +1135,19 @@ function tambahFoto(id, foto, ident, opsi) {
     } else if (nama === SHEET.SHIFT) { kolId = ''; prefix = 'SHIFT'; }
     else if (nama === SHEET.KERUSAKAN) prefix = 'RUSAK';
     else prefix = String(id).slice(0, 3);
-    if (r[kolUrl]) throw new Error('Entri ini sudah punya foto.');
+    /* v12.7: foto yang sudah ada boleh DIGANTI (opsi.ganti) — foto lama dihapus dari penyimpanan */
+    var ganti = !!r[kolUrl];
+    if (ganti && !(opsi && opsi.ganti)) throw new Error('Entri ini sudah punya foto — pakai "Ganti foto".');
     var f = unggahFoto_(foto, prefix);
+    if (!f.url) throw new Error('Foto gagal disimpan' + (f.error ? ': ' + f.error : '.'));
+    if (ganti) hapusFotoFile_(kolId ? r[kolId] : '', r[kolUrl]);
     var ubah = {}; ubah[kolUrl] = f.url; if (kolId) ubah[kolId] = f.id;
     if (HEADER[nama].indexOf('Log_Edit') >= 0) {
-      ubah.Log_Edit = [r.Log_Edit, Utilities.formatDate(new Date(), APP.zona, 'dd/MM HH:mm') + ' ' + u.nama + ': foto ditambahkan'].filter(String).join('\n');
+      ubah.Log_Edit = [r.Log_Edit, Utilities.formatDate(new Date(), APP.zona, 'dd/MM HH:mm') + ' ' + u.nama + ': ' + (ganti ? 'foto diganti' : 'foto ditambahkan')].filter(String).join('\n');
     }
     ubahBaris_(nama, r._baris, ubah);
-    catatLog_('FOTO_TAMBAH', id, nama + (kolUrl !== 'Foto_URL' ? ' ' + kolUrl : ''));
-    return { ok: true, foto: f.url };
+    catatLog_(ganti ? 'FOTO_GANTI' : 'FOTO_TAMBAH', id, nama + (kolUrl !== 'Foto_URL' ? ' ' + kolUrl : ''));
+    return { ok: true, foto: f.url, ganti: ganti };
   } finally { lock.releaseLock(); }
 }
 
@@ -1161,7 +1165,7 @@ function ringkasEntri_(r, nama, u, tertunda) {
     item: r.Nama_Item, kode: r.Kode_Item, qty: angka_(r.Qty_Kg),
     status: r.Status, pencatat: r.Nama_Pencatat, catatan: r.Catatan,
     noSuratJalan: r.No_Surat_Jalan || '',
-    foto: r.Foto_URL, fotoId: r.Foto_ID, bolehFoto: !r.Foto_URL && bolehFoto_(u, nama, r),
+    foto: r.Foto_URL, fotoId: r.Foto_ID, bolehFoto: !r.Foto_URL && bolehFoto_(u, nama, r), bolehGanti: !!r.Foto_URL && bolehFoto_(u, nama, r),
     catatanTinjau: r.Catatan_Tinjau || '', logEdit: r.Log_Edit || '',
     idPo: r.ID_PO || '', idAsal: r.ID_Penerimaan_Asal || '', catatanQc: r.Catatan_QC || '', idSo: r.ID_SO || '',
     bolehEdit: bolehEditEntri_(u, r),

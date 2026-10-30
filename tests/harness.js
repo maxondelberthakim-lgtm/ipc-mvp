@@ -61,6 +61,7 @@ const SS = {
   setSpreadsheetTimeZone(){}
 };
 
+let FOTO_N = 0; const FOTO_DIHAPUS = [];
 const ctx = {
   console,
   SpreadsheetApp:{ getActiveSpreadsheet(){ return SS; } },
@@ -83,7 +84,8 @@ const ctx = {
     getFoldersByName(){ return { hasNext(){return false;} }; },
     createFolder(n){ return { getId:()=>'FOLDER123', getUrl:()=>'https://drive/FOLDER123' }; },
     getFolderById(id){ return { getId:()=>id, getUrl:()=>'https://drive/'+id,
-      createFile:(b)=>({getUrl:()=>'https://drive/file',getId:()=>'FILE1'}) }; }
+      createFile:(b)=>({getUrl:()=>'https://drive/file'+(++FOTO_N),getId:()=>'FILE'+FOTO_N}) }; },
+    getFileById(id){ return { setTrashed(){ FOTO_DIHAPUS.push(String(id)); return this; } }; }
   },
   Utilities:{
     formatDate(d, tz, fmt){
@@ -108,4 +110,5 @@ vm.createContext(ctx);
 // tes memakai master data contoh (kacang) — deploy sungguhan memakai DUMMY_ITEM di Config.gs
 vm.runInContext(fs.readFileSync(path.join(__dirname, 'fixture-master.js'), 'utf8'), ctx, {filename:'fixture-master.js'});
 
+ctx.__fotoDihapus = FOTO_DIHAPUS;
 module.exports = { ctx, SS };

@@ -146,6 +146,20 @@ console.log('\n— v11.2: foto menyusul (tambahFoto) —');
   const dib = c2.simpanPengiriman({jenis:'KELUAR',customer:'PT Nursery Hijau Lestari',noSuratJalan:'DO/F',baris:[{kode:'RM-BP-KW',qty:1}],ident:STAF});
   c2.batalkanEntriSendiri(dib.ids[0], 'salah input', STAF);
   tolak('entri DIBATALKAN tidak bisa ditambah foto', ()=>c2.tambahFoto(dib.ids[0], FOTO, SPV), /Tidak bisa menambah foto/);
+
+  console.log('\n— v12.7: ganti foto (foto lama dihapus) —');
+  const rowLama = c2.baca_(c2.SHEET.PENERIMAAN).find(r=>r.ID===idF);
+  const idLama = rowLama.Foto_ID, urlLama = rowLama.Foto_URL;
+  ok('riwayat: bolehGanti=true untuk pencatat (sudah ada foto), bolehFoto=false', c2.riwayatInput('BELI_MASUK',14,STAF).find(r=>r.id===idF).bolehGanti===true && c2.riwayatInput('BELI_MASUK',14,STAF).find(r=>r.id===idF).bolehFoto===false);
+  ok('riwayat: bolehGanti=false untuk staf lain', c2.riwayatInput('BELI_MASUK',14,STAF2).find(r=>r.id===idF).bolehGanti===false);
+  tolak('tanpa opsi ganti → ditolak dengan petunjuk "Ganti foto"', ()=>c2.tambahFoto(idF, FOTO, STAF), /Ganti foto/);
+  tolak('staf lain tidak bisa ganti foto', ()=>c2.tambahFoto(idF, FOTO, STAF2, {ganti:true}), /Tidak bisa menambah foto/);
+  const g = c2.tambahFoto(idF, FOTO, STAF, {ganti:true});
+  const rowBaru = c2.baca_(c2.SHEET.PENERIMAAN).find(r=>r.ID===idF);
+  ok('pencatat ganti foto: URL & ID baru, foto lama dihapus dari penyimpanan, Log_Edit "foto diganti"', g.ok && g.ganti===true && rowBaru.Foto_URL!==urlLama && rowBaru.Foto_ID!==idLama && (c2.__fotoDihapus||[]).indexOf(idLama)>=0 && /foto diganti/.test(rowBaru.Log_Edit), [idLama, rowBaru.Foto_ID, c2.__fotoDihapus]);
+  ok('log FOTO_GANTI tercatat', c2.baca_(c2.SHEET.LOG).some(l=>l.Aksi==='FOTO_GANTI' && l.Referensi===idF));
+  ok('manager ganti foto laporan shift (tanpa Foto_ID: id dari URL) → URL berubah', (function(){ const u0=c2.baca_(c2.SHEET.SHIFT).find(r=>r.ID===sh.id).Foto_URL; const r=c2.tambahFoto(sh.id, FOTO, SPV, {ganti:true}); return r.ok && c2.baca_(c2.SHEET.SHIFT).find(r=>r.ID===sh.id).Foto_URL!==u0 && c2.daftarLaporanShift(SPV,14).find(x=>x.id===sh.id).bolehGanti===true; })());
+  ok('rusak: bolehGanti untuk manager gudang', c2.daftarKerusakan(SPV,'SEMUA').find(x=>x.id===dmg.id).bolehGanti===true);
 }
 
 fs.unlinkSync(__dirname+'/.h2.js');

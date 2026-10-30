@@ -65,7 +65,8 @@ export class Mesin {
         if (bytes.length > 1900000) throw new Error('Foto terlalu besar (maks 1,9 MB).');
         this.sql.exec('INSERT INTO foto (id, mime, data, ukuran, waktu) VALUES (?, ?, ?, ?, ?)', id, mime || 'image/jpeg', bytes, bytes.length, Date.now());
         return { url: this.asalFoto + '/foto/' + id + '.jpg', id };
-      }
+      },
+      hapus: (id) => { this.sql.exec('DELETE FROM foto WHERE id = ?', String(id)); }
     };
     const hooks = {
       tulis: (n, a, b) => this.tandai(n, a, b),
