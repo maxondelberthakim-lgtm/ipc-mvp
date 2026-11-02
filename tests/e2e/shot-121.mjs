@@ -1,0 +1,11 @@
+import { chromium } from 'playwright';
+const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome' });
+const p = await b.newPage({ viewport: { width: 420, height: 1300 } });
+await p.goto('http://127.0.0.1:8090/'); await p.waitForTimeout(2500);
+await p.selectOption('#identPilih', 'Deny'); await p.fill('#identPin', '3322'); await p.click('text=Simpan & mulai');
+await p.waitForFunction(() => S.ctx && S.ctx.user && S.ctx.user.nama === 'Deny', null, { timeout: 15000 }); await p.waitForTimeout(800);
+await p.evaluate(() => { tampil('so'); segSo('baru'); }); await p.waitForTimeout(800);
+await p.evaluate(() => { const it = S.ctx.items.find(i => i.kode === 'FG-PB-KW'); ubahBaris('so', 0, 'kode', 'FG-PB-KW'); S.baris.so[0].qty='4'; S.baris.so[0].satuan='bal'; gambarBaris('so'); });
+await p.waitForTimeout(500);
+await p.screenshot({ path: '/home/claude/s121-so.png' });
+await b.close();

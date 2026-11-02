@@ -1,0 +1,10 @@
+import { chromium } from 'playwright';
+import http from 'http'; import fs from 'fs'; import path from 'path';
+const srv = http.createServer((q,r)=>{const f=path.join('/home/claude/pwa-test', q.url.split('?')[0]==='/'?'index.html':q.url.split('?')[0]);fs.existsSync(f)?(r.writeHead(200,{'content-type':f.endsWith('.html')?'text/html':'application/octet-stream'}),r.end(fs.readFileSync(f))):(r.writeHead(404),r.end());}).listen(8091);
+const b = await chromium.launch({executablePath:'/opt/pw-browsers/chromium-1194/chrome-linux/chrome'});
+const p = await b.newPage({viewport:{width:420,height:820}});
+const errs=[]; p.on('pageerror',e=>errs.push(e.message)); p.on('console',m=>m.type()==='error'&&errs.push(m.text()));
+await p.goto('http://127.0.0.1:8091/'); await p.waitForTimeout(1500);
+await p.screenshot({path:'/tmp/claude-0/test-login.png'});
+console.log('title', await p.title(), 'errs', errs);
+await b.close(); srv.close();
