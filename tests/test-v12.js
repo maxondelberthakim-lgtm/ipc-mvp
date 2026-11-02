@@ -186,6 +186,46 @@ console.log('\n— v12.3: tambah item ke SO terbuka, no. surat jalan opsional �
   ok('log SO_TAMBAH tercatat', ctx.baca_(ctx.SHEET.LOG).some(r=>r.Aksi==='SO_TAMBAH'));
 }
 
+console.log('\n— v12.9: surat jalan (delivery order) untuk kiriman ke customer & BS ke jasa daur ulang —');
+{
+  const hari = ctx.tglStr_(new Date());
+  const so = ctx.simpanSo({customer:CUS, tanggal:hari, tanggalKirim:hari, topHari:0, baris:[{kode:FG, qty:100, harga:20000, ukuran:'30 x 50'}, {kode:'FG-PB-SUP', qty:50, harga:22000, ukuran:'40 x 60'}]}, SM);
+  const kr = ctx.simpanPengiriman({jenis:'KELUAR', customer:CUS, baris:[{kode:FG, qty:40, idSo:so.ids[0]}, {kode:'FG-PB-SUP', qty:25, idSo:so.ids[1]}], ident:YS});
+  ok('kiriman 2 baris (tanpa no. SJ) tersimpan', kr.ok && kr.ids.length===2, kr);
+  ok('konteks: bisaSj Yansen (GUDANG) & Deny (SO) true, staf false', ctx.getKonteks(YS).bisaSj===true && ctx.getKonteks(SM).bisaSj===true && ctx.getKonteks(STAF).bisaSj===false);
+  tolak('staf tidak bisa buat surat jalan', ()=>ctx.buatDokumen({jenis:'SJ', ref:kr.ids.join(',')}, STAF), /Manager \/ Admin/);
+  tolak('ID pengiriman tidak dikenal ditolak', ()=>ctx.buatDokumen({jenis:'SJ', ref:'OUT-000000-000000-1'}, YS), /tidak ditemukan/);
+  const riw = ctx.riwayatInput('JUAL_KELUAR', 14, YS).filter(r=>kr.ids.indexOf(r.id)>=0);
+  ok('riwayat: dua baris kiriman punya kelompok sama & bolehSj', riw.length===2 && riw[0].kelompok && riw[0].kelompok===riw[1].kelompok && riw.every(r=>r.bolehSj===true), riw.map(r=>r.kelompok));
+  const sj = ctx.buatDokumen({jenis:'SJ', ref:kr.ids.join(','), pengangkut:'B 1234 XYZ · Pak Udin', catatan:'Kirim pagi'}, YS);
+  ok('surat jalan dibuat: nomor otomatis SJ/YYYY/MM/001, total 65 kg, 2 baris', sj.ok && sj.jenis==='SJ' && sj.nomor==='SJ/'+hari.slice(0,4)+'/'+hari.slice(5,7)+'/001' && sj.totalKg===65 && sj.nomorDiisi===2, sj);
+  const pub = ctx.ambilDokumenPublik_(sj.token);
+  ok('isi dokumen: customer, no SO, tanggal kirim, pengangkut, ukuran per baris, tanpa harga', pub.jenis==='SJ' && pub.pihak.nama===CUS && pub.noSo===so.noSo && pub.tanggalKirim===hari && pub.pengangkut==='B 1234 XYZ · Pak Udin' && pub.sumber==='KIRIM' && pub.baris.length===2 && pub.baris[0].ukuran==='30 x 50' && pub.baris[1].ukuran==='40 x 60' && pub.total===0 && pub.totalKg===65 && pub.baris.every(b=>b.harga===0), pub);
+  const rows = ctx.baca_(ctx.SHEET.PENGIRIMAN).filter(r=>kr.ids.indexOf(r.ID)>=0);
+  ok('nomor SJ ditulis balik ke kedua baris pengiriman (+ Log_Edit)', rows.every(r=>r.No_Surat_Jalan===sj.nomor && /no\. surat jalan SJ\//.test(r.Log_Edit)), rows.map(r=>r.No_Surat_Jalan));
+  const sj2 = ctx.buatDokumen({jenis:'SJ', ref:kr.ids.join(',')}, YS);
+  ok('dibuat lagi untuk kiriman yang sama → nomor ikut yang sudah tercatat, versi lama DIGANTI', sj2.nomor===sj.nomor && ctx.ambilDokumenPublik_(sj.token).diganti===true && ctx.ambilDokumenPublik_(sj2.token).nomor===sj.nomor, sj2);
+  tolak('nomor yang sama untuk kiriman lain ditolak', ()=>ctx.buatDokumen({jenis:'SJ', ref:kr.ids[0], nomor:sj.nomor}, YS), /sudah dipakai surat jalan lain/);
+  const kr2 = ctx.simpanPengiriman({jenis:'KELUAR', customer:'PT Lain Sekali', baris:[{kode:FG, qty:1}], ident:YS});
+  tolak('pengiriman beda customer dalam satu surat jalan ditolak', ()=>ctx.buatDokumen({jenis:'SJ', ref:kr.ids[0]+','+kr2.ids[0]}, YS), /bukan untuk customer yang sama/);
+  const sj3 = ctx.buatDokumen({jenis:'SJ', ref:kr2.ids[0]}, SM);
+  ok('Deny (SO, tanpa GUDANG) juga boleh; nomor urut berikutnya 002', sj3.ok && /\/002$/.test(sj3.nomor), sj3);
+  ok('daftarDokumen jenis SJ: 3 entri, totalKg ikut', ctx.daftarDokumen(YS, 'SJ').length===3 && ctx.daftarDokumen(YS, 'SJ', kr.ids.join(','))[0].totalKg===65);
+  /* BS ke jasa daur ulang */
+  const SCR='SCR-BS-KW', VENDOR='PT Chassen Jaya', FOTO='data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/wAALCAABAAEBAREA/8QAFAABAAAAAAAAAAAAAAAAAAAACf/EABQQAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQEAAD8AKp//2Q==';
+  ctx.simpanOpname({baris:[{kode:SCR, fisik:500}], catatan:'uji'}, ADM);
+  const du = ctx.mulaiDaurUlang({vendor:VENDOR, scrap:[{kode:SCR, qty:120}], foto:FOTO, ident:YS});
+  ok('daur ulang 120 kg BS dimulai', du.ok!==false && /^DUR-/.test(du.id), du);
+  const sjd = ctx.buatDokumen({jenis:'SJ', ref:du.id, pengangkut:'Pickup L300'}, YS);
+  const pubd = ctx.ambilDokumenPublik_(sjd.token);
+  ok('surat jalan BS: pihak = jasa daur ulang, 1 baris 120 kg, sumber DAUR, no. SJ ditulis ke daur ulang', sjd.ok && pubd.pihak.label==='Jasa daur ulang' && pubd.pihak.nama===VENDOR && pubd.sumber==='DAUR' && pubd.baris.length===1 && pubd.baris[0].qty===120 && pubd.totalKg===120 && ctx.baca_(ctx.SHEET.DAUR).find(r=>r.ID===du.id).No_Surat_Jalan===sjd.nomor, pubd);
+  tolak('daur ulang yang tidak ada ditolak', ()=>ctx.buatDokumen({jenis:'SJ', ref:'DUR-000000-000000-1'}, YS), /tidak ditemukan/);
+  ctx.batalkanDokumen(sjd.id, 'salah', YS);
+  ok('surat jalan dibatalkan → link mati', ctx.ambilDokumenPublik_(sjd.token).dibatalkan===true);
+  const log = ctx.baca_(ctx.SHEET.LOG).filter(r=>r.Aksi==='DOK_SJ_BUAT');
+  ok('log DOK_SJ_BUAT tercatat (4×), berisi kg', log.length===4 && /kg$/.test(log[0].Detail), log.map(r=>r.Detail));
+}
+
 fs.unlinkSync(__dirname+'/.h12.js');
 console.log('\n================ '+pass+' lulus, '+fail+' gagal ================');
 process.exit(fail?1:0);

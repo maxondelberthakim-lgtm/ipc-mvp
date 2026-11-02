@@ -780,7 +780,11 @@ function hitungUlangHpp(ident) {
   var lock = LockService.getScriptLock();
   lock.waitLock(20000);
   lupakanMemo_();
-  try {
+  try { return hitungUlangHpp_(); } finally { lock.releaseLock(); }
+}
+/** Inti hitung ulang HPP (tanpa cek hak akses) — dipakai hitungUlangHpp dan gabungItem. */
+function hitungUlangHpp_() {
+  {
     var f = hitungRata_(), diubah = 0, daurDiubah = 0;
     baca_(SHEET.PENGIRIMAN).forEach(function (r) {
       if (r.Jenis !== JENIS_PENGIRIMAN.KELUAR || f.biaya[r.ID] === undefined) return;
@@ -805,7 +809,7 @@ function hitungUlangHpp(ident) {
     });
     catatLog_('HPP_HITUNG_ULANG', '', diubah + ' entri, ' + daurDiubah + ' daur ulang diperbarui');
     return { ok: true, diubah: diubah, daurDiubah: daurDiubah };
-  } finally { lock.releaseLock(); }
+  }
 }
 
 /* =================================================================

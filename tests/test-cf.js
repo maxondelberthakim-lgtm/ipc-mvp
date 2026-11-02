@@ -124,7 +124,7 @@ console.log('— 6. Migrasi v9 → v10 di atas data sungguhan (cloudflare/ipc-li
     ok('impor data v9 jalan', hasil.some((x) => /^Master_Item:/.test(x)), hasil);
     const ADM6 = { nama: 'Admin', pin: String(data.Master_Pengguna.find((r) => r[1] === 'Admin')[4]) };
     const k = JSON.parse(G6.m.panggil('getKonteks', [ADM6], 'mig-1'));
-    ok('getKonteks setelah migrasi ok (versi 11.1)', k.ok && k.data.app.versi === '12.7.0', k.error);
+    ok('getKonteks setelah migrasi ok (versi 11.1)', k.ok && k.data.app.versi === '12.9.0', k.error);
     ok('peta kualitas lengkap (roll/polybag/BS ditambahkan)', k.data.kualitas.length === 3 && k.data.kualitas.every((q) => q.biji && q.roll && q.jadi && q.bs), k.data.kualitas);
     ok('RM-BS-* lama dinonaktifkan, SCR-BS-* aktif', !k.data.items.some((i) => /^RM-BS-/.test(i.kode)) && k.data.items.some((i) => i.kode === 'SCR-BS-KW' && i.kategori === 'SCRAP'));
     ok('item lama (FG-PB-HP, RM-BIJI-PLASTIK-DAUR-UL) tetap ada', k.data.items.some((i) => i.kode === 'FG-PB-HP') && k.data.items.some((i) => i.kode === 'RM-BIJI-PLASTIK-DAUR-UL'));
@@ -320,6 +320,46 @@ console.log('\n— 10. v12.4: panggilan gagal di tengah → rollback (tidak ada 
   const R3 = bukaMesin();
   ok('dibuka ulang: SQLite juga tidak menyimpan baris 1 yang gagal', R3.m.fns.baca_(R3.m.vars.SHEET.PENGIRIMAN).length === kirimSebelum);
   R.db.close(); R2.db.close(); R3.db.close();
+}
+console.log('\n— 11. v12.8: gabungItem(dari, ke) — item duplikat dilebur ke item asli, transaksi ikut pindah, item lama nonaktif —');
+{
+  const G = bukaMesin();
+  const ADM = { nama: 'Admin', pin: '1234' }, YS = { nama: 'Yansen', pin: '2211' }, BS = { nama: 'Bastari', pin: '4433' };
+  JSON.parse(G.m.panggil('getKonteks', [ADM], 'g0'));
+  const sup = G.m.vars.DUMMY_SUPPLIER[0][1], hari = G.m.fns.tglStr_(new Date());
+  const dup = JSON.parse(G.m.panggil('tambahMaster', ['ITEM', { nama: 'Biji PE A1', kategori: 'BAHAN_BAKU' }, YS], 'g1'));
+  ok('item duplikat "Biji PE A1" (tanpa kualitas) dibuat staf', dup.ok && dup.data.kode, dup.error);
+  const DUP = dup.data.kode, SUP = 'RM-BP-SUP';
+  const po = JSON.parse(G.m.panggil('simpanPo', [{ supplier: sup, tanggal: hari, baris: [{ kode: DUP, qty: 3500, harga: 14000 }] }, YS], 'g2'));
+  const rc = JSON.parse(G.m.panggil('simpanPenerimaan', [{ jenis: 'BELI_MASUK', supplier: sup, tanggal: hari, noSuratJalan: 'SJ-PE', baris: [{ kode: DUP, qty: 3500, idPo: po.data.ids[0] }], foto: PNG, ident: YS }], 'g3'));
+  ok('PO + penerimaan 3.500 kg atas item duplikat', po.ok && rc.ok, [po.error, rc.error]);
+  const stok0 = JSON.parse(G.m.panggil('siapkanOpname', [ADM, ''], 'g4')).data.items;
+  const s0 = (k) => (stok0.find((i) => i.kode === k) || {}).sistem;
+  ok('sebelum gabung: duplikat 3.500, Biji Plastik Super 0', s0(DUP) === 3500 && s0(SUP) === 0, [s0(DUP), s0(SUP)]);
+  const tolak = JSON.parse(G.m.panggil('gabungItem', [DUP, SUP], 'g5'));
+  ok('tidak bisa dipanggil dari aplikasi (bukan daftar putih RPC)', !tolak.ok && /tidak dikenal/.test(tolak.error), tolak);
+  let salah = null; try { G.m.fns.gabungItem(DUP, 'FG-PB-KW'); } catch (e) { salah = e.message; }
+  ok('kategori berbeda → ditolak', /Kategori berbeda/.test(salah || ''), salah);
+  const h = G.m.fns.gabungItem(DUP, SUP); G.m.simpan();
+  ok('gabung: 2 baris dipindah (PO + penerimaan), nama item tujuan dilaporkan', h.total === 2 && h.dipindah.Pesanan_Pembelian === 1 && h.dipindah.Penerimaan === 1 && h.namaKe === 'Biji Plastik Super', h);
+  const G2 = bukaMesin();
+  const stok1 = JSON.parse(G2.m.panggil('siapkanOpname', [ADM, ''], 'g6')).data.items;
+  const s1 = (k) => (stok1.find((i) => i.kode === k) || {}).sistem;
+  ok('dibuka ulang: Biji Plastik Super = 3.500, duplikat hilang dari daftar opname (nonaktif)', s1(SUP) === 3500 && s1(DUP) === undefined, [s1(SUP), s1(DUP)]);
+  const items = G2.m.fns.baca_(G2.m.vars.SHEET.ITEM);
+  ok('master: duplikat Aktif=TIDAK, item asli tetap aktif', items.find((r) => r.Kode_Item === DUP).Aktif === 'TIDAK' && items.find((r) => r.Kode_Item === SUP).Aktif === 'YA');
+  const rcRow = G2.m.fns.baca_(G2.m.vars.SHEET.PENERIMAAN).find((r) => r.ID === rc.data.ids[0]);
+  ok('baris penerimaan: kode + nama item ikut item tujuan, harga PO & foto tetap', rcRow.Kode_Item === SUP && rcRow.Nama_Item === 'Biji Plastik Super' && rcRow.Harga_Per_Kg === 14000 && !!rcRow.Foto_ID, rcRow);
+  const kon = JSON.parse(G2.m.panggil('konfigurasiShift', [BS], 'g7'));
+  ok('form shift: bahan baku SUPER = item asli, duplikat tidak muncul', kon.ok && kon.data.bahan.some((b) => b.kode === SUP) && !kon.data.bahan.some((b) => b.kode === DUP), kon.error);
+  const hpp = JSON.parse(G2.m.panggil('laporanNilaiStok', [ADM], 'g8'));
+  const nilaiSup = hpp.ok && (hpp.data.daftar.find((d) => d.kode === SUP) || {});
+  ok('nilai stok: Biji Plastik Super 3.500 kg @ harga PO (HPP rata-rata ikut pindah)', nilaiSup && nilaiSup.qty === 3500 && Math.abs(nilaiSup.rata - 14000) < 1, nilaiSup);
+  const ulang = G2.m.fns.gabungItem(DUP, SUP);
+  ok('diulang → 0 baris (idempoten)', ulang.total === 0, ulang);
+  const log = G2.m.fns.baca_(G2.m.vars.SHEET.LOG).filter((r) => r.Aksi === 'GABUNG_ITEM');
+  ok('log GABUNG_ITEM tercatat', log.length >= 1 && /→ RM-BP-SUP/.test(log[0].Referensi), log[0]);
+  G.db.close(); G2.db.close();
 }
 try { fs.unlinkSync(file); } catch (e) {}
 console.log('\n================ ' + pass + ' lulus, ' + fail + ' gagal ================');

@@ -10,7 +10,7 @@
 
 var APP = {
   nama: 'IPC — Inventory & Production Control',
-  versi: '12.7.0',
+  versi: '12.9.0',
   zona: 'Asia/Jakarta',
   satuan: 'kg',
   folderFoto: 'IPC Foto Bukti'
@@ -456,6 +456,50 @@ function hapusTransaksiSebelum(tanggal) {
   var total = 0; Object.keys(ringkas).forEach(function (k) { total += ringkas[k]; });
   catatLog_('HAPUS_DATA_UJI', cut, total + ' baris sebelum ' + cut + ' dihapus: ' + JSON.stringify(ringkas));
   return { batas: cut, total: total, dihapus: ringkas };
+}
+
+/**
+ * v12.8: Gabungkan item duplikat — semua transaksi item `dari` dipindah ke item `ke`, lalu `dari` dinonaktifkan.
+ * Dipakai saat staf membuat item baru padahal sudah ada (mis. "Biji PE A1" ternyata = Biji Plastik Super).
+ * Yang dipindah: penerimaan, pengiriman, detail shift (kualitas ikut item tujuan), opname, PO, SO, kerusakan,
+ * detail daur ulang. Stok_Awal `dari` ditambahkan ke `ke`. Snapshot dokumen (invoice/PO yang sudah terbit) TIDAK diubah.
+ * HPP pengiriman/kerusakan dihitung ulang dari mesin rata-rata. Hanya dari /admin/jalankan (kunci admin). Aman diulang.
+ */
+function gabungItem(dari, ke) {
+  dari = String(dari || '').trim().toUpperCase(); ke = String(ke || '').trim().toUpperCase();
+  if (!dari || !ke) throw new Error('Butuh kode item asal dan tujuan.');
+  if (dari === ke) throw new Error('Kode asal dan tujuan sama.');
+  lupakanMemo_();
+  var a = null, b = null;
+  baca_(SHEET.ITEM).forEach(function (r) {
+    var k = String(r.Kode_Item || '').toUpperCase();
+    if (k === dari) a = r; if (k === ke) b = r;
+  });
+  if (!a) throw new Error('Item asal tidak ditemukan: ' + dari);
+  if (!b) throw new Error('Item tujuan tidak ditemukan: ' + ke);
+  if (String(b.Aktif).toUpperCase() === 'TIDAK') throw new Error('Item tujuan nonaktif: ' + ke);
+  if (a.Kategori !== b.Kategori) throw new Error('Kategori berbeda (' + a.Kategori + ' vs ' + b.Kategori + ') — tidak digabung.');
+  var ringkas = {}, total = 0;
+  [SHEET.PENERIMAAN, SHEET.PENGIRIMAN, SHEET.SHIFT_DETAIL, SHEET.OPNAME, SHEET.PO, SHEET.KERUSAKAN, SHEET.SO, SHEET.DAUR_DETAIL].forEach(function (nama) {
+    var n = 0;
+    baca_(nama).forEach(function (r) {
+      if (String(r.Kode_Item || '').toUpperCase() !== dari) return;
+      var ubah = { Kode_Item: b.Kode_Item, Nama_Item: b.Nama_Item };
+      if (nama === SHEET.SHIFT_DETAIL) ubah.Kualitas = b.Kualitas || '';
+      ubahBaris_(nama, r._baris, ubah); n++;
+    });
+    if (n) ringkas[nama] = n;
+    total += n;
+    lupakanMemo_(nama);
+  });
+  var stokAwal = angka_(a.Stok_Awal);
+  if (stokAwal) ubahBaris_(SHEET.ITEM, b._baris, { Stok_Awal: angka_(b.Stok_Awal) + stokAwal });
+  ubahBaris_(SHEET.ITEM, a._baris, { Aktif: 'TIDAK', Stok_Awal: 0 });
+  lupakanMemo_();
+  var hpp = null;
+  try { hpp = hitungUlangHpp_(); } catch (e) { hpp = { error: e.message }; }
+  catatLog_('GABUNG_ITEM', dari + ' → ' + ke, total + ' baris dipindah' + (stokAwal ? ', stok awal ' + stokAwal + ' kg' : '') + '; ' + a.Nama_Item + ' dinonaktifkan: ' + JSON.stringify(ringkas));
+  return { dari: dari, ke: ke, namaDari: a.Nama_Item, namaKe: b.Nama_Item, total: total, dipindah: ringkas, stokAwal: stokAwal, hpp: hpp };
 }
 
 function ambilAtauBuatFolder_() {
