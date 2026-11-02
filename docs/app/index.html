@@ -903,6 +903,7 @@ input:disabled,select:disabled,textarea:disabled{background:#f3f4f6;color:#37415
       <div id="dokForm">
         <div class="field"><label data-i18n="dokNomor">Nomor (kosong = otomatis)</label><input id="dokNomor" placeholder="INV/2026/10/001"></div>
         <div class="field"><label data-i18n="dokTanggal">Tanggal dokumen</label><input type="date" id="dokTanggal"></div>
+        <div class="field hide" id="dokPengangkutWrap"><label data-i18n="dokPengangkut">Kendaraan / sopir (opsional)</label><input id="dokPengangkut" placeholder="B 1234 XYZ · Pak Udin"></div>
         <div class="field"><label data-i18n="dokCatatan">Catatan di dokumen</label><textarea id="dokCatatan" rows="2"></textarea></div>
         <details style="margin-bottom:10px"><summary style="font-size:12.5px;font-weight:650;cursor:pointer" data-i18n="dokKop">Kop perusahaan (bisa diubah untuk dokumen ini)</summary>
           <div class="field"><label data-i18n="perNama">Nama perusahaan</label><input id="dokPerNama"></div>
@@ -1194,8 +1195,8 @@ var T = {
     skuAwal:'Stok awal (kg)', skuAktif:'Aktif (muncul di daftar)', skuUkuran:'Ukuran (cm × cm) — catatan untuk polybag', skuUkuranT:'Ukuran polybag', skuUkuranS:'Catatan ukuran per SKU polybag (cm × cm) — ikut tampil di invoice / PO', belumUkuran:'belum diisi',
     lblUkuranBaris:'Ukuran (cm × cm)', ukuranS:'ukuran', topDari:'TOP dihitung dari', topDariKirimSo:'Tanggal barang dikirim', topDariDokSo:'Tanggal SO dibuat', topDariKirimPo:'Tanggal barang diterima', topDariDokPo:'Tanggal PO dibuat', topDariHint:'"Barang dikirim/diterima" = pengiriman/penerimaan pertama; sebelum ada, pakai rencana tanggal kirim/datang.', dokSo:'Dokumen SO', dokUnduh:'Download PDF', dokCetak:'Cetak',
     satuanKg:'kg', satuanBal:'bal', balSamaDengan:'= {kg} kg ({n} bal × {per} kg)',
-    dokInvoice:'Invoice', dokPo:'Dokumen PO', dokBuat:'Buat dokumen', dokNomor:'Nomor (kosong = otomatis)', dokTanggal:'Tanggal dokumen', dokCatatan:'Catatan di dokumen', dokKop:'Kop perusahaan (dari Pengaturan — bisa diubah untuk dokumen ini)', dokBuka:'Buka / Simpan PDF', dokKirimWa:'Kirim ke WA', dokSalin:'Salin link', dokTersalin:'Link tersalin', dokDaftar:'Dokumen yang sudah dibuat', dokKosong:'Belum ada dokumen untuk nomor ini', dokBatal:'Batalkan dokumen', alasanBatalDok:'Alasan membatalkan dokumen?', dokDibatalkan:'Dokumen dibatalkan — link tidak berlaku lagi', dokDibuat:'Dokumen dibuat', dokTotal:'Total', dokStatusDIGANTI:'Diganti versi baru',
-    waT:'Kirim lewat WhatsApp', waPilih:'Pilih kontak', waNomor:'Nomor WA (0812… / 62812…)', waNama:'Nama pemilik nomor', waSimpanKontak:'Simpan ke daftar kontak', waBuka:'Buka WhatsApp', waPesanInvoice:'Halo, berikut invoice {nomor} dari {perusahaan} untuk {pihak}.\nTotal {total}.\nUnduh / cetak di sini: {link}', waPesanPo:'Halo, berikut Purchase Order {nomor} dari {perusahaan}.\nTotal {total}.\nLihat / cetak di sini: {link}', waPesanSo:'Halo, berikut Sales Order {nomor} dari {perusahaan} untuk {pihak}.\nTotal {total}.\nLihat / unduh di sini: {link}', waWajibNomor:'Pilih kontak atau ketik nomor WA.', waKontakTersimpan:'Kontak tersimpan',
+    dokInvoice:'Invoice', dokPo:'Dokumen PO', dokSj:'Surat jalan', dokPengangkut:'Kendaraan / sopir (opsional)', sjKiriman:'Kiriman', sjDaur:'Surat jalan BS ke jasa daur ulang', sjNomorDiisi:'No. surat jalan diisi ke pengiriman', dokBuat:'Buat dokumen', dokNomor:'Nomor (kosong = otomatis)', dokTanggal:'Tanggal dokumen', dokCatatan:'Catatan di dokumen', dokKop:'Kop perusahaan (dari Pengaturan — bisa diubah untuk dokumen ini)', dokBuka:'Buka / Simpan PDF', dokKirimWa:'Kirim ke WA', dokSalin:'Salin link', dokTersalin:'Link tersalin', dokDaftar:'Dokumen yang sudah dibuat', dokKosong:'Belum ada dokumen untuk nomor ini', dokBatal:'Batalkan dokumen', alasanBatalDok:'Alasan membatalkan dokumen?', dokDibatalkan:'Dokumen dibatalkan — link tidak berlaku lagi', dokDibuat:'Dokumen dibuat', dokTotal:'Total', dokStatusDIGANTI:'Diganti versi baru',
+    waT:'Kirim lewat WhatsApp', waPilih:'Pilih kontak', waNomor:'Nomor WA (0812… / 62812…)', waNama:'Nama pemilik nomor', waSimpanKontak:'Simpan ke daftar kontak', waBuka:'Buka WhatsApp', waPesanInvoice:'Halo, berikut invoice {nomor} dari {perusahaan} untuk {pihak}.\nTotal {total}.\nUnduh / cetak di sini: {link}', waPesanPo:'Halo, berikut Purchase Order {nomor} dari {perusahaan}.\nTotal {total}.\nLihat / cetak di sini: {link}', waPesanSo:'Halo, berikut Sales Order {nomor} dari {perusahaan} untuk {pihak}.\nTotal {total}.\nLihat / unduh di sini: {link}', waPesanSj:'Halo, berikut surat jalan {nomor} dari {perusahaan} untuk {pihak}.\nTotal {total}.\nLihat / unduh di sini: {link}', waWajibNomor:'Pilih kontak atau ketik nomor WA.', waKontakTersimpan:'Kontak tersimpan',
     segDok:'Dokumen', dokPengT:'Pengaturan dokumen & satuan', dokPengS:'Kop invoice / PO dan isi 1 bal = berapa kg. Hanya akun PO (Yansen) / Admin yang bisa mengubah.', kgPerBal:'1 bal = … kg', perNama:'Nama perusahaan', perAlamat:'Alamat', perTelp:'Telepon / WA', perEmail:'Email', perBank:'Rekening pembayaran (bank, nomor, atas nama)', perCatatanInvoice:'Catatan bawah invoice', perCatatanPo:'Catatan bawah PO', dokPengTersimpan:'Pengaturan tersimpan', kontakT:'Daftar kontak WA', kontakS:'Nomor tujuan kirim invoice / PO. Nomor disimpan dalam format 62…', kontakTambah:'+ Tambah kontak', kontakKosong:'Belum ada kontak', kontakHapus:'Hapus kontak ini dari daftar?',
     skuDipakai:'dipakai', skuScrap:'scrap', skuNonaktif:'nonaktif', aktif:'Berlaku',
     skuHapusKonfirm:'Hapus SKU ini? Kalau sudah pernah dipakai di transaksi, SKU hanya dinonaktifkan.',
@@ -1452,8 +1453,8 @@ var T = {
     skuAwal:'Opening stock (kg)', skuAktif:'Active (shown in lists)', skuUkuran:'Size (cm × cm) — note for polybags', skuUkuranT:'Polybag sizes', skuUkuranS:'Size note per polybag SKU (cm × cm) — also printed on invoices / POs', belumUkuran:'not set',
     lblUkuranBaris:'Size (cm × cm)', ukuranS:'size', topDari:'Terms counted from', topDariKirimSo:'Date goods are shipped', topDariDokSo:'SO date', topDariKirimPo:'Date goods are received', topDariDokPo:'PO date', topDariHint:'"Shipped/received" = first shipment/receipt; until then the planned ship/arrival date is used.', dokSo:'SO document', dokUnduh:'Download PDF', dokCetak:'Print',
     satuanKg:'kg', satuanBal:'bale', balSamaDengan:'= {kg} kg ({n} bales × {per} kg)',
-    dokInvoice:'Invoice', dokPo:'PO document', dokBuat:'Create document', dokNomor:'Number (blank = automatic)', dokTanggal:'Document date', dokCatatan:'Note on the document', dokKop:'Company header (from Settings — editable for this document)', dokBuka:'Open / Save PDF', dokKirimWa:'Send via WhatsApp', dokSalin:'Copy link', dokTersalin:'Link copied', dokDaftar:'Documents created', dokKosong:'No document for this number yet', dokBatal:'Cancel document', alasanBatalDok:'Reason for cancelling the document?', dokDibatalkan:'Document cancelled — the link no longer works', dokDibuat:'Document created', dokTotal:'Total', dokStatusDIGANTI:'Replaced by a newer version',
-    waT:'Send via WhatsApp', waPilih:'Pick a contact', waNomor:'WhatsApp number (0812… / 62812…)', waNama:'Contact name', waSimpanKontak:'Save to contact list', waBuka:'Open WhatsApp', waPesanInvoice:'Hello, here is invoice {nomor} from {perusahaan} for {pihak}.\nTotal {total}.\nDownload / print here: {link}', waPesanPo:'Hello, here is Purchase Order {nomor} from {perusahaan}.\nTotal {total}.\nView / print here: {link}', waPesanSo:'Hello, here is Sales Order {nomor} from {perusahaan} for {pihak}.\nTotal {total}.\nView / download here: {link}', waWajibNomor:'Pick a contact or type a WhatsApp number.', waKontakTersimpan:'Contact saved',
+    dokInvoice:'Invoice', dokPo:'PO document', dokSj:'Delivery order', dokPengangkut:'Vehicle / driver (optional)', sjKiriman:'Shipment', sjDaur:'Delivery order for scrap to recycler', sjNomorDiisi:'Delivery-order no. written to the shipment', dokBuat:'Create document', dokNomor:'Number (blank = automatic)', dokTanggal:'Document date', dokCatatan:'Note on the document', dokKop:'Company header (from Settings — editable for this document)', dokBuka:'Open / Save PDF', dokKirimWa:'Send via WhatsApp', dokSalin:'Copy link', dokTersalin:'Link copied', dokDaftar:'Documents created', dokKosong:'No document for this number yet', dokBatal:'Cancel document', alasanBatalDok:'Reason for cancelling the document?', dokDibatalkan:'Document cancelled — the link no longer works', dokDibuat:'Document created', dokTotal:'Total', dokStatusDIGANTI:'Replaced by a newer version',
+    waT:'Send via WhatsApp', waPilih:'Pick a contact', waNomor:'WhatsApp number (0812… / 62812…)', waNama:'Contact name', waSimpanKontak:'Save to contact list', waBuka:'Open WhatsApp', waPesanInvoice:'Hello, here is invoice {nomor} from {perusahaan} for {pihak}.\nTotal {total}.\nDownload / print here: {link}', waPesanPo:'Hello, here is Purchase Order {nomor} from {perusahaan}.\nTotal {total}.\nView / print here: {link}', waPesanSo:'Hello, here is Sales Order {nomor} from {perusahaan} for {pihak}.\nTotal {total}.\nView / download here: {link}', waPesanSj:'Hello, here is delivery order {nomor} from {perusahaan} for {pihak}.\nTotal {total}.\nView / download here: {link}', waWajibNomor:'Pick a contact or type a WhatsApp number.', waKontakTersimpan:'Contact saved',
     segDok:'Documents', dokPengT:'Document & unit settings', dokPengS:'Invoice / PO header and how many kg in a bale. Only the PO account (Yansen) / Admin can change it.', kgPerBal:'1 bale = … kg', perNama:'Company name', perAlamat:'Address', perTelp:'Phone / WhatsApp', perEmail:'Email', perBank:'Payment account (bank, number, name)', perCatatanInvoice:'Invoice footer note', perCatatanPo:'PO footer note', dokPengTersimpan:'Settings saved', kontakT:'WhatsApp contacts', kontakS:'Numbers to send invoices / POs to. Stored as 62…', kontakTambah:'+ Add contact', kontakKosong:'No contacts yet', kontakHapus:'Remove this contact from the list?',
     skuDipakai:'in use', skuScrap:'scrap', skuNonaktif:'inactive', aktif:'Active',
     skuHapusKonfirm:'Delete this SKU? If it has been used in transactions it will only be deactivated.',
@@ -2209,11 +2210,16 @@ function asalApi(){
   return '';
 }
 function urlDok(token){ var a = asalApi(); return (a || location.origin) + '/dok/' + token; }
-function bukaDok(jenis, ref){
+/* v12.9: jenis 'SJ' (surat jalan) — ref = ID pengiriman dipisah koma (kiriman ke customer) atau ID daur ulang (DUR-…); opsi = { nomor, sub } */
+function bukaDok(jenis, ref, opsi){
+  opsi = opsi || {};
   S.dok = { jenis: jenis, ref: ref, hasil: null };
-  $('dokJudul').textContent = (jenis === 'PO' ? t('dokPo') : jenis === 'SO' ? t('dokSo') : t('dokInvoice')) + ' · ' + ref;
-  $('dokSub').textContent = '';
-  $('dokNomor').value = (jenis === 'PO' || jenis === 'SO') ? ref : '';
+  var sj = jenis === 'SJ';
+  $('dokJudul').textContent = (jenis === 'PO' ? t('dokPo') : jenis === 'SO' ? t('dokSo') : sj ? t('dokSj') : t('dokInvoice')) + (sj ? (opsi.sub ? ' · ' + opsi.sub : '') : ' · ' + ref);
+  $('dokSub').textContent = sj && /^DUR-/.test(ref) ? t('sjDaur') : '';
+  $('dokNomor').value = (jenis === 'PO' || jenis === 'SO') ? ref : (sj ? (opsi.nomor || '') : '');
+  $('dokNomor').placeholder = sj ? 'SJ/2026/11/001' : 'INV/2026/10/001';
+  $('dokPengangkutWrap').classList.toggle('hide', !sj); $('dokPengangkut').value = '';
   setTanggal('dokTanggal');
   $('dokCatatan').value = '';
   $('dokHasil').classList.add('hide'); $('dokHasil').innerHTML = '';
@@ -2236,7 +2242,7 @@ function muatDaftarDok(){
     if (!rows.length){ el.innerHTML = '<div style="font-size:12.5px;color:var(--muted);padding:6px 0">'+esc(t('dokKosong'))+'</div>'; return; }
     el.innerHTML = rows.map(function(r, i){
       var aktif = r.status === 'AKTIF';
-      return '<div class="hist" style="flex-wrap:wrap"><span class="hx"><b>'+esc(r.nomor)+'</b><small>'+esc(r.tanggal)+' · '+esc(r.pembuat)+(r.total ? ' · '+rp(r.total) : '')+'</small></span>' +
+      return '<div class="hist" style="flex-wrap:wrap"><span class="hx"><b>'+esc(r.nomor)+'</b><small>'+esc(r.tanggal)+' · '+esc(r.pembuat)+(r.total ? ' · '+rp(r.total) : r.totalKg ? ' · '+n2(r.totalKg)+' kg' : '')+'</small></span>' +
         '<span class="hb">'+(aktif ? '<span class="pill ok">'+esc(t('aktif'))+'</span>' : '<span class="pill bad">'+esc(r.status==='DIGANTI' ? t('dokStatusDIGANTI') : t('dibatalkan'))+'</span>')+'</span>' +
         (aktif ? '<div class="btnrow" style="flex-basis:100%;margin-top:6px"><button class="btn sec xs" onclick="window.open(urlDok(\''+esc(r.token)+'\')+\'?unduh=1\',\'_blank\')">⬇ PDF</button><button class="btn sec xs" onclick="window.open(urlDok(\''+esc(r.token)+'\'),\'_blank\')">🖨 '+esc(t('dokCetak'))+'</button><button class="btn sec xs" onclick="bukaWa('+i+')">💬 WA</button><button class="btn ghost xs" onclick="batalDokUI(\''+esc(r.id)+'\')">✕</button></div>' : '') +
         '</div>';
@@ -2247,6 +2253,7 @@ function buatDokUI(){
   if (!S.dok) return;
   var b = $('btnDokBuat'); sibuk(b, true);
   var p = { jenis: S.dok.jenis, ref: S.dok.ref, nomor: $('dokNomor').value, tanggal: ambilTanggal('dokTanggal'), catatan: $('dokCatatan').value,
+            pengangkut: $('dokPengangkut').value,
             perusahaan: { nama: $('dokPerNama').value, alamat: $('dokPerAlamat').value, telp: $('dokPerTelp').value, bank: $('dokPerBank').value } };
   panggil('buatDokumen',[p, S.ident]).then(function(r){
     sibuk(b, false, t('dokBuat'));
@@ -2254,7 +2261,7 @@ function buatDokUI(){
     var url = urlDok(r.token);
     $('dokForm').classList.add('hide');
     $('dokHasil').classList.remove('hide');
-    $('dokHasil').innerHTML = '<div class="banner ok"><b>✓ '+esc(t('dokDibuat'))+': '+esc(r.nomor)+'</b><br>'+esc(r.pihak)+' · '+esc(t('dokTotal'))+' '+rp(r.total)+'</div>' +
+    $('dokHasil').innerHTML = '<div class="banner ok"><b>✓ '+esc(t('dokDibuat'))+': '+esc(r.nomor)+'</b><br>'+esc(r.pihak)+' · '+esc(t('dokTotal'))+' '+(r.jenis === 'SJ' ? n2(r.totalKg)+' kg' : rp(r.total))+(r.nomorDiisi ? '<br><small>'+esc(t('sjNomorDiisi'))+'</small>' : '')+'</div>' +
       '<div class="field"><input readonly value="'+esc(url)+'" onclick="this.select()" style="font-size:12px"></div>' +
       '<div class="btnrow"><button class="btn sec" onclick="window.open(\''+esc(url)+'?unduh=1\',\'_blank\')">⬇ '+esc(t('dokUnduh'))+'</button>' +
       '<button class="btn sec" onclick="window.open(\''+esc(url)+'\',\'_blank\')">🖨 '+esc(t('dokCetak'))+'</button>' +
@@ -2278,7 +2285,7 @@ function bukaWa(i){
   if (!d) return;
   var url = urlDok(d.token), per = (S.dokPeng && S.dokPeng.perusahaan && S.dokPeng.perusahaan.nama) || $('dokPerNama').value || '';
   var jenis = S.dok ? S.dok.jenis : 'INVOICE';
-  var pesan = t(jenis === 'PO' ? 'waPesanPo' : jenis === 'SO' ? 'waPesanSo' : 'waPesanInvoice').replace('{nomor}', d.nomor).replace('{perusahaan}', per).replace('{pihak}', d.pihak || '').replace('{total}', rp(d.total)).replace('{link}', url);
+  var pesan = t(jenis === 'PO' ? 'waPesanPo' : jenis === 'SO' ? 'waPesanSo' : jenis === 'SJ' ? 'waPesanSj' : 'waPesanInvoice').replace('{nomor}', d.nomor).replace('{perusahaan}', per).replace('{pihak}', d.pihak || '').replace('{total}', jenis === 'SJ' ? n2(d.totalKg)+' kg' : rp(d.total)).replace('{link}', url);
   S.wa = { dok: d };
   $('waSub').textContent = d.nomor + ' · ' + (d.pihak || '');
   $('waPesan').value = pesan;
@@ -2703,8 +2710,11 @@ function simpanMutasiUI(){
   panggil(fn, [payload]).then(function(r){
     sibuk(b, false, t('btnSimpan'));
     toast(t('tersimpan') + ' · ' + kg(r.totalKg) + (r.tanpaPo ? ' · ' + t('tanpaPo') : ''), r.tanpaPo ? 'warn' : 'ok');
+    var modeTadi = S.modeExt, noSjTadi = $('rcvNoSJ').value.trim();
     bukaMutasi(S.modeExt);
     tampil('home');
+    /* v12.9: barang keluar ke customer → langsung tawarkan surat jalan (delivery order) untuk kiriman ini */
+    if (modeTadi === 'JUAL_KELUAR' && S.ctx && S.ctx.bisaSj && r.ids && r.ids.length) bukaDok('SJ', r.ids.join(','), { nomor: noSjTadi, sub: partner });
   }).catch(function(e){ sibuk(b,false,t('btnSimpan')); toast(e.message,'bad'); });
 }
 
@@ -3151,7 +3161,17 @@ function muatRiwayat(k){
   el.innerHTML = '<div class="load">…</div>';
   panggil('riwayatInput',[jenisRiwayat(k), 14, S.ident]).then(function(rows){
     if (!rows.length){ el.innerHTML = '<div style="font-size:12.5px;color:var(--muted);padding:6px 0">'+esc(t('riwayatKosong'))+'</div>'; return; }
+    /* v12.9: barang keluar — baris yang disimpan sekaligus (kelompok sama) = satu kiriman → satu tombol Surat jalan */
+    var kel = {}; rows.forEach(function(r){ if (!r.bolehSj) return; var k = r.partner+'|'+r.kelompok; (kel[k] = kel[k] || []).push(r); });
+    var sudah = {};
     el.innerHTML = rows.map(function(r){
+      var kepala = '';
+      if (r.bolehSj){
+        var k = r.partner+'|'+r.kelompok;
+        if (!sudah[k]){ sudah[k] = true; var g = kel[k], tot = 0, ids = g.map(function(x){ tot += x.qty; return x.id; });
+          kepala = '<div class="hist" style="background:var(--surface2,#f3f4f6);border-radius:10px"><span class="hx"><b>📦 '+esc(t('sjKiriman'))+' · '+esc(r.partner)+'</b><small>'+esc(r.tanggal||'')+' · '+g.length+' item · '+n2(tot)+' kg'+(r.noSuratJalan ? ' · '+esc(r.noSuratJalan) : '')+'</small></span>' +
+                   '<span class="hb"><button class="btn sec xs" onclick="bukaDok(\'SJ\',\''+esc(ids.join(','))+'\',{nomor:\''+esc(r.noSuratJalan||'')+'\',sub:\''+esc(r.partner)+'\'})">📄 '+esc(t('dokSj'))+'</button></span></div>'; }
+      }
       var sub2 = [r.partner, r.noSuratJalan, r.waktu, r.pencatat].filter(Boolean).map(esc).join(' · ');
       var tombol = r.usulan
         ? '<span class="pill warn" title="'+esc(r.usulan.ringkasan||'')+'">⏳ '+esc(t('usulanMenunggu'))+'</span>'
@@ -3159,7 +3179,7 @@ function muatRiwayat(k){
         ? '<button class="btn sec xs" onclick="event.stopPropagation();bukaEdit(\''+esc(r.id)+'\')">✎ '+esc(t('ubah'))+'</button>'
         : '<button class="btn sec xs" onclick="event.stopPropagation();bukaEdit(\''+esc(r.id)+'\')">🔒 '+esc(t('lihatDetail'))+'</button>';
       tombol = tombolFoto(r) + tombol;
-      return '<div class="hist tap" onclick="bukaEdit(\''+esc(r.id)+'\')">' +
+      return kepala + '<div class="hist tap" onclick="bukaEdit(\''+esc(r.id)+'\')">' +
         '<span class="hq">'+n2(r.qty)+' kg</span>' +
         '<span class="hx"><b>'+esc(r.item)+'</b><small>'+sub2+(r.logEdit?' · <i>'+esc(t('diubah'))+'</i>':'')+'</small></span>' +
         '<span class="hb">'+pillStatus(r.status)+tombol+'</span>' +
@@ -4542,7 +4562,8 @@ function muatDaur(){
           '<div class="m">'+d.scrap.map(function(x){ return esc(x.nama)+' '+n2(x.qty)+' kg'; }).join(' · ')+(d.noSuratJalan?' · '+esc(d.noSuratJalan):'')+'</div></div>' +
           '<div style="text-align:right;flex:0 0 auto"><div class="big" style="font-size:26px">'+n2(d.scrapKg)+'<span class="u">kg</span></div><div class="m" style="margin-top:1px">'+esc(t('scrapDikirim'))+'</div></div></div>' +
         '<div class="bb" style="display:flex;align-items:center;gap:8px"><span>'+esc(d.kirim)+' · '+n2(d.hariJalan||0)+' '+esc(t('hariDiChassen'))+' · '+esc(d.pencatat)+'</span>' +
-          '<span style="margin-left:auto" class="pill n">'+esc(t('terimaHasil'))+'</span></div>' +
+          (S.ctx && S.ctx.bisaSj ? '<button class="btn sec xs" style="margin-left:auto" onclick="event.stopPropagation();bukaDok(\'SJ\',\''+esc(d.id)+'\',{nomor:\''+esc(d.noSuratJalan||'')+'\',sub:\''+esc(d.vendor)+'\'})">📄 '+esc(t('dokSj'))+'</button>' : '') +   /* v12.9 */
+          '<span'+(S.ctx && S.ctx.bisaSj ? '' : ' style="margin-left:auto"')+' class="pill n">'+esc(t('terimaHasil'))+'</span></div>' +
       '</div>';
     }).join('');
   }).catch(function(e){ $('daurList').innerHTML = '<div class="banner bad">'+esc(e.message)+'</div>'; });
@@ -4627,8 +4648,9 @@ function kartuDaur(d, penuh){
         (d.fotoKirim&&d.fotoTerima?' · ':'') +
         (d.fotoTerima ? esc(t('fotoTerimaLbl'))+' '+foto(d.fotoTerima)+(d.bolehGantiFoto && d.status!=='DIBATALKAN' ? tombolGantiFoto(d.id,'terima') : '') : '') + '</b></div>' : '') +
     (d.logEdit ? '<div style="font-size:11px;color:var(--muted);white-space:pre-line;margin-top:3px"><i>'+esc(d.logEdit)+'</i></div>' : '') +
-    (d.status !== 'DIBATALKAN' && (d.bolehUbah || d.bolehBatal) ?
+    (d.status !== 'DIBATALKAN' && (d.bolehUbah || d.bolehBatal || (S.ctx && S.ctx.bisaSj)) ?
       '<div id="jasa-'+esc(d.id)+'"></div><div class="btnrow" style="margin-top:8px;justify-content:flex-end">' +
+        (S.ctx && S.ctx.bisaSj ? '<button class="btn sec xs" onclick="bukaDok(\'SJ\',\''+esc(d.id)+'\',{nomor:\''+esc(d.noSuratJalan||'')+'\',sub:\''+esc(d.vendor)+'\'})">📄 '+esc(t('dokSj'))+'</button>' : '') +   /* v12.9: surat jalan BS ke jasa daur ulang */
         (d.bolehBatal ? '<button class="btn ghost xs" onclick="batalDaurUI(\''+esc(d.id)+'\')">✕ '+esc(t('batalDaur'))+'</button>' : '') +
         (d.bolehUbah && d.status === 'SELESAI' ? '<button class="btn sec xs" onclick="bukaJasaUI(\''+esc(d.id)+'\')">✎ '+esc(t('isiJasa'))+'</button>' : '') +
         (d.status === 'BERJALAN' && S.view === 'daur' ? '<button class="btn xs" onclick="segDaur(\'list\');setTimeout(function(){bukaTerimaDaur(\''+esc(d.id)+'\')},400)">'+esc(t('terimaHasil'))+'</button>' : '') +

@@ -524,6 +524,7 @@ function getKonteks(ident) {
     lihatHpp: bolehLihatHpp_(u),
     bisaPo: bolehPo_(u),
     bisaSo: bolehSo_(u),
+    bisaSj: bolehSj_(u),           // v12.9: boleh membuat surat jalan (delivery order)
     modul: u.akses,                        // v11: { PO, SO, PRODUKSI, GUDANG, MANAJEMEN }
     metodeHpp: metodeHpp_(),
     kualitas: petaKualitas_().map(function (q) { return { kualitas: q.kualitas, nama: q.nama, biji: q.biji ? q.biji.kode : '', roll: q.roll ? q.roll.kode : '', jadi: q.jadi ? q.jadi.kode : '', bs: q.bs ? q.bs.kode : '' }; }),
@@ -1173,12 +1174,15 @@ function ringkasEntri_(r, nama, u, tertunda) {
     kunci: alasanKunci_(u, r),            // '' | LEWAT_24JAM | LEWAT_BATAS | BUKAN_MILIK | BUKAN_MODUL | BULAN_TUTUP | DIBATALKAN
     perluPersetujuan: false,
     usulan: (tertunda && tertunda[r.ID]) || null,
-    ditinjauOleh: r.Ditinjau_Oleh || '', lokasi: r.Lokasi || ''
+    ditinjauOleh: r.Ditinjau_Oleh || '', lokasi: r.Lokasi || '',
+    kelompok: kelompokWaktu_(r.Waktu)     // v12.9: baris yang disimpan sekaligus (satu kiriman) punya Waktu sama → satu surat jalan
   };
   if (nama === SHEET.PENERIMAAN) { o.partner = r.Supplier; o.jenis = r.Jenis; }
-  if (nama === SHEET.PENGIRIMAN) { o.partner = r.Customer; o.jenis = r.Jenis; }
+  if (nama === SHEET.PENGIRIMAN) { o.partner = r.Customer; o.jenis = r.Jenis; o.bolehSj = r.Jenis === JENIS_PENGIRIMAN.KELUAR && r.Status !== STATUS_TRANSFER.DIBATALKAN && bolehSj_(u); }
   return o;
 }
+
+function kelompokWaktu_(w) { var d = new Date(w); return isNaN(d) ? String(w || '') : String(d.getTime()); }
 
 /** Riwayat input satu proses, terbaru dulu. */
 function riwayatInput(jenis, hari, ident) {

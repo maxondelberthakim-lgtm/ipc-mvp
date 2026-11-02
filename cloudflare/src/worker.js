@@ -36,7 +36,7 @@ export default {
       return new Response(f.data, { headers: h });
     }
 
-    /* v12: dokumen (invoice / PO) — halaman cetak publik dengan token rahasia; link ini yang dikirim ke WA */
+    /* v12: dokumen (invoice / PO / SO / v12.9 surat jalan) — halaman cetak publik dengan token rahasia; link ini yang dikirim ke WA */
     if (req.method === 'GET' && url.pathname.startsWith('/dok/')) {
       const m = /^\/dok\/([a-z0-9]{16,40})$/.exec(url.pathname);
       if (!m) return new Response('Tidak ada', { status: 404 });
@@ -190,18 +190,20 @@ function halamanDokumen(d, unduh) {
   table{width:100%;border-collapse:collapse;font-size:13px}th,td{padding:8px 6px;border-bottom:1px solid #e5e7eb;text-align:left;vertical-align:top}
   th{background:#f9fafb;font-size:11.5px;text-transform:uppercase;letter-spacing:.4px;color:#374151}td.n,th.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
   tfoot td{font-weight:700;border-top:2px solid #111;border-bottom:0}.small{font-size:11.5px;color:#6b7280}.catatan{margin-top:18px;font-size:12.5px;white-space:pre-line;color:#374151}
-  .ttd{display:flex;justify-content:space-between;margin-top:40px;font-size:12.5px}.ttd div{width:40%;text-align:center}.ttd .garis{border-top:1px solid #111;margin-top:56px;padding-top:4px}
+  .ttd{display:flex;justify-content:space-between;margin-top:40px;font-size:12.5px}.ttd>div{width:40%;text-align:center}.ttd .garis{border-top:1px solid #111;margin-top:56px;padding-top:4px}.ttd3>div{width:30%}
   .batal{max-width:600px;margin:60px auto;background:#fff;padding:32px;text-align:center;border-radius:12px}
   @media print{body{background:#fff}.bar{display:none}.sheet{box-shadow:none;margin:0;max-width:none;padding:0}@page{margin:14mm}}`;
   if (!d) return `<!doctype html><html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Dokumen tidak ditemukan</title><style>${css}</style></head><body><div class="batal"><h2>Dokumen tidak ditemukan</h2><p>Link salah atau dokumen sudah dihapus.</p></div></body></html>`;
   if (d.dibatalkan) return `<!doctype html><html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Dokumen dibatalkan</title><style>${css}</style></head><body><div class="batal"><h2>${esc(d.nomor)} sudah dibatalkan</h2><p>Minta dokumen yang baru ke pengirim.</p></div></body></html>`;
-  const inv = d.jenis === 'INVOICE', isSo = d.jenis === 'SO', judul = inv ? 'INVOICE' : isSo ? 'SALES ORDER' : 'PURCHASE ORDER', per = d.perusahaan || {}, pihak = d.pihak || {};
+  const inv = d.jenis === 'INVOICE', isSo = d.jenis === 'SO', isSj = d.jenis === 'SJ', judul = inv ? 'INVOICE' : isSo ? 'SALES ORDER' : isSj ? 'SURAT JALAN' : 'PURCHASE ORDER', per = d.perusahaan || {}, pihak = d.pihak || {};
   const dasarTop = d.topHari ? (d.topDari === 'DOKUMEN' ? (d.jenis === 'PO' ? 'dari tanggal PO' : 'dari tanggal SO') : (d.jenis === 'PO' ? 'dari tanggal barang diterima' : 'dari tanggal barang dikirim')) : '';
   const adaBal = (d.baris || []).some((b) => b.bal > 0), adaUkuran = (d.baris || []).some((b) => b.ukuran);
   const baris = (d.baris || []).map((b, i) => `<tr><td>${i + 1}</td><td>${esc(b.nama)}${b.ukuran ? `<div class="small">Ukuran ${esc(b.ukuran)}</div>` : ''}${b.spesifikasi ? `<div class="small">${esc(b.spesifikasi)}</div>` : ''}</td>` +
-    (adaBal ? `<td class="n">${kg(b.bal)}</td>` : '') + `<td class="n">${kg(b.qty)}</td><td class="n">${rp(b.harga)}</td><td class="n">${rp(b.nilai)}</td></tr>`).join('');
+    (adaBal ? `<td class="n">${kg(b.bal)}</td>` : '') + `<td class="n">${kg(b.qty)}</td>` + (isSj ? '' : `<td class="n">${rp(b.harga)}</td><td class="n">${rp(b.nilai)}</td>`) + `</tr>`).join('');
   const top = d.topHari ? d.topHari + ' hari ' + dasarTop : 'Tunai';
-  const meta = inv
+  const meta = isSj
+    ? [['Nomor surat jalan', d.nomor], ['Tanggal', tglId(d.tanggal)], ['Tanggal kirim', tglId(d.tanggalKirim)], [d.sumber === 'DAUR' ? 'Referensi daur ulang' : 'Referensi SO', d.sumber === 'DAUR' ? d.ref : d.noSo], ['Kendaraan / sopir', d.pengangkut]]
+    : inv
     ? [['Nomor invoice', d.nomor], ['Tanggal', tglId(d.tanggal)], ['Referensi SO', d.ref], ['Tanggal kirim', tglId(d.tanggalKirim)], ['Termin (TOP)', top], ['Jatuh tempo', tglId(d.jatuhTempo)]]
     : isSo
     ? [['Nomor SO', d.nomor], ['Tanggal SO', tglId(d.tanggalRef || d.tanggal)], ['Tanggal kirim', tglId(d.tanggalKirim)], ['Termin (TOP)', top], ['Jatuh tempo', tglId(d.jatuhTempo)]]
@@ -211,16 +213,18 @@ function halamanDokumen(d, unduh) {
 <div class="sheet" id="lembar">
   <div class="kop"><div><h1>${esc(per.nama || 'H-Plast')}</h1><div class="p">${esc([per.alamat, per.telp, per.email].filter(Boolean).join('\n'))}</div></div>
     <div style="text-align:right"><div style="font-size:20px;font-weight:800;color:#0f766e">${esc(judul)}</div><div class="small">${esc(d.nomor)}</div></div></div>
-  <div class="meta"><div><div class="k">${esc(pihak.label || (inv ? 'Customer' : 'Supplier'))}</div><div class="v">${esc(pihak.nama || '')}</div></div>
+  <div class="meta"><div><div class="k">${esc(pihak.label || (inv ? 'Customer' : 'Supplier'))}</div><div class="v">${esc(pihak.nama || '')}</div>${isSj ? '<div class="k" style="margin-top:10px">Keterangan</div><div class="v" style="font-weight:500">Barang di bawah ini telah dikirim dalam keadaan baik dan lengkap. Mohon diperiksa dan ditandatangani oleh penerima.</div>' : ''}</div>
     <div>${meta.filter((m) => m[1]).map((m) => `<div class="k">${esc(m[0])}</div><div class="v">${esc(m[1])}</div>`).join('')}</div></div>
-  <table><thead><tr><th>#</th><th>Item</th>${adaBal ? '<th class="n">Bal</th>' : ''}<th class="n">Kg</th><th class="n">Harga / kg</th><th class="n">Jumlah</th></tr></thead>
+  <table><thead><tr><th>#</th><th>Item</th>${adaBal ? '<th class="n">Bal</th>' : ''}<th class="n">Kg</th>${isSj ? '' : '<th class="n">Harga / kg</th><th class="n">Jumlah</th>'}</tr></thead>
   <tbody>${baris}</tbody>
-  <tfoot><tr><td colspan="2">Total${adaBal ? ` <span class="small">(1 bal = ${kg(d.kgPerBal)} kg)</span>` : ''}</td>${adaBal ? `<td class="n">${kg(d.totalBal)}</td>` : ''}<td class="n">${kg(d.totalKg)}</td><td></td><td class="n">${rp(d.total)}</td></tr></tfoot></table>
+  <tfoot><tr><td colspan="2">Total${adaBal ? ` <span class="small">(1 bal = ${kg(d.kgPerBal)} kg)</span>` : ''}</td>${adaBal ? `<td class="n">${kg(d.totalBal)}</td>` : ''}<td class="n">${kg(d.totalKg)}</td>${isSj ? '' : `<td></td><td class="n">${rp(d.total)}</td>`}</tr></tfoot></table>
   ${inv && per.bank ? `<div class="catatan"><b>Pembayaran</b>\n${esc(per.bank)}</div>` : ''}
   ${d.catatan ? `<div class="catatan">${esc(d.catatan)}</div>` : ''}
   ${d.catatanBawah ? `<div class="catatan small">${esc(d.catatanBawah)}</div>` : ''}
-  <div class="ttd"><div><div class="garis">${esc(per.nama || '')}<br><span class="small">${esc(d.dibuatOleh || '')}</span></div></div><div><div class="garis">${esc(pihak.nama || '')}</div></div></div>
-  <div class="small" style="margin-top:24px">Dibuat ${esc(d.waktu || '')} · ${esc(judul.toLowerCase())} tanpa PPN</div>
+  ${isSj
+    ? `<div class="ttd ttd3"><div><div class="garis">Pengirim<br><span class="small">${esc(per.nama || '')} · ${esc(d.dibuatOleh || '')}</span></div></div><div><div class="garis">Sopir / ekspedisi<br><span class="small">${esc(d.pengangkut || '')}</span></div></div><div><div class="garis">Penerima<br><span class="small">${esc(pihak.nama || '')}</span></div></div></div>`
+    : `<div class="ttd"><div><div class="garis">${esc(per.nama || '')}<br><span class="small">${esc(d.dibuatOleh || '')}</span></div></div><div><div class="garis">${esc(pihak.nama || '')}</div></div></div>`}
+  <div class="small" style="margin-top:24px">Dibuat ${esc(d.waktu || '')} · ${isSj ? 'surat jalan / delivery order — bukan bukti tagihan' : esc(judul.toLowerCase()) + ' tanpa PPN'}</div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 <script>
