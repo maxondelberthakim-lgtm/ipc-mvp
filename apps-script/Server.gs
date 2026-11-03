@@ -47,7 +47,9 @@ var RPC_WL = {
   /* v10: laporan shift produksi, laporan produksi, tutup bulan (COGS periodik) */
   konfigurasiShift:1, simpanLaporanShift:1, daftarLaporanShift:1, ambilLaporanShift:1, ubahLaporanShift:1, batalkanLaporanShift:1,
   laporanProduksi:1, laporanBulanan:1, tutupBulan:1, bukaBulan:1, daftarTutupBulan:1,
-  simpanOpnameProduksi:1, daftarOpnameProduksi:1, rekonsiliasiProduksi:1
+  simpanOpnameProduksi:1, daftarOpnameProduksi:1, rekonsiliasiProduksi:1,
+  /* v13: alur kirim (draft → surat jalan → kirim → foto SJ) */
+  siapkanKiriman:1, ubahKiriman:1, kirimKiriman:1, batalkanKiriman:1, daftarKiriman:1, ambilKiriman:1, fotoSj:1
 };
 
 function doPost(e) {
@@ -93,7 +95,7 @@ function sheet_(nama) {
   return sh;
 }
 
-var KOLOM_TANGGAL_ = /^(Tanggal|Tanggal_Invoice|Perkiraan_Datang|Tanggal_Kirim|Tanggal_Terima|Jatuh_Tempo)$/;
+var KOLOM_TANGGAL_ = /^(Tanggal|Tanggal_Invoice|Perkiraan_Datang|Tanggal_Kirim|Tanggal_Terima|Jatuh_Tempo|Tanggal_Rencana)$/;
 /* Memo per eksekusi: satu sheet dibaca dari Spreadsheet sekali saja per request
    (getKonteks dulu membaca sheet yang sama berulang kali -> 6-10 detik). Dibuang setiap ada tulis. */
 var MEMO_BACA_ = {};
@@ -511,6 +513,19 @@ function getKonteks(ident) {
   var perluBeli = bolehReview_(u) ? prediksiBeli(ident).filter(function (x) { return x.status === 'PERLU_BELI'; }).length : 0;
   var soHariIni = (typeof soKirimHariIni_ === 'function') ? soKirimHariIni_(hariIni) : [];
   var soTerbukaN = baca_(SHEET.SO).filter(function (r) { return r.Status === STATUS_SO.TERBUKA || r.Status === STATUS_SO.SEBAGIAN; }).length;
+  /* v13: DO siap kirim & sudah dikirim tanpa foto DO (kiriman DO 90 hari, kiriman lama 14 hari — sama dengan daftarKiriman) — akun dengan modul GUDANG atau SO */
+  var siapKirimN = 0, belumFotoSjN = 0;
+  if (bolehLihatKiriman_(u)) {
+    var batasFotoDo = batasHari_(HARI_BELUM_FOTO), batasFotoLama = batasHari_(HARI_BELUM_FOTO_LAMA);
+    baca_(SHEET.KIRIMAN).forEach(function (k) {
+      if (k.Status === STATUS_KIRIMAN.DISIAPKAN) siapKirimN++;
+      else if (k.Status === STATUS_KIRIMAN.DIKIRIM && !k.Foto_SJ_URL && new Date(k.Waktu_Kirim) >= batasFotoDo) belumFotoSjN++;
+    });
+    var grupLama = {};
+    snd.forEach(function (r) { if (r.Jenis === JENIS_PENGIRIMAN.KELUAR && !r.ID_Kiriman && !r.Foto_URL && dihitung_(r) && new Date(r.Waktu) >= batasFotoLama) grupLama[r.Customer + '|' + kelompokWaktu_(r.Waktu)] = 1; });
+    belumFotoSjN += Object.keys(grupLama).length;
+    baca_(SHEET.DAUR).forEach(function (r) { if (!r.ID_Kiriman && !r.Foto_Kirim_URL && r.Status !== STATUS_DAUR.DIBATALKAN && new Date(r.Waktu_Kirim) >= batasFotoLama) belumFotoSjN++; });
+  }
 
   return {
     app: { nama: APP.nama, versi: APP.versi, satuan: APP.satuan },
@@ -527,6 +542,7 @@ function getKonteks(ident) {
     bisaPo: bolehPo_(u),
     bisaSo: bolehSo_(u),
     bisaSj: bolehSj_(u),           // v12.9: boleh membuat surat jalan (delivery order)
+    bisaKirim: bolehKirim_(u),     // v13: boleh menyiapkan & mengirim kiriman (Manager / Admin dengan GUDANG)
     modul: u.akses,                        // v11: { PO, SO, PRODUKSI, GUDANG, MANAJEMEN }
     metodeHpp: metodeHpp_(),
     kualitas: petaKualitas_().map(function (q) { return { kualitas: q.kualitas, nama: q.nama, biji: q.biji ? q.biji.kode : '', roll: q.roll ? q.roll.kode : '', jadi: q.jadi ? q.jadi.kode : '', bs: q.bs ? q.bs.kode : '' }; }),
@@ -562,7 +578,9 @@ function getKonteks(ident) {
       kerusakanMenunggu: kerusakanMenunggu,
       invoiceMenunggu: invoiceMenunggu,
       poTerbuka: poTerbukaN,
-      soTerbuka: soTerbukaN
+      soTerbuka: soTerbukaN,
+      siapKirim: siapKirimN,          // v13
+      belumFotoSj: belumFotoSjN       // v13
     }
   };
 }
@@ -1192,7 +1210,7 @@ function ringkasEntri_(r, nama, u, tertunda) {
     kelompok: kelompokWaktu_(r.Waktu)     // v12.9: baris yang disimpan sekaligus (satu kiriman) punya Waktu sama → satu surat jalan
   };
   if (nama === SHEET.PENERIMAAN) { o.partner = r.Supplier; o.jenis = r.Jenis; }
-  if (nama === SHEET.PENGIRIMAN) { o.partner = r.Customer; o.jenis = r.Jenis; o.bolehSj = r.Jenis === JENIS_PENGIRIMAN.KELUAR && r.Status !== STATUS_TRANSFER.DIBATALKAN && bolehSj_(u); }
+  if (nama === SHEET.PENGIRIMAN) { o.partner = r.Customer; o.jenis = r.Jenis; o.idKiriman = r.ID_Kiriman || ''; o.bolehSj = r.Jenis === JENIS_PENGIRIMAN.KELUAR && r.Status !== STATUS_TRANSFER.DIBATALKAN && !r.ID_Kiriman && bolehSj_(u); }
   return o;
 }
 

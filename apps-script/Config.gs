@@ -10,7 +10,7 @@
 
 var APP = {
   nama: 'IPC — Inventory & Production Control',
-  versi: '12.10.0',
+  versi: '13.0.0',
   zona: 'Asia/Jakarta',
   satuan: 'kg',
   folderFoto: 'IPC Foto Bukti'
@@ -41,7 +41,9 @@ var SHEET = {
   LOG        : 'Log_Audit',
   SETTING    : 'Pengaturan',
   KONTAK_WA  : 'Master_Kontak_WA',  // v12: nomor WA tujuan kirim invoice / PO
-  DOKUMEN    : 'Dokumen'            // v12: invoice (dari SO) & dokumen PO — snapshot JSON + token link
+  DOKUMEN    : 'Dokumen',           // v12: invoice (dari SO) & dokumen PO — snapshot JSON + token link
+  KIRIMAN    : 'Kiriman',           // v13: draft kiriman (siapkan → surat jalan → kirim) — TIDAK dibaca stok / HPP / laporan
+  KIRIMAN_DETAIL: 'Kiriman_Detail'
 };
 
 var HEADER = {};
@@ -80,7 +82,8 @@ HEADER[SHEET.PENGIRIMAN] = [
   'Foto_URL','Foto_ID','Dicatat_Oleh','Nama_Pencatat',
   'Status','Ditinjau_Oleh','Waktu_Tinjau','Catatan_Tinjau','Catatan','Log_Edit',
   'HPP_Per_Kg',  // v7: harga pokok FIFO barang yang keluar (untuk margin)
-  'ID_SO'        // v8: baris sales order yang dipenuhi pengiriman ini
+  'ID_SO',       // v8: baris sales order yang dipenuhi pengiriman ini
+  'ID_Kiriman'   // v13: kiriman (draft → kirim) yang melahirkan baris ini
 ];
 
 /* v10.1: laporan shift. SATU baris per shift (2 shift × 12 jam), memuat dua mesin dengan operator terpisah.
@@ -157,10 +160,20 @@ HEADER[SHEET.DAUR] = [
   'Total_Scrap_Kg','Total_Hasil_Kg','Susut_Kg','Susut_Persen','Status_Susut',
   'Nilai_Scrap','Biaya_Jasa','HPP_Total','HPP_Per_Kg','Status',
   'Dicatat_Oleh','Nama_Pencatat','Diterima_Oleh','Nama_Penerima',
-  'Foto_Kirim_URL','Foto_Terima_URL','Catatan','Log_Edit'
+  'Foto_Kirim_URL','Foto_Terima_URL','Catatan','Log_Edit',
+  'ID_Kiriman'   // v13
 ];
 HEADER[SHEET.DAUR_DETAIL] = [
   'ID','ID_Daur','Jenis','Kode_Item','Nama_Item','Qty_Kg','Harga_Per_Kg','Nilai','Waktu'
+];
+/* v13: kiriman (draft → surat jalan → kirim). Tidak ada rupiah. */
+HEADER[SHEET.KIRIMAN] = [
+  'ID','Jenis','Tujuan','No_Surat_Jalan','Status','Tanggal_Rencana','Tanggal_Kirim','Pengangkut','Total_Kg',
+  'Foto_SJ_URL','Foto_SJ_ID','ID_Dokumen','Ref_Kirim',
+  'Dibuat_Oleh','Nama_Pembuat','Waktu_Dibuat','Dikirim_Oleh','Nama_Pengirim','Waktu_Kirim','Catatan','Log_Edit'
+];
+HEADER[SHEET.KIRIMAN_DETAIL] = [
+  'ID','ID_Kiriman','Kode_Item','Nama_Item','Qty_Kg','ID_SO','Waktu'
 ];
 
 HEADER[SHEET.LOG] = [
@@ -400,7 +413,8 @@ function resetUntukGoLive() {
   lupakanMemo_();
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   [SHEET.PENERIMAAN, SHEET.PENGIRIMAN, SHEET.SHIFT, SHEET.SHIFT_DETAIL, SHEET.OPNAME,
-   SHEET.PERMINTAAN, SHEET.PO, SHEET.INVOICE, SHEET.KERUSAKAN, SHEET.SO, SHEET.DAUR, SHEET.DAUR_DETAIL, SHEET.TUTUP, SHEET.OPNAME_PROD].forEach(function (n) {
+   SHEET.PERMINTAAN, SHEET.PO, SHEET.INVOICE, SHEET.KERUSAKAN, SHEET.SO, SHEET.DAUR, SHEET.DAUR_DETAIL, SHEET.TUTUP, SHEET.OPNAME_PROD,
+   SHEET.KIRIMAN, SHEET.KIRIMAN_DETAIL].forEach(function (n) {
     var sh = ss.getSheetByName(n);
     if (sh && sh.getLastRow() >= 2) sh.deleteRows(2, sh.getLastRow() - 1);
   });
@@ -450,6 +464,9 @@ function hapusTransaksiSebelum(tanggal) {
   hapus(SHEET.INVOICE, sebelum('Tanggal'));
   hapus(SHEET.KERUSAKAN, sebelum('Tanggal'));
   hapus(SHEET.SO, sebelum('Tanggal'));
+  induk = {};   // v13: DO / kiriman (draft) ikut tanggal rencananya
+  hapus(SHEET.KIRIMAN, sebelum('Tanggal_Rencana')).forEach(function (r) { induk[r.ID] = 1; });
+  hapus(SHEET.KIRIMAN_DETAIL, function (r) { return !!induk[r.ID_Kiriman]; });
   hapus(SHEET.TUTUP, function (r) { return String(r.Bulan || '') < cut.slice(0, 7); });
   hapus(SHEET.PERMINTAAN, sebelum('Waktu'));
   lupakanMemo_();
@@ -480,7 +497,7 @@ function gabungItem(dari, ke) {
   if (String(b.Aktif).toUpperCase() === 'TIDAK') throw new Error('Item tujuan nonaktif: ' + ke);
   if (a.Kategori !== b.Kategori) throw new Error('Kategori berbeda (' + a.Kategori + ' vs ' + b.Kategori + ') — tidak digabung.');
   var ringkas = {}, total = 0;
-  [SHEET.PENERIMAAN, SHEET.PENGIRIMAN, SHEET.SHIFT_DETAIL, SHEET.OPNAME, SHEET.PO, SHEET.KERUSAKAN, SHEET.SO, SHEET.DAUR_DETAIL].forEach(function (nama) {
+  [SHEET.PENERIMAAN, SHEET.PENGIRIMAN, SHEET.SHIFT_DETAIL, SHEET.OPNAME, SHEET.PO, SHEET.KERUSAKAN, SHEET.SO, SHEET.DAUR_DETAIL, SHEET.KIRIMAN_DETAIL].forEach(function (nama) {
     var n = 0;
     baca_(nama).forEach(function (r) {
       if (String(r.Kode_Item || '').toUpperCase() !== dari) return;

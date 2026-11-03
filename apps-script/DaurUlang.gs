@@ -46,9 +46,9 @@ function mulaiDaurUlang(p) {
   wajibModul_(u, MODUL.GUDANG);
   if (!p || !String(p.vendor || '').trim()) throw new Error('Tempat chassen (vendor) belum dipilih.');
   if (!p.scrap || !p.scrap.length) throw new Error('Scrap yang dikirim belum diisi.');
-  if (!p.foto) throw new Error('Foto surat jalan ke tempat chassen wajib diunggah.');   // v11.2
+  /* v13: foto surat jalan tidak lagi wajib saat kirim (surat jalan baru ada SESUDAH disiapkan) — boleh menyusul lewat fotoSj */
   var peta = petaItem_();
-  var foto = unggahFoto_(p.foto, 'DAUR-KIRIM');
+  var foto = p.foto ? unggahFoto_(p.foto, 'DAUR-KIRIM') : { url: '', id: '' };
   var lock = LockService.getScriptLock();
   lock.waitLock(20000);
   lupakanMemo_();
@@ -69,7 +69,7 @@ function mulaiDaurUlang(p) {
       Total_Scrap_Kg: bulat_(total, 3), Total_Hasil_Kg: '', Susut_Kg: '', Susut_Persen: '', Status_Susut: '',
       Nilai_Scrap: '', Biaya_Jasa: '', HPP_Total: '', HPP_Per_Kg: '', Status: STATUS_DAUR.BERJALAN,
       Dicatat_Oleh: penandaPencatat_(u), Nama_Pencatat: u.nama, Diterima_Oleh: '', Nama_Penerima: '',
-      Foto_Kirim_URL: foto.url, Foto_Terima_URL: '', Catatan: p.catatan || '', Log_Edit: ''
+      Foto_Kirim_URL: foto.url, Foto_Terima_URL: '', Catatan: p.catatan || '', Log_Edit: '', ID_Kiriman: ''
     });
     catatLog_('DAUR_KIRIM', id, p.vendor + ' • ' + bulat_(total, 2) + ' kg scrap');
     return { ok: true, id: id, vendor: p.vendor, totalKg: bulat_(total, 2) };
@@ -139,6 +139,7 @@ function ringkasDaur_(r, lihatHarga, detCache, u) {
     statusSusut: r.Status_Susut || '', status: r.Status, pencatat: r.Nama_Pencatat, penerima: r.Nama_Penerima || '',
     fotoKirim: r.Foto_Kirim_URL || '', fotoTerima: r.Foto_Terima_URL || '', catatan: r.Catatan || '',
     bolehGantiFoto: !!(u && bolehFoto_(u, SHEET.DAUR, r)),   // v12.7: ganti foto surat jalan chassen
+    idKiriman: r.ID_Kiriman || '',                              // v13
     /* log edit: angka jasa disaring untuk staf */
     logEdit: lihatHarga ? (r.Log_Edit || '') : String(r.Log_Edit || '').split('\n').map(function (l) { return l.replace(/;?\s*jasa: [^;\n]*/g, '').replace(/:\s*$/, ': (biaya diubah)'); }).join('\n'),
     scrap: detailDaur_(r.ID, JENIS_DAUR_DETAIL.SCRAP, detCache), hasil: detailDaur_(r.ID, JENIS_DAUR_DETAIL.HASIL, detCache)

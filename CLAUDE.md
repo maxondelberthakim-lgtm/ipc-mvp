@@ -40,6 +40,12 @@ IPC (Inventory & Production Control), branded **H-Plast**: a phone-first PWA for
 6. Commit on `main`; merge into `test` and rebuild `docs/app-test` for the test environment.
 7. Schema changes: add to `HEADER`, bump the version — `migrasiSkema` adds missing sheets/columns on the next request. Write a versioned `migrasiVx_` only for data changes (flag it with a Log_Audit row so it runs once).
 
+## Shipping flow (v13 "alur kirim")
+- Three steps, each on the screen where the work happens: **SO** → **Buat DO** (`siapkanKiriman`: surat jalan number + printable/WA document at once, no stock movement) → **Kirim** (`kirimKiriman`: actual kg, date, signed-DO photo — only here stock moves and `Pengiriman` / `Daur_Ulang` rows are written; the photo may follow → "Belum foto DO", `fotoSj`). Never add an entry point that writes barang keluar without a DO; mode `JUAL_KELUAR` of the form stays only for riwayat/edit.
+- Data: `Kiriman` + `Kiriman_Detail` (`apps-script/Kiriman.gs`), `Pengiriman.ID_Kiriman` / `Daur_Ulang.ID_Kiriman`. Old rows without `ID_Kiriman` are shown virtually as "sudah dikirim" (`kirimanLama_`) — no migration. Over-planning against the SO is rejected per line; short stock only warns.
+- Access: create/edit/cancel DO = `bolehSj_`; Kirim + DO photos = `bolehKirim_` (GUDANG); lists `bolehLihatKiriman_`.
+- UI: `bukaKiriman(tab, idSo)` (DO screen: Siap kirim / Belum foto DO / Sudah dikirim), `blokDoSo` on the SO card, `bukaKirimDo` sheet with the photo chooser Kamera / Galeri / Buat-cetak DO (`bukaSumberFotoDo`), `cetakDo` = document modal in view mode. Daur ulang uses the same DO draft (`simpanDoDaurUI`).
+
 ## Frontend conventions (v12.10 "fluid")
 - Design tokens are CSS variables at the top of `Styles.html`: palette (teal brand + neutrals + status; only tints/shades of existing colours), radius 10/14/20, one soft shadow, motion curves/durations. Animate only `transform` / `opacity`; `prefers-reduced-motion` makes everything instant; controls are never hidden behind an entrance animation.
 - Icons: one inline stroke sprite in `Index.html` (`<symbol id="i-…">`), used via `ikon(name, 'tx'?)` in JS or `<svg class="i"><use href="#i-…"/></svg>`. No emoji in the UI.
@@ -53,5 +59,7 @@ IPC (Inventory & Production Control), branded **H-Plast**: a phone-first PWA for
 - e2e: `segSo()` only renders when `S.view === 'so'` (call `tampil('so')` first). Combo/search lists pick on click, not pointerdown (phones fire a ghost click into whatever is underneath).
 - The engine keeps sheets in memory; a function that writes then throws is rolled back by `panggil()` — but only if it throws. Validate everything first anyway.
 - A tab left open across a deploy keeps old JS until reload (network-first service worker).
+- The offline demo (`tools/seed.js`) exposes every function in `RPC_WL`; a backend function missing from the whitelist fails in the demo with "reading 'apply'".
+- e2e on the Mac: `tests/e2e/run-e2e-mac.sh` needs `WRANGLER` (any wrangler 4 install) and `E2E_HOME`; Chromium, `--reduced-motion` and `--browser webkit` run one after another (fixed ports 8090/8787).
 - `/dok/<token>` pages load html2pdf from cdnjs; a cross-origin fetch of them from the app can fail — test in a tab.
 - Free Cloudflare plan: one Durable Object (one region), ~128 MB memory, photos count toward storage. No offline mode.

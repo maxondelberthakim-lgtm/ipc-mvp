@@ -196,6 +196,8 @@
                'simpanKerusakan','daftarKerusakan','tinjauKerusakan',
                'diagnosa','prediksiBeli','simpanSo','ubahSo','batalkanSo','daftarSo','soTerbuka','eksporBulanan','statusBackup',
                'tambahMaster','mulaiDaurUlang','selesaikanDaurUlang','daftarDaurUlang','ambilDaurUlang','ubahDaurUlang','batalkanDaurUlang','laporanDaurUlang'];
+    /* v13: demo memakai daftar putih server (RPC_WL) bila ada — semua fungsi RPC (dokumen, kiriman/DO, foto) ikut tersedia */
+    if (typeof RPC_WL === 'object' && RPC_WL) Object.keys(RPC_WL).forEach(function(nm){ if (fns.indexOf(nm) < 0 && typeof window[nm] === 'function') fns.push(nm); });
     function buat(sukses, gagal){
       var o = { withSuccessHandler:function(f){ return buat(f, gagal); },
                 withFailureHandler:function(f){ return buat(sukses, f); } };
