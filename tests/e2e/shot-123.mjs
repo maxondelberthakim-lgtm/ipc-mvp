@@ -1,0 +1,17 @@
+import { chromium } from 'playwright';
+const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome' });
+const p = await b.newPage({ viewport: { width: 420, height: 900 }, deviceScaleFactor: 2 });
+const W = ms => p.waitForTimeout(ms);
+await p.goto('http://127.0.0.1:8090/'); await W(1500);
+await p.selectOption('#identPilih', 'Deny'); await p.fill('#identPin', '3322'); await p.click('text=Simpan & mulai'); await W(2500);
+await p.evaluate(() => { tampil('so'); segSo('aktif'); }); await W(1500);
+const no = await p.evaluate(() => (S.soUrut||[])[0]);
+await p.evaluate((no) => soTambahItem(no), no); await W(500);
+await p.click('#cb-so-0'); await p.type('#cb-so-0', 'Polybag KW'); await W(300); await p.click('#cb-so-0 ~ .combo-list .combo-item'); await W(300);
+await p.evaluate(() => { S.baris.so[0].qty = '25'; S.baris.so[0].harga = '20000'; gambarBaris('so'); });
+await p.evaluate((no) => document.getElementById('soTambah-'+no).scrollIntoView({block:'center'}), no); await W(300);
+await p.screenshot({ path: '/home/claude/s123-tambah.png' });
+await p.evaluate(() => bukaMutasi('JUAL_KELUAR')); await W(1200);
+await p.evaluate(() => document.getElementById('rcvSJWrap').scrollIntoView({block:'center'})); await W(300);
+await p.screenshot({ path: '/home/claude/s123-sj.png' });
+await b.close();

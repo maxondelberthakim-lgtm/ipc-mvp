@@ -1,0 +1,13 @@
+import { chromium } from 'playwright';
+const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome' });
+const p = await b.newPage({ viewport: { width: 420, height: 860 } });
+p.on('dialog', d => d.accept('uji'));
+await p.goto('http://127.0.0.1:8090/'); await p.waitForTimeout(2500);
+await p.selectOption('#identPilih', 'Yansen'); await p.fill('#identPin', '2211'); await p.click('text=Simpan & mulai');
+await p.waitForFunction(() => S.ctx && S.ctx.user && S.ctx.user.nama === 'Yansen', null, { timeout: 15000 }); await p.waitForTimeout(800);
+await p.screenshot({ path: '/home/claude/s112-home.png' });
+await p.evaluate(() => bukaMutasi('BELI_MASUK')); await p.waitForTimeout(800);
+await p.evaluate(() => window.scrollTo(0, 0)); await p.screenshot({ path: '/home/claude/s112-rcv.png', fullPage: true });
+await p.evaluate(() => tampil('daur')); await p.waitForTimeout(500); await p.evaluate(() => segDaur('new')); await p.waitForTimeout(500);
+await p.screenshot({ path: '/home/claude/s112-daur.png', fullPage: true });
+await b.close();
