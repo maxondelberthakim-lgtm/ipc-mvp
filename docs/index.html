@@ -515,6 +515,9 @@ tr.batal td{opacity:.55;text-decoration:line-through;text-decoration-thickness:1
 .do-baris .hx small{display:block;color:var(--muted);font-size:11.5px}
 .do-baris .hb{display:flex;gap:6px;flex:0 0 auto}
 .btn.do-buat{margin-top:8px}
+/* v13.1: dua pilihan sejajar — Buat DO (opsional) / Kirim langsung */
+.do-aksi{display:flex;gap:8px;margin-top:8px}
+.do-aksi .btn{flex:1;min-width:0;width:auto;margin-top:0;padding-left:8px;padding-right:8px}
 .do-foto{display:flex;align-items:center;gap:10px;margin-top:8px;font-size:12.5px;color:var(--muted)}
 .do-foto img{width:56px;height:56px;object-fit:cover;border-radius:10px;display:block;background:#eee}
 .kirim-baris{display:grid;grid-template-columns:1fr 128px;gap:8px;align-items:center;padding:10px 0;border-top:1px solid var(--hair)}
@@ -755,7 +758,11 @@ nav button.ditekan .g{transform:scale(.88)}
   <!-- ============ ⓪ PENERIMAAN / RETUR ============ -->
   <section id="v-beli" class="hide">
     <!-- v13: Barang keluar = Buat DO (surat jalan dulu) → Kirim (stok bergerak) → foto DO. Form yang sama dipakai mode JUAL_DO. -->
-    <div id="doAtas" class="hide"><button class="btn besar" id="btnBuatDo" onclick="bukaFormDo()"><svg class="i"><use href="#i-dokumen"/></svg> <span data-i18n="doBuat">Buat DO (surat jalan)</span></button></div>
+    <!-- v13.1: Buat DO itu opsional — Kirim langsung juga bisa (surat jalan dibuat otomatis). Keduanya hilang saat form terbuka. -->
+    <div id="doAtas" class="do-aksi hide" style="margin:0 0 12px">
+      <button class="btn sec besar" id="btnBuatDo" onclick="bukaFormDo()"><svg class="i"><use href="#i-dokumen"/></svg> <span data-i18n="doBuatPendek">Buat DO</span></button>
+      <button class="btn besar" id="btnKirimLangsung" onclick="bukaFormDo(true)"><svg class="i"><use href="#i-truk"/></svg> <span data-i18n="doKirimLangsung">Kirim langsung</span></button>
+    </div>
     <div class="card" id="rcvForm">
       <h2 id="rcvJudul">Barang masuk</h2>
       <div class="sub" id="rcvSub"></div>
@@ -1006,7 +1013,11 @@ nav button.ditekan .g{transform:scale(.88)}
 
   <!-- ============ DAUR ULANG SCRAP (v9) ============ -->
   <section id="v-daur" class="hide">
-    <button class="btn besar hide" id="btnBuatDoDaur" onclick="segDaur('new')" style="margin-bottom:12px"><svg class="i"><use href="#i-dokumen"/></svg> <span data-i18n="daurDoT">Buat DO (BS ke chassen)</span></button>
+    <!-- v13.1: Buat DO opsional — Kirim BS langsung juga bisa (surat jalan dibuat otomatis) -->
+    <div class="do-aksi" id="daurAtas" style="margin:0 0 12px">
+      <button class="btn sec besar hide" id="btnBuatDoDaur" onclick="segDaur('new')"><svg class="i"><use href="#i-dokumen"/></svg> <span data-i18n="daurDoT">Buat DO (BS ke chassen)</span></button>
+      <button class="btn besar hide" id="btnKirimDaurLangsung" onclick="segDaur('new', true)"><svg class="i"><use href="#i-truk"/></svg> <span data-i18n="daurKirimLangsung">Kirim BS langsung</span></button>
+    </div>
     <div class="seg">
       <button id="segDaurSiap" class="on" onclick="segDaur('siap')"><span data-i18n="doTabSiap">Siap kirim</span> <span class="cnt" id="cntDaurSiap"></span></button>
       <button id="segDaurList" onclick="segDaur('list')" data-i18n="segDaurList">Di chassen</button>
@@ -1021,14 +1032,14 @@ nav button.ditekan .g{transform:scale(.88)}
 
     <div id="daurNew" class="hide">
       <div class="card">
-        <h2 data-i18n="daurDoT">Buat DO (BS ke chassen)</h2>
-        <div class="sub" data-i18n="daurDoS">Pilih tempat chassen dan BS yang dikirim. Nomor surat jalan langsung ada; stok BS berkurang saat tombol Kirim.</div>
+        <h2 data-i18n="daurDoT" id="daurDoJudul">Buat DO (BS ke chassen)</h2>
+        <div class="sub" data-i18n="daurDoS" id="daurDoSub">Pilih tempat chassen dan BS yang dikirim. Nomor surat jalan langsung ada; stok BS berkurang saat tombol Kirim.</div>
         <div class="field">
           <label data-i18n="lblVendor">Tempat chassen (vendor)</label>
           <div class="combo"><input id="daurVendor" autocomplete="off"><div class="combo-list hide"></div></div>
           <div class="hint" data-i18n="hintCombo">Ketik untuk mencari. Nama yang belum ada bisa langsung ditambah.</div>
         </div>
-        <div class="field">
+        <div class="field" id="daurTanggalWrap">
           <label data-i18n="lblRencana">Tanggal rencana kirim</label>
           <input type="date" id="daurTanggal">
         </div>
@@ -1387,7 +1398,7 @@ nav button.ditekan .g{transform:scale(.88)}
 
 var APP = {
   nama: 'IPC — Inventory & Production Control',
-  versi: '13.0.0',
+  versi: '13.1.0',
   zona: 'Asia/Jakarta',
   satuan: 'kg',
   folderFoto: 'IPC Foto Bukti'
@@ -1954,7 +1965,9 @@ var RPC_WL = {
   laporanProduksi:1, laporanBulanan:1, tutupBulan:1, bukaBulan:1, daftarTutupBulan:1,
   simpanOpnameProduksi:1, daftarOpnameProduksi:1, rekonsiliasiProduksi:1,
   /* v13: alur kirim (draft → surat jalan → kirim → foto SJ) */
-  siapkanKiriman:1, ubahKiriman:1, kirimKiriman:1, batalkanKiriman:1, daftarKiriman:1, ambilKiriman:1, fotoSj:1
+  siapkanKiriman:1, ubahKiriman:1, kirimKiriman:1, batalkanKiriman:1, daftarKiriman:1, ambilKiriman:1, fotoSj:1,
+  /* v13.1: Buat DO opsional — Kirim langsung dari SO / layar DO / daur (DO + kirim dalam satu panggilan) */
+  kirimLangsung:1
 };
 
 function doPost(e) {
@@ -7154,6 +7167,31 @@ function kirimKiriman(id, p, ident) {
 }
 
 /**
+ * v13.1 — KIRIM LANGSUNG (masukan Max 4 Nov 2026: langkah "Buat DO" opsional, staff boleh langsung Kirim dari SO).
+ * Satu panggilan = DO dibuat + langsung dikirim: surat jalannya TETAP terbentuk (nomor SJ/…, bisa dicetak kapan saja dari riwayat /
+ * tab Sudah dikirim), stok bergerak sekarang. p = { jenis:'CUSTOMER'|'DAUR', tujuan, tanggalKirim, baris:[{kode,qty,idSo}], pengangkut,
+ * foto (opsional → "foto menyusul"), catatan }. Butuh akses Kirim (Manager / Admin + Gudang).
+ * Kalau tahap kirim gagal, draft yang baru dibuat dibatalkan lagi — tidak ada DO tertinggal di "Siap kirim" (di mesin Cloudflare seluruh
+ * permintaan memang di-rollback; pembatalan eksplisit ini untuk simulasi sheet / Apps Script).
+ */
+function kirimLangsung(p, ident) {
+  var u = penggunaSaatIni_(ident);
+  wajibKirim_(u);
+  p = p || {};
+  var tanggal = tglValid_(p.tanggalKirim);   // aturan tanggal transaksi dicek dulu, sebelum ada yang ditulis
+  var s = siapkanKiriman({ jenis: p.jenis, tujuan: p.tujuan, tanggalRencana: tanggal, baris: p.baris, pengangkut: p.pengangkut, catatan: p.catatan }, ident);
+  var r;
+  try {
+    r = kirimKiriman(s.id, { tanggalKirim: tanggal, baris: p.baris, pengangkut: p.pengangkut, foto: p.foto }, ident);
+  } catch (e) {
+    try { batalkanKiriman(s.id, 'kirim langsung gagal: ' + ((e && e.message) || e), ident); } catch (e2) {}
+    throw e;
+  }
+  r.langsung = true; r.token = r.token || s.token; r.peringatan = s.peringatan;
+  return r;
+}
+
+/**
  * Tambah / ganti foto surat jalan yang sudah ditandatangani. ref = ID kiriman (KRM-…) | 'OUT-…,OUT-…' (kiriman lama, satu grup) | 'DUR-…' (daur lama).
  * Manager / Admin dengan akses Gudang, tanpa batas 24 jam / MAKS_EDIT_HARI, selama bulan kirimnya belum ditutup. Foto lama dihapus dari penyimpanan.
  */
@@ -7840,7 +7878,14 @@ var T = {
     statSiapKirim:'DO siap kirim', statBelumFoto:'Kiriman belum ada foto DO', doRencana:'rencana', doDikirim:'dikirim', doFotoAda:'foto DO ada', doTanpaSo:'tanpa SO', doTglKirim:'Tanggal kirim', doStok:'stok',
     alasanBatalDo:'Alasan pembatalan DO', doDibatalkan:'DO dibatalkan', doFotoTersimpan:'Foto DO tersimpan', doFotoDiganti:'Foto DO diganti', doLama:'kiriman lama (sebelum DO)',
     daurDoT:'Buat DO (BS ke chassen)', daurDoS:'Pilih tempat chassen dan BS yang dikirim. Nomor surat jalan langsung ada; stok BS berkurang saat tombol Kirim.',
-    hintDaurSiap:'DO ke chassen yang sudah dibuat — tekan Kirim saat BS berangkat.', hintDaurFoto:'Kiriman ke chassen yang belum ada foto DO.'
+    hintDaurSiap:'DO ke chassen yang sudah dibuat — tekan Kirim saat BS berangkat.', hintDaurFoto:'Kiriman ke chassen yang belum ada foto DO.',
+    /* v13.1: langkah Buat DO opsional — Kirim langsung dari kartu SO / layar DO / daur ulang (surat jalan tetap dibuat otomatis) */
+    doKirimLangsung:'Kirim langsung', doKirimLangsungHint:'Tanpa buat DO dulu — surat jalan dibuat otomatis saat tombol Kirim ditekan.',
+    kirimLangsungS:'Surat jalan dibuat otomatis saat tombol Kirim ditekan — bisa dicetak kapan saja dari riwayat / tab Sudah dikirim.',
+    kirimNolHint:'Isi 0 untuk ukuran yang tidak ikut dikirim.', doLanjutKirim:'Lanjut ke Kirim',
+    doKirimFormT:'Kirim langsung (tanpa buat DO dulu)', doKirimFormS:'Isi customer dan barang yang dikirim, lalu lanjut ke lembar Kirim: kg yang dimuat, tanggal, foto DO. Surat jalan dibuat otomatis.',
+    daurKirimLangsung:'Kirim BS langsung', daurKirimT:'Kirim BS ke chassen (tanpa buat DO dulu)',
+    daurKirimS:'Pilih tempat chassen dan BS yang dikirim, lalu lanjut ke lembar Kirim: kg, tanggal, foto DO. Surat jalan dibuat otomatis.',
   },
   en: {
     appTitle:'Inventory & Production Control',
@@ -8111,7 +8156,13 @@ var T = {
     statSiapKirim:'DOs ready to send', statBelumFoto:'Shipments without DO photo', doRencana:'planned', doDikirim:'sent', doFotoAda:'DO photo on file', doTanpaSo:'no SO', doTglKirim:'Ship date', doStok:'stock',
     alasanBatalDo:'Reason for cancelling the DO', doDibatalkan:'DO cancelled', doFotoTersimpan:'DO photo saved', doFotoDiganti:'DO photo replaced', doLama:'older shipment (before DOs)',
     daurDoT:'Create DO (BS to crusher)', daurDoS:'Pick the crusher and the BS being sent. The delivery-order number exists right away; BS stock is reduced when you press Send.',
-    hintDaurSiap:'DOs to the crusher already created — press Send when the BS leaves.', hintDaurFoto:'Crusher shipments without a DO photo yet.'
+    hintDaurSiap:'DOs to the crusher already created — press Send when the BS leaves.', hintDaurFoto:'Crusher shipments without a DO photo yet.',
+    doKirimLangsung:'Send directly', doKirimLangsungHint:'No DO first — the delivery order is created automatically when you press Send.',
+    kirimLangsungS:'The delivery order is created automatically when you press Send — print it any time from the history / Sent tab.',
+    kirimNolHint:'Enter 0 for sizes that are not shipped.', doLanjutKirim:'Continue to Send',
+    doKirimFormT:'Send directly (no DO first)', doKirimFormS:'Enter the customer and the goods, then continue to the Send sheet: kg loaded, date, DO photo. The delivery order is created automatically.',
+    daurKirimLangsung:'Send BS directly', daurKirimT:'Send BS to the crusher (no DO first)',
+    daurKirimS:'Pick the crusher and the BS being sent, then continue to the Send sheet: kg, date, DO photo. The delivery order is created automatically.',
   }
 };
 
@@ -8149,7 +8200,7 @@ var S = {
   shift:null, shiftEdit:null, shiftCfg:null, shiftCache:null, shiftSemua:false,
   poTerbuka:[], returSisa:[], poTab:'aktif', poDetail:null,
   soTerbuka:[], soTab:'aktif', soCache:null, soUrut:null, soAuto:null, soPilih:null, soPisah:null,
-  daurTab:'siap', daurAktif:null, doTab:'siap', doForm:false, doEdit:null, doCache:null, kirim:null,
+  daurTab:'siap', daurAktif:null, doTab:'siap', doForm:false, doEdit:null, doCache:null, kirim:null, doKirim:false, daurKirim:false,
   edit:null, edJob:null, admTab:'opname', opname:null, opprod:null, rekonBulan:null, sku:null, userEdit:null,
   ocr:null, modeExt:'BELI_MASUK',
   cal:{ bulan:null, data:null, hari:null }, revTab:'MENUNGGU'
@@ -8329,7 +8380,7 @@ function keluar(){
   ['dokWrap','waWrap','kirimWrap'].forEach(function(id){ var el=$(id); if (el) el.classList.add('hide'); });
   var wp = $('waPesan'); if (wp) wp.value = '';
   S.dok = null; S.dokRows = null; S.dokPeng = null; S.kontakWa = null; S.wa = null;
-  S.doCache = null; S.kirim = null; S.doEdit = null; S.doForm = false; S.fotoDoTarget = null;
+  S.doCache = null; S.kirim = null; S.doEdit = null; S.doForm = false; S.doKirim = false; S.daurKirim = false; S.fotoDoTarget = null;
   S.daurCache = null; S.daurCacheDone = null; S.soCache = null; S.soUrut = null; S.soPilih = null; S.soPisah = null; S.poCache = null; S.ekspor = null; S.shiftCache = null; S.shiftKunci = null; S.shiftCfg = null; S.shiftEdit = null; S.opprod = null; S.rekonBulan = null; STOK_CACHE = {};
   ['nav-review','nav-admin'].forEach(function(id){ var el=$(id); if(el) el.classList.add('hide'); });
   tampil('ident');
@@ -8497,7 +8548,8 @@ function gambarKirimHariIni(rows){
     var siap = (p.kiriman || []).filter(function(d){ return d.status === 'DISIAPKAN'; }), bisaKirim = !!(S.ctx && S.ctx.bisaKirim), bisaDo = !!(S.ctx && S.ctx.bisaSj);
     var klik = siap.length && bisaKirim ? "bukaKirimDo('"+esc(siap[0].id)+"')" : (ids && bisaDo ? "bukaKiriman('siap','"+esc(ids)+"')" : "tampil('so')");
     var aksi = siap.length && bisaKirim ? '<button class="btn xs" onclick="event.stopPropagation();'+klik+'">'+ikon('truk')+''+esc(t('doKirim'))+'</button>'
-             : (ids && bisaDo ? '<button class="btn sec xs" onclick="event.stopPropagation();'+klik+'">'+ikon('dokumen')+''+esc(t('doBuatPendek'))+'</button>' : '');
+             : (ids && bisaDo ? '<button class="btn sec xs" onclick="event.stopPropagation();'+klik+'">'+ikon('dokumen')+''+esc(t('doBuatPendek'))+'</button>' : '') +
+               (ids && bisaKirim ? '<button class="btn xs" onclick="event.stopPropagation();bukaKirimLangsungSo(\''+esc(p.noSo)+'\')">'+ikon('truk')+''+esc(t('doKirim'))+'</button>' : '');   /* v13.1 */
     return '<div class="hist tap" onclick="'+klik+'"><span class="hq">'+n2(p.sisa)+' kg</span>' +
       '<span class="hx"><b>'+esc(p.noSo)+' · '+esc(p.customer)+'</b><small>'+(p.jumlahBaris||baris.length)+' '+esc(t('item'))+(rinci?' — '+rinci:'')+(p.dijadwalkan ? ' · '+esc(t('doDijadwalkan'))+' '+n2(p.dijadwalkan)+' kg' : '')+(siap.length ? ' · '+esc(siap[0].nomor) : '')+'</small></span>' +
       '<span class="hb"><span class="pill '+(telat?'bad':'warn')+'">'+esc(p.kirim||'')+'</span>'+aksi+'</span></div>';
@@ -9262,10 +9314,11 @@ function bukaMutasi(mode){
   gambarBaris('rcv');
   /* v13: layar DO — tombol Buat DO di atas, tab Siap kirim / Belum foto DO / Sudah dikirim di bawah; form hanya saat membuat / mengubah DO */
   var dm = mode === 'JUAL_DO';
-  $('doAtas').classList.toggle('hide', !dm); $('doBawah').classList.toggle('hide', !dm);
+  $('doAtas').classList.toggle('hide', !dm || S.doForm); $('doBawah').classList.toggle('hide', !dm);   /* v13.1: tombol atas hilang selama form terbuka */
+  var bkl = $('btnKirimLangsung'); if (bkl) bkl.classList.toggle('hide', !(S.ctx && S.ctx.bisaKirim));
   $('rcvForm').classList.toggle('hide', dm && !S.doForm);
   $('rcvPengangkut').value = ''; $('doHasil').classList.add('hide'); $('doHasil').innerHTML = '';
-  if (!dm){ S.doEdit = null; S.doForm = false; }
+  if (!dm){ S.doEdit = null; S.doForm = false; S.doKirim = false; }
   tampil('beli');
   muatRiwayat('rcv');
   if (mode === 'BELI_MASUK') muatPoTerbuka();
@@ -9316,7 +9369,7 @@ function pilihSoBaris(v){
   S.baris.rcv = S.baris.rcv.filter(function(b){ return b.kode || b.qty; });
   var n = 0; pilih.forEach(function(p){ if (tambahBarisDariSo_(p)) n++; });
   gambarBaris('rcv');
-  $('rcvSoPilih').value = '';
+  $('rcvSoPilih').value = String(v).indexOf('SO:') === 0 ? v : '';   /* v13.1: kotak tetap menampilkan SO yang dipilih (masukan Max) */
   if (n > 1) toast(t('soTerisiSemua').replace('{no}', pilih[0].noSo).replace('{n}', n), 'ok');
   gambarSoInfo();
 }
@@ -9324,7 +9377,9 @@ function pilihSoBaris(v){
 function gambarSoInfo(){
   var info = $('rcvSoInfo'); if (!info) return;
   var nos = []; S.baris.rcv.forEach(function(b){ if (b.noSo && nos.indexOf(b.noSo) < 0) nos.push(b.noSo); });
-  if (!nos.length){ info.classList.add('hide'); info.innerHTML = ''; return; }
+  var selSo = $('rcvSoPilih');
+  if (!nos.length){ info.classList.add('hide'); info.innerHTML = ''; if (selSo) selSo.value = ''; return; }
+  if (selSo && nos.indexOf(String(selSo.value).slice(3)) < 0) selSo.value = 'SO:' + nos[nos.length - 1];
   info.classList.remove('hide');
   info.innerHTML = nos.map(function(no){
     var semua = S.soTerbuka.filter(function(x){ return x.noSo === no; }).length;
@@ -9392,9 +9447,9 @@ function modeInfo(){
   return {
     jual   : m.indexOf('JUAL') === 0,
     judul  : m==='BELI_MASUK' ? t('beliT')  : m==='BELI_RETUR' ? t('returT')
-           : m==='JUAL_KELUAR'? t('jualT')  : m==='JUAL_DO' ? t('doJudul') : t('returCustT'),
+           : m==='JUAL_KELUAR'? t('jualT')  : m==='JUAL_DO' ? (S.doKirim ? t('doKirimFormT') : t('doJudul')) : t('returCustT'),
     sub    : m==='BELI_MASUK' ? t('beliS')  : m==='BELI_RETUR' ? t('returS')
-           : m==='JUAL_KELUAR'? t('jualS')  : m==='JUAL_DO' ? t('doSub') : t('returCustS'),
+           : m==='JUAL_KELUAR'? t('jualS')  : m==='JUAL_DO' ? (S.doKirim ? t('doKirimFormS') : t('doSub')) : t('returCustS'),
     pakaiSJ: m==='BELI_MASUK' || m==='JUAL_KELUAR',
     pakaiOcr: m==='BELI_MASUK'
   };
@@ -9418,13 +9473,14 @@ function labelMutasi(){
   var th = $('rcvTanggalHint'); if (th) th.textContent = dm ? t('hintRencana') : t('hintTanggal');
   $('rcvPengangkutWrap').classList.toggle('hide', !dm);
   $('rcvFotoWrap').classList.toggle('hide', dm);
-  var bs = $('btnSimpanRcv'); if (bs && !bs.disabled) bs.textContent = dm ? t('doSimpan') : t('btnSimpan');
+  var bs = $('btnSimpanRcv'); if (bs && !bs.disabled) bs.textContent = dm ? (S.doKirim ? t('doLanjutKirim') : t('doSimpan')) : t('btnSimpan');
   var bb = $('btnBatalDo'); if (bb) bb.classList.toggle('hide', !dm);
-  var hp = $('rcvHintPost'); if (hp) hp.textContent = dm ? t('doHintSimpan') : t('hintPost');
+  var hp = $('rcvHintPost'); if (hp) hp.textContent = dm ? (S.doKirim ? t('doKirimLangsungHint') : t('doHintSimpan')) : t('hintPost');
+  var tw = $('rcvTanggal').parentNode; if (tw) tw.classList.toggle('hide', dm && !!S.doKirim);   /* v13.1: tanggal kirim diisi di lembar Kirim */
 }
 
 function simpanMutasiUI(){
-  if (S.modeExt === 'JUAL_DO') return simpanDoUI();   // v13
+  if (S.modeExt === 'JUAL_DO') return S.doKirim ? lanjutKirimDariForm() : simpanDoUI();   // v13 / v13.1
   var i = modeInfo();
   var baris = ambilBaris('rcv');
   var partner = comboNama('rcvPartner');
@@ -10577,11 +10633,11 @@ function setTanggalRencana(id){
 }
 function bukaKiriman(tab, idSo){
   S.doTab = tab || S.doTab || 'siap';
-  S.soAuto = idSo || null; S.doForm = !!idSo; S.doEdit = null;
+  S.soAuto = idSo || null; S.doForm = !!idSo; S.doEdit = null; S.doKirim = false;
   bukaMutasi('JUAL_DO');
 }
-function bukaFormDo(){ S.doForm = true; S.soAuto = null; S.doEdit = null; bukaMutasi('JUAL_DO'); }
-function tutupFormDo(){ S.doForm = false; S.doEdit = null; $('rcvForm').classList.add('hide'); }
+function bukaFormDo(kirim){ S.doForm = true; S.doKirim = !!kirim; S.soAuto = null; S.doEdit = null; bukaMutasi('JUAL_DO'); }   /* v13.1: kirim=true → form mode Kirim langsung */
+function tutupFormDo(){ S.doForm = false; S.doEdit = null; S.doKirim = false; $('rcvForm').classList.add('hide'); var da = $('doAtas'); if (da && S.modeExt === 'JUAL_DO') da.classList.remove('hide'); }
 function isiFormDoEdit(k){
   pasangCombo($('rcvPartner'), Object.assign({}, $('rcvPartner')._combo, { nilai: k.tujuan }));
   $('rcvTanggal').value = k.tanggalRencana || hariIniStr();
@@ -10613,7 +10669,7 @@ function simpanDoUI(){
     toast((edit ? t('doDiubah') : t('doTersimpan')) + ' · ' + nomor, 'ok');
     if (r.peringatan && r.peringatan.length) toast(t('doStokKurang').replace('{x}', r.peringatan.map(function(x){ return x.nama+' ('+n2(x.stok)+' kg)'; }).join(', ')), 'warn');
     S.doEdit = null; S.doForm = false;
-    $('rcvForm').classList.add('hide');
+    $('rcvForm').classList.add('hide'); $('doAtas').classList.remove('hide');
     var dh = $('doHasil'); dh.classList.remove('hide');
     dh.innerHTML = '<div class="banner ok"><b>'+ikon('centang','tx')+' '+esc(edit ? t('doDiubah') : t('doTersimpan'))+' · '+esc(nomor)+'</b>'+(r.totalKg !== undefined ? ' · '+n2(r.totalKg)+' kg' : '') +
       '<div class="btnrow" style="margin-top:10px"><button class="btn sec sm" onclick="cetakDo(\''+esc(id)+'\',\''+esc(nomor)+'\',\''+esc(partner)+'\')">'+ikon('cetak')+''+esc(t('doCetak'))+'</button>' +
@@ -10684,14 +10740,16 @@ function blokDoSo(no, baris, b0, tutup, modeMana){
         (!siap && !d.foto && bisaKirim ? '<button class="btn xs" onclick="fotoDoUI(\''+esc(d.id)+'\',false)">'+ikon('kamera')+''+esc(t('doFoto'))+'</button>' : '') +
       '</span></div>';
   }).join('');
-  if (!tutup && sisaRencana > 0) h += '<button class="btn besar do-buat" onclick="bukaKiriman(\'siap\',\''+esc(ids.join(','))+'\')">'+ikon('dokumen')+''+esc(t('doBuatPendek'))+' · '+n2(sisaRencana)+' kg</button>';
+  /* v13.1: Buat DO itu opsional — Kirim langsung dari kartu SO (surat jalan dibuat otomatis saat Kirim) */
+  if (!tutup && sisaRencana > 0) h += '<div class="do-aksi"><button class="btn sec besar do-buat" onclick="bukaKiriman(\'siap\',\''+esc(ids.join(','))+'\')">'+ikon('dokumen')+''+esc(t('doBuatPendek'))+' · '+n2(sisaRencana)+' kg</button>' +
+    (bisaKirim ? '<button class="btn besar do-kirim" onclick="bukaKirimLangsungSo(\''+esc(no)+'\')">'+ikon('truk')+''+esc(t('doKirim'))+' · '+n2(sisaRencana)+' kg</button>' : '') + '</div>';
   return h ? '<div class="do-blok">'+h+'</div>' : '';
 }
 function cetakDo(id, nomor, sub){ bukaDok('SJ', id, { nomor: nomor || '', sub: sub || '', lihat: true }); }
 function ubahDoUI(id){
   panggil('ambilKiriman',[id, S.ident]).then(function(k){
     if (k.status !== 'DISIAPKAN'){ toast(t('doTabKirim'), 'warn'); return; }
-    S.doEdit = k; S.doForm = true; S.soAuto = null; bukaMutasi('JUAL_DO');
+    S.doEdit = k; S.doForm = true; S.doKirim = false; S.soAuto = null; bukaMutasi('JUAL_DO');
   }).catch(function(e){ toast(e.message,'bad'); });
 }
 async function batalDoUI(id){
@@ -10712,16 +10770,18 @@ function bukaKirimDo(id){
 function tutupKirim(){ $('kirimWrap').classList.add('hide'); S.kirim = null; S.foto.kirim = null; }
 function gambarKirim(k){
   $('kirimJudul').textContent = t('doKirimT') + ' · ' + k.tujuan;
-  $('kirimSub').textContent = (k.noSuratJalan || '') + (k.noSo ? ' · SO ' + k.noSo : '') + ' — ' + t('doKirimS');
+  $('kirimSub').textContent = k.langsung ? (k.noSo ? k.noSo + ' — ' : '') + t('kirimLangsungS') : (k.noSuratJalan || '') + (k.noSo ? ' · ' + k.noSo : '') + ' — ' + t('doKirimS');
   var h = '<div class="card" style="padding:4px 14px;margin:10px 0">' + k.baris.map(function(b, i){
     var kurang = b.stok !== undefined && b.qty > b.stok + 0.0001;
     return '<div class="kirim-baris"><div class="nm">'+esc(b.nama)+(b.ukuran ? ' <small style="display:inline">'+esc(b.ukuran)+'</small>' : '')+'<small>'+(b.noSo ? 'SO '+esc(b.noSo)+' · ' : '')+esc(t('doStok'))+' <b'+(kurang?' style="color:var(--danger)"':'')+'>'+n2(b.stok||0)+' kg</b></small></div>' +
       '<div class="row" style="gap:6px;align-items:center"><input type="number" inputmode="decimal" step="any" min="0" id="kirim-q-'+i+'" value="'+esc(b.qty)+'" aria-label="kg"><span style="font-size:13px;color:var(--muted)">kg</span></div></div>';
-  }).join('') + '</div>' +
+  }).join('') + '</div>' + (k.langsung && k.baris.length > 1 ? '<div class="hint" style="margin:-4px 0 10px">'+esc(t('kirimNolHint'))+'</div>' : '') +
   '<div class="field"><label>'+esc(t('doTglKirim'))+'</label><input type="date" id="kirimTanggal"></div>' +
   '<div class="field"><label>'+esc(t('lblPengangkut'))+'</label><input id="kirimPengangkut" value="'+esc(k.pengangkut||'')+'"></div>' +
   '<div class="field"><label>'+esc(t('kirimFotoLbl'))+'</label><div class="photo" id="kirimPhoto" onclick="pilihFotoKirim()"></div><div class="hint">'+esc(t('kirimMenyusul'))+'</div></div>' +
-  '<div class="btnrow"><button class="btn sec" onclick="cetakDo(S.kirim.id, S.kirim.noSuratJalan, S.kirim.tujuan)">'+ikon('cetak')+''+esc(t('doCetak'))+'</button><button class="btn ok" id="btnKirimDo" onclick="kirimDoUI()"></button></div>';
+  '<div class="btnrow">' + (k.langsung ? '<button class="btn sec" onclick="buatDoDariKirim()">'+ikon('cetak')+''+esc(t('fotoBuatDo'))+'</button>'
+                                       : '<button class="btn sec" onclick="cetakDo(S.kirim.id, S.kirim.noSuratJalan, S.kirim.tujuan)">'+ikon('cetak')+''+esc(t('doCetak'))+'</button>') +
+  '<button class="btn ok" id="btnKirimDo" onclick="kirimDoUI()"></button></div>';
   $('kirimBody').innerHTML = h;
   setTanggal('kirimTanggal');
   hapusFoto('kirim'); perbaruiTombolKirim();
@@ -10729,7 +10789,7 @@ function gambarKirim(k){
 function perbaruiTombolKirim(){ var b = $('btnKirimDo'); if (!b || b.disabled) return; b.innerHTML = ikon('truk') + esc(S.foto.kirim ? t('doKirim') : t('btnKirimMenyusul')); }
 function pilihFotoKirim(){
   bukaSumberFotoDo(function(sb){ var inp = $('kirimFile'); siapkanInputFoto(inp, sb); inp.click(); },
-                   function(){ if (S.kirim) cetakDo(S.kirim.id, S.kirim.noSuratJalan, S.kirim.tujuan); });
+                   function(){ if (!S.kirim) return; if (S.kirim.langsung) buatDoDariKirim(); else cetakDo(S.kirim.id, S.kirim.noSuratJalan, S.kirim.tujuan); });
 }
 /* pilihan sumber foto DO: Kamera / Galeri / Buat-cetak DO (langkah 2 juga tersedia dari sini) */
 function bukaSumberFotoDo(cb, cbDo){
@@ -10747,21 +10807,105 @@ function bukaSumberFotoDo(cb, cbDo){
 }
 function kirimDoUI(){
   var k = S.kirim; if (!k) return;
-  var baris = [];
-  for (var i = 0; i < k.baris.length; i++){
-    var q = parseFloat($('kirim-q-'+i).value);
-    if (!(q > 0)){ galat(t('barisKe').replace('{n}', i+1)+' ('+k.baris[i].nama+'): '+t('barisTanpaQty'), 'kirim-q-'+i); return; }
-    baris.push({ kode: k.baris[i].kode, qty: q, idSo: k.baris[i].idSo || '' });
-  }
+  var baris = ambilBarisKirim_(k); if (!baris) return;
   var b = $('btnKirimDo'); sibuk(b, true);
-  panggil('kirimKiriman',[k.id, { tanggalKirim: ambilTanggal('kirimTanggal'), baris: baris, pengangkut: $('kirimPengangkut').value, foto: S.foto.kirim || '' }, S.ident]).then(function(r){
+  var tgl = ambilTanggal('kirimTanggal'), pengangkut = $('kirimPengangkut').value, foto = S.foto.kirim || '';
+  /* v13.1: mode langsung — DO dibuat + dikirim dalam satu panggilan (surat jalannya tetap terbentuk) */
+  var janji = k.langsung
+    ? panggil('kirimLangsung', [{ jenis: k.jenis, tujuan: k.tujuan, tanggalKirim: tgl, baris: baris, pengangkut: pengangkut, foto: foto, catatan: k.catatan || '' }, S.ident])
+    : panggil('kirimKiriman', [k.id, { tanggalKirim: tgl, baris: baris, pengangkut: pengangkut, foto: foto }, S.ident]);
+  janji.then(function(r){
     toast(t('doTerkirim')+' · '+r.nomor+' · '+kg(r.totalKg), 'ok');
+    if (r.peringatan && r.peringatan.length) toast(t('doStokKurang').replace('{x}', r.peringatan.map(function(x){ return x.nama+' ('+n2(x.stok)+' kg)'; }).join(', ')), 'warn');
     S.kirim = null; S.foto.kirim = null;
     $('kirimBody').innerHTML = '<div class="banner ok">'+ikon('centang','tx')+' <b>'+esc(t('doTerkirim'))+'</b> · '+esc(r.nomor)+' · '+n2(r.totalKg)+' kg'+(r.fotoMenyusul ? '<br>'+esc(t('kirimMenyusul')) : '')+'</div>' +
       (r.cetakUlang ? '<div class="banner warn">'+esc(t('doCetakUlang'))+'</div>' : '') +
       '<div class="btnrow"><button class="btn sec" onclick="cetakDo(\''+esc(r.id)+'\',\''+esc(r.nomor)+'\',\''+esc(k.tujuan)+'\')">'+ikon('cetak')+''+esc(t('doCetak'))+'</button><button class="btn" onclick="tutupKirim()">'+esc(t('doTutup'))+'</button></div>';
+    if (k.dariForm && k.jenis === 'CUSTOMER'){ tutupFormDo(); S.doTab = r.fotoMenyusul ? 'belumFoto' : 'dikirim'; }
+    if (k.dariForm && k.jenis === 'DAUR'){ S.baris.daur = [{ kode:'', qty:'' }]; $('daurCatatan').value = ''; $('daurPengangkut').value = ''; S.daurKirim = false; S.daurTab = r.fotoMenyusul ? 'belumFoto' : 'list'; }
     segarkanSetelahDo();
   }).catch(function(e){ sibuk(b, false); perbaruiTombolKirim(); toast(e.message,'bad'); });
+}
+/* baris dari lembar Kirim; mode langsung: qty 0 / kosong = ukuran tidak ikut dikirim */
+function ambilBarisKirim_(k){
+  var baris = [];
+  for (var i = 0; i < k.baris.length; i++){
+    var el = $('kirim-q-'+i), q = parseFloat(el.value);
+    if (!(q > 0)){
+      if (k.langsung && (el.value === '' || q === 0)) continue;
+      galat(t('barisKe').replace('{n}', i+1)+' ('+k.baris[i].nama+'): '+t('barisTanpaQty'), 'kirim-q-'+i); return null;
+    }
+    baris.push({ kode: k.baris[i].kode, qty: q, idSo: k.baris[i].idSo || '' });
+  }
+  if (!baris.length){ galat(t('wajibItem'), 'kirim-q-0'); return null; }
+  return baris;
+}
+/* ---- v13.1: Kirim langsung (langkah Buat DO opsional) ---- */
+function stokKini(kode){ var st = S.ctx && S.ctx.stok && S.ctx.stok[kode]; return st ? st.gbj : undefined; }
+function namaItem(kode){ var it = null; (S.ctx && S.ctx.items || []).forEach(function(i){ if (i.kode === kode) it = i; }); return it ? it.nama : kode; }
+/* k = { jenis, tujuan, baris:[{kode,nama,qty,idSo,noSo,ukuran,stok}], pengangkut, catatan, noSo?, dariForm? } — lembar Kirim tanpa DO; DO dibuat saat tombol Kirim */
+function bukaKirimLangsung(k){
+  S.kirim = null; S.foto.kirim = null;
+  k.langsung = true; k.id = null; k.noSuratJalan = '';
+  $('kirimJudul').textContent = t('doKirimT'); $('kirimSub').textContent = '';
+  $('kirimWrap').classList.remove('hide');
+  S.kirim = k; gambarKirim(k);
+}
+/* dari kartu SO / kartu "Kirim hari ini": semua ukuran yang masih harus dikirim (belum dijadwalkan di DO lain), qty = sisa */
+function bukaKirimLangsungSo(no){
+  var dari = function(rows){
+    var out = [], cust = '';
+    (rows || []).forEach(function(b){
+      if (b.noSo !== no || b.status === 'SELESAI' || b.status === 'DIBATALKAN') return;
+      var sr = b.sisaRencana !== undefined ? b.sisaRencana : b.sisa; if (!(sr > 0)) return;
+      cust = b.customer || cust;
+      out.push({ kode: b.kode, nama: b.item || namaItem(b.kode), qty: sr, idSo: b.id, noSo: no, ukuran: b.ukuran || '', stok: stokKini(b.kode) });
+    });
+    if (!out.length){ toast(t('doKosongSiap'), 'warn'); return; }
+    bukaKirimLangsung({ jenis: 'CUSTOMER', tujuan: cust, noSo: no, baris: out, pengangkut: '' });
+  };
+  if (S.soCache && S.soCache[no]) dari(S.soCache[no]);
+  else panggil('soTerbuka', [S.ident]).then(dari).catch(function(e){ toast(e.message, 'bad'); });
+}
+/* "Buat / cetak DO" dari lembar Kirim langsung: draft dibuat dari isian lembar, lembar berganti ke DO itu (foto yang sudah dipilih tetap), dokumen dibuka */
+function buatDoDariKirim(){
+  var k = S.kirim; if (!k || !k.langsung) return;
+  var baris = ambilBarisKirim_(k); if (!baris) return;
+  var tgl = ambilTanggal('kirimTanggal'), pengangkut = $('kirimPengangkut').value, foto = S.foto.kirim;
+  toast(t('menyimpan'), 'proses');
+  panggil('siapkanKiriman', [{ jenis: k.jenis, tujuan: k.tujuan, tanggalRencana: tgl, baris: baris, pengangkut: pengangkut, catatan: k.catatan || '' }, S.ident]).then(function(r){
+    toast(t('doTersimpan')+' · '+r.nomor, 'ok');
+    return panggil('ambilKiriman', [r.id, S.ident]).then(function(kk){
+      kk.dariForm = k.dariForm; S.kirim = kk; gambarKirim(kk);
+      $('kirimTanggal').value = tgl; $('kirimPengangkut').value = pengangkut;
+      if (foto){ S.foto.kirim = foto; var box = $(KOTAK.kirim); box.className = 'photo filled'; box.innerHTML = '<img src="'+foto+'">'; perbaruiTombolKirim(); }
+      if (S.view === 'so') segSo(S.soTab);
+      if (S.view === 'beli' && S.modeExt === 'JUAL_DO') segDo(S.doTab);
+      if (S.view === 'daur' && S.daurTab !== 'new') segDaur(S.daurTab);
+      muatKonteks(true);
+      cetakDo(kk.id, kk.noSuratJalan, kk.tujuan);
+    });
+  }).catch(function(e){ toast(e.message, 'bad'); });
+}
+/* form layar DO dalam mode "Kirim langsung": isian form → lembar Kirim (kg, tanggal, foto), DO dibuat saat Kirim */
+function lanjutKirimDariForm(){
+  var baris = ambilBaris('rcv'), partner = comboNama('rcvPartner');
+  if (!partner){ galat($('rcvPartner').value.trim() ? t('pilihDulu') : t('wajibCustomer'), 'rcvPartner'); return; }
+  if (!periksaBaris('rcv', false)) return;
+  if (!baris.length){ galat(t('wajibItem'), targetBaris('rcv')); return; }
+  bukaKirimLangsung({ jenis: 'CUSTOMER', tujuan: partner, dariForm: true, pengangkut: $('rcvPengangkut').value, catatan: $('rcvCatatan').value,
+    baris: baris.map(function(b){
+      var src = null; S.baris.rcv.forEach(function(x){ if (!src && x.kode === b.kode && (x.idSo || '') === (b.idSo || '')) src = x; });
+      return { kode: b.kode, nama: namaItem(b.kode), qty: b.qty, idSo: b.idSo || '', noSo: (src && src.noSo) || '', ukuran: (src && src.ukuran) || '', stok: stokKini(b.kode) };
+    }) });
+}
+/* form daur ulang dalam mode "Kirim BS langsung" */
+function lanjutKirimDaur(){
+  var baris = ambilBaris('daur');
+  if (!comboNama('daurVendor')){ galat($('daurVendor').value.trim() ? t('pilihDulu') : t('lblVendor'), 'daurVendor'); return; }
+  if (!baris.length){ galat(t('wajibItem'), targetBaris('daur')); return; }
+  bukaKirimLangsung({ jenis: 'DAUR', tujuan: comboNama('daurVendor'), dariForm: true, pengangkut: $('daurPengangkut').value, catatan: $('daurCatatan').value,
+    baris: baris.map(function(b){ return { kode: b.kode, nama: namaItem(b.kode), qty: b.qty, idSo: '', stok: stokKini(b.kode) }; }) });
 }
 /* ---- foto DO sesudah kirim (tambah / ganti) ---- */
 function fotoDoUI(id, ganti){
@@ -11655,8 +11799,9 @@ function pillDaur(st, susut){
   if (st === 'DIBATALKAN') return '<span class="pill bad">'+esc(t('dibatalkan'))+'</span>';
   return pillSusut(susut || 'NORMAL');
 }
-function segDaur(tab){
+function segDaur(tab, kirim){
   S.daurTab = tab || 'siap';
+  if (S.daurTab === 'new') S.daurKirim = !!kirim;   /* v13.1: form mode Kirim BS langsung */
   /* v13: Siap kirim (DO ke chassen) · Di chassen · Belum foto DO · Selesai; 'new' = form Buat DO */
   [['siap','segDaurSiap'],['list','segDaurList'],['belumFoto','segDaurFoto'],['done','segDaurDone']].forEach(function(x){ var el = $(x[1]); if (el) el.classList.toggle('on', x[0]===S.daurTab); });
   $('daurSiap').classList.toggle('hide', S.daurTab!=='siap');
@@ -11666,7 +11811,8 @@ function segDaur(tab){
   $('daurDone').classList.toggle('hide', S.daurTab!=='done');
   $('daurFinish').classList.add('hide'); $('daurHasil').classList.add('hide');
   $('btnBuatDoDaur').classList.toggle('hide', S.daurTab==='new' || !(S.ctx && S.ctx.bisaSj));
-  $('daurHint').textContent = S.daurTab==='list' ? t('hintDaurList') : S.daurTab==='done' ? t('hintDaurDone') : S.daurTab==='siap' ? t('hintDaurSiap') : S.daurTab==='belumFoto' ? t('hintDaurFoto') : t('daurDoS');
+  var bkd = $('btnKirimDaurLangsung'); if (bkd) bkd.classList.toggle('hide', S.daurTab==='new' || !(S.ctx && S.ctx.bisaKirim));
+  $('daurHint').textContent = S.daurTab==='list' ? t('hintDaurList') : S.daurTab==='done' ? t('hintDaurDone') : S.daurTab==='siap' ? t('hintDaurSiap') : S.daurTab==='belumFoto' ? t('hintDaurFoto') : S.daurKirim ? t('daurKirimS') : t('daurDoS');
   if (S.daurTab==='siap' || S.daurTab==='belumFoto') muatDoDaur(S.daurTab);
   if (S.daurTab==='list') muatDaur();
   if (S.daurTab==='done') muatDaurSelesai();
@@ -11675,6 +11821,10 @@ function segDaur(tab){
 function daurFormBaru(){
   if (!S.baris.daur.length || !S.baris.daur.some(function(b){ return b.kode; })) S.baris.daur = [{ kode:'', qty:'' }];
   setTanggalRencana('daurTanggal'); $('daurPengangkut').value = '';
+  var dj = $('daurDoJudul'); if (dj) dj.textContent = S.daurKirim ? t('daurKirimT') : t('daurDoT');
+  var ds = $('daurDoSub'); if (ds) ds.textContent = S.daurKirim ? t('daurKirimS') : t('daurDoS');
+  var dtw = $('daurTanggalWrap'); if (dtw) dtw.classList.toggle('hide', !!S.daurKirim);
+  var bk = $('btnKirimDaur'); if (bk && !bk.disabled) bk.textContent = S.daurKirim ? t('doLanjutKirim') : t('doSimpan');
   var v = $('daurVendor');
   pasangCombo(v, { daftar: comboSupplier, nilai: v.dataset.kode ? v.value : undefined, tambah: { jenis:'SUPPLIER' }, sub: function(r){ return r.kode; } });
   v.placeholder = t('lblVendor');
@@ -11682,6 +11832,7 @@ function daurFormBaru(){
 }
 /* v13: form daur ulang = Buat DO (BS ke chassen). Stok BS baru berkurang saat Kirim (lembar Kirim yang sama dengan customer). */
 function simpanDoDaurUI(){
+  if (S.daurKirim) return lanjutKirimDaur();   // v13.1
   var baris = ambilBaris('daur');
   if (!comboNama('daurVendor')){ galat($('daurVendor').value.trim() ? t('pilihDulu') : t('lblVendor'), 'daurVendor'); return; }
   if (!baris.length){ galat(t('wajibItem'), targetBaris('daur')); return; }

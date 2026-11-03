@@ -49,7 +49,9 @@ var RPC_WL = {
   laporanProduksi:1, laporanBulanan:1, tutupBulan:1, bukaBulan:1, daftarTutupBulan:1,
   simpanOpnameProduksi:1, daftarOpnameProduksi:1, rekonsiliasiProduksi:1,
   /* v13: alur kirim (draft → surat jalan → kirim → foto SJ) */
-  siapkanKiriman:1, ubahKiriman:1, kirimKiriman:1, batalkanKiriman:1, daftarKiriman:1, ambilKiriman:1, fotoSj:1
+  siapkanKiriman:1, ubahKiriman:1, kirimKiriman:1, batalkanKiriman:1, daftarKiriman:1, ambilKiriman:1, fotoSj:1,
+  /* v13.1: Buat DO opsional — Kirim langsung dari SO / layar DO / daur (DO + kirim dalam satu panggilan) */
+  kirimLangsung:1
 };
 
 function doPost(e) {
