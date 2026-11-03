@@ -32,7 +32,7 @@ const api = [], mulai = new Map(); p.on('request', r => { if (r.url().includes('
 p.on('response', r => { const q = r.request(); if (mulai.has(q)) { api.push({ fn: JSON.parse(q.postData()).fn, ms: Date.now() - mulai.get(q), status: r.status() }); mulai.delete(q); } });
 const W = ms => p.waitForTimeout(ms);
 const toasts = []; await p.exposeFunction('__toast', t => toasts.push(t));
-let nativeDialog = 0; p.on('dialog', d => { nativeDialog++; d.accept('uji e2e'); });
+let nativeDialog = 0, nativeDialogSebelum = 0; p.on('dialog', d => { nativeDialog++; d.accept('uji e2e'); });
 /* v12.10: lembar dialog di dalam app — dijawab otomatis seperti dulu (kecuali window.__dlgManual) */
 await p.addInitScript(() => { new MutationObserver(() => { const w = document.getElementById('dlgWrap'); if (!w || w.classList.contains('hide') || w.dataset.e2e || window.__dlgManual) return; w.dataset.e2e = '1'; setTimeout(() => { const i = document.getElementById('dlgInput'); if (i && !i.classList.contains('hide')) i.value = 'uji e2e'; document.getElementById('dlgOk').click(); delete w.dataset.e2e; }, 60); }).observe(document, { subtree: true, attributes: true, attributeFilter: ['class'] }); });
 const SUF = ' ' + Date.now().toString(36).slice(-4);
@@ -266,19 +266,29 @@ await p.evaluate(() => { tampil('admin'); segAdm('dok'); }); await W(1200);
 ok('v12: Deny lihat Pengaturan dokumen (readonly) + kontak', /Pengaturan dokumen/.test(await T('#admBody')) && /Budi/.test(await T('#admBody')) && (await p.$eval('#pengKgBal', e => e.readOnly)) === true);
 ok('Deny: PO ditolak server', !(await rpc('simpanPo', [{ supplier: 'PT Sumber Biji Plastik', baris: [{ kode: 'RM-BP-KW', qty: 1, harga: 1 }] }])).ok);
 
-/* ---- Yansen: kirim sesuai SO, lapor rusak (langsung final) ---- */
+/* ---- Yansen (GUDANG): v13 alur kirim — 1. SO · 2. Buat DO (cetak / WA) · 3. Kirim + foto DO yang sudah ditandatangani; lapor rusak ---- */
 await login('Yansen', '2211');
 const so = await p.evaluate(() => panggil('soTerbuka', [S.ident]));
 ok('Yansen melihat SO terbuka', so.length >= 1, so[0]);
-await p.evaluate((ids) => bukaKirimSo(ids), so.filter(x => x.noSo === so[0].noSo).map(x => x.id).join(',')); await W(1200);
-ok('v12.2: tekan SO di beranda → semua baris SO itu terisi di form kirim', (await p.evaluate(() => S.baris.rcv.filter(b => b.idSo).length)) === so.filter(x => x.noSo === so[0].noSo).length);
-/* v12.5: pilihan SO per NOMOR — pilih sekali → semua ukuran masuk; panel Centang semua / Kosongkan; ✕ per baris */
-await p.evaluate(() => bukaMutasi('JUAL_KELUAR')); await W(1200);
+ok('v13: i18n — setiap kunci T.id ada di T.en', await p.evaluate(() => Object.keys(T.id).filter(k => !(k in T.en)).length === 0), await p.evaluate(() => Object.keys(T.id).filter(k => !(k in T.en))));
+ok('v13: konteks: bisaKirim + bisaSj; tile "DO siap kirim" & "Belum foto DO" tampil di beranda (0)', (await p.evaluate(() => S.ctx.bisaKirim === true && S.ctx.bisaSj === true)) && !(await hidden('#tileSiapKirim')) && !(await hidden('#tileBelumFoto')) && (await T('#sSiapKirim')).trim() === '0', [await T('#sSiapKirim'), await T('#sBelumFoto')]);
+ok('v13: soTerbuka membawa dijadwalkan = 0 & sisaRencana = sisa (belum ada DO)', so.every(x => x.dijadwalkan === 0 && x.sisaRencana === x.sisa), so[0]);
+const barisKirim = so.find(x => x.sisaRencana >= 100), noKirim = barisKirim.noSo, idsSo = so.filter(x => x.noSo === noKirim).map(x => x.id), nBaris = idsSo.length;
+/* v12.2 → v13: tekan SO di beranda / kartu SO → form Buat DO dengan semua baris SO itu terisi (bukan lagi form barang keluar) */
+await p.evaluate((ids) => bukaKirimSo(ids), idsSo.join(',')); await W(1200);
+ok('v13: tekan SO → layar DO (mode JUAL_DO): judul "Buat DO (surat jalan)", ' + nBaris + ' baris SO terisi, tanpa kotak foto & no. SJ, kolom kendaraan, tombol Simpan DO + Batal',
+  (await p.evaluate(() => S.modeExt === 'JUAL_DO')) && /Buat DO/.test(await T('#rcvJudul')) && !(await hidden('#rcvForm')) && (await p.evaluate(() => S.baris.rcv.filter(b => b.idSo).length)) === nBaris
+  && (await hidden('#rcvFotoWrap')) && (await hidden('#rcvSJWrap')) && !(await hidden('#rcvPengangkutWrap')) && (await T('#btnSimpanRcv')).trim() === 'Simpan DO' && !(await hidden('#btnBatalDo')), [await T('#rcvJudul'), await T('#btnSimpanRcv')]);
+const hariIni = await p.evaluate(() => hariIniStr());
+ok('v13: tanggal rencana kirim: label "rencana", default hari ini, max +90 hari', /rencana/i.test(await T('#rcvTanggalLabel')) && (await p.$eval('#rcvTanggal', e => e.value)) === hariIni && (await p.$eval('#rcvTanggal', e => e.max)) > hariIni, [await T('#rcvTanggalLabel'), await p.$eval('#rcvTanggal', e => e.max)]);
+/* v12.5: pilihan SO per NOMOR — berlaku di form DO; Batal menutup form */
+await p.evaluate(() => tutupFormDo()); await W(200);
+ok('v13: Batal → form DO tertutup, daftar DO tetap tampil', (await hidden('#rcvForm')) && !(await hidden('#doBawah')));
+await p.evaluate(() => bukaFormDo()); await W(1200);
 const soOpt = await p.$$eval('#rcvSoPilih option', o => o.map(x => x.value).filter(Boolean));
-ok('v12.5: pilihan SO di form kirim per nomor SO (value SO:<no>), bukan per baris', soOpt.length >= 1 && soOpt.every(v => v.indexOf('SO:') === 0) && soOpt.length === new Set(so.map(x => x.noSo)).size, soOpt);
-const noKirim = so[0].noSo, nBaris = so.filter(x => x.noSo === noKirim).length;
+ok('v12.5: pilihan SO di form DO per nomor SO (value SO:<no>), bukan per baris', soOpt.length >= 1 && soOpt.every(v => v.indexOf('SO:') === 0) && soOpt.length === new Set(so.map(x => x.noSo)).size, soOpt);
 await p.selectOption('#rcvSoPilih', 'SO:' + noKirim); await W(500);
-ok('v12.5: pilih SO → semua ' + nBaris + ' ukuran terisi, customer terisi, panel "n/n ukuran ikut dikirim" tampil', (await p.evaluate(() => S.baris.rcv.filter(b => b.idSo).length)) === nBaris && (await p.evaluate(() => comboNama('rcvPartner'))) === so[0].customer && (new RegExp(nBaris + '/' + nBaris)).test(await T('#rcvSoInfo')), await T('#rcvSoInfo'));
+ok('v12.5: pilih SO → semua ' + nBaris + ' ukuran terisi, customer terisi, panel "n/n ukuran ikut dikirim" tampil', (await p.evaluate(() => S.baris.rcv.filter(b => b.idSo).length)) === nBaris && (await p.evaluate(() => comboNama('rcvPartner'))) === barisKirim.customer && (new RegExp(nBaris + '/' + nBaris)).test(await T('#rcvSoInfo')), await T('#rcvSoInfo'));
 if (nBaris >= 2) {
   await p.evaluate(() => hapusBaris('rcv', 0)); await W(200);
   ok('v12.5: ✕ satu ukuran → panel (n−1)/n + tombol Centang semua', (new RegExp((nBaris - 1) + '/' + nBaris)).test(await T('#rcvSoInfo')) && /Centang semua/.test(await T('#rcvSoInfo')), await T('#rcvSoInfo'));
@@ -287,32 +297,78 @@ if (nBaris >= 2) {
 }
 await p.click('#rcvSoInfo button:has-text("Kosongkan")'); await W(300);
 ok('v12.5: Kosongkan → tidak ada baris SO, panel hilang', (await p.evaluate(() => S.baris.rcv.filter(b => b.idSo).length)) === 0 && (await hidden('#rcvSoInfo')));
-await p.evaluate((ids) => bukaKirimSo(ids), so.filter(x => x.noSo === so[0].noSo).map(x => x.id).join(',')); await W(1200);
-await p.evaluate(() => { S.baris.rcv = S.baris.rcv.slice(0, 1); gambarBaris('rcv'); });
-/* v12.3: no. surat jalan opsional — sengaja dikosongkan */
-ok('v12.3: label surat jalan bertanda (opsional) + hint', /opsional/.test(await T('#rcvSJWrap')));
-await p.evaluate(() => { S.baris.rcv[0].qty = '100'; gambarBaris('rcv'); });
-await p.evaluate((png) => { S.foto.rcv = png; }, PNG);
+/* Buat DO: satu baris SO, 100 kg, kendaraan diisi */
+await p.evaluate((ids) => bukaKirimSo(ids), idsSo.join(',')); await W(1200);
+await p.evaluate((id) => { S.baris.rcv = S.baris.rcv.filter(b => b.idSo === id); S.baris.rcv[0].qty = '100'; gambarBaris('rcv'); gambarSoInfo(); }, barisKirim.id);
+await p.fill('#rcvPengangkut', 'B 1234 XYZ · Pak Udin');
 await p.evaluate(() => simpanMutasiUI()); await W(2500);
-const rk1 = (await p.evaluate(() => panggil('riwayatInput', ['JUAL_KELUAR', 14, S.ident])))[0];
-ok('pengiriman sesuai SO tersimpan & final', rk1.status === 'DISETUJUI');
-ok('v12.3: pengiriman tersimpan TANPA no. surat jalan', rk1.noSuratJalan === '' || rk1.noSuratJalan === undefined, rk1.noSuratJalan);
-ok('stok polybag KW 235 − 100 = 135', (await p.evaluate(() => panggil('laporanStok', [S.ident]))).daftar.find(x => x.kode === 'FG-PB-KW').gbj === 135);
-/* v12.9: surat jalan (delivery order) — setelah simpan barang keluar, modal dokumen SJ langsung terbuka */
-ok('v12.9: setelah simpan kiriman, modal Surat jalan terbuka (jenis SJ, ref = ID pengiriman, kolom kendaraan tampil)', !(await hidden('#dokWrap')) && (await p.evaluate(() => S.dok && S.dok.jenis === 'SJ' && /^OUT-/.test(S.dok.ref))) && !(await hidden('#dokPengangkutWrap')) && /Surat jalan/.test(await T('#dokJudul')), await T('#dokJudul'));
-await p.fill('#dokPengangkut', 'B 1234 XYZ · Pak Udin');
-await p.evaluate(() => buatDokUI()); await W(2500);
-ok('v12.9: surat jalan dibuat: nomor SJ/…/001, total dalam kg, no. SJ diisi ke pengiriman', /SJ\/\d{4}\/\d{2}\/001/.test(await T('#dokHasil')) && /100 kg/.test(await T('#dokHasil')) && /diisi ke pengiriman/.test(await T('#dokHasil')), (await T('#dokHasil')).slice(0, 200));
-const sjUrl = await p.$eval('#dokHasil input', e => e.value);
+ok('v13: Simpan DO → toast "DO tersimpan · SJ/YYYY/MM/001"; banner hasil: nomor, 100 kg, tombol Cetak DO + Kirim; form tertutup', toasts.some(t => /DO tersimpan · SJ\/\d{4}\/\d{2}\/001/.test(t)) && /SJ\/\d{4}\/\d{2}\/001/.test(await T('#doHasil')) && /100 kg/.test(await T('#doHasil')) && /Cetak DO/.test(await T('#doHasil')) && /Kirim/.test(await T('#doHasil')) && (await hidden('#rcvForm')), [toasts.slice(-1), (await T('#doHasil')).slice(0, 160)]);
+ok('v13: stok polybag KW TETAP 235 setelah Simpan DO — stok belum bergerak', (await p.evaluate(() => panggil('laporanStok', [S.ident]))).daftar.find(x => x.kode === 'FG-PB-KW').gbj === 235);
+const doSiap = await p.evaluate(() => panggil('daftarKiriman', [S.ident, 'siap', 'CUSTOMER']));
+ok('v13: daftarKiriman siap: 1 DO DISIAPKAN 100 kg, nomor SJ, token dokumen, noSo, bolehKirim/Ubah/Batal', doSiap.length === 1 && doSiap[0].status === 'DISIAPKAN' && doSiap[0].totalKg === 100 && /^SJ\//.test(doSiap[0].noSuratJalan) && !!doSiap[0].token && doSiap[0].noSo === noKirim && doSiap[0].bolehKirim && doSiap[0].bolehUbah && doSiap[0].bolehBatal, doSiap[0]);
+const daftarDo = await T('#doDaftar');
+ok('v13: tab Siap kirim: kartu DO (nomor, rencana, kendaraan, Cetak DO / Ubah DO / Batalkan DO, tombol Kirim besar); counter 1', /SJ\//.test(daftarDo) && /B 1234 XYZ/.test(daftarDo) && /Cetak DO/.test(daftarDo) && /Ubah DO/.test(daftarDo) && /Batalkan DO/.test(daftarDo) && (await T('#cntDoSiap')).trim() === '1' && !!(await p.$('#doDaftar .btn.besar')), daftarDo.slice(0, 200));
+await p.screenshot({ path: OUT + '/v13-do-siap.png', fullPage: true });
+const soSesudah = await p.evaluate(() => panggil('soTerbuka', [S.ident]));
+ok('v13: soTerbuka: baris yang dijadwalkan → dijadwalkan 100, sisaRencana = sisa − 100', soSesudah.some(x => x.id === barisKirim.id && x.dijadwalkan === 100 && x.sisaRencana === x.sisa - 100), soSesudah.find(x => x.id === barisKirim.id));
+await p.evaluate(() => { tampil('so'); segSo('aktif'); }); await W(1500);
+const kartuSoT = await T('#so-' + noKirim);
+ok('v13: kartu SO: blok DO (nomor · 100 kg · rencana · Cetak DO · Kirim) + "dijadwalkan 100 kg"; tombol Kirim per baris hilang', /SJ\//.test(kartuSoT) && /100 kg/.test(kartuSoT) && /Cetak DO/.test(kartuSoT) && /dijadwalkan 100 kg/.test(kartuSoT) && (await p.$$('#so-' + noKirim + ' .do-baris button:has-text("Kirim")')).length === 1 && (await p.$$('#so-' + noKirim + ' .btnrow button:has-text("Kirim")')).length === 0, kartuSoT.slice(0, 300));
+await p.screenshot({ path: OUT + '/v13-so-do.png', fullPage: true });
+await p.evaluate(() => { tampil('home'); muatKonteks(true); }); await W(1500);
+ok('v13: beranda: tile DO siap kirim = 1' + ((await p.evaluate((no) => (S.ctx.soHariIni || []).some(g => g.noSo === no), noKirim)) ? '; kartu Kirim hari ini punya tombol Kirim (DO siap)' : ''), (await T('#sSiapKirim')).trim() === '1' && ((await p.evaluate((no) => !(S.ctx.soHariIni || []).some(g => g.noSo === no), noKirim)) || /Kirim/.test(await T('#kirimHariIni'))), [await T('#sSiapKirim'), (await T('#kirimHariIni')).slice(0, 120)]);
+/* 2. Cetak / WA — dokumen DO sudah ada sejak DO dibuat (mode lihat: tanpa form, hanya PDF / Cetak / WA) */
+await p.evaluate(() => bukaKiriman('siap')); await W(1200);
+await p.click('#doDaftar button:has-text("Cetak DO")'); await W(1500);
+ok('v13: Cetak DO → modal dokumen mode lihat: form tersembunyi, judul = nomor DO · customer, daftar punya surat jalan', !(await hidden('#dokWrap')) && (await hidden('#dokForm')) && /SJ\//.test(await T('#dokJudul')) && /SJ\//.test(await T('#dokDaftar')), [await T('#dokJudul'), (await T('#dokDaftar')).slice(0, 200)]);
+const sjUrl = await p.evaluate((tok) => urlDok(tok), doSiap[0].token);
 const sjHtml = await (await fetch(sjUrl)).text();
-ok('v12.9: halaman /dok: SURAT JALAN, customer, referensi SO, kendaraan, kolom Kg tanpa harga, 3 tanda tangan, bukan bukti tagihan', /SURAT JALAN/.test(sjHtml) && /Referensi SO/.test(sjHtml) && /B 1234 XYZ/.test(sjHtml) && !/Harga \/ kg/.test(sjHtml) && !/Rp /.test(sjHtml) && /Sopir \/ ekspedisi/.test(sjHtml) && /Penerima/.test(sjHtml) && /bukan bukti tagihan/.test(sjHtml), sjHtml.length);
-await p.evaluate(() => bukaWa(-1)); await W(800);
-ok('v12.9: pesan WA surat jalan menyebut kg + link', /surat jalan SJ\//.test(await p.$eval('#waPesan', e => e.value)) && /100 kg/.test(await p.$eval('#waPesan', e => e.value)));
+ok('v13: halaman /dok DO (draft): SURAT JALAN, Referensi SO, kendaraan, kg tanpa harga, 3 tanda tangan, bukan bukti tagihan', /SURAT JALAN/.test(sjHtml) && /Referensi SO/.test(sjHtml) && /B 1234 XYZ/.test(sjHtml) && !/Harga \/ kg/.test(sjHtml) && !/Rp /.test(sjHtml) && /Sopir \/ ekspedisi/.test(sjHtml) && /Penerima/.test(sjHtml), sjHtml.length);
+await p.evaluate(() => bukaWa(0)); await W(800);
+ok('v12.9/v13: pesan WA surat jalan menyebut nomor + 100 kg + link', /surat jalan SJ\//.test(await p.$eval('#waPesan', e => e.value)) && /100 kg/.test(await p.$eval('#waPesan', e => e.value)), await p.$eval('#waPesan', e => e.value));
 await p.evaluate(() => tutupWa()); await p.evaluate(() => tutupDok()); await W(300);
-await p.evaluate(() => bukaMutasi('JUAL_KELUAR')); await W(1500);
-ok('v12.9: riwayat barang keluar: kepala "Kiriman" per kiriman dengan tombol Surat jalan + nomor SJ', /Kiriman/.test(await T('#rcvRiwayat')) && /Surat jalan/.test(await T('#rcvRiwayat')) && /SJ\/\d{4}\/\d{2}\/001/.test(await T('#rcvRiwayat')), (await T('#rcvRiwayat')).slice(0, 200));
-const rkSj = (await p.evaluate(() => panggil('riwayatInput', ['JUAL_KELUAR', 14, S.ident])))[0];
-ok('v12.9: baris pengiriman sekarang punya no. surat jalan = nomor dokumen', /^SJ\//.test(rkSj.noSuratJalan) && rkSj.bolehSj === true && !!rkSj.kelompok, rkSj.noSuratJalan);
+/* 3. Kirim: qty sebenarnya + tanggal + foto DO yang sudah ditandatangani (kamera / galeri / buat-cetak DO) */
+await p.evaluate((id) => bukaKirimDo(id), doSiap[0].id); await W(1500);
+ok('v13: lembar Kirim: qty 100 + stok 235 kg, tanggal kirim hari ini, kendaraan dari DO, kotak "Upload foto DO", tombol "Kirim · foto menyusul" + Cetak DO', !(await hidden('#kirimWrap')) && (await p.$eval('#kirim-q-0', e => e.value)) === '100' && /235 kg/.test(await T('#kirimBody')) && (await p.$eval('#kirimTanggal', e => e.value)) === hariIni && (await p.$eval('#kirimPengangkut', e => e.value)) === 'B 1234 XYZ · Pak Udin' && /Upload foto DO/.test(await T('#kirimBody')) && /foto menyusul/.test(await T('#btnKirimDo')) && /Cetak DO/.test(await T('#kirimBody')), (await T('#kirimBody')).slice(0, 300));
+await p.screenshot({ path: OUT + '/v13-kirim.png', fullPage: true });
+await p.evaluate(() => pilihFotoKirim()); await W(400);
+ok('v13: kotak foto DO → pilihan Kamera / Galeri / "Buat / cetak DO"', /Kamera/.test(await T('#fotoSumber')) && /Galeri/.test(await T('#fotoSumber')) && /Buat \/ cetak DO/.test(await T('#fotoSumber')), await T('#fotoSumber'));
+await p.click('#fotoSumber button:has-text("Buat / cetak DO")'); await W(1200);
+ok('v13: "Buat / cetak DO" dari lembar Kirim → modal dokumen DO terbuka di atas lembar Kirim', !(await hidden('#dokWrap')) && !(await hidden('#kirimWrap')) && /SJ\//.test(await T('#dokJudul')) && (await p.$('#fotoSumber')) === null);
+await p.evaluate(() => tutupDok()); await W(200);
+await p.setInputFiles('#kirimFile', { name: 'do-ttd.jpg', mimeType: 'image/jpeg', buffer: Buffer.from(PNG.split(',')[1], 'base64') }); await W(1500);
+ok('v13: foto DO dipilih (input file) → kotak terisi, tombol jadi "Kirim"', (await p.$eval('#kirimPhoto', e => e.className)) === 'photo filled' && (await T('#btnKirimDo')).trim() === 'Kirim' && (await p.evaluate(() => !!S.foto.kirim)), [await p.$eval('#kirimPhoto', e => e.className), await T('#btnKirimDo')]);
+await p.evaluate(() => kirimDoUI()); await W(3000);
+ok('v13: Kirim → toast "Terkirim · SJ/…/001 · 100 kg"; banner Terkirim + Cetak DO + Tutup', toasts.some(t => /Terkirim · SJ\/\d{4}\/\d{2}\/001/.test(t)) && /Terkirim/.test(await T('#kirimBody')) && /Cetak DO/.test(await T('#kirimBody')) && /Tutup/.test(await T('#kirimBody')), [toasts.slice(-1), (await T('#kirimBody')).slice(0, 200)]);
+await p.evaluate(() => tutupKirim()); await W(800);
+const rk1 = (await p.evaluate(() => panggil('riwayatInput', ['JUAL_KELUAR', 14, S.ident])))[0];
+ok('pengiriman sesuai SO tersimpan & final; v13: no. surat jalan = nomor DO, idKiriman terisi, foto ada, bukan kandidat surat jalan baru', rk1.status === 'DISETUJUI' && /^SJ\/\d{4}\/\d{2}\/001$/.test(rk1.noSuratJalan) && !!rk1.idKiriman && !!rk1.foto && rk1.bolehSj === false, rk1);
+ok('stok polybag KW 235 − 100 = 135 — baru bergerak saat Kirim', (await p.evaluate(() => panggil('laporanStok', [S.ident]))).daftar.find(x => x.kode === 'FG-PB-KW').gbj === 135);
+ok('v13: setelah kirim: tab Siap kirim kosong, counter kosong; riwayat barang keluar: kepala "Kiriman" dengan nomor DO + tombol Cetak DO', /Belum ada DO/.test(await T('#doDaftar')) && (await T('#cntDoSiap')).trim() === '' && /Kiriman/.test(await T('#rcvRiwayat')) && /SJ\/\d{4}\/\d{2}\/001/.test(await T('#rcvRiwayat')) && /Cetak DO/.test(await T('#rcvRiwayat')), [(await T('#doDaftar')).slice(0, 80), (await T('#rcvRiwayat')).slice(0, 200)]);
+await p.evaluate(() => segDo('dikirim')); await W(1200);
+ok('v13: tab Sudah dikirim: kartu DO "dikirim", foto DO ada, tombol Ganti foto DO + Cetak DO', /dikirim/.test(await T('#doDaftar')) && /foto DO ada/.test(await T('#doDaftar')) && /Ganti foto DO/.test(await T('#doDaftar')) && /Cetak DO/.test(await T('#doDaftar')), (await T('#doDaftar')).slice(0, 200));
+await p.screenshot({ path: OUT + '/v13-dikirim.png', fullPage: true });
+/* v13: DO kedua untuk sisa SO → Ubah DO (nomor tetap, dokumen dibuat ulang) → Batalkan DO (alasan wajib lewat lembar in-app) */
+const sisaR = soSesudah.filter(x => x.noSo === noKirim && x.sisaRencana > 0);
+if (sisaR.length) {
+  await p.evaluate(() => bukaFormDo()); await W(800);
+  await p.selectOption('#rcvSoPilih', 'SO:' + noKirim); await W(500);
+  ok('v13: pilih SO di form DO → hanya sisa yang belum dijadwalkan yang masuk (' + sisaR.length + ' baris, qty = sisaRencana)', (await p.evaluate(() => S.baris.rcv.filter(b => b.idSo).length)) === sisaR.length && (await p.evaluate(() => S.baris.rcv.filter(b => b.idSo).map(b => parseFloat(b.qty)).sort().join(','))) === sisaR.map(x => x.sisaRencana).sort().join(','), await p.evaluate(() => S.baris.rcv));
+  await p.evaluate(() => simpanMutasiUI()); await W(2500);
+  const doB = await p.evaluate(() => panggil('daftarKiriman', [S.ident, 'siap', 'CUSTOMER']));
+  ok('v13: DO kedua tersimpan (nomor …/002)', doB.length === 1 && /\/002$/.test(doB[0].noSuratJalan), doB[0]);
+  await p.evaluate((id) => ubahDoUI(id), doB[0].id); await W(1500);
+  ok('v13: Ubah DO → form terisi: judul "Ubah DO · nomor", baris & kendaraan dari DO', /Ubah DO/.test(await T('#rcvJudul')) && (await p.evaluate(() => S.baris.rcv.length)) === doB[0].baris.length && (await p.evaluate(() => comboNama('rcvPartner'))) === doB[0].tujuan, await T('#rcvJudul'));
+  await p.evaluate(() => { S.baris.rcv[0].qty = String(Math.max(1, parseFloat(S.baris.rcv[0].qty) - 1)); gambarBaris('rcv'); });
+  await p.fill('#rcvPengangkut', 'B 9 ABC');
+  await p.evaluate(() => simpanMutasiUI()); await W(2500);
+  const doB2 = await p.evaluate(() => panggil('daftarKiriman', [S.ident, 'siap', 'CUSTOMER']));
+  ok('v13: DO diubah: toast, nomor tetap, total −1 kg, kendaraan baru, dokumen DO dibuat ulang (token baru)', toasts.some(t => /DO diubah/.test(t)) && doB2[0].noSuratJalan === doB[0].noSuratJalan && doB2[0].totalKg === doB[0].totalKg - 1 && doB2[0].pengangkut === 'B 9 ABC' && doB2[0].token !== doB[0].token, [doB[0], doB2[0]]);
+  nativeDialogSebelum = nativeDialog;
+  await p.evaluate((id) => batalDoUI(id), doB2[0].id); await W(2500);
+  ok('v13: Batalkan DO → alasan lewat lembar in-app (bukan prompt), DO hilang dari Siap kirim, sisaRencana SO kembali', nativeDialog === nativeDialogSebelum && toasts.some(t => /DO dibatalkan/.test(t)) && (await p.evaluate(() => panggil('daftarKiriman', [S.ident, 'siap', 'CUSTOMER']))).length === 0 && (await p.evaluate(() => panggil('soTerbuka', [S.ident]))).filter(x => x.noSo === noKirim && x.sisaRencana > 0).length === sisaR.length, toasts.slice(-2));
+}
+
 await p.evaluate(() => tampil('rusak')); await W(800);
 await p.click('#cb-rusak-0'); await p.type('#cb-rusak-0', 'Biji Plastik KW'); await W(300); await p.click('#cb-rusak-0 ~ .combo-list .combo-item'); await W(200);
 await p.evaluate(() => { S.baris.rusak[0].qty = '5'; gambarBaris('rusak'); });
@@ -321,25 +377,43 @@ await p.evaluate(() => simpanRusakUI()); await W(2500);
 ok('laporan rusak tersimpan — stok langsung turun (750 − 5 = 745)', toasts.some(t => /stok sudah dikurangi/.test(t)) && (await p.evaluate(() => panggil('laporanStok', [S.ident]))).daftar.find(x => x.kode === 'RM-BP-KW').gbj === 745, toasts.slice(-1));
 ok('riwayat rusak: DISETUJUI, Yansen (manager gudang) punya tombol batal', /Disetujui/.test(await T('#rusakRiwayat')) && (await p.$$('#rusakRiwayat .btn.ghost[aria-label]')).length > 0);
 
-/* ---- daur ulang BS ---- */
-await p.evaluate(() => tampil('daur')); await W(600); await p.evaluate(() => segDaur('new')); await W(500);
+/* ---- daur ulang BS: v13 — Buat DO (BS ke chassen) → Kirim TANPA foto (foto menyusul) → tab Belum foto DO → Foto DO ---- */
+await p.evaluate(() => tampil('daur')); await W(1000);
+ok('v13: layar daur ulang: tab Siap kirim / Di chassen / Belum foto DO / Selesai + tombol "Buat DO (BS ke chassen)"; Siap kirim kosong', !(await hidden('#segDaurSiap')) && !(await hidden('#segDaurFoto')) && !(await hidden('#btnBuatDoDaur')) && /Belum ada DO/.test(await T('#daurSiap')), (await T('#daurSiap')).slice(0, 120));
+await p.click('#btnBuatDoDaur'); await W(600);
+ok('v13: form DO daur: judul BS ke chassen, tanpa kotak foto & no. SJ, ada tanggal rencana + kendaraan, tombol Simpan DO', /BS ke chassen/.test(await T('#daurNew h2')) && (await p.$('#daurPhoto')) === null && (await p.$('#daurNoSJ')) === null && !!(await p.$('#daurPengangkut')) && (await T('#btnKirimDaur')).trim() === 'Simpan DO', [await T('#daurNew h2'), await T('#btnKirimDaur')]);
 await p.click('#daurVendor'); await p.type('#daurVendor', 'CV Chassen Mitra' + SUF); await W(300); await p.click('#daurVendor ~ .combo-list .combo-tambah'); await W(1200);
 await p.click('#cb-daur-0'); await p.type('#cb-daur-0', 'BS KW'); await W(300); await p.click('#cb-daur-0 ~ .combo-list .combo-item'); await W(200);
 await p.evaluate(() => { S.baris.daur[0].qty = '20'; gambarBaris('daur'); });
-await p.evaluate(() => kirimDaurUI()); await W(800);
-ok('v11.2: kirim ke chassen TANPA foto surat jalan ditolak', toasts.some(t => /Foto surat jalan chassen wajib/.test(t)), toasts.slice(-1));
-await p.evaluate((png) => { S.foto.daur = png; }, PNG);
-await p.evaluate(() => kirimDaurUI()); await W(2500);
-ok('BS 20 kg dikirim ke chassen (dengan foto)', toasts.some(t => /dikirim|tersimpan/i.test(t)), toasts.slice(-1));
-/* v12.9: surat jalan BS ke jasa daur ulang dari kartu daur ulang */
+await p.fill('#daurPengangkut', 'L 300 · Pak Joko');
+const bsSebelum = (await p.evaluate(() => panggil('laporanStok', [S.ident]))).daftar.find(x => x.kode === 'SCR-BS-KW').gbj;
+await p.evaluate(() => simpanDoDaurUI()); await W(2500);
+const dSiap = await p.evaluate(() => panggil('daftarKiriman', [S.ident, 'siap', 'DAUR']));
+ok('v13: DO daur tersimpan: toast, tab Siap kirim 1 DO 20 kg (jenis DAUR, nomor …/00N), stok BS belum bergerak', toasts.some(t => /DO tersimpan · SJ\//.test(t)) && dSiap.length === 1 && dSiap[0].jenis === 'DAUR' && dSiap[0].totalKg === 20 && /^SJ\//.test(dSiap[0].noSuratJalan) && (await p.evaluate(() => panggil('laporanStok', [S.ident]))).daftar.find(x => x.kode === 'SCR-BS-KW').gbj === bsSebelum && /Kirim/.test(await T('#daurSiap')) && (await T('#cntDaurSiap')).trim() === '1', [dSiap[0], (await T('#daurSiap')).slice(0, 160)]);
+await p.screenshot({ path: OUT + '/v13-daur-siap.png', fullPage: true });
+await p.evaluate((id) => bukaKirimDo(id), dSiap[0].id); await W(1500);
+ok('v13: lembar Kirim DO daur: qty 20, stok BS ' + bsSebelum + ' kg, kendaraan, tombol "Kirim · foto menyusul"', (await p.$eval('#kirim-q-0', e => e.value)) === '20' && (new RegExp(String(bsSebelum).replace('.', '[.,]') + ' kg')).test(await T('#kirimBody')) && (await p.$eval('#kirimPengangkut', e => e.value)) === 'L 300 · Pak Joko' && /foto menyusul/.test(await T('#btnKirimDo')), (await T('#kirimBody')).slice(0, 200));
+await p.evaluate(() => kirimDoUI()); await W(3000);
+const dur = await p.evaluate(() => panggil('daftarDaurUlang', [S.ident]));
+ok('v13: kirim ke chassen TANPA foto diterima — banner foto menyusul; Daur_Ulang BERJALAN dengan idKiriman; stok BS −20', toasts.some(t => /Terkirim · SJ\//.test(t)) && /menyusul/i.test(await T('#kirimBody')) && dur.length >= 1 && dur[0].status === 'BERJALAN' && !!dur[0].idKiriman && (await p.evaluate(() => panggil('laporanStok', [S.ident]))).daftar.find(x => x.kode === 'SCR-BS-KW').gbj === bsSebelum - 20, [dur[0], (await T('#kirimBody')).slice(0, 160)]);
+await p.evaluate(() => tutupKirim()); await W(800);
+await p.evaluate(() => segDaur('belumFoto')); await W(1200);
+const ctxBf = await p.evaluate(() => panggil('getKonteks', [S.ident]).then(c => c.ringkasan));
+ok('v13: tab Belum foto DO (daur): 1 kiriman dengan tombol Foto DO; counter 1; ringkasan beranda belumFotoSj = 1, siapKirim = 0', /Foto DO/.test(await T('#daurFoto')) && (await T('#cntDaurFoto')).trim() === '1' && ctxBf.belumFotoSj === 1 && ctxBf.siapKirim === 0, [ctxBf, (await T('#daurFoto')).slice(0, 160)]);
+await p.screenshot({ path: OUT + '/v13-daur-belum-foto.png', fullPage: true });
+const dbf = await p.evaluate(() => panggil('daftarKiriman', [S.ident, 'belumFoto', 'DAUR']));
+await p.evaluate((id) => { S.fotoDoTarget = { id: id, ganti: false }; }, dbf[0].id);
+await p.setInputFiles('#doFile', { name: 'sj-chassen.jpg', mimeType: 'image/jpeg', buffer: Buffer.from(PNG.split(',')[1], 'base64') }); await W(3000);
+const dDik = await p.evaluate(() => panggil('daftarKiriman', [S.ident, 'dikirim', 'DAUR']));
+ok('v13: Foto DO menyusul (fotoSj) → toast, tab Belum foto kosong, kiriman punya foto', toasts.some(t => /Foto DO tersimpan/.test(t)) && /Semua kiriman sudah ada foto/.test(await T('#daurFoto')) && dDik.length === 1 && !!dDik[0].foto, [toasts.slice(-1), dDik[0]]);
+/* v12.9 → v13: surat jalan BS ke chassen = dokumen DO dari kiriman (dibuat saat DO), halaman /dok: Jasa daur ulang, vendor, Referensi daur ulang */
+const sjdHtml = await (await fetch(await p.evaluate((tok) => urlDok(tok), dDik[0].token))).text();
+ok('v13: halaman DO daur ulang: SURAT JALAN, Jasa daur ulang, vendor, Referensi daur ulang, kendaraan', /SURAT JALAN/.test(sjdHtml) && /Jasa daur ulang/.test(sjdHtml) && /Chassen Mitra/.test(sjdHtml) && /Referensi daur ulang/.test(sjdHtml) && /L 300/.test(sjdHtml), sjdHtml.length);
 await p.evaluate(() => segDaur('list')); await W(1500);
-ok('v12.9: kartu daur ulang punya tombol Surat jalan', /Surat jalan/.test(await T('#daurList')), (await T('#daurList')).slice(0, 200));
-const durRows = await p.evaluate(() => panggil('daftarDaurUlang', [S.ident]));
-await p.evaluate((d) => bukaDok('SJ', d.id, { nomor: d.noSuratJalan || '', sub: d.vendor }), durRows[0]); await W(1200);
-ok('v12.9: modal SJ daur ulang: sub "Surat jalan BS ke jasa daur ulang"', /jasa daur ulang/.test(await T('#dokSub')));
-await p.evaluate(() => buatDokUI()); await W(2500);
-const sjdHtml = await (await fetch(await p.$eval('#dokHasil input', e => e.value))).text();
-ok('v12.9: halaman SJ daur ulang: Jasa daur ulang, vendor, BS 20 kg, Referensi daur ulang', /Jasa daur ulang/.test(sjdHtml) && /Chassen Mitra/.test(sjdHtml) && /Referensi daur ulang/.test(sjdHtml) && /SURAT JALAN/.test(sjdHtml), sjdHtml.length);
+ok('v13: kartu Di chassen: BERJALAN 20 kg, tombol Cetak DO (dokumen kiriman, bukan surat jalan baru)', /20 kg/.test(await T('#daurList')) && /Cetak DO/.test(await T('#daurList')) && !/Surat jalan/.test(await T('#daurList')), (await T('#daurList')).slice(0, 200));
+await p.evaluate(() => keluar()); await W(600);
+ok('v13: keluar() mengosongkan daftar DO / lembar Kirim / daftar daur', await p.evaluate(() => ['doDaftar', 'doHasil', 'kirimBody', 'daurSiap', 'daurFoto'].every(id => !document.getElementById(id).innerHTML) && document.getElementById('kirimWrap').classList.contains('hide')));
+await login('Yansen', '2211');
 await p.evaluate(() => tutupDok());
 await p.screenshot({ path: OUT + '/v11-yansen.png', fullPage: true });
 

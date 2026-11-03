@@ -161,15 +161,19 @@ function sinkronJatuhTempoSo_(noSo) {
   });
 }
 
-function ringkasSo_(r, lihatHarga) {
+/* v13: petaJadwal = kg yang sudah dijadwalkan di draft kiriman per baris SO (petaDijadwalkanSo_) → dijadwalkan / sisaRencana */
+function ringkasSo_(r, lihatHarga, petaJadwal) {
+  var jadwal = petaJadwal ? angka_(petaJadwal[r.ID] || 0) : 0;
   var o = {
     id: r.ID, noSo: r.No_SO, tanggal: r.Tanggal, customer: r.Customer,
     kode: r.Kode_Item, item: r.Nama_Item, qty: angka_(r.Qty_Kg), dikirim: angka_(r.Qty_Dikirim_Kg),
     sisa: bulat_(Math.max(0, angka_(r.Qty_Kg) - angka_(r.Qty_Dikirim_Kg)), 3),
     tanggalKirim: r.Tanggal_Kirim || '', status: r.Status, pembuat: r.Nama_Pembuat, catatan: r.Catatan || '', logEdit: r.Log_Edit || '',
     topHari: angka_(r.TOP_Hari), jatuhTempo: r.Jatuh_Tempo || '',
-    ukuran: String(r.Ukuran || ''), topDari: topDariValid_(r.TOP_Dari)
+    ukuran: String(r.Ukuran || ''), topDari: topDariValid_(r.TOP_Dari),
+    dijadwalkan: bulat_(jadwal, 3)
   };
+  o.sisaRencana = bulat_(Math.max(0, o.sisa - jadwal), 3);
   if (lihatHarga) { o.harga = angka_(r.Harga_Per_Kg); o.nilai = bulat_(o.qty * o.harga, 0); }
   return o;
 }
@@ -179,33 +183,35 @@ function daftarSo(ident, status, hari) {
   var u = penggunaSaatIni_(ident);
   var lihatHarga = bolehLihatHpp_(u);
   var batas = new Date(); batas.setDate(batas.getDate() - (hari || 90));
+  var pj = petaDijadwalkanSo_(), pk = kirimanPerSo_();   // v13: kg dijadwalkan per baris + DO per nomor SO
   return baca_(SHEET.SO).filter(function (r) {
     if (status === 'SEMUA') return new Date(r.Waktu) >= batas;
     if (!status) return r.Status === STATUS_SO.TERBUKA || r.Status === STATUS_SO.SEBAGIAN;
     return r.Status === status && new Date(r.Waktu) >= batas;
-  }).map(function (r) { return ringkasSo_(r, lihatHarga); }).reverse();
+  }).map(function (r) { var o = ringkasSo_(r, lihatHarga, pj); o.kiriman = pk[o.noSo] || []; return o; }).reverse();
 }
 
 /** Untuk form pengiriman (staf): baris SO yang masih harus dikirim, TANPA harga. */
 function soTerbuka(ident) {
   penggunaSaatIni_(ident);
+  var pj = petaDijadwalkanSo_();
   return baca_(SHEET.SO).filter(function (r) {
     return r.Status === STATUS_SO.TERBUKA || r.Status === STATUS_SO.SEBAGIAN;
-  }).map(function (r) { return ringkasSo_(r, false); })
+  }).map(function (r) { return ringkasSo_(r, false, pj); })
     .sort(function (a, b) { return String(a.tanggalKirim || '9999').localeCompare(String(b.tanggalKirim || '9999')); });
 }
 
 /** Beranda: SO yang jatuh tempo hari ini atau sudah lewat (tanpa harga). v12.2: satu entri per No_SO (baris dikelompokkan). */
 function soKirimHariIni_(hariIni) {
-  var grup = {}, urut = [];
+  var grup = {}, urut = [], pj = petaDijadwalkanSo_(), pk = kirimanPerSo_();
   baca_(SHEET.SO).filter(function (r) {
     return (r.Status === STATUS_SO.TERBUKA || r.Status === STATUS_SO.SEBAGIAN) && r.Tanggal_Kirim && String(r.Tanggal_Kirim) <= hariIni;
   }).forEach(function (r) {
-    var o = ringkasSo_(r, false), g = grup[o.noSo];
-    if (!g) { g = grup[o.noSo] = { noSo: o.noSo, customer: o.customer, kirim: o.tanggalKirim, sisa: 0, jumlahBaris: 0, baris: [] }; urut.push(g); }
-    g.sisa = bulat_(g.sisa + o.sisa, 3); g.jumlahBaris++;
+    var o = ringkasSo_(r, false, pj), g = grup[o.noSo];
+    if (!g) { g = grup[o.noSo] = { noSo: o.noSo, customer: o.customer, kirim: o.tanggalKirim, sisa: 0, dijadwalkan: 0, jumlahBaris: 0, baris: [], kiriman: pk[o.noSo] || [] }; urut.push(g); }
+    g.sisa = bulat_(g.sisa + o.sisa, 3); g.dijadwalkan = bulat_(g.dijadwalkan + o.dijadwalkan, 3); g.jumlahBaris++;
     if (o.tanggalKirim && o.tanggalKirim < g.kirim) g.kirim = o.tanggalKirim;
-    g.baris.push({ id: o.id, item: o.item, kode: o.kode, sisa: o.sisa, ukuran: o.ukuran });
+    g.baris.push({ id: o.id, item: o.item, kode: o.kode, sisa: o.sisa, sisaRencana: o.sisaRencana, ukuran: o.ukuran });
   });
   return urut.sort(function (a, b) { return String(a.kirim).localeCompare(String(b.kirim)); });
 }

@@ -100,6 +100,8 @@
       <button class="stat alert tap" onclick="tileHome('bs')"><div class="n" id="sBs">–</div><div class="l" data-i18n="statBs">kg BS hari ini</div></button>
       <button class="stat tap" onclick="tileHome('shift')"><div class="n" id="sShift">–</div><div class="l" data-i18n="statShift">Laporan shift hari ini</div></button>
       <button class="stat alert tap hide" id="tileBeli" onclick="tileHome('beli')"><div class="n" id="sBeli">–</div><div class="l" data-i18n="statBeli">Bahan perlu dibeli</div></button>
+      <button class="stat tap hide" id="tileSiapKirim" onclick="tileHome('siapKirim')"><div class="n" id="sSiapKirim">–</div><div class="l" data-i18n="statSiapKirim">DO siap kirim</div></button>
+      <button class="stat tap hide" id="tileBelumFoto" onclick="tileHome('belumFoto')"><div class="n" id="sBelumFoto">–</div><div class="l" data-i18n="statBelumFoto">Kiriman belum ada foto DO</div></button>
     </div>
     <div class="card hide" id="kirimHariIniCard">
       <h2 data-i18n="kirimT">Kirim hari ini</h2>
@@ -152,7 +154,7 @@
 
     <h3 class="sec" id="secJualH" data-i18n="secJual">Barang ke customer</h3>
     <div class="actions">
-      <button class="action mod-gudang" onclick="bukaMutasi('JUAL_KELUAR')">
+      <button class="action mod-gudang" onclick="bukaKiriman()">
         <div class="ico f"><svg class="i"><use href="#i-truk"/></svg></div>
         <div class="tx"><b data-i18n="a6t">Barang keluar (terjual)</b><span data-i18n="a6s">GBJ → customer · mengurangi stok</span></div>
       </button>
@@ -188,7 +190,9 @@
 
   <!-- ============ ⓪ PENERIMAAN / RETUR ============ -->
   <section id="v-beli" class="hide">
-    <div class="card">
+    <!-- v13: Barang keluar = Buat DO (surat jalan dulu) → Kirim (stok bergerak) → foto DO. Form yang sama dipakai mode JUAL_DO. -->
+    <div id="doAtas" class="hide"><button class="btn besar" id="btnBuatDo" onclick="bukaFormDo()"><svg class="i"><use href="#i-dokumen"/></svg> <span data-i18n="doBuat">Buat DO (surat jalan)</span></button></div>
+    <div class="card" id="rcvForm">
       <h2 id="rcvJudul">Barang masuk</h2>
       <div class="sub" id="rcvSub"></div>
 
@@ -215,9 +219,9 @@
       </div>
 
       <div class="field">
-        <label data-i18n="lblTanggal">Tanggal transaksi</label>
+        <label data-i18n="lblTanggal" id="rcvTanggalLabel">Tanggal transaksi</label>
         <input type="date" id="rcvTanggal">
-        <div class="hint" data-i18n="hintTanggal">Default hari ini. Ganti kalau barangnya masuk/keluar kemarin tapi baru dicatat sekarang.</div>
+        <div class="hint" data-i18n="hintTanggal" id="rcvTanggalHint">Default hari ini. Ganti kalau barangnya masuk/keluar kemarin tapi baru dicatat sekarang.</div>
       </div>
 
       <div class="field" id="rcvSJWrap">
@@ -236,6 +240,10 @@
         <select id="rcvSoPilih" onchange="pilihSoBaris(this.value)"></select>
         <div class="hint" data-i18n="hintDariSo">Pilih nomor SO yang dikirim — semua ukurannya langsung terisi (qty = sisa). Boleh pilih lebih dari satu SO.</div>
         <div class="banner ok hide" id="rcvSoInfo" style="margin-top:8px"></div>
+      </div>
+      <div class="field hide" id="rcvPengangkutWrap">
+        <label data-i18n="lblPengangkut">Kendaraan / sopir (opsional)</label>
+        <input id="rcvPengangkut" placeholder="B 1234 XYZ · Pak Udin">
       </div>
       <div class="field" id="rcvReturWrap">
         <label data-i18n="lblDariPenerimaan">Barang yang diretur (dari penerimaan)</label>
@@ -256,11 +264,22 @@
         <textarea id="rcvCatatan"></textarea>
       </div>
 
+      <button class="btn sec hide" id="btnBatalDo" onclick="tutupFormDo()" data-i18n="btnBatal" style="margin-bottom:8px">Batal</button>
       <button class="btn" id="btnSimpanRcv" onclick="simpanMutasiUI()" data-i18n="btnSimpan">Simpan</button>
-      <div class="hint" data-i18n="hintPost">Langsung tercatat. Supervisor meninjau setelahnya — produksi tidak menunggu.</div>
+      <div class="hint" data-i18n="hintPost" id="rcvHintPost">Langsung tercatat. Supervisor meninjau setelahnya — produksi tidak menunggu.</div>
     </div>
 
-    <div class="card">
+    <div id="doBawah" class="hide">
+      <div class="seg" id="segDo">
+        <button id="segDoSiap" class="on" onclick="segDo('siap')"><span data-i18n="doTabSiap">Siap kirim</span> <span class="cnt" id="cntDoSiap"></span></button>
+        <button id="segDoFoto" onclick="segDo('belumFoto')"><span data-i18n="doTabFoto">Belum foto DO</span> <span class="cnt" id="cntDoFoto"></span></button>
+        <button id="segDoKirim" onclick="segDo('dikirim')" data-i18n="doTabKirim">Sudah dikirim</button>
+      </div>
+      <div id="doHasil" class="hide"></div>
+      <div id="doDaftar"><div class="load">…</div></div>
+    </div>
+
+    <div class="card" id="rcvRiwayatCard">
       <h2 data-i18n="riwayatT">Riwayat input</h2>
       <div class="sub" id="rcvRiwayatSub"></div>
       <div id="rcvRiwayat"><div class="load">…</div></div>
@@ -423,45 +442,44 @@
 
   <!-- ============ DAUR ULANG SCRAP (v9) ============ -->
   <section id="v-daur" class="hide">
+    <button class="btn besar hide" id="btnBuatDoDaur" onclick="segDaur('new')" style="margin-bottom:12px"><svg class="i"><use href="#i-dokumen"/></svg> <span data-i18n="daurDoT">Buat DO (BS ke chassen)</span></button>
     <div class="seg">
-      <button id="segDaurList" class="on" onclick="segDaur('list')" data-i18n="segDaurList">Di chassen</button>
-      <button id="segDaurNew" onclick="segDaur('new')" data-i18n="segDaurNew">Kirim scrap</button>
+      <button id="segDaurSiap" class="on" onclick="segDaur('siap')"><span data-i18n="doTabSiap">Siap kirim</span> <span class="cnt" id="cntDaurSiap"></span></button>
+      <button id="segDaurList" onclick="segDaur('list')" data-i18n="segDaurList">Di chassen</button>
+      <button id="segDaurFoto" onclick="segDaur('belumFoto')"><span data-i18n="doTabFoto">Belum foto DO</span> <span class="cnt" id="cntDaurFoto"></span></button>
       <button id="segDaurDone" onclick="segDaur('done')" data-i18n="segDaurDone">Selesai</button>
     </div>
     <div class="banner n" id="daurHint"></div>
-    <div id="daurList"><div class="load">…</div></div>
+    <div id="daurSiap"><div class="load">…</div></div>
+    <div id="daurList" class="hide"><div class="load">…</div></div>
+    <div id="daurFoto" class="hide"><div class="load">…</div></div>
     <div id="daurDone" class="hide"><div class="load">…</div></div>
 
     <div id="daurNew" class="hide">
       <div class="card">
-        <h2 data-i18n="daurNewT">Kirim scrap ke mesin chassen</h2>
-        <div class="sub" data-i18n="daurNewS">Scrap keluar dari gudang, digiling di pabrik lain, kembali sebagai biji plastik daur ulang.</div>
+        <h2 data-i18n="daurDoT">Buat DO (BS ke chassen)</h2>
+        <div class="sub" data-i18n="daurDoS">Pilih tempat chassen dan BS yang dikirim. Nomor surat jalan langsung ada; stok BS berkurang saat tombol Kirim.</div>
         <div class="field">
           <label data-i18n="lblVendor">Tempat chassen (vendor)</label>
           <div class="combo"><input id="daurVendor" autocomplete="off"><div class="combo-list hide"></div></div>
           <div class="hint" data-i18n="hintCombo">Ketik untuk mencari. Nama yang belum ada bisa langsung ditambah.</div>
         </div>
         <div class="field">
-          <label data-i18n="lblTanggal">Tanggal transaksi</label>
+          <label data-i18n="lblRencana">Tanggal rencana kirim</label>
           <input type="date" id="daurTanggal">
-        </div>
-        <div class="field">
-          <label data-i18n="lblNoSJ">No. surat jalan</label>
-          <input id="daurNoSJ" placeholder="SJ/CH/2026/09/01">
         </div>
         <h3 class="sec" data-i18n="secScrapKirim">Scrap dikirim <span class="unit">kg</span></h3>
         <div id="daurLines"></div>
         <button class="btn sec sm" onclick="tambahBaris('daur')" data-i18n="btnTambahItem">+ Tambah item</button>
         <div class="field" style="margin-top:14px">
-          <label data-i18n="lblFotoOpsi">Foto (opsional)</label>
-          <div class="photo" id="daurPhoto" onclick="pilihFoto('daur')"><div class="p1"><svg class="i"><use href="#i-kamera"/></svg> <span data-i18n="fotoAmbil">Kamera atau galeri</span></div></div>
-          <input type="file" accept="image/*" id="daurFile" class="hide" onchange="fotoTerpilih(event,'daur')">
+          <label data-i18n="lblPengangkut">Kendaraan / sopir (opsional)</label>
+          <input id="daurPengangkut" placeholder="B 1234 XYZ · Pak Udin">
         </div>
         <div class="field">
           <label data-i18n="lblCatatan">Catatan (opsional)</label>
           <textarea id="daurCatatan"></textarea>
         </div>
-        <button class="btn" id="btnKirimDaur" onclick="kirimDaurUI()" data-i18n="btnKirimDaur">Kirim scrap</button>
+        <button class="btn" id="btnKirimDaur" onclick="simpanDoDaurUI()" data-i18n="doSimpan">Simpan DO</button>
       </div>
     </div>
 
@@ -598,6 +616,16 @@
 
   <!-- ============ FORM SKU (overlay) ============ -->
   <!-- v12: dokumen (invoice / PO) → link cetak + kirim WA -->
+  <!-- ============ v13: KIRIM (lembar: qty sebenarnya · tanggal · foto DO yang sudah ditandatangani, boleh menyusul) ============ -->
+  <div id="kirimWrap" class="overlay hide" style="z-index:79" onclick="if(event.target===this)tutupKirim()">
+    <div class="sheet">
+      <div class="sheethead"><b id="kirimJudul">Kirim</b><button class="x2" onclick="tutupKirim()" aria-label="close"><svg class="i"><use href="#i-silang"/></svg></button></div>
+      <div class="sub" id="kirimSub"></div>
+      <div id="kirimBody"><div class="load">…</div></div>
+    </div>
+  </div>
+  <input type="file" accept="image/*" id="kirimFile" class="hide" onchange="fotoTerpilih(event,'kirim')">
+  <input type="file" accept="image/*" id="doFile" class="hide" onchange="fotoDoTerpilih(event)">
   <div id="dokWrap" class="overlay hide" onclick="if(event.target===this)tutupDok()">
     <div class="sheet">
       <div class="sheethead"><b id="dokJudul">Dokumen</b><button class="x2" onclick="tutupDok()" aria-label="close"><svg class="i"><use href="#i-silang"/></svg></button></div>

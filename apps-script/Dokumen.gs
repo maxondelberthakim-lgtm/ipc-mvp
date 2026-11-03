@@ -132,8 +132,25 @@ function buatDokumen(p, ident) {
   if (p.perusahaan) Object.keys(KUNCI_PERUSAHAAN_).forEach(function (k) { if (p.perusahaan[k] !== undefined) per[k] = String(p.perusahaan[k] || ''); });
   var peta = petaItem_(), baris = [], pihak = {}, d = {}, sumberSj = null;
   if (jenis === 'SJ') {
-    /* ref = ID daur ulang (DUR-…) → surat jalan BS ke jasa daur ulang; atau ID pengiriman dipisah koma (OUT-…) → surat jalan ke customer */
-    if (/^DUR-/.test(ref)) {
+    /* ref = ID kiriman (KRM-…, v13: draft atau sudah dikirim) | ID daur ulang (DUR-…) → surat jalan BS ke jasa daur ulang | ID pengiriman dipisah koma (OUT-…) → ke customer */
+    if (/^KRM-/.test(ref)) {
+      var kr = cariEntri_(SHEET.KIRIMAN, ref);
+      if (kr.Status === STATUS_KIRIMAN.DIBATALKAN) throw new Error('Kiriman ' + ref + ' sudah dibatalkan.');
+      var soK = {}, soNoK = {}; baca_(SHEET.SO).forEach(function (r) { soK[r.ID] = r; });
+      baca_(SHEET.KIRIMAN_DETAIL).forEach(function (x) {
+        if (x.ID_Kiriman !== ref) return;
+        var soX = x.ID_SO ? soK[x.ID_SO] : null; if (soX && soX.No_SO) soNoK[soX.No_SO] = 1;
+        var b = barisDokumen_(x.Kode_Item, x.Nama_Item, angka_(x.Qty_Kg), 0, kgPerBal, ''); b.ukuranBaris = soX ? String(soX.Ukuran || '') : '';
+        if (kr.Jenis === JENIS_KIRIMAN.DAUR) b.bal = 0;   // BS tidak dihitung bal
+        baris.push(b);
+      });
+      if (!baris.length) throw new Error('Kiriman ' + ref + ' tidak punya baris.');
+      if (kr.Jenis === JENIS_KIRIMAN.DAUR) { pihak = { label: 'Jasa daur ulang', nama: kr.Tujuan }; d.sumber = 'DAUR'; }
+      else { pihak = { label: 'Customer', nama: kr.Tujuan }; d.noSo = Object.keys(soNoK).sort().join(', '); d.sumber = 'KIRIM'; }
+      d.tanggalKirim = kr.Tanggal_Kirim || kr.Tanggal_Rencana || ''; d.noSuratJalanAsal = kr.No_Surat_Jalan || ''; d.idKiriman = ref; d.draft = kr.Status === STATUS_KIRIMAN.DISIAPKAN;
+      if (!String(p.pengangkut || '').trim()) p.pengangkut = kr.Pengangkut || '';
+      sumberSj = null;   // nomor ditulis ke Kiriman oleh siapkanKiriman / kirimKiriman; baris Pengiriman mendapat nomornya saat Kirim
+    } else if (/^DUR-/.test(ref)) {
       var du = cariEntri_(SHEET.DAUR, ref);
       if (du.Status === STATUS_DAUR.DIBATALKAN) throw new Error('Daur ulang ' + ref + ' sudah dibatalkan.');
       baca_(SHEET.DAUR_DETAIL).forEach(function (x) {

@@ -46,7 +46,7 @@ console.log('— Migrasi v8 → v9: Stok_Awal_GP digabung, kolom dihapus, sheet 
   ctx.lupakanMemo_();
 }
 ctx.setupSistem();
-ok('versi 12.10.0', ctx.APP.versi==='12.10.0');
+ok('versi 13.0.0', ctx.APP.versi==='13.0.0');
 ok('stok awal 0 di seed → laporan stok kosong (belum ada transaksi)', ctx.laporanStok(SPV).daftar.length===0);
 
 console.log('\n— Tambah master dari form (semua peran) —');
@@ -89,7 +89,7 @@ ok('BS KW 20 kg ada di gudang (12 blowing + 8 cutting)', ctx.getKonteks(STAF).st
 tolak('bahan baku biasa tidak bisa dikirim ke chassen', ()=>ctx.mulaiDaurUlang({vendor:VENDOR, scrap:[{kode:KW,qty:5}], foto:FOTO, ident:STAF}), /bukan scrap/);
 tolak('tanpa vendor ditolak', ()=>ctx.mulaiDaurUlang({scrap:[{kode:SCR,qty:5}], ident:STAF}), /vendor/i);
 tolak('tanpa scrap ditolak', ()=>ctx.mulaiDaurUlang({vendor:VENDOR, scrap:[], ident:STAF}), /belum diisi/);
-tolak('v11.2: kirim ke chassen tanpa foto surat jalan ditolak', ()=>ctx.mulaiDaurUlang({vendor:VENDOR, noSuratJalan:'SJ/CH/1', scrap:[{kode:SCR,qty:15}], ident:STAF}), /Foto surat jalan ke tempat chassen wajib/);
+tolak('v13: qty 0 ditolak sebelum menulis apa pun (foto surat jalan kini boleh menyusul — lihat test-v13)', ()=>ctx.mulaiDaurUlang({vendor:VENDOR, noSuratJalan:'SJ/CH/1', scrap:[{kode:SCR,qty:0}], ident:STAF}), /Qty harus > 0/);
 const d1 = ctx.mulaiDaurUlang({vendor:VENDOR, noSuratJalan:'SJ/CH/1', scrap:[{kode:SCR,qty:15}], catatan:'kirim pagi', foto:FOTO, ident:STAF});
 ok('batch dibuat, 15 kg', d1.ok && /^DUR-/.test(d1.id) && d1.totalKg===15, d1);
 ok('scrap di gudang berkurang jadi 5 (dalam perjalanan ke chassen)', ctx.getKonteks(STAF).stok[SCR].gbj===5);
