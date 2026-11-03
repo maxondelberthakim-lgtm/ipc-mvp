@@ -6,6 +6,54 @@
   <?!= include('Styles'); ?>
 </head>
 <body>
+<!-- v12.10: satu set ikon garis (24 px, garis 1.8, ujung bulat) — dipakai lewat <use href="#i-…"> -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <symbol id="i-rumah" viewBox="0 0 24 24"><path d="M3.5 10.5 12 3.5l8.5 7V19a1.5 1.5 0 0 1-1.5 1.5h-4v-6H9v6H5A1.5 1.5 0 0 1 3.5 19z"/></symbol>
+  <symbol id="i-pabrik" viewBox="0 0 24 24"><path d="M3 20.5V10l5.5 3.5V10l5.5 3.5V6.5h4.5l1.5 2v12z"/><path d="M2 20.5h20M7.5 17h2M13 17h2"/></symbol>
+  <symbol id="i-grafik" viewBox="0 0 24 24"><path d="M3.5 3.5v17h17"/><path d="M8 16.5v-4M12.5 16.5V7.5M17 16.5V10"/></symbol>
+  <symbol id="i-kunci" viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.4-3.4a6 6 0 0 1-7.9 7.9l-6.9 6.9a2.1 2.1 0 0 1-3-3l6.9-6.9a6 6 0 0 1 7.9-7.9z"/></symbol>
+  <symbol id="i-segar" viewBox="0 0 24 24"><path d="M20.5 12a8.5 8.5 0 1 1-2.5-6l2.5 2.5"/><path d="M20.5 3.5v5h-5"/></symbol>
+  <symbol id="i-terima" viewBox="0 0 24 24"><path d="M12 3v9m0 0-3.5-3.5M12 12l3.5-3.5"/><path d="M3.5 13.5H8l1.5 2.5h5l1.5-2.5h4.5"/><path d="M3.5 13.5v5A1.5 1.5 0 0 0 5 20h14a1.5 1.5 0 0 0 1.5-1.5v-5"/></symbol>
+  <symbol id="i-retur" viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></symbol>
+  <symbol id="i-papan" viewBox="0 0 24 24"><rect x="8" y="2.5" width="8" height="4" rx="1"/><path d="M16 4.5h2A1.5 1.5 0 0 1 19.5 6v14a1.5 1.5 0 0 1-1.5 1.5H6A1.5 1.5 0 0 1 4.5 20V6A1.5 1.5 0 0 1 6 4.5h2"/><path d="M8.5 11.5h7M8.5 15.5H13"/></symbol>
+  <symbol id="i-awas" viewBox="0 0 24 24"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4.5M12 17.2h.01"/></symbol>
+  <symbol id="i-truk" viewBox="0 0 24 24"><path d="M2.5 5.5h11v10h-11zM13.5 9h4.2l3.8 3.8v2.7h-8"/><circle cx="6.5" cy="17.5" r="2"/><circle cx="17.5" cy="17.5" r="2"/></symbol>
+  <symbol id="i-nota" viewBox="0 0 24 24"><path d="M5.5 3h13v18l-2.2-1.4-2.1 1.4-2.2-1.4-2.2 1.4-2.1-1.4L5.5 21z"/><path d="M9 8h6M9 12h6M9 16h3"/></symbol>
+  <symbol id="i-daur" viewBox="0 0 24 24"><path d="M7 19H4.8a1.8 1.8 0 0 1-1.6-2.7l4-6.8"/><path d="M11 19h8.2a1.8 1.8 0 0 0 1.6-2.7l-1.2-2.1"/><path d="m14 16-3 3 3 3"/><path d="M8.3 13.6 7.2 9.5l-4.1 1.1"/><path d="m9.3 5.8 1.1-1.9a1.8 1.8 0 0 1 3.1 0l3.9 6.8"/><path d="m13.4 9.6 4.1 1.1 1.1-4.1"/></symbol>
+  <symbol id="i-kamera" viewBox="0 0 24 24"><path d="M14.5 4.5h-5L7.5 7h-3A1.5 1.5 0 0 0 3 8.5v10A1.5 1.5 0 0 0 4.5 20h15a1.5 1.5 0 0 0 1.5-1.5v-10A1.5 1.5 0 0 0 19.5 7h-3z"/><circle cx="12" cy="13" r="3.5"/></symbol>
+  <symbol id="i-kiri" viewBox="0 0 24 24"><path d="M15 5.5 8.5 12l6.5 6.5"/></symbol>
+  <symbol id="i-kanan" viewBox="0 0 24 24"><path d="M9 5.5l6.5 6.5L9 18.5"/></symbol>
+  <symbol id="i-naik" viewBox="0 0 24 24"><path d="M7 17 17 7M9 7h8v8"/></symbol>
+  <symbol id="i-turun" viewBox="0 0 24 24"><path d="M7 7l10 10M17 9v8H9"/></symbol>
+  <symbol id="i-angin" viewBox="0 0 24 24"><path d="M17.7 7.7a2.5 2.5 0 1 1 1.8 4.3H2.5"/><path d="M9.6 4.6A2 2 0 1 1 11 8H2.5"/><path d="M12.6 19.4A2 2 0 1 0 14 16H2.5"/></symbol>
+  <symbol id="i-gunting" viewBox="0 0 24 24"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M20 4 8.1 15.9M14.5 14.5 20 20M8.1 8.1 12 12"/></symbol>
+  <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5.5M12 7.8h.01"/></symbol>
+  <symbol id="i-tas" viewBox="0 0 24 24"><path d="M5.5 7.5h13l-1 13h-11z"/><path d="M9 7.5V6a3 3 0 0 1 6 0v1.5"/></symbol>
+  <symbol id="i-roll" viewBox="0 0 24 24"><ellipse cx="12" cy="6" rx="7" ry="2.8"/><path d="M5 6v12c0 1.5 3.1 2.8 7 2.8s7-1.3 7-2.8V6"/></symbol>
+  <symbol id="i-biji" viewBox="0 0 24 24"><circle cx="8" cy="9" r="3"/><circle cx="16" cy="8" r="3"/><circle cx="12" cy="16" r="3"/></symbol>
+  <symbol id="i-persen" viewBox="0 0 24 24"><path d="M19 5 5 19"/><circle cx="7" cy="7" r="2.5"/><circle cx="17" cy="17" r="2.5"/></symbol>
+  <symbol id="i-kotak" viewBox="0 0 24 24"><path d="M20.5 7.5 12 3 3.5 7.5v9L12 21l8.5-4.5z"/><path d="M3.5 7.5 12 12l8.5-4.5M12 12v9"/></symbol>
+  <symbol id="i-keranjang" viewBox="0 0 24 24"><circle cx="9" cy="20" r="1.4"/><circle cx="17.5" cy="20" r="1.4"/><path d="M2.5 3.5h2.6l2.3 11a1.8 1.8 0 0 0 1.8 1.4h8.4a1.8 1.8 0 0 0 1.7-1.3L21.5 7H6"/></symbol>
+  <symbol id="i-koin" viewBox="0 0 24 24"><ellipse cx="12" cy="6" rx="7" ry="3"/><path d="M5 6v6c0 1.7 3.1 3 7 3s7-1.3 7-3V6"/><path d="M5 12v6c0 1.7 3.1 3 7 3s7-1.3 7-3v-6"/></symbol>
+  <symbol id="i-beres" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8 12.2l2.8 2.8L16 9.5"/></symbol>
+  <symbol id="i-silang" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></symbol>
+  <symbol id="i-penggaris" viewBox="0 0 24 24"><path d="M21.3 15.3a2.4 2.4 0 0 1 0 3.4l-2.6 2.6a2.4 2.4 0 0 1-3.4 0L2.7 8.7a2.4 2.4 0 0 1 0-3.4l2.6-2.6a2.4 2.4 0 0 1 3.4 0z"/><path d="m14.5 12.5 2-2M11.5 9.5l2-2M8.5 6.5l2-2M17.5 15.5l2-2"/></symbol>
+  <symbol id="i-unduh" viewBox="0 0 24 24"><path d="M12 3.5v12M7 11l5 5 5-5"/><path d="M4 20.5h16"/></symbol>
+  <symbol id="i-cetak" viewBox="0 0 24 24"><path d="M6.5 9V3.5h11V9"/><rect x="3" y="9" width="18" height="8" rx="2"/><path d="M6.5 14h11v6.5h-11z"/></symbol>
+  <symbol id="i-chat" viewBox="0 0 24 24"><path d="M21 11.5a8.5 8.5 0 0 1-12.4 7.6L3 20.5l1.5-5.2A8.5 8.5 0 1 1 21 11.5z"/></symbol>
+  <symbol id="i-salin" viewBox="0 0 24 24"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1"/></symbol>
+  <symbol id="i-galeri" viewBox="0 0 24 24"><rect x="3" y="3.5" width="18" height="17" rx="2.5"/><circle cx="8.5" cy="9" r="1.8"/><path d="m21 15.5-5-5-9 9"/></symbol>
+  <symbol id="i-ulang" viewBox="0 0 24 24"><path d="m17 2.5 3.5 3.5L17 9.5"/><path d="M3.5 11.5V10a4 4 0 0 1 4-4h13"/><path d="M7 21.5 3.5 18 7 14.5"/><path d="M20.5 12.5V14a4 4 0 0 1-4 4h-13"/></symbol>
+  <symbol id="i-centang" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
+  <symbol id="i-centangKotak" viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="17" height="17" rx="3"/><path d="M8 12.2l2.8 2.8L16 9.5"/></symbol>
+  <symbol id="i-orang" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4.5 20.5a7.5 7.5 0 0 1 15 0"/></symbol>
+  <symbol id="i-gembok" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7.5a4 4 0 0 1 8 0V11"/></symbol>
+  <symbol id="i-gembokBuka" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7.5a4 4 0 0 1 7.8-1.3"/></symbol>
+  <symbol id="i-pin" viewBox="0 0 24 24"><circle cx="7.5" cy="15.5" r="4.5"/><path d="M10.8 12.2 20 3M17 6l2.5 2.5M14.5 8.5 17 11"/></symbol>
+  <symbol id="i-pensil" viewBox="0 0 24 24"><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4.5 1.5L5 15z"/><path d="m14.5 5.5 3 3"/></symbol>
+  <symbol id="i-dokumen" viewBox="0 0 24 24"><path d="M14 3H6.5A1.5 1.5 0 0 0 5 4.5v15A1.5 1.5 0 0 0 6.5 21h11a1.5 1.5 0 0 0 1.5-1.5V8z"/><path d="M14 3v5h5M9 13h6M9 17h6"/></symbol>
+  <symbol id="i-cari" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20.5 20.5 16 16"/></symbol>
+</svg>
 
 <header>
   <div>
@@ -13,7 +61,7 @@
     <div class="s" id="hdrUser">…</div>
   </div>
   <div class="sp"></div>
-  <button class="langbtn" id="btnSegar" onclick="segarkan()" title="Refresh" style="margin-right:8px">↻</button>
+  <button class="langbtn" id="btnSegar" onclick="segarkan()" title="Refresh" aria-label="Refresh" style="margin-right:8px"><svg class="i"><use href="#i-segar"/></svg></button>
   <button class="langbtn" id="btnKeluar" onclick="keluar()" data-i18n="keluar" style="margin-right:8px">Keluar</button>
   <button class="langbtn" id="btnLang" onclick="gantiBahasa()">ID</button>
 </header>
@@ -66,9 +114,9 @@
 
     <div class="card cal">
       <div class="calhead">
-        <button class="calnav" onclick="geserBulan(-1)" aria-label="prev">‹</button>
+        <button class="calnav" onclick="geserBulan(-1)" aria-label="prev"><svg class="i"><use href="#i-kiri"/></svg></button>
         <div class="caltitle" id="calTitle">…</div>
-        <button class="calnav" onclick="geserBulan(1)" aria-label="next">›</button>
+        <button class="calnav" onclick="geserBulan(1)" aria-label="next"><svg class="i"><use href="#i-kanan"/></svg></button>
       </div>
       <div class="calgrid" id="calGrid"></div>
       <div class="callegend">
@@ -84,20 +132,20 @@
     <h3 class="sec" id="secBeliH" data-i18n="secBeli">Barang dari supplier</h3>
     <div class="actions">
       <button class="action mod-gudang" onclick="bukaMutasi('BELI_MASUK')">
-        <div class="ico d">⓪</div>
+        <div class="ico d"><svg class="i"><use href="#i-terima"/></svg></div>
         <div class="tx"><b data-i18n="a0t">Penerimaan barang</b><span data-i18n="a0s">Supplier → GBJ · dari PO · foto surat jalan · QC</span></div>
         <span class="badge hide" id="poBadge">0</span>
       </button>
       <button class="action mod-gudang" onclick="bukaMutasi('BELI_RETUR')">
-        <div class="ico e">↩</div>
+        <div class="ico e"><svg class="i"><use href="#i-retur"/></svg></div>
         <div class="tx"><b data-i18n="a5t">Retur ke supplier</b><span data-i18n="a5s">Hanya dari barang yang sudah diterima</span></div>
       </button>
       <button class="action" id="tilePo" onclick="tampil('po')">
-        <div class="ico d">📋</div>
+        <div class="ico d"><svg class="i"><use href="#i-papan"/></svg></div>
         <div class="tx"><b data-i18n="a8t">Pesanan pembelian (PO)</b><span data-i18n="a8s">Apa yang akan datang · qty · harga · spesifikasi · invoice</span></div>
       </button>
       <button class="action mod-gudang" id="tileRusak" onclick="tampil('rusak')">
-        <div class="ico e">⚠️</div>
+        <div class="ico e"><svg class="i"><use href="#i-awas"/></svg></div>
         <div class="tx"><b data-i18n="a9t">Barang rusak</b><span data-i18n="a9s">Lapor kerusakan · stok langsung berkurang (tanpa persetujuan)</span></div>
       </button>
     </div>
@@ -105,15 +153,15 @@
     <h3 class="sec" id="secJualH" data-i18n="secJual">Barang ke customer</h3>
     <div class="actions">
       <button class="action mod-gudang" onclick="bukaMutasi('JUAL_KELUAR')">
-        <div class="ico f">④</div>
+        <div class="ico f"><svg class="i"><use href="#i-truk"/></svg></div>
         <div class="tx"><b data-i18n="a6t">Barang keluar (terjual)</b><span data-i18n="a6s">GBJ → customer · mengurangi stok</span></div>
       </button>
       <button class="action mod-gudang" onclick="bukaMutasi('JUAL_RETUR')">
-        <div class="ico e">↩</div>
+        <div class="ico e"><svg class="i"><use href="#i-retur"/></svg></div>
         <div class="tx"><b data-i18n="a7t">Retur dari customer</b><span data-i18n="a7s">Customer → GBJ · menambah stok</span></div>
       </button>
       <button class="action hide" id="tileSo" onclick="tampil('so')">
-        <div class="ico f">🧾</div>
+        <div class="ico f"><svg class="i"><use href="#i-nota"/></svg></div>
         <div class="tx"><b data-i18n="a10t">Sales order (SO)</b><span data-i18n="a10s">Pesanan customer · apa yang harus dikirim &amp; kapan</span></div>
         <span class="badge hide" id="soBadge">0</span>
       </button>
@@ -122,12 +170,12 @@
     <h3 class="sec" data-i18n="secCatat">Produksi</h3>
     <div class="actions">
       <button class="action" onclick="tampil('shift')">
-        <div class="ico b">①</div>
+        <div class="ico b"><svg class="i"><use href="#i-pabrik"/></svg></div>
         <div class="tx"><b data-i18n="a2t">Laporan shift produksi</b><span data-i18n="a2s">Per shift per mesin: operator · biji plastik diambil · roll / polybag jadi per kualitas · BS</span></div>
         <span class="badge hide" id="shiftBadge">0</span>
       </button>
       <button class="action mod-gudang" onclick="tampil('daur')">
-        <div class="ico c">♻️</div>
+        <div class="ico c"><svg class="i"><use href="#i-daur"/></svg></div>
         <div class="tx"><b data-i18n="a11t">Daur ulang scrap</b><span data-i18n="a11s">Scrap → mesin chassen (pabrik lain) → biji plastik · susut &amp; jasa</span></div>
         <span class="badge hide" id="daurBadge">0</span>
       </button>
@@ -153,7 +201,7 @@
       <div class="field" id="rcvFotoWrap">
         <label id="rcvFotoLabel" data-i18n="lblFotoSJ">Foto surat jalan</label>
         <div class="photo" id="rcvPhoto" onclick="pilihFoto('rcv')">
-          <div class="p1">📷 <span data-i18n="fotoAmbil">Kamera atau galeri</span></div>
+          <div class="p1"><svg class="i"><use href="#i-kamera"/></svg> <span data-i18n="fotoAmbil">Kamera atau galeri</span></div>
           <div class="p2" data-i18n="fotoHintSJ">Bukti silang untuk angka yang diketik</div>
         </div>
         <input type="file" accept="image/*" id="rcvFile" class="hide" onchange="fotoTerpilih(event,'rcv')">
@@ -224,7 +272,7 @@
     <div class="sheet">
       <div class="sheethead">
         <b data-i18n="editT" id="editTitle">Ubah entri</b>
-        <button class="x2" onclick="tutupEdit()">✕</button>
+        <button class="x2" onclick="tutupEdit()" aria-label="close"><svg class="i"><use href="#i-silang"/></svg></button>
       </div>
       <div class="sub" id="editSub"></div>
       <div class="banner warn hide" id="editUsulanInfo"></div>
@@ -277,9 +325,9 @@
     <div id="shiftList">
       <div class="card" style="padding:10px 12px">
         <div class="row" style="align-items:center">
-          <button class="calnav" onclick="geserHariShift(-1)" aria-label="prev">‹</button>
+          <button class="calnav" onclick="geserHariShift(-1)" aria-label="prev"><svg class="i"><use href="#i-kiri"/></svg></button>
           <input type="date" id="shiftTglFilter" onchange="muatShift()" style="flex:1">
-          <button class="calnav" onclick="geserHariShift(1)" aria-label="next">›</button>
+          <button class="calnav" onclick="geserHariShift(1)" aria-label="next"><svg class="i"><use href="#i-kanan"/></svg></button>
           <button class="btn sec xs" onclick="semuaHariShift()" data-i18n="shift14">14 hari</button>
         </div>
       </div>
@@ -305,7 +353,7 @@
       <!-- MESIN BLOWING -->
       <div class="card mesin" id="secBlowing">
         <div class="mesinhead">
-          <div style="flex:1;min-width:0"><b>🌬️ <span data-i18n="mesinBlowingT">Mesin blowing</span></b><div class="hint" style="margin:2px 0 0" data-i18n="hintBlowing">Biji plastik diambil dari gudang → roll per kualitas + BS.</div></div>
+          <span class="mt mt-b"><svg class="i"><use href="#i-angin"/></svg></span><div style="flex:1;min-width:0"><b><span data-i18n="mesinBlowingT">Mesin blowing</span></b><div class="hint" style="margin:2px 0 0" data-i18n="hintBlowing">Biji plastik diambil dari gudang → roll per kualitas + BS.</div></div>
           <label class="switch"><input type="checkbox" id="blowingAktif" checked onchange="toggleMesin('blowing', this.checked)"><span></span><small data-i18n="mesinJalan">jalan</small></label>
         </div>
         <div id="blowingBody">
@@ -330,7 +378,7 @@
       <!-- MESIN CUTTING -->
       <div class="card mesin" id="secCutting">
         <div class="mesinhead">
-          <div style="flex:1;min-width:0"><b>✂️ <span data-i18n="mesinCuttingT">Mesin cutting</span></b><div class="hint" style="margin:2px 0 0" data-i18n="hintCutting">Roll diambil dari tumpukan (bisa dari shift sebelumnya) → polybag per kualitas + BS. Tidak terkait angka blowing.</div></div>
+          <span class="mt mt-c"><svg class="i"><use href="#i-gunting"/></svg></span><div style="flex:1;min-width:0"><b><span data-i18n="mesinCuttingT">Mesin cutting</span></b><div class="hint" style="margin:2px 0 0" data-i18n="hintCutting">Roll diambil dari tumpukan (bisa dari shift sebelumnya) → polybag per kualitas + BS. Tidak terkait angka blowing.</div></div>
           <label class="switch"><input type="checkbox" id="cuttingAktif" checked onchange="toggleMesin('cutting', this.checked)"><span></span><small data-i18n="mesinJalan">jalan</small></label>
         </div>
         <div id="cuttingBody">
@@ -354,7 +402,7 @@
       <div class="card">
         <div class="field">
           <label data-i18n="lblFotoOpsi">Foto (opsional)</label>
-          <div class="photo" id="shiftPhoto" onclick="pilihFoto('shift')"><div class="p1">📷 <span data-i18n="fotoAmbil">Kamera atau galeri</span></div></div>
+          <div class="photo" id="shiftPhoto" onclick="pilihFoto('shift')"><div class="p1"><svg class="i"><use href="#i-kamera"/></svg> <span data-i18n="fotoAmbil">Kamera atau galeri</span></div></div>
           <input type="file" accept="image/*" id="shiftFile" class="hide" onchange="fotoTerpilih(event,'shift')">
         </div>
         <div class="field">
@@ -406,7 +454,7 @@
         <button class="btn sec sm" onclick="tambahBaris('daur')" data-i18n="btnTambahItem">+ Tambah item</button>
         <div class="field" style="margin-top:14px">
           <label data-i18n="lblFotoOpsi">Foto (opsional)</label>
-          <div class="photo" id="daurPhoto" onclick="pilihFoto('daur')"><div class="p1">📷 <span data-i18n="fotoAmbil">Kamera atau galeri</span></div></div>
+          <div class="photo" id="daurPhoto" onclick="pilihFoto('daur')"><div class="p1"><svg class="i"><use href="#i-kamera"/></svg> <span data-i18n="fotoAmbil">Kamera atau galeri</span></div></div>
           <input type="file" accept="image/*" id="daurFile" class="hide" onchange="fotoTerpilih(event,'daur')">
         </div>
         <div class="field">
@@ -436,7 +484,7 @@
         </div>
         <div class="field">
           <label data-i18n="lblFotoOpsi">Foto (opsional)</label>
-          <div class="photo" id="daurFinPhoto" onclick="pilihFoto('daurFin')"><div class="p1">📷 <span data-i18n="fotoAmbil">Kamera atau galeri</span></div></div>
+          <div class="photo" id="daurFinPhoto" onclick="pilihFoto('daurFin')"><div class="p1"><svg class="i"><use href="#i-kamera"/></svg> <span data-i18n="fotoAmbil">Kamera atau galeri</span></div></div>
           <input type="file" accept="image/*" id="daurFinFile" class="hide" onchange="fotoTerpilih(event,'daurFin')">
         </div>
         <div class="field">
@@ -456,7 +504,7 @@
   <!-- ============ DETAIL DAUR ULANG (overlay) ============ -->
   <div id="daurWrap" class="overlay hide" onclick="if(event.target===this)tutupDaur()">
     <div class="sheet">
-      <div class="sheethead"><b data-i18n="daurDetailT">Detail daur ulang</b><button class="x2" onclick="tutupDaur()">✕</button></div>
+      <div class="sheethead"><b data-i18n="daurDetailT">Detail daur ulang</b><button class="x2" onclick="tutupDaur()" aria-label="close"><svg class="i"><use href="#i-silang"/></svg></button></div>
       <div id="daurDetailBody"></div>
     </div>
   </div>
@@ -500,7 +548,7 @@
       <div class="field">
         <label data-i18n="lblFotoOpsi">Foto (opsional)</label>
         <div class="photo" id="rusakFotoBox" onclick="document.getElementById('rusakFile').click()">
-          <div class="p1">📷 <span data-i18n="fotoAmbil">Kamera atau galeri</span></div>
+          <div class="p1"><svg class="i"><use href="#i-kamera"/></svg> <span data-i18n="fotoAmbil">Kamera atau galeri</span></div>
         </div>
         <input type="file" accept="image/*" id="rusakFile" class="hide" onchange="fotoTerpilih(event,'rusak')">
         <div class="btnrow hide" id="rusakFotoRow"><button class="btn sec sm" onclick="hapusFoto('rusak')" data-i18n="btnGanti">Ganti foto</button></div>
@@ -552,14 +600,14 @@
   <!-- v12: dokumen (invoice / PO) → link cetak + kirim WA -->
   <div id="dokWrap" class="overlay hide" onclick="if(event.target===this)tutupDok()">
     <div class="sheet">
-      <div class="sheethead"><b id="dokJudul">Dokumen</b><button class="x2" onclick="tutupDok()">✕</button></div>
+      <div class="sheethead"><b id="dokJudul">Dokumen</b><button class="x2" onclick="tutupDok()" aria-label="close"><svg class="i"><use href="#i-silang"/></svg></button></div>
       <div class="sub" id="dokSub"></div>
       <div id="dokForm">
         <div class="field"><label data-i18n="dokNomor">Nomor (kosong = otomatis)</label><input id="dokNomor" placeholder="INV/2026/10/001"></div>
         <div class="field"><label data-i18n="dokTanggal">Tanggal dokumen</label><input type="date" id="dokTanggal"></div>
         <div class="field hide" id="dokPengangkutWrap"><label data-i18n="dokPengangkut">Kendaraan / sopir (opsional)</label><input id="dokPengangkut" placeholder="B 1234 XYZ · Pak Udin"></div>
         <div class="field"><label data-i18n="dokCatatan">Catatan di dokumen</label><textarea id="dokCatatan" rows="2"></textarea></div>
-        <details style="margin-bottom:10px"><summary style="font-size:12.5px;font-weight:650;cursor:pointer" data-i18n="dokKop">Kop perusahaan (bisa diubah untuk dokumen ini)</summary>
+        <details style="margin-bottom:10px"><summary style="font-size:12.5px;font-weight:600;cursor:pointer" data-i18n="dokKop">Kop perusahaan (bisa diubah untuk dokumen ini)</summary>
           <div class="field"><label data-i18n="perNama">Nama perusahaan</label><input id="dokPerNama"></div>
           <div class="field"><label data-i18n="perAlamat">Alamat</label><textarea id="dokPerAlamat" rows="2"></textarea></div>
           <div class="field"><label data-i18n="perTelp">Telepon / WA</label><input id="dokPerTelp"></div>
@@ -574,19 +622,19 @@
   </div>
   <div id="waWrap" class="overlay hide" onclick="if(event.target===this)tutupWa()">
     <div class="sheet">
-      <div class="sheethead"><b data-i18n="waT">Kirim lewat WhatsApp</b><button class="x2" onclick="tutupWa()">✕</button></div>
+      <div class="sheethead"><b data-i18n="waT">Kirim lewat WhatsApp</b><button class="x2" onclick="tutupWa()" aria-label="close"><svg class="i"><use href="#i-silang"/></svg></button></div>
       <div class="sub" id="waSub"></div>
       <div class="field"><label data-i18n="waPilih">Pilih kontak</label><select id="waKontak" onchange="waPilihKontak()"></select></div>
       <div class="field"><label data-i18n="waNomor">Nomor WA</label><input id="waNomor" inputmode="tel" placeholder="0812…"></div>
       <div class="field"><label data-i18n="waNama">Nama pemilik nomor</label><input id="waNama"></div>
       <div class="field"><label><input type="checkbox" id="waSimpan" checked style="width:auto;margin-right:8px"><span data-i18n="waSimpanKontak">Simpan ke daftar kontak</span></label></div>
       <div class="field"><label data-i18n="dokCatatan">Pesan</label><textarea id="waPesan" rows="5"></textarea></div>
-      <button class="btn ok" id="btnWaBuka" onclick="bukaWaUI()">💬 <span data-i18n="waBuka">Buka WhatsApp</span></button>
+      <button class="btn ok" id="btnWaBuka" onclick="bukaWaUI()"><svg class="i"><use href="#i-chat"/></svg> <span data-i18n="waBuka">Buka WhatsApp</span></button>
     </div>
   </div>
   <div id="skuWrap" class="overlay hide" onclick="if(event.target===this)tutupSku()">
     <div class="sheet">
-      <div class="sheethead"><b id="skuJudul">SKU</b><button class="x2" onclick="tutupSku()">✕</button></div>
+      <div class="sheethead"><b id="skuJudul">SKU</b><button class="x2" onclick="tutupSku()" aria-label="close"><svg class="i"><use href="#i-silang"/></svg></button></div>
       <div class="field"><label data-i18n="skuKode">Kode</label><input id="skuKode" placeholder="RM-XXX" style="text-transform:uppercase"></div>
       <div class="field"><label data-i18n="skuNama">Nama</label><input id="skuNama"></div>
       <div class="field"><label data-i18n="skuKat">Kategori</label>
@@ -619,7 +667,7 @@
   <!-- ============ FORM PENGGUNA (overlay) ============ -->
   <div id="userWrap" class="overlay hide" onclick="if(event.target===this)tutupUser()">
     <div class="sheet">
-      <div class="sheethead"><b id="userJudul">Pengguna</b><button class="x2" onclick="tutupUser()">✕</button></div>
+      <div class="sheethead"><b id="userJudul">Pengguna</b><button class="x2" onclick="tutupUser()" aria-label="close"><svg class="i"><use href="#i-silang"/></svg></button></div>
       <div class="field"><label data-i18n="identNama">Nama</label><input id="userNama"></div>
       <div class="field"><label data-i18n="userPeran">Peran</label>
         <select id="userPeran">
@@ -640,13 +688,25 @@
     </div>
   </div>
 
+  <!-- ============ v12.10: dialog di dalam app (pengganti prompt / confirm bawaan browser) — kata-kata & langkah sama ============ -->
+  <div id="dlgWrap" class="overlay hide" onclick="if(event.target===this)dlgJawab(false)">
+    <div class="sheet dlg" role="dialog" aria-modal="true" aria-labelledby="dlgPesan">
+      <div class="dlgpesan" id="dlgPesan"></div>
+      <input id="dlgInput" class="hide" autocomplete="off" enterkeyhint="done">
+      <div class="btnrow">
+        <button class="btn sec" id="dlgBatal" onclick="dlgJawab(false)" data-i18n="btnBatal">Batal</button>
+        <button class="btn" id="dlgOk" onclick="dlgJawab(true)">OK</button>
+      </div>
+    </div>
+  </div>
+
 </main>
 
 <nav>
-  <button id="nav-home" class="on" onclick="tampil('home')"><span class="g">🏠</span><span data-i18n="navHome">Beranda</span></button>
-  <button id="nav-shift" onclick="tampil('shift')"><span class="g">🏭</span><span data-i18n="navJob">Produksi</span></button>
-  <button id="nav-report" onclick="tampil('report')"><span class="g">📊</span><span data-i18n="navReport">Laporan</span></button>
-  <button id="nav-admin" class="hide" onclick="tampil('admin')"><span class="g">🛠️</span><span data-i18n="navAdmin">Admin</span></button>
+  <button id="nav-home" class="on" onclick="tampil('home')"><span class="g"><svg class="i"><use href="#i-rumah"/></svg></span><span data-i18n="navHome">Beranda</span></button>
+  <button id="nav-shift" onclick="tampil('shift')"><span class="g"><svg class="i"><use href="#i-pabrik"/></svg></span><span data-i18n="navJob">Produksi</span></button>
+  <button id="nav-report" onclick="tampil('report')"><span class="g"><svg class="i"><use href="#i-grafik"/></svg></span><span data-i18n="navReport">Laporan</span></button>
+  <button id="nav-admin" class="hide" onclick="tampil('admin')"><span class="g"><svg class="i"><use href="#i-kunci"/></svg></span><span data-i18n="navAdmin">Admin</span></button>
 </nav>
 
 <script>var BAHASA_AWAL = '<?= bahasaAwal ?>';</script>

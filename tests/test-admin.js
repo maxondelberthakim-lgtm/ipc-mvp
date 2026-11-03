@@ -63,6 +63,8 @@ ok('biji yang diambil blowing tercatat dipakai 300', st.daftar.find(s=>s.kode===
 const m = st.daftar.find(s=>s.kode==='RM-BP-KW');
 ok('rumus gudang + opname = saldo', Math.abs((m.awal + m.beli - m.retur + m.returCust - m.jual - m.dipakai + m.dihasilkan + m.opname - m.rusak) - m.gbj) < 0.01);
 // opname kedua: sistem sekarang 688
+// riwayat diurutkan per milidetik Waktu — di mesin cepat dua sesi bisa jatuh di ms yang sama (urutan acak), jadi beri jeda sebentar
+{ const t0 = Date.now(); while (Date.now() - t0 < 5) {} }
 const o2 = ctx.simpanOpname({baris:[{kode:'RM-BP-KW', fisik:683}]}, ANTO);
 ok('opname kedua: kurang 5', o2.kurang===5);
 ok('stok jadi 683', ctx.laporanStok(ANTO).daftar.find(s=>s.kode==='RM-BP-KW').gbj===683);

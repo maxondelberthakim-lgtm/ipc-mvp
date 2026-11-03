@@ -10,7 +10,7 @@
 
 var APP = {
   nama: 'IPC — Inventory & Production Control',
-  versi: '12.9.0',
+  versi: '12.10.0',
   zona: 'Asia/Jakarta',
   satuan: 'kg',
   folderFoto: 'IPC Foto Bukti'

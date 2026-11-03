@@ -226,6 +226,30 @@ console.log('\n— v12.9: surat jalan (delivery order) untuk kiriman ke customer
   ok('log DOK_SJ_BUAT tercatat (4×), berisi kg', log.length===4 && /kg$/.test(log[0].Detail), log.map(r=>r.Detail));
 }
 
+console.log('\n— v12.10: perHari (kg per tanggal transaksi) di laporan beli & jual —');
+{
+  const tg = (n) => { const d = new Date(); d.setDate(d.getDate() - n); return ctx.tglStr_(d); };
+  const hariKe = (r, tanggal, kol) => { const x = r.perHari.find(h => h.tanggal === tanggal); return x ? x[kol] : 0; };
+  const jml = (r, kol) => Math.round(r.perHari.reduce((a, h) => a + h[kol], 0) * 100) / 100;
+  const b0 = ctx.riwayatPenerimaan(30, YS);
+  ctx.simpanPenerimaan({jenis:'MASUK', supplier:SUP, tanggal:tg(2), baris:[{kode:KW, qty:40}], ident:YS});
+  ctx.simpanPenerimaan({jenis:'MASUK', supplier:SUP, tanggal:tg(2), baris:[{kode:KW, qty:10}], ident:YS});
+  const rb = ctx.simpanPenerimaan({jenis:'MASUK', supplier:SUP, tanggal:tg(1), baris:[{kode:KW, qty:7}], ident:YS});
+  ctx.batalkanEntriSendiri(rb.ids[0], 'uji batal', YS);
+  const b1 = ctx.riwayatPenerimaan(30, YS);
+  ok('beli: perHari ada & urut tanggal naik', Array.isArray(b1.perHari) && b1.perHari.every((h, i, a) => !i || a[i-1].tanggal < h.tanggal), b1.perHari);
+  ok('beli: dua penerimaan bertanggal 2 hari lalu (40 + 10) masuk ke tanggal transaksinya', hariKe(b1, tg(2), 'masuk') - hariKe(b0, tg(2), 'masuk') === 50, [hariKe(b0, tg(2), 'masuk'), hariKe(b1, tg(2), 'masuk')]);
+  ok('beli: penerimaan yang dibatalkan tidak dihitung', hariKe(b1, tg(1), 'masuk') === hariKe(b0, tg(1), 'masuk'));
+  ok('beli: jumlah perHari = total masuk & total retur', jml(b1, 'masuk') === b1.total.masuk && jml(b1, 'retur') === b1.total.retur, [jml(b1, 'masuk'), b1.total]);
+  ok('beli: perHari hanya kg (tanpa harga / nilai)', b1.perHari.every(h => Object.keys(h).join() === 'tanggal,masuk,retur'));
+  const j0 = ctx.laporanPenjualan(30, YS);
+  ctx.simpanPengiriman({jenis:'KELUAR', customer:CUS, tanggal:tg(3), baris:[{kode:FG, qty:5}], ident:YS});
+  const j1 = ctx.laporanPenjualan(30, SM);
+  ok('jual: pengiriman bertanggal 3 hari lalu (5 kg) masuk ke tanggal transaksinya', hariKe(j1, tg(3), 'keluar') - hariKe(j0, tg(3), 'keluar') === 5, [hariKe(j0, tg(3), 'keluar'), hariKe(j1, tg(3), 'keluar')]);
+  ok('jual: jumlah perHari = total keluar & total retur', jml(j1, 'keluar') === j1.total.keluar && jml(j1, 'retur') === j1.total.retur, [jml(j1, 'keluar'), j1.total]);
+  ok('jual: perHari hanya kg (tanpa harga / nilai)', j1.perHari.every(h => Object.keys(h).join() === 'tanggal,keluar,retur'));
+}
+
 fs.unlinkSync(__dirname+'/.h12.js');
 console.log('\n================ '+pass+' lulus, '+fail+' gagal ================');
 process.exit(fail?1:0);

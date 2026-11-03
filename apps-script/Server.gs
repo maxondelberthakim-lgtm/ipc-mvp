@@ -227,6 +227,8 @@ function emailAktif_() {
 }
 
 function tglStr_(d) { return Utilities.formatDate(d || new Date(), APP.zona, 'yyyy-MM-dd'); }
+/** v12.10: tanggal transaksi sebuah baris ('yyyy-MM-dd'); baris lama tanpa Tanggal → tanggal dari Waktu. */
+function tglBaris_(r) { var s = String(r.Tanggal || '').slice(0, 10); return /^\d{4}-\d{2}-\d{2}$/.test(s) ? s : tglStr_(new Date(r.Waktu)); }
 
 /** Tanggal transaksi: default hari ini; boleh dimundurkan (lupa input kemarin) maks MAKS_MUNDUR_HARI, tidak boleh ke depan. */
 function tglValid_(s) {
@@ -968,18 +970,24 @@ function riwayatPenerimaan(hari, ident) {
     else totMasuk += angka_(r.Qty_Kg);
   });
 
-  var perSupplier = {};
+  var perSupplier = {}, perHari = {};
   rows.forEach(function (r) {
     if (!dihitung_(r)) return;
     var k = r.Supplier || '(tanpa supplier)';
     if (!perSupplier[k]) perSupplier[k] = { supplier: k, masuk: 0, retur: 0 };
     if (r.Jenis === JENIS_PENERIMAAN.RETUR) perSupplier[k].retur += angka_(r.Qty_Kg);
     else perSupplier[k].masuk += angka_(r.Qty_Kg);
+    var h = tglBaris_(r);
+    if (!perHari[h]) perHari[h] = { tanggal: h, masuk: 0, retur: 0 };
+    if (r.Jenis === JENIS_PENERIMAAN.RETUR) perHari[h].retur += angka_(r.Qty_Kg);
+    else perHari[h].masuk += angka_(r.Qty_Kg);
   });
 
   return {
     hari: hari || 30,
     total: { masuk: bulat_(totMasuk, 2), retur: bulat_(totRetur, 2), bersih: bulat_(totMasuk - totRetur, 2) },
+    /* v12.10: kg per tanggal transaksi (untuk grafik tren) — tanpa harga */
+    perHari: Object.keys(perHari).sort().map(function (k) { var x = perHari[k]; return { tanggal: k, masuk: bulat_(x.masuk, 2), retur: bulat_(x.retur, 2) }; }),
     perSupplier: Object.keys(perSupplier).map(function (k) {
       var s = perSupplier[k];
       s.masuk = bulat_(s.masuk, 2); s.retur = bulat_(s.retur, 2);
@@ -1002,13 +1010,17 @@ function laporanPenjualan(hari, ident) {
   var rows = baca_(SHEET.PENGIRIMAN).filter(function (r) { return new Date(r.Waktu) >= batas; });
 
   var totKeluar = 0, totRetur = 0;
-  var perCustomer = {}, perItem = {};
+  var perCustomer = {}, perItem = {}, perHari = {};
 
   rows.forEach(function (r) {
     if (!dihitung_(r)) return;
     var q = angka_(r.Qty_Kg);
     var retur = r.Jenis === JENIS_PENGIRIMAN.RETUR_MASUK;
     if (retur) totRetur += q; else totKeluar += q;
+
+    var h = tglBaris_(r);
+    if (!perHari[h]) perHari[h] = { tanggal: h, keluar: 0, retur: 0 };
+    if (retur) perHari[h].retur += q; else perHari[h].keluar += q;
 
     var c = r.Customer || '(tanpa customer)';
     if (!perCustomer[c]) perCustomer[c] = { customer: c, keluar: 0, retur: 0 };
@@ -1032,6 +1044,8 @@ function laporanPenjualan(hari, ident) {
     hari: hari || 30,
     total: { keluar: bulat_(totKeluar, 2), retur: bulat_(totRetur, 2),
              bersih: bulat_(totKeluar - totRetur, 2) },
+    /* v12.10: kg per tanggal transaksi (untuk grafik tren) — tanpa harga */
+    perHari: Object.keys(perHari).sort().map(function (k) { var x = perHari[k]; return { tanggal: k, keluar: bulat_(x.keluar, 2), retur: bulat_(x.retur, 2) }; }),
     perCustomer: rapikan(perCustomer),
     perItem: rapikan(perItem),
     detail: rows.map(function (r) {

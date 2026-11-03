@@ -3,16 +3,38 @@
    Bastari (PRODUKSI) isi laporan shift 2 mesin + opname produksi; Deny (SO) buat SO; staf kirim sesuai SO;
    staf lapor rusak → stok langsung turun; Manager batalkan laporan rusak; daur ulang; Admin rekonsiliasi;
    akses per modul ditegakkan di UI & server; staf tidak melihat Rp. Cek error console. */
-import { chromium } from 'playwright';
-const APP = 'http://127.0.0.1:8090/';
-const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome' });
-const p = await b.newPage({ viewport: { width: 420, height: 940 }, deviceScaleFactor: 2 });
-const errs = []; p.on('pageerror', e => errs.push('PAGEERROR: ' + e.message)); p.on('console', m => { if (m.type() === 'error') errs.push('CONSOLE: ' + m.text()); });
+/* Lingkungan lewat env — default = sandbox lama (/home/claude, /opt/pw-browsers). Di Mac semua diisi run-e2e-mac.sh (README → Mac):
+   PW_DIR folder berisi node_modules/playwright atau playwright-core (default: cari dari folder skrip ini) · E2E_BROWSER chromium|webkit
+   CHROME_PATH (chromium) · E2E_REDUCED_MOTION=1 → reducedMotion 'reduce' · APP_URL (default http://127.0.0.1:8090/)
+   H2P_JS html2pdf.bundle.min.js lokal · E2E_OUT folder screenshot · E2E_TIMEOUT_S (default 600).
+   Peramban & fetch Node hanya boleh ke 127.0.0.1/localhost: host lain lewat proxy mati (gagal), dicatat di akhir. */
+import { createRequire } from 'module';
+const ENV = process.env;
+const need = createRequire(ENV.PW_DIR ? ENV.PW_DIR.replace(/\/*$/, '/') : import.meta.url);
+const pw = (() => { try { return need('playwright'); } catch (e) { return need('playwright-core'); } })();
+const APP = ENV.APP_URL || 'http://127.0.0.1:8090/';
+const BROWSER = (ENV.E2E_BROWSER || 'chromium').toLowerCase();
+const RM = /^(1|true|ya|reduce)$/i.test(ENV.E2E_REDUCED_MOTION || '');
+const H2P = ENV.H2P_JS || '/home/claude/h2p/node_modules/html2pdf.js/dist/html2pdf.bundle.min.js';
+const OUT = ENV.E2E_OUT || '/home/claude';
+const LOKAL = /^(https?:\/\/(127\.0\.0\.1|localhost)(:\d+)?(\/|$)|data:|blob:|about:)/;
+setTimeout(() => { console.log('\nTIMEOUT: e2e > ' + (+ENV.E2E_TIMEOUT_S || 600) + ' dtk'); process.exit(3); }, 1000 * (+ENV.E2E_TIMEOUT_S || 600)).unref();
+{ const f0 = globalThis.fetch; globalThis.fetch = (u, o) => LOKAL.test(String(u)) ? f0(u, o) : Promise.reject(new Error('E2E: fetch ke luar 127.0.0.1 diblok: ' + u)); }
+const b = await pw[BROWSER].launch({ ...(BROWSER === 'chromium' ? { executablePath: ENV.CHROME_PATH || '/opt/pw-browsers/chromium-1194/chrome-linux/chrome' } : {}),
+  proxy: { server: 'http://127.0.0.1:9', bypass: '127.0.0.1,localhost' } });
+const CTX_EKSTRA = RM ? { reducedMotion: 'reduce' } : {};
+const p = await b.newPage({ viewport: { width: 420, height: 940 }, deviceScaleFactor: 2, ...CTX_EKSTRA });
+console.log('peramban:', BROWSER, b.version(), RM ? '· reducedMotion=reduce' : '', '· app', APP);
+const errs = [], luar = new Set(); p.on('pageerror', e => errs.push('PAGEERROR: ' + e.message));
+p.on('console', m => { if (m.type() !== 'error') return; const lu = (m.location() || {}).url || ''; if (lu && !LOKAL.test(lu)) { luar.add(lu); return; } errs.push('CONSOLE: ' + m.text()); });
+p.on('requestfailed', r => { if (!LOKAL.test(r.url())) luar.add(r.url()); });
 const api = [], mulai = new Map(); p.on('request', r => { if (r.url().includes('8787/exec')) mulai.set(r, Date.now()); });
 p.on('response', r => { const q = r.request(); if (mulai.has(q)) { api.push({ fn: JSON.parse(q.postData()).fn, ms: Date.now() - mulai.get(q), status: r.status() }); mulai.delete(q); } });
 const W = ms => p.waitForTimeout(ms);
 const toasts = []; await p.exposeFunction('__toast', t => toasts.push(t));
-p.on('dialog', d => d.accept('uji e2e'));
+let nativeDialog = 0; p.on('dialog', d => { nativeDialog++; d.accept('uji e2e'); });
+/* v12.10: lembar dialog di dalam app — dijawab otomatis seperti dulu (kecuali window.__dlgManual) */
+await p.addInitScript(() => { new MutationObserver(() => { const w = document.getElementById('dlgWrap'); if (!w || w.classList.contains('hide') || w.dataset.e2e || window.__dlgManual) return; w.dataset.e2e = '1'; setTimeout(() => { const i = document.getElementById('dlgInput'); if (i && !i.classList.contains('hide')) i.value = 'uji e2e'; document.getElementById('dlgOk').click(); delete w.dataset.e2e; }, 60); }).observe(document, { subtree: true, attributes: true, attributeFilter: ['class'] }); });
 const SUF = ' ' + Date.now().toString(36).slice(-4);
 const PNG = 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/wAALCAABAAEBAREA/8QAFAABAAAAAAAAAAAAAAAAAAAACf/EABQQAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQEAAD8AKp//2Q==';
 let pass = 0, fail = 0; const ok = (l, c, e) => { c ? (pass++, console.log('  ✓', l)) : (fail++, console.log('  ✗', l, e === undefined ? '' : JSON.stringify(e))); };
@@ -22,6 +44,7 @@ const hidden = (sel) => p.$eval(sel, e => e.classList.contains('hide'));
 const rpc = (fn, args) => p.evaluate(([fn, args]) => panggil(fn, args.concat([S.ident])).then(r => ({ ok: true, r }), e => ({ ok: false, e: e.message })), [fn, args]);
 
 await p.goto(APP); await W(1500);
+console.log('prefers-reduced-motion: reduce →', await p.evaluate(() => matchMedia('(prefers-reduced-motion: reduce)').matches));
 await p.evaluate(() => { const o = window.toast; window.toast = (m, j) => { window.__toast(m); o(m, j); }; });
 ok('app terbuka & konteks awal dimuat dari Worker', await p.evaluate(() => !!(S && typeof panggil === 'function')));
 ok('tidak ada tab Review / tile menunggu di DOM', !(await p.$('#nav-review')) && !(await p.$('#v-review')) && !(await p.$('#sQueue')));
@@ -167,9 +190,9 @@ const soDocUrl = await p.$eval('#dokHasil input', e => e.value);
 const soHtml = await (await fetch(soDocUrl)).text();
 ok('v12.1: halaman dokumen SO: SALES ORDER, ukuran 30 x 50, TOP dari tanggal SO, tombol Download PDF', /SALES ORDER/.test(soHtml) && /Ukuran 30 x 50/.test(soHtml) && /dari tanggal SO/.test(soHtml) && /Download PDF/.test(soHtml) && /html2pdf/.test(soHtml));
 {
-  const pc = await b.newContext({ acceptDownloads: true }); const pp = await pc.newPage();
+  const pc = await b.newContext({ acceptDownloads: true, ...CTX_EKSTRA }); const pp = await pc.newPage();
   /* sandbox tidak bisa ke cdnjs — sajikan html2pdf 0.10.1 yang sama dari npm */
-  await pp.route('https://cdnjs.cloudflare.com/**', r => r.fulfill({ path: '/home/claude/h2p/node_modules/html2pdf.js/dist/html2pdf.bundle.min.js', contentType: 'application/javascript' }));
+  await pp.route('https://cdnjs.cloudflare.com/**', r => r.fulfill({ path: H2P, contentType: 'application/javascript' }));
   const dl = pp.waitForEvent('download', { timeout: 25000 }).catch(() => null);
   await pp.goto(soDocUrl + '?unduh=1');
   const d = await dl;
@@ -188,20 +211,20 @@ const soRows2 = await p.evaluate(() => panggil('daftarSo', [S.ident, '', 30]));
 const noA = soRows[0].noSo, noB = soRows2.find(r => r.noSo !== noA).noSo;
 await p.evaluate(() => segSo('aktif')); await W(1200);
 ok('v12.2: tombol "Pilih SO" ada di halaman daftar SO (2 SO terbuka)', /Pilih SO/.test(await T('#soBody')) && (await p.$$eval('#soBody .rev', r => r.length)) === 2);
-await p.click('text=☑ Pilih SO'); await W(300);
+await p.click('#soBody button:has-text("Pilih SO")'); await W(300);
 ok('v12.2: mode pilih → checkbox di tiap kartu, tombol Gabung nonaktif sebelum 2 dipilih', (await p.$$eval('#soBody .rev input[type=checkbox]', c => c.length)) === 2 && (await p.$eval('#btnGabungSo', b => b.disabled)) === true);
 await p.click('#so-' + noA + ' input[type=checkbox]'); await W(200); await p.click('#so-' + noB + ' input[type=checkbox]'); await W(300);
 ok('v12.2: 2 SO dipilih → tombol Gabung aktif', (await p.$eval('#btnGabungSo', b => b.disabled)) === false && /2 SO dipilih/.test(await T('#soBody')));
-await p.screenshot({ path: '/home/claude/s122-pilih.png', fullPage: false });
+await p.screenshot({ path: OUT + '/s122-pilih.png', fullPage: false });
 await p.click('#btnGabungSo'); await W(2500);
 const soG = await p.evaluate(() => panggil('daftarSo', [S.ident, '', 30]));
 ok('v12.2: Gabung → satu nomor SO (' + noA + ') dengan 2 baris, toast tampil', toasts.some(t => /SO digabung/.test(t)) && soG.every(r => r.noSo === noA) && soG.length === 2 && (await p.$$eval('#soBody .rev', r => r.length)) === 1, soG.map(r => r.noSo));
-ok('v12.2: invoice lama SO yang digabung tetap aktif (nomor tujuan), kartu punya tombol Pisah', /✂ Pisah/.test(await T('#soBody')));
-await p.click('text=✂ Pisah'); await W(400);
+ok('v12.2: invoice lama SO yang digabung tetap aktif (nomor tujuan), kartu punya tombol Pisah', /Pisah/.test(await T('#soBody')));
+await p.click('#soBody button:has-text("Pisah")'); await W(400);
 ok('v12.2: mode pisah → checkbox per baris, tombol Pisah nonaktif sebelum dipilih', (await p.$$eval('#soBody .listrow input[type=checkbox]', c => c.length)) === 2 && (await p.$eval('#btnPisahSo', b => b.disabled)) === true);
 await p.click('#soBody .listrow input[type=checkbox]'); await W(300);
 ok('v12.2: 1 baris dipilih → tombol "Pisah ke SO baru" aktif', (await p.$eval('#btnPisahSo', b => b.disabled)) === false);
-await p.screenshot({ path: '/home/claude/s122-pisah.png', fullPage: false });
+await p.screenshot({ path: OUT + '/s122-pisah.png', fullPage: false });
 await p.click('#btnPisahSo'); await W(2500);
 const soP = await p.evaluate(() => panggil('daftarSo', [S.ident, '', 30]));
 ok('v12.2: Pisah → SO baru ' + noA + '-P2 (1 baris) + SO asal (1 baris)', toasts.some(t => /dipindah ke/.test(t)) && soP.some(r => r.noSo === noA + '-P2') && soP.filter(r => r.noSo === noA).length === 1 && (await p.$$eval('#soBody .rev', r => r.length)) === 2, soP.map(r => r.noSo));
@@ -287,7 +310,7 @@ await p.evaluate(() => bukaWa(-1)); await W(800);
 ok('v12.9: pesan WA surat jalan menyebut kg + link', /surat jalan SJ\//.test(await p.$eval('#waPesan', e => e.value)) && /100 kg/.test(await p.$eval('#waPesan', e => e.value)));
 await p.evaluate(() => tutupWa()); await p.evaluate(() => tutupDok()); await W(300);
 await p.evaluate(() => bukaMutasi('JUAL_KELUAR')); await W(1500);
-ok('v12.9: riwayat barang keluar: kepala "Kiriman" per kiriman dengan tombol Surat jalan + nomor SJ', /📦 Kiriman/.test(await T('#rcvRiwayat')) && /Surat jalan/.test(await T('#rcvRiwayat')) && /SJ\/\d{4}\/\d{2}\/001/.test(await T('#rcvRiwayat')), (await T('#rcvRiwayat')).slice(0, 200));
+ok('v12.9: riwayat barang keluar: kepala "Kiriman" per kiriman dengan tombol Surat jalan + nomor SJ', /Kiriman/.test(await T('#rcvRiwayat')) && /Surat jalan/.test(await T('#rcvRiwayat')) && /SJ\/\d{4}\/\d{2}\/001/.test(await T('#rcvRiwayat')), (await T('#rcvRiwayat')).slice(0, 200));
 const rkSj = (await p.evaluate(() => panggil('riwayatInput', ['JUAL_KELUAR', 14, S.ident])))[0];
 ok('v12.9: baris pengiriman sekarang punya no. surat jalan = nomor dokumen', /^SJ\//.test(rkSj.noSuratJalan) && rkSj.bolehSj === true && !!rkSj.kelompok, rkSj.noSuratJalan);
 await p.evaluate(() => tampil('rusak')); await W(800);
@@ -296,7 +319,7 @@ await p.evaluate(() => { S.baris.rusak[0].qty = '5'; gambarBaris('rusak'); });
 await p.fill('#rusakPenyebab', 'karung bocor');
 await p.evaluate(() => simpanRusakUI()); await W(2500);
 ok('laporan rusak tersimpan — stok langsung turun (750 − 5 = 745)', toasts.some(t => /stok sudah dikurangi/.test(t)) && (await p.evaluate(() => panggil('laporanStok', [S.ident]))).daftar.find(x => x.kode === 'RM-BP-KW').gbj === 745, toasts.slice(-1));
-ok('riwayat rusak: DISETUJUI, Yansen (manager gudang) punya tombol batal', /Disetujui/.test(await T('#rusakRiwayat')) && /✕/.test(await T('#rusakRiwayat')));
+ok('riwayat rusak: DISETUJUI, Yansen (manager gudang) punya tombol batal', /Disetujui/.test(await T('#rusakRiwayat')) && (await p.$$('#rusakRiwayat .btn.ghost[aria-label]')).length > 0);
 
 /* ---- daur ulang BS ---- */
 await p.evaluate(() => tampil('daur')); await W(600); await p.evaluate(() => segDaur('new')); await W(500);
@@ -318,14 +341,14 @@ await p.evaluate(() => buatDokUI()); await W(2500);
 const sjdHtml = await (await fetch(await p.$eval('#dokHasil input', e => e.value))).text();
 ok('v12.9: halaman SJ daur ulang: Jasa daur ulang, vendor, BS 20 kg, Referensi daur ulang', /Jasa daur ulang/.test(sjdHtml) && /Chassen Mitra/.test(sjdHtml) && /Referensi daur ulang/.test(sjdHtml) && /SURAT JALAN/.test(sjdHtml), sjdHtml.length);
 await p.evaluate(() => tutupDok());
-await p.screenshot({ path: '/home/claude/v11-yansen.png', fullPage: true });
+await p.screenshot({ path: OUT + '/v11-yansen.png', fullPage: true });
 
 /* ---- Manager: batalkan laporan rusak, laporan, SKU ---- */
 ok('login manager', /Manager ·/.test(await login('Manager', '1357')));
 ok('manager: semua tile tampil (PO, SO, gudang, rusak), Admin tampil', !(await hidden('#tilePo')) && !(await hidden('#tileSo')) && !(await hidden('#tileRusak')) && !(await hidden('#nav-admin')));
 await p.evaluate(() => tampil('rusak')); await W(1000);
-ok('manager melihat tombol batal di riwayat rusak', /✕/.test(await T('#rusakRiwayat')));
-await p.click('#rusakRiwayat .btn.ghost:has-text("✕")'); await W(2000);
+ok('manager melihat tombol batal di riwayat rusak', (await p.$$('#rusakRiwayat .btn.ghost[aria-label]')).length > 0);
+await p.click('#rusakRiwayat .btn.ghost[aria-label]'); await W(2000);
 ok('laporan rusak dibatalkan → stok kembali 750', (await p.evaluate(() => panggil('laporanStok', [S.ident]))).daftar.find(x => x.kode === 'RM-BP-KW').gbj === 750);
 /* v12.6: opname bertanggal di Admin → Opname gudang */
 await p.evaluate(() => { tampil('admin'); segAdm('opname'); }); await W(1500);
@@ -342,7 +365,7 @@ ok('v12.6: riwayat opname menampilkan "posisi <tanggal>"', (new RegExp('posisi '
 await p.evaluate(() => { tampil('report'); segRep('nilai'); }); await W(1200);
 const nilai = await T('#repBody');
 ok('nilai stok rata-rata (Rp) tampil untuk manager', /Rp\s?\d/.test(nilai), nilai.slice(0, 120));
-await p.screenshot({ path: '/home/claude/v11-mgr.png', fullPage: true });
+await p.screenshot({ path: OUT + '/v11-mgr.png', fullPage: true });
 
 /* ---- Admin: rekonsiliasi ---- */
 ok('login Admin', /Admin/.test(await login('Admin', '1234')));
@@ -356,6 +379,41 @@ await p.evaluate(() => bukaUser(S.users.findIndex(u => u.nama === 'Yansen'))); a
 ok('form pengguna: checkbox akses, PO + SO + GUDANG tercentang (v12.0.1)', (await p.$$eval('.userAksesCb:checked', c => c.map(x => x.value))).sort().join() === 'GUDANG,PO,SO');
 await p.evaluate(() => tutupUser());
 
+/* ---- v12.10 "fluid": ikon garis (tanpa emoji), laporan KPI + grafik SVG + tooltip, lembar dialog di dalam app, kesalahan isian di kolom ---- */
+await login('Admin', '1234'); await W(800);
+const emojiTerlihat = () => p.evaluate(() => { const re = /[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{2460}-\u{24FF}]/u, out = [], w = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT); let n;
+  while ((n = w.nextNode())) { const el = n.parentElement; if (!el || el.closest('#testBanner,#demoBanner,script,style') || !el.getClientRects().length) continue; if (re.test(n.textContent)) out.push(n.textContent.trim().slice(0, 40)); } return out; });
+ok('v12.10: beranda tanpa emoji (ikon garis dari satu set)', (await emojiTerlihat()).length === 0 && (await p.$$eval('#v-home .action .ico svg use', e => e.length)) >= 6, await emojiTerlihat());
+await p.click('#nav-report'); await W(300); await p.evaluate(() => segRep('produksi'));
+await p.waitForFunction(() => !document.querySelector('#repBody .load')); await W(1400);
+ok('v12.10: Laporan Produksi → 5 kartu KPI + grafik harian SVG', (await p.$$eval('#repBody .kpi', e => e.length)) === 5 && !!(await p.$('#repBody .grafik svg')), await p.$$eval('#repBody .kpi', e => e.length));
+{ const g = await p.$('#repBody .grafik svg'); await g.scrollIntoViewIfNeeded(); await W(300); const bb = await g.boundingBox();
+  await p.mouse.move(bb.x + bb.width * 0.97, bb.y + bb.height * 0.5); await W(300);
+  ok('v12.10: arahkan ke grafik → tooltip (kg / tanggal) + garis bantu', await p.evaluate(() => { const t = document.querySelector('.tip.on'), x = document.querySelector('#repBody .grafik .xh'); return !!t && /kg|shift/.test(t.textContent) && x && getComputedStyle(x).opacity === '1'; }));
+  await p.mouse.move(5, 5); await W(200); }
+for (const [tab, n] of [['stok', 5], ['beli', 3], ['jual', 3]]) {
+  await p.evaluate((t) => segRep(t), tab); await p.waitForFunction(() => !document.querySelector('#repBody .load')); await W(900);
+  const k = await p.$$eval('#repBody .kpi', e => e.length);
+  ok('v12.10: Laporan ' + tab + ' → kartu KPI' + (tab === 'stok' ? '' : ' + grafik 30 hari'), k >= n && (tab === 'stok' || !!(await p.$('#repBody .grafik svg'))), k);
+}
+await p.evaluate(() => { tampil('so'); segSo('aktif'); }); await W(1200);
+if (await p.$('#soBody .btn.ghost')) {
+  await p.evaluate(() => { window.__dlgManual = true; });
+  await p.click('#soBody .btn.ghost >> nth=0'); await p.waitForSelector('#dlgWrap:not(.hide)'); await W(150);
+  ok('v12.10: Batalkan SO → lembar alasan di dalam app (kata-kata sama, isian terfokus)', (await T('#dlgPesan')) === (await p.evaluate(() => t('alasanBatalSo'))) && (await p.evaluate(() => document.activeElement && document.activeElement.id === 'dlgInput')), await T('#dlgPesan'));
+  await p.fill('#dlgInput', 'ab'); await p.click('#dlgOk'); await W(250);
+  ok('v12.10: alasan < 3 huruf → ditanya lagi + "alasan wajib"', !(await hidden('#dlgWrap')) && (await p.$eval('#dlgPesan', e => e.textContent)) === (await p.evaluate(() => t('alasanBatalSo') + '\n' + t('alasanWajib'))));
+  await p.click('#dlgBatal'); await W(300);
+  ok('v12.10: Batal → lembar tertutup, SO tidak dibatalkan', (await hidden('#dlgWrap')) && !toasts.slice(-1).some(t => /dibatalkan/i.test(t)));
+  await p.evaluate(() => { window.__dlgManual = false; });
+}
+await p.evaluate(() => { segSo('baru'); }); await W(500);
+await p.click('#btnSimpanSo'); await W(400);
+ok('v12.10: simpan SO kosong → kolom customer ditandai + pesan di bawahnya (toast tetap)', await p.evaluate(() => document.getElementById('soCustomer').classList.contains('salah') && !!document.querySelector('#v-so .salah-msg')) && toasts.length > 0);
+await p.fill('#soCustomer', 'x'); await W(150);
+ok('v12.10: mulai mengetik → tanda salah hilang', await p.evaluate(() => !document.getElementById('soCustomer').classList.contains('salah')));
+await p.click('#nav-home'); await W(500);
+
 /* ---- peran STAF masih bisa dibuat Admin: tidak lihat Rp ---- */
 ok('Admin membuat akun STAF baru', (await rpc('simpanPengguna', [{ nama: 'Gudang Uji', peran: 'STAF', pin: '9999', aktif: true }])).ok);
 await login('Gudang Uji', '9999');
@@ -364,8 +422,10 @@ ok('STAF baru: nilai stok ditolak server', !(await rpc('laporanNilaiStok', [])).
 await p.reload(); await W(2500);
 ok('setelah reload: sesi tetap & stok dari SQLite', await p.evaluate(() => S.ctx && S.ctx.stok['FG-PB-KW'] && S.ctx.stok['FG-PB-KW'].gbj === 135));
 
+ok('v12.10: tidak ada dialog bawaan browser (prompt / confirm) sepanjang uji', nativeDialog === 0, nativeDialog);
 console.log('\nAPI:', api.length, 'panggilan; rata-rata', Math.round(api.reduce((s, a) => s + a.ms, 0) / api.length), 'ms; terlama', Math.max(...api.map(a => a.ms)), 'ms (' + api.slice().sort((a, b) => b.ms - a.ms)[0].fn + '); non-200:', api.filter(a => a.status !== 200).length);
 const errAsli = errs.filter(e => !/404|ERR_TUNNEL|fonts/.test(e)); console.log('ERRORS (di luar font/ikon):', errAsli.length ? errAsli : 'tidak ada');
-console.log('\n================ ' + pass + ' lulus, ' + fail + ' gagal ================');
+console.log('Permintaan ke luar 127.0.0.1 (diblok):', luar.size ? [...luar] : 'tidak ada');
+console.log('\n================ ' + pass + ' lulus, ' + fail + ' gagal ================ (' + BROWSER + (RM ? ', reduced motion' : '') + ')');
 await b.close();
 process.exit(fail || errAsli.length ? 1 : 0);
