@@ -24,7 +24,7 @@ console.log('— Skema & akses v13 —');
 const ss = ctx.SpreadsheetApp.getActiveSpreadsheet();
 ok('sheet Kiriman & Kiriman_Detail ada', !!ss.getSheetByName('Kiriman') && !!ss.getSheetByName('Kiriman_Detail'));
 ok('Pengiriman & Daur_Ulang punya kolom ID_Kiriman', ctx.HEADER['Pengiriman'].indexOf('ID_Kiriman') >= 0 && ctx.HEADER['Daur_Ulang'].indexOf('ID_Kiriman') >= 0);
-ok('versi 13.0.0', ctx.APP.versi === '13.0.0');
+ok('versi 13.1.0', ctx.APP.versi === '13.1.0');
 { const ky = ctx.getKonteks(YS), kd = ctx.getKonteks(SM), kb = ctx.getKonteks(MP), ks = ctx.getKonteks(STAF);
   ok('konteks: bisaKirim Yansen (GUDANG) true; Deny (SO saja), Bastari (PRODUKSI), STAF false', ky.bisaKirim === true && kd.bisaKirim === false && kb.bisaKirim === false && ks.bisaKirim === false, [ky.bisaKirim, kd.bisaKirim, kb.bisaKirim, ks.bisaKirim]);
   ok('konteks: penghitung siapKirim & belumFotoSj ada (0)', ky.ringkasan.siapKirim === 0 && ky.ringkasan.belumFotoSj === 0 && kd.ringkasan.siapKirim === 0); }
@@ -178,6 +178,31 @@ ok('tidak ada baris Pengiriman tanpa ID_Kiriman dari alur baru; baris lama tetap
   const nK = baca(SH.KIRIMAN).length, nD = baca(SH.KIRIMAN_DETAIL).length;
   ctx.hapusTransaksiSebelum(geser(-5));
   ok('hapusTransaksiSebelum menghapus DO bertanggal rencana lama beserta detailnya, yang lain tetap', !baca(SH.KIRIMAN).some(k => k.ID === tua.id) && !baca(SH.KIRIMAN_DETAIL).some(d => d.ID_Kiriman === tua.id) && baca(SH.KIRIMAN).length === nK - 1 && baca(SH.KIRIMAN_DETAIL).length === nD - 1); }
+
+console.log('\n— v13.1: Kirim langsung (langkah Buat DO opsional) —');
+{ const so = ctx.simpanSo({customer:CUS, tanggalKirim:hari, topHari:0, baris:[{kode:FG, qty:40, harga:1000}, {kode:FG, qty:10, harga:1000, ukuran:'uji 13.1'}]}, SM);
+  const noL = baca(SH.SO).find(r => r.ID === so.ids[0]).No_SO;
+  const s0 = stok(FG), nK = baca(SH.KIRIMAN).length, nSiap = ctx.daftarKiriman(YS, 'siap', 'CUSTOMER').length, nDok = baca(SH.DOKUMEN).length;
+  tolak('kirimLangsung: Deny (SO saja, tanpa Gudang) ditolak', () => ctx.kirimLangsung({jenis:'CUSTOMER', tujuan:CUS, tanggalKirim:hari, baris:[{kode:FG, qty:40, idSo:so.ids[0]}]}, SM), /Gudang/);
+  tolak('kirimLangsung: tanggal kirim ke depan ditolak', () => ctx.kirimLangsung({jenis:'CUSTOMER', tujuan:CUS, tanggalKirim:besok, baris:[{kode:FG, qty:40, idSo:so.ids[0]}]}, YS), /tanggal|Tanggal/);
+  tolak('kirimLangsung: qty melebihi sisa SO ditolak', () => ctx.kirimLangsung({jenis:'CUSTOMER', tujuan:CUS, tanggalKirim:hari, baris:[{kode:FG, qty:41, idSo:so.ids[0]}]}, YS), /melebihi sisa SO/);
+  ok('… tidak ada draft / dokumen tertinggal, stok tetap', baca(SH.KIRIMAN).length === nK && ctx.daftarKiriman(YS, 'siap', 'CUSTOMER').length === nSiap && baca(SH.DOKUMEN).length === nDok && stok(FG) === s0);
+  const r = ctx.kirimLangsung({jenis:'CUSTOMER', tujuan:CUS, tanggalKirim:hari, baris:[{kode:FG, qty:40, idSo:so.ids[0]}], pengangkut:'B 131 LG', foto:FOTO, catatan:'langsung'}, YS);
+  const k = baca(SH.KIRIMAN).find(x => x.ID === r.id);
+  ok('kirimLangsung Yansen: ok, langsung:true, nomor SJ, token dokumen, DIKIRIM, stok −40, foto, kendaraan, catatan, bukan foto menyusul', r.ok && r.langsung === true && /^SJ\//.test(r.nomor) && !!r.token && !!k && k.Status === 'DIKIRIM' && k.No_Surat_Jalan === r.nomor && stok(FG) === s0 - 40 && !!k.Foto_SJ_URL && k.Pengangkut === 'B 131 LG' && k.Catatan === 'langsung' && r.fotoMenyusul === false, [r, k && k.Status]);
+  const pg = baca(SH.PENGIRIMAN).filter(x => x.ID_Kiriman === r.id);
+  ok('baris Pengiriman tertaut (ID_Kiriman) dengan no. SJ = nomor DO; SO baris 1 SELESAI, baris 2 TERBUKA', pg.length === 1 && pg[0].No_Surat_Jalan === r.nomor && soBaris(noL).find(x => x.ID === so.ids[0]).Status === 'SELESAI' && soBaris(noL).find(x => x.ID === so.ids[1]).Status === 'TERBUKA', [pg.length, soBaris(noL).map(x => x.Status)]);
+  const dk = ctx.daftarKiriman(YS, 'dikirim', 'CUSTOMER').find(x => x.id === r.id);
+  ok('tampil di Sudah dikirim (foto ada, token → Cetak DO), tidak di Belum foto, tidak di Siap kirim', !!dk && !!dk.token && !!dk.foto && !dk.lama && !ctx.daftarKiriman(YS, 'belumFoto', 'CUSTOMER').some(x => x.id === r.id) && !ctx.daftarKiriman(YS, 'siap', 'CUSTOMER').some(x => x.id === r.id) && !!pub(dk.token), dk);
+  const r2 = ctx.kirimLangsung({jenis:'CUSTOMER', tujuan:CUS, tanggalKirim:hari, baris:[{kode:FG, qty:5}]}, YS);
+  ok('kirimLangsung tanpa foto & tanpa SO: fotoMenyusul, masuk Belum foto DO, stok −5 lagi', r2.ok && r2.fotoMenyusul === true && ctx.daftarKiriman(YS, 'belumFoto', 'CUSTOMER').some(x => x.id === r2.id) && stok(FG) === s0 - 45, r2);
+  const sb = stok(SCR);
+  const r3 = ctx.kirimLangsung({jenis:'DAUR', tujuan:VENDOR, tanggalKirim:hari, baris:[{kode:SCR, qty:7}], pengangkut:'L 1'}, YS);
+  const d3 = baca(SH.DAUR).find(x => x.ID_Kiriman === r3.id);
+  ok('kirimLangsung DAUR: Daur_Ulang BERJALAN tertaut, no. SJ = nomor DO, Kiriman DIKIRIM, stok BS −7', r3.ok && r3.jenis === 'DAUR' && !!d3 && d3.Status === 'BERJALAN' && d3.No_Surat_Jalan === r3.nomor && stok(SCR) === sb - 7 && baca(SH.KIRIMAN).find(x => x.ID === r3.id).Status === 'DIKIRIM', [r3, d3 && d3.Status]);
+  tolak('kirimLangsung DAUR dengan item bukan scrap ditolak', () => ctx.kirimLangsung({jenis:'DAUR', tujuan:VENDOR, tanggalKirim:hari, baris:[{kode:FG, qty:1}]}, YS), /bukan scrap/);
+  ok('tanpa rupiah di hasil kirimLangsung', !/harga|nilai|hpp/i.test(JSON.stringify(r)) && !/harga|nilai|hpp/i.test(JSON.stringify(dk)));
+  ok('RPC_WL memuat kirimLangsung', typeof ctx.RPC_WL !== 'object' || ctx.RPC_WL.kirimLangsung === 1); }
 
 fs.unlinkSync(__dirname+'/.h13.js');
 console.log('\n================ '+pass+' lulus, '+fail+' gagal ================');

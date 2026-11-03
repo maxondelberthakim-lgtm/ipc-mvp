@@ -297,6 +297,31 @@ function kirimKiriman(id, p, ident) {
 }
 
 /**
+ * v13.1 — KIRIM LANGSUNG (masukan Max 4 Nov 2026: langkah "Buat DO" opsional, staff boleh langsung Kirim dari SO).
+ * Satu panggilan = DO dibuat + langsung dikirim: surat jalannya TETAP terbentuk (nomor SJ/…, bisa dicetak kapan saja dari riwayat /
+ * tab Sudah dikirim), stok bergerak sekarang. p = { jenis:'CUSTOMER'|'DAUR', tujuan, tanggalKirim, baris:[{kode,qty,idSo}], pengangkut,
+ * foto (opsional → "foto menyusul"), catatan }. Butuh akses Kirim (Manager / Admin + Gudang).
+ * Kalau tahap kirim gagal, draft yang baru dibuat dibatalkan lagi — tidak ada DO tertinggal di "Siap kirim" (di mesin Cloudflare seluruh
+ * permintaan memang di-rollback; pembatalan eksplisit ini untuk simulasi sheet / Apps Script).
+ */
+function kirimLangsung(p, ident) {
+  var u = penggunaSaatIni_(ident);
+  wajibKirim_(u);
+  p = p || {};
+  var tanggal = tglValid_(p.tanggalKirim);   // aturan tanggal transaksi dicek dulu, sebelum ada yang ditulis
+  var s = siapkanKiriman({ jenis: p.jenis, tujuan: p.tujuan, tanggalRencana: tanggal, baris: p.baris, pengangkut: p.pengangkut, catatan: p.catatan }, ident);
+  var r;
+  try {
+    r = kirimKiriman(s.id, { tanggalKirim: tanggal, baris: p.baris, pengangkut: p.pengangkut, foto: p.foto }, ident);
+  } catch (e) {
+    try { batalkanKiriman(s.id, 'kirim langsung gagal: ' + ((e && e.message) || e), ident); } catch (e2) {}
+    throw e;
+  }
+  r.langsung = true; r.token = r.token || s.token; r.peringatan = s.peringatan;
+  return r;
+}
+
+/**
  * Tambah / ganti foto surat jalan yang sudah ditandatangani. ref = ID kiriman (KRM-…) | 'OUT-…,OUT-…' (kiriman lama, satu grup) | 'DUR-…' (daur lama).
  * Manager / Admin dengan akses Gudang, tanpa batas 24 jam / MAKS_EDIT_HARI, selama bulan kirimnya belum ditutup. Foto lama dihapus dari penyimpanan.
  */

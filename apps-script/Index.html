@@ -191,7 +191,11 @@
   <!-- ============ ⓪ PENERIMAAN / RETUR ============ -->
   <section id="v-beli" class="hide">
     <!-- v13: Barang keluar = Buat DO (surat jalan dulu) → Kirim (stok bergerak) → foto DO. Form yang sama dipakai mode JUAL_DO. -->
-    <div id="doAtas" class="hide"><button class="btn besar" id="btnBuatDo" onclick="bukaFormDo()"><svg class="i"><use href="#i-dokumen"/></svg> <span data-i18n="doBuat">Buat DO (surat jalan)</span></button></div>
+    <!-- v13.1: Buat DO itu opsional — Kirim langsung juga bisa (surat jalan dibuat otomatis). Keduanya hilang saat form terbuka. -->
+    <div id="doAtas" class="do-aksi hide" style="margin:0 0 12px">
+      <button class="btn sec besar" id="btnBuatDo" onclick="bukaFormDo()"><svg class="i"><use href="#i-dokumen"/></svg> <span data-i18n="doBuatPendek">Buat DO</span></button>
+      <button class="btn besar" id="btnKirimLangsung" onclick="bukaFormDo(true)"><svg class="i"><use href="#i-truk"/></svg> <span data-i18n="doKirimLangsung">Kirim langsung</span></button>
+    </div>
     <div class="card" id="rcvForm">
       <h2 id="rcvJudul">Barang masuk</h2>
       <div class="sub" id="rcvSub"></div>
@@ -442,7 +446,11 @@
 
   <!-- ============ DAUR ULANG SCRAP (v9) ============ -->
   <section id="v-daur" class="hide">
-    <button class="btn besar hide" id="btnBuatDoDaur" onclick="segDaur('new')" style="margin-bottom:12px"><svg class="i"><use href="#i-dokumen"/></svg> <span data-i18n="daurDoT">Buat DO (BS ke chassen)</span></button>
+    <!-- v13.1: Buat DO opsional — Kirim BS langsung juga bisa (surat jalan dibuat otomatis) -->
+    <div class="do-aksi" id="daurAtas" style="margin:0 0 12px">
+      <button class="btn sec besar hide" id="btnBuatDoDaur" onclick="segDaur('new')"><svg class="i"><use href="#i-dokumen"/></svg> <span data-i18n="daurDoT">Buat DO (BS ke chassen)</span></button>
+      <button class="btn besar hide" id="btnKirimDaurLangsung" onclick="segDaur('new', true)"><svg class="i"><use href="#i-truk"/></svg> <span data-i18n="daurKirimLangsung">Kirim BS langsung</span></button>
+    </div>
     <div class="seg">
       <button id="segDaurSiap" class="on" onclick="segDaur('siap')"><span data-i18n="doTabSiap">Siap kirim</span> <span class="cnt" id="cntDaurSiap"></span></button>
       <button id="segDaurList" onclick="segDaur('list')" data-i18n="segDaurList">Di chassen</button>
@@ -457,14 +465,14 @@
 
     <div id="daurNew" class="hide">
       <div class="card">
-        <h2 data-i18n="daurDoT">Buat DO (BS ke chassen)</h2>
-        <div class="sub" data-i18n="daurDoS">Pilih tempat chassen dan BS yang dikirim. Nomor surat jalan langsung ada; stok BS berkurang saat tombol Kirim.</div>
+        <h2 data-i18n="daurDoT" id="daurDoJudul">Buat DO (BS ke chassen)</h2>
+        <div class="sub" data-i18n="daurDoS" id="daurDoSub">Pilih tempat chassen dan BS yang dikirim. Nomor surat jalan langsung ada; stok BS berkurang saat tombol Kirim.</div>
         <div class="field">
           <label data-i18n="lblVendor">Tempat chassen (vendor)</label>
           <div class="combo"><input id="daurVendor" autocomplete="off"><div class="combo-list hide"></div></div>
           <div class="hint" data-i18n="hintCombo">Ketik untuk mencari. Nama yang belum ada bisa langsung ditambah.</div>
         </div>
-        <div class="field">
+        <div class="field" id="daurTanggalWrap">
           <label data-i18n="lblRencana">Tanggal rencana kirim</label>
           <input type="date" id="daurTanggal">
         </div>
