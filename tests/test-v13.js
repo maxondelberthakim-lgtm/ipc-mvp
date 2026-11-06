@@ -24,7 +24,7 @@ console.log('— Skema & akses v13 —');
 const ss = ctx.SpreadsheetApp.getActiveSpreadsheet();
 ok('sheet Kiriman & Kiriman_Detail ada', !!ss.getSheetByName('Kiriman') && !!ss.getSheetByName('Kiriman_Detail'));
 ok('Pengiriman & Daur_Ulang punya kolom ID_Kiriman', ctx.HEADER['Pengiriman'].indexOf('ID_Kiriman') >= 0 && ctx.HEADER['Daur_Ulang'].indexOf('ID_Kiriman') >= 0);
-ok('versi 13.1.0', ctx.APP.versi === '13.1.0');
+ok('versi 13.2.0', ctx.APP.versi === '13.2.0');
 { const ky = ctx.getKonteks(YS), kd = ctx.getKonteks(SM), kb = ctx.getKonteks(MP), ks = ctx.getKonteks(STAF);
   ok('konteks: bisaKirim Yansen (GUDANG) true; Deny (SO saja), Bastari (PRODUKSI), STAF false', ky.bisaKirim === true && kd.bisaKirim === false && kb.bisaKirim === false && ks.bisaKirim === false, [ky.bisaKirim, kd.bisaKirim, kb.bisaKirim, ks.bisaKirim]);
   ok('konteks: penghitung siapKirim & belumFotoSj ada (0)', ky.ringkasan.siapKirim === 0 && ky.ringkasan.belumFotoSj === 0 && kd.ringkasan.siapKirim === 0); }
@@ -203,6 +203,37 @@ console.log('\n— v13.1: Kirim langsung (langkah Buat DO opsional) —');
   tolak('kirimLangsung DAUR dengan item bukan scrap ditolak', () => ctx.kirimLangsung({jenis:'DAUR', tujuan:VENDOR, tanggalKirim:hari, baris:[{kode:FG, qty:1}]}, YS), /bukan scrap/);
   ok('tanpa rupiah di hasil kirimLangsung', !/harga|nilai|hpp/i.test(JSON.stringify(r)) && !/harga|nilai|hpp/i.test(JSON.stringify(dk)));
   ok('RPC_WL memuat kirimLangsung', typeof ctx.RPC_WL !== 'object' || ctx.RPC_WL.kirimLangsung === 1); }
+
+console.log('— v13.2: laporan shift bisa diubah / dihapus kapan saja (sampai tutup bulan); semua hapus wajib alasan —');
+{ const BJ = 'RM-BP-KW', nS = () => baca(SH.SHIFT).length, aktif = () => baca(SH.SHIFT).filter(x => x.Status !== 'DIBATALKAN').length;
+  const tg = geser(-3);
+  const lap = ctx.simpanLaporanShift({tanggal:tg, shift:'1', blowing:{operator:['Sri'], ambil:[{kode:BJ, qty:100}], hasil:[{kualitas:'KW', qty:95}], bs:[{kualitas:'KW', qty:3}]}}, MP);
+  const stk = (k) => (ctx.laporanStok(SPV).daftar.find(x => x.kode === k) || {gbj:0}).gbj;   // stok 0 tanpa mutasi tidak ada di daftar
+  const n1 = nS(), rollId = lap.blowing.hasil[0].kode, st0 = stk(rollId);
+  ok('laporan 3 hari lalu (blowing saja = cutting belum diisi) bolehEdit untuk Bastari & Admin; Yansen (tanpa Produksi) hanya lihat', lap.bolehEdit === true && ctx.ambilLaporanShift(lap.id, ADM).bolehEdit === true && ctx.ambilLaporanShift(lap.id, YS).bolehEdit === false);
+  const u1 = ctx.ubahLaporanShift(lap.id, {tanggal:tg, shift:'1', blowing:{operator:['Sri'], ambil:[{kode:BJ, qty:100}], hasil:[{kualitas:'KW', qty:95}], bs:[{kualitas:'KW', qty:3}]},
+                                           cutting:{operator:['Rina'], rollPakai:[{kualitas:'KW', qty:50}], hasil:[{kualitas:'KW', qty:48}], bs:[{kualitas:'KW', qty:2}]}}, MP);
+  ok('ubah (tambah cutting belakangan): ID sama, TIDAK membuat laporan baru, Log_Edit terisi', u1.ok && u1.laporan.id === lap.id && nS() === n1 && u1.laporan.cutting.totalHasil === 48 && /polybag/.test(u1.laporan.logEdit), [nS(), n1, u1.laporan.logEdit]);
+  ok('… stok roll ikut: +95 jadi − 50 dipakai', Math.abs(stk(rollId) - (st0 - 50)) < 1e-6, [st0, stk(rollId)]);
+  const u2 = ctx.ubahLaporanShift(lap.id, {tanggal:tg, shift:'1', blowing:{operator:['Sri','Budi'], ambil:[{kode:BJ, qty:110}], hasil:[{kualitas:'KW', qty:104}], bs:[{kualitas:'KW', qty:3}]},
+                                           cutting:{operator:['Rina'], rollPakai:[{kualitas:'KW', qty:50}], hasil:[{kualitas:'KW', qty:48}], bs:[{kualitas:'KW', qty:2}]}}, ADM);
+  ok('Admin mengubah laporan yang sudah lengkap: tetap satu laporan, angka baru', u2.laporan.id === lap.id && nS() === n1 && u2.laporan.blowing.totalHasil === 104 && u2.laporan.blowing.operator.length === 2);
+  tolak('Yansen (tanpa Produksi) tidak bisa mengubah', () => ctx.ubahLaporanShift(lap.id, {catatan:'x'}, YS), /Manager \/ Admin/);
+  tolak('hapus laporan tanpa alasan ditolak', () => ctx.batalkanLaporanShift(lap.id, '', ADM), /Alasan/);
+  tolak('hapus laporan alasan < 3 huruf ditolak', () => ctx.batalkanLaporanShift(lap.id, 'ab', ADM), /Alasan/);
+  const a0 = aktif();
+  ok('hapus laporan dengan alasan: DIBATALKAN (baris tetap ada), hilang dari daftar, alasan di Log_Edit + Log_Audit, stok roll kembali',
+     ctx.batalkanLaporanShift(lap.id, 'salah tanggal', ADM).ok && nS() === n1 && aktif() === a0 - 1 && !ctx.daftarLaporanShift(ADM, 14, tg).some(x => x.id === lap.id) &&
+     /salah tanggal/.test(baca(SH.SHIFT).find(x => x.ID === lap.id).Log_Edit) && log('SHIFT_BATAL').some(l => l.Referensi === lap.id && /salah tanggal/.test(l.Detail)) && Math.abs(stk(rollId) - (st0 - 95)) < 1e-6);
+  tolak('laporan yang sudah dihapus tidak bisa diubah', () => ctx.ubahLaporanShift(lap.id, {catatan:'x'}, ADM), /dibatalkan/);
+  /* hapus SKU / kontak WA: alasan wajib + tercatat */
+  ctx.simpanSku({kode:'RM-UJI-132', nama:'Uji hapus', kategori:'BAHAN_BAKU'}, ADM);
+  tolak('hapus SKU tanpa alasan ditolak', () => ctx.hapusSku('RM-UJI-132', ADM), /Alasan/);
+  ok('… SKU masih ada', ctx.daftarSku(ADM).some(x => x.kode === 'RM-UJI-132'));
+  ok('hapus SKU dengan alasan: terhapus + alasan di Log_Audit', ctx.hapusSku('RM-UJI-132', ADM, 'salah buat').dihapus === true && log('ADMIN_SKU').some(l => l.Referensi === 'RM-UJI-132' && /salah buat/.test(l.Detail)));
+  const kw = ctx.simpanKontakWa({nama:'Kontak Uji', nomor:'0811222333'}, YS);
+  tolak('hapus kontak WA tanpa alasan ditolak', () => ctx.hapusKontakWa(kw.id, YS), /Alasan/);
+  ok('hapus kontak WA dengan alasan: nonaktif + Log_Audit', ctx.hapusKontakWa(kw.id, YS, 'nomor salah').ok && !ctx.daftarKontakWa(YS).some(x => x.id === kw.id) && log('KONTAK_WA_HAPUS').some(l => l.Referensi === kw.id && /nomor salah/.test(l.Detail))); }
 
 fs.unlinkSync(__dirname+'/.h13.js');
 console.log('\n================ '+pass+' lulus, '+fail+' gagal ================');

@@ -555,6 +555,14 @@ nav button.ditekan .g{transform:scale(.88)}
 @keyframes tumbuh{from{transform:scaleX(0)}}
 @keyframes kilau{to{transform:translateX(180%)}}
 @keyframes goyang{20%{transform:translateX(-5px)}45%{transform:translateX(4px)}70%{transform:translateX(-2px)}}
+/* v13.2: laporan shift — layar lihat (tanpa kolom isian) + pita "Mode edit" */
+.lihatbar{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.lihatbar .tag{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--ink-3);background:var(--fill);border-radius:999px;padding:5px 11px}
+.lihatbar .btn{margin-left:auto}
+#shiftDetail .kv small{color:var(--muted);font-weight:400}
+#shiftDetail .btnrow .btn{flex:1}
+.banner.modeedit{display:flex;gap:10px;align-items:flex-start;background:var(--primary-soft);color:var(--header);border:1px solid var(--primary-20)}
+.banner.modeedit svg.i{flex:0 0 auto;width:18px;height:18px;margin-top:2px}
 @media (prefers-reduced-motion:reduce){
   *,*::before,*::after{animation-duration:1ms !important;animation-delay:0s !important;animation-iteration-count:1 !important;transition-duration:1ms !important;scroll-behavior:auto !important}
   .spark.anim .ln,.grafik.anim .ln{stroke-dashoffset:0}
@@ -617,6 +625,8 @@ nav button.ditekan .g{transform:scale(.88)}
   <symbol id="i-gembok" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7.5a4 4 0 0 1 8 0V11"/></symbol>
   <symbol id="i-gembokBuka" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7.5a4 4 0 0 1 7.8-1.3"/></symbol>
   <symbol id="i-pin" viewBox="0 0 24 24"><circle cx="7.5" cy="15.5" r="4.5"/><path d="M10.8 12.2 20 3M17 6l2.5 2.5M14.5 8.5 17 11"/></symbol>
+  <symbol id="i-mata" viewBox="0 0 24 24"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="2.8"/></symbol>
+  <symbol id="i-sampah" viewBox="0 0 24 24"><path d="M4 7h16"/><path d="M9.5 7V4.5h5V7"/><path d="M6.5 7l.8 12a1.5 1.5 0 0 0 1.5 1.5h6.4a1.5 1.5 0 0 0 1.5-1.5l.8-12"/><path d="M10 11v6M14 11v6"/></symbol>
   <symbol id="i-pensil" viewBox="0 0 24 24"><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4.5 1.5L5 15z"/><path d="m14.5 5.5 3 3"/></symbol>
   <symbol id="i-dokumen" viewBox="0 0 24 24"><path d="M14 3H6.5A1.5 1.5 0 0 0 5 4.5v15A1.5 1.5 0 0 0 6.5 21h11a1.5 1.5 0 0 0 1.5-1.5V8z"/><path d="M14 3v5h5M9 13h6M9 17h6"/></symbol>
   <symbol id="i-cari" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20.5 20.5 16 16"/></symbol>
@@ -906,7 +916,7 @@ nav button.ditekan .g{transform:scale(.88)}
 
   <!-- ============ ① LAPORAN SHIFT PRODUKSI (v10) ============ -->
   <section id="v-shift" class="hide">
-    <div class="seg">
+    <div class="seg" id="shiftSeg">
       <button id="segShiftList" class="on" onclick="segShift('list')" data-i18n="segShiftList">Laporan</button>
       <button id="segShiftNew" onclick="segShift('new')" data-i18n="segShiftNew">+ Isi laporan</button>
       <button id="segShiftRep" onclick="segShift('rep')" data-i18n="segShiftRep">Rekap bulan</button>
@@ -924,7 +934,11 @@ nav button.ditekan .g{transform:scale(.88)}
       <div id="shiftRows"><div class="load">…</div></div>
     </div>
 
+    <!-- v13.2: detail laporan — HANYA LIHAT (tidak ada kolom isian); mengubah hanya lewat tombol "Edit laporan" -->
+    <div id="shiftDetail" class="hide"></div>
+
     <div id="shiftForm" class="hide">
+      <div class="banner modeedit hide" id="shiftEditInfo"></div>
       <div class="card">
         <h2 id="shiftFormT" data-i18n="shiftFormT">Laporan shift</h2>
         <div class="sub" id="shiftFormS" data-i18n="shiftFormS">Satu laporan per shift (12 jam). Operator blowing dan cutting dicatat terpisah. Tidak perlu persetujuan — stok langsung ikut.</div>
@@ -1001,8 +1015,7 @@ nav button.ditekan .g{transform:scale(.88)}
         </div>
         <div class="logedit hide" id="shiftLog"></div>
         <div class="btnrow">
-          <button class="btn ghost hide" id="btnBatalShift" onclick="batalShiftUI()" data-i18n="btnBatalShift">Batalkan laporan</button>
-          <button class="btn sec" onclick="segShift('list')" data-i18n="btnBatal">Batal</button>
+          <button class="btn sec" id="btnTutupShift" onclick="tutupFormShift()" data-i18n="btnBatal">Batal</button>
           <button class="btn ok" id="btnSimpanShift" onclick="simpanShiftUI()" data-i18n="btnSimpanShift">Simpan laporan</button>
         </div>
       </div>
@@ -1398,7 +1411,7 @@ nav button.ditekan .g{transform:scale(.88)}
 
 var APP = {
   nama: 'IPC — Inventory & Production Control',
-  versi: '13.1.0',
+  versi: '13.2.0',
   zona: 'Asia/Jakarta',
   satuan: 'kg',
   folderFoto: 'IPC Foto Bukti'
@@ -3580,10 +3593,11 @@ function simpanSku(p, ident) {
   }
 }
 
-/** Hapus beneran kalau belum pernah dipakai; kalau sudah, nonaktifkan. */
-function hapusSku(kode, ident) {
+/** Hapus beneran kalau belum pernah dipakai; kalau sudah, nonaktifkan. v13.2: alasan wajib (tercatat di Log_Audit). */
+function hapusSku(kode, ident, alasan) {
   var u = penggunaSaatIni_(ident);
   if (!bolehReview_(u) || !bolehModul_(u, MODUL.MANAJEMEN)) throw new Error('Hanya akun dengan akses Manajemen (Manager / Admin).');
+  alasan = alasanWajib_(alasan);
   var lock = LockService.getScriptLock();
   lock.waitLock(20000);
   lupakanMemo_();   // di dalam lock: baca ulang dari sheet, jangan pakai memo sebelum lock
@@ -3593,12 +3607,12 @@ function hapusSku(kode, ident) {
     if (!target) throw new Error('SKU tidak ditemukan: ' + kode);
     if (skuDipakai_()[kode]) {
       ubahBaris_(SHEET.ITEM, target._baris, { Aktif: 'TIDAK' });
-      catatLog_('ADMIN_SKU', kode, 'nonaktif (sudah dipakai)');
+      catatLog_('ADMIN_SKU', kode, 'nonaktif (sudah dipakai) — ' + alasan);
       return { ok: true, dihapus: false, dinonaktifkan: true };
     }
     sheet_(SHEET.ITEM).deleteRow(target._baris);
     lupakanMemo_(SHEET.ITEM);
-    catatLog_('ADMIN_SKU', kode, 'hapus');
+    catatLog_('ADMIN_SKU', kode, 'hapus ' + (target.Nama_Item || '') + ' — ' + alasan);
     return { ok: true, dihapus: true, dinonaktifkan: false };
   } finally {
     lock.releaseLock();
@@ -6675,11 +6689,14 @@ function simpanKontakWa(p, ident) {
     return { ok: true, id: id, nama: nama, nomor: nomor };
   } finally { lock.releaseLock(); }
 }
-function hapusKontakWa(id, ident) {
+/** v13.2: alasan wajib (tercatat di Log_Audit). Kontak hanya dinonaktifkan — tidak dihapus dari sheet. */
+function hapusKontakWa(id, ident, alasan) {
   var u = penggunaSaatIni_(ident);
   if (!bolehDokumen_(u)) throw new Error('Hanya akun dengan akses PO / Sales order.');
+  alasan = alasanWajib_(alasan);
   var r = cariEntri_(SHEET.KONTAK_WA, id);
   ubahBaris_(SHEET.KONTAK_WA, r._baris, { Aktif: 'TIDAK' });
+  catatLog_('KONTAK_WA_HAPUS', id, (r.Nama || '') + ' ' + (r.Nomor || '') + ' — ' + alasan);
   return { ok: true };
 }
 
@@ -7834,6 +7851,15 @@ var T = {
     rollJadi:'roll jadi', polybagJadi:'polybag jadi', rollPakai:'roll dipakai', hasil:'Hasil', lebihDariAmbil:'roll + BS lebih besar dari biji yang diambil', lebihDariRoll:'polybag + BS lebih besar dari roll yang dipakai', rollKurangStok:'roll dipakai melebihi stok roll',
     shiftHariIniLengkap:'Kedua shift hari ini sudah ada laporannya — ubah lewat daftar, atau pilih tanggal lain.',
     kualKW:'KW', kualSUPER:'Super', kualSUPER_PLUS:'Super Plus', kualitasKosong:'SKU per kualitas belum lengkap — cek Admin → SKU (roll, polybag, BS per kualitas).',
+    /* v13.2: laporan shift — layar lihat / mode edit / hapus; satu alur konfirmasi untuk semua hapus & batal */
+    modeLihat:'Hanya lihat', lihatShiftInfo:'Layar ini hanya untuk melihat — tidak ada yang bisa berubah di sini. Tekan “Edit laporan” kalau mau mengubah.',
+    btnEditShift:'Edit laporan', btnHapusShift:'Hapus laporan', kembali:'Kembali', batalUbah:'Batal ubah',
+    modeEdit:'Mode edit', modeEditInfo:'Yang Anda ubah di sini menggantikan isi laporan ini — bukan membuat laporan baru. Tekan “Simpan perubahan” kalau sudah, atau “Batal ubah” kalau tidak jadi.',
+    shiftDihapus:'Laporan shift dihapus — stok disesuaikan', alasanHapusShift:'Kenapa laporan ini dihapus? (wajib diisi)', alasanHapus:'Kenapa dihapus? (wajib diisi)',
+    yakinHapus:'Yakin mau hapus {x}?', yakinBatal:'Yakin mau membatalkan {x}?', yaHapus:'Ya, hapus', yaBatalkan:'Ya, batalkan', dlgHapus:'Hapus', dlgBatalkan:'Batalkan',
+    stokDisesuaikan:'Stok akan disesuaikan.', skuHapusKet:'Kalau sudah pernah dipakai di transaksi, SKU hanya dinonaktifkan.',
+    apaShift:'laporan {x}', apaDok:'dokumen {x}', apaKontak:'kontak WA {x}', apaEntri:'input {x}', apaRusak:'laporan rusak {x}', apaDaur:'batch daur ulang {x}',
+    dicatatOleh:'Dicatat oleh', lihatFoto:'Foto', lihatCatatan:'Catatan',
     btnSimpanShift:'Simpan laporan', btnBatalShift:'Batalkan laporan', shiftTersimpan:'Laporan shift tersimpan', shiftDibatalkan:'Laporan shift dibatalkan — stok disesuaikan',
     konfirmBatalShift:'Batalkan laporan shift ini? Stok akan disesuaikan.', hanyaManagerShift:'Hanya manager yang bisa mengubah laporan shift.',
     wajibSatuMesin:'Minimal satu mesin harus diisi (blowing atau cutting).', wajibOperatorBlowing:'Isi operator blowing dulu.', wajibOperatorCutting:'Isi operator cutting dulu.',
@@ -8112,6 +8138,15 @@ var T = {
     rollJadi:'roll made', polybagJadi:'polybag made', rollPakai:'roll used', hasil:'Output', lebihDariAmbil:'roll + BS exceed the pellets taken', lebihDariRoll:'polybag + BS exceed the roll used', rollKurangStok:'roll used exceeds roll stock',
     shiftHariIniLengkap:'Both shifts today already have a report — edit from the list, or pick another date.',
     kualKW:'KW', kualSUPER:'Super', kualSUPER_PLUS:'Super Plus', kualitasKosong:'Grade SKUs incomplete — check Admin → SKU (roll, polybag, BS per grade).',
+    /* v13.2 */
+    modeLihat:'View only', lihatShiftInfo:'This screen is view-only — nothing can change here. Tap “Edit report” to change it.',
+    btnEditShift:'Edit report', btnHapusShift:'Delete report', kembali:'Back', batalUbah:'Discard changes',
+    modeEdit:'Edit mode', modeEditInfo:'What you change here replaces this report — it does not create a new one. Tap “Save changes” when done, or “Discard changes” to leave it as it was.',
+    shiftDihapus:'Shift report deleted — stock adjusted', alasanHapusShift:'Why is this report being deleted? (required)', alasanHapus:'Why delete it? (required)',
+    yakinHapus:'Are you sure you want to delete {x}?', yakinBatal:'Are you sure you want to cancel {x}?', yaHapus:'Yes, delete', yaBatalkan:'Yes, cancel it', dlgHapus:'Delete', dlgBatalkan:'Cancel it',
+    stokDisesuaikan:'Stock will be adjusted.', skuHapusKet:'If it has been used in transactions the SKU is only deactivated.',
+    apaShift:'the report {x}', apaDok:'document {x}', apaKontak:'WhatsApp contact {x}', apaEntri:'the entry {x}', apaRusak:'damage report {x}', apaDaur:'recycling batch {x}',
+    dicatatOleh:'Recorded by', lihatFoto:'Photo', lihatCatatan:'Note',
     btnSimpanShift:'Save report', btnBatalShift:'Cancel report', shiftTersimpan:'Shift report saved', shiftDibatalkan:'Shift report cancelled — stock adjusted',
     konfirmBatalShift:'Cancel this shift report? Stock will be adjusted.', hanyaManagerShift:'Only managers can change shift reports.',
     wajibSatuMesin:'At least one machine must be filled in (blowing or cutting).', wajibOperatorBlowing:'Enter the blowing operator first.', wajibOperatorCutting:'Enter the cutting operator first.',
@@ -8276,20 +8311,23 @@ function teksIkon(s){
 
 /* ---------------- v12.10: dialog di dalam app (pengganti prompt / confirm bawaan) — kata-kata & urutan langkah sama ---------------- */
 var _dlg = null;
-function dialog(pesan, adaIsian, nilai){
+function dialog(pesan, adaIsian, nilai, o){
+  o = o || {};   // v13.2: { ok, batal } = teks tombol, bahaya = tombol OK merah (hapus / batal)
   return new Promise(function(selesai){
     if (_dlg) _dlg(false);   // dialog sebelumnya dianggap batal
     var w = $('dlgWrap'), inp = $('dlgInput');
     $('dlgPesan').textContent = pesan;
+    $('dlgOk').textContent = o.ok || 'OK'; $('dlgBatal').textContent = o.batal || t('btnBatal');
+    $('dlgOk').classList.toggle('danger', !!o.bahaya);
     inp.classList.toggle('hide', !adaIsian); inp.value = adaIsian ? (nilai || '') : '';
     w.classList.remove('hide');
     _dlg = function(ok){ _dlg = null; w.classList.add('hide'); selesai(ok ? (adaIsian ? inp.value : true) : (adaIsian ? null : false)); };
-    setTimeout(function(){ try { if (adaIsian){ inp.focus(); inp.select(); } else $('dlgOk').focus(); } catch(e){} }, 30);
+    setTimeout(function(){ try { if (adaIsian){ inp.focus(); inp.select(); } else $(o.bahaya ? 'dlgBatal' : 'dlgOk').focus(); } catch(e){} }, 30);
   });
 }
 function dlgJawab(ok){ if (_dlg) _dlg(ok); }
 function tanya(pesan){ return dialog(pesan, false); }                  // pengganti confirm()  → Promise<boolean>
-function isian(pesan, nilai){ return dialog(pesan, true, nilai); }    // pengganti prompt()   → Promise<string|null>
+function isian(pesan, nilai, o){ return dialog(pesan, true, nilai, o); }    // pengganti prompt()   → Promise<string|null>
 document.addEventListener('keydown', function(e){
   if (!_dlg) return;
   if (e.key === 'Escape'){ e.preventDefault(); dlgJawab(false); }
@@ -8690,7 +8728,7 @@ function gambarHari(){
 
 /* tap kejadian di kalender → detail (edit kalau boleh, kalau tidak hanya lihat) */
 function bukaKejadian(sheet, id){
-  if (sheet === 'shift'){ bukaEditShift(id); return; }
+  if (sheet === 'shift'){ bukaShift(id); return; }
   if (sheet === 'daur'){ bukaDetailDaur(id); return; }
   bukaEdit(id);
 }
@@ -9024,7 +9062,7 @@ function muatDaftarDok(){
       var aktif = r.status === 'AKTIF';
       return '<div class="hist" style="flex-wrap:wrap"><span class="hx"><b>'+esc(r.nomor)+'</b><small>'+esc(r.tanggal)+' · '+esc(r.pembuat)+(r.total ? ' · '+rp(r.total) : r.totalKg ? ' · '+n2(r.totalKg)+' kg' : '')+'</small></span>' +
         '<span class="hb">'+(aktif ? '<span class="pill ok">'+esc(t('aktif'))+'</span>' : '<span class="pill bad">'+esc(r.status==='DIGANTI' ? t('dokStatusDIGANTI') : t('dibatalkan'))+'</span>')+'</span>' +
-        (aktif ? '<div class="btnrow" style="flex-basis:100%;margin-top:6px"><button class="btn sec xs" onclick="window.open(urlDok(\''+esc(r.token)+'\')+\'?unduh=1\',\'_blank\')">'+ikon('unduh')+'PDF</button><button class="btn sec xs" onclick="window.open(urlDok(\''+esc(r.token)+'\'),\'_blank\')">'+ikon('cetak')+''+esc(t('dokCetak'))+'</button><button class="btn sec xs" onclick="bukaWa('+i+')">'+ikon('chat')+'WA</button><button class="btn ghost xs" onclick="batalDokUI(\''+esc(r.id)+'\')" aria-label="'+esc(t('btnBatal'))+'">'+ikon('silang')+'</button></div>' : '') +
+        (aktif ? '<div class="btnrow" style="flex-basis:100%;margin-top:6px"><button class="btn sec xs" onclick="window.open(urlDok(\''+esc(r.token)+'\')+\'?unduh=1\',\'_blank\')">'+ikon('unduh')+'PDF</button><button class="btn sec xs" onclick="window.open(urlDok(\''+esc(r.token)+'\'),\'_blank\')">'+ikon('cetak')+''+esc(t('dokCetak'))+'</button><button class="btn sec xs" onclick="bukaWa('+i+')">'+ikon('chat')+'WA</button><button class="btn ghost xs" onclick="batalDokUI(\''+esc(r.id)+'\')" aria-label="'+esc(t('btnBatal'))+'">'+ikon('silang')+'</button></div>' : '') + apa(r.id, r.nomor) +
         '</div>';
     }).join('');
   }).catch(function(e){ el.innerHTML = '<div class="banner bad">'+esc(e.message)+'</div>'; });
@@ -9052,7 +9090,7 @@ function buatDokUI(){
   }).catch(function(e){ sibuk(b, false, t('dokBuat')); toast(e.message,'bad'); });
 }
 async function batalDokUI(id){
-  var alasan = await mintaAlasan('alasanBatalDok'); if (alasan === null) return;
+  var alasan = await yakinHapus(t('apaDok').replace('{x}', APA[id] || id), 'alasanBatalDok'); if (alasan === null) return;
   panggil('batalkanDokumen',[id, alasan, S.ident]).then(function(){ toast(t('dokDibatalkan'),''); muatDaftarDok(); }).catch(function(e){ toast(e.message,'bad'); });
 }
 function salinTeks(s){
@@ -9119,7 +9157,7 @@ function admDok(){
       (p.bolehUbah ? '<button class="btn ok" id="btnPengDok" onclick="simpanPengDokUI()">'+esc(t('simpanPerubahan'))+'</button>' : '') + '</div>' +
       '<div class="card"><div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><h2 style="flex:1">'+esc(t('kontakT'))+' <span class="chip">'+rows.length+'</span></h2>' +
       '<button class="btn sec xs" onclick="tambahKontakUI()">'+esc(t('kontakTambah'))+'</button></div><div class="sub">'+esc(t('kontakS'))+'</div>' +
-      (rows.length ? rows.map(function(k){ return '<div class="hist"><span class="hx"><b>'+esc(k.nama)+'</b><small>'+esc(k.nomor)+'</small></span><span class="hb"><button class="btn ghost xs" onclick="hapusKontakUI(\''+esc(k.id)+'\')" aria-label="'+esc(t('hapus'))+'">'+ikon('silang')+'</button></span></div>'; }).join('')
+      (rows.length ? rows.map(function(k){ return apa(k.id, k.nama+' ('+k.nomor+')') + '<div class="hist"><span class="hx"><b>'+esc(k.nama)+'</b><small>'+esc(k.nomor)+'</small></span><span class="hb"><button class="btn ghost xs" onclick="hapusKontakUI(\''+esc(k.id)+'\')" aria-label="'+esc(t('hapus'))+'">'+ikon('silang')+'</button></span></div>'; }).join('')
                    : '<div style="font-size:12.5px;color:var(--muted);padding:6px 0">'+esc(t('kontakKosong'))+'</div>') + '</div>';
     $('admBody').innerHTML = h;
   }).catch(function(e){ $('admBody').innerHTML = '<div class="banner bad">'+esc(e.message)+'</div>'; });
@@ -9137,8 +9175,8 @@ async function tambahKontakUI(){
   panggil('simpanKontakWa',[{ nama: nama, nomor: nomor }, S.ident]).then(function(){ toast(t('waKontakTersimpan'),'ok'); admDok(); }).catch(function(e){ toast(e.message,'bad'); });
 }
 async function hapusKontakUI(id){
-  if (!await tanya(t('kontakHapus'))) return;
-  panggil('hapusKontakWa',[id, S.ident]).then(function(){ admDok(); }).catch(function(e){ toast(e.message,'bad'); });
+  var alasan = await yakinHapus(t('apaKontak').replace('{x}', APA[id] || id), 'alasanHapus', true); if (alasan === null) return;
+  panggil('hapusKontakWa',[id, S.ident, alasan]).then(function(){ admDok(); }).catch(function(e){ toast(e.message,'bad'); });
 }
 
 /* =================================================================
@@ -9187,15 +9225,27 @@ function fotoTerpilih(ev, k){
 }
 
 /* v11.2: alasan pembatalan wajib — ulangi prompt sampai terisi (≥3 huruf) atau dibatalkan */
-async function mintaAlasan(key){
+async function mintaAlasan(key, o){
   for (var i = 0; i < 3; i++){
-    var a = await isian(t(key) + (i ? '\n' + t('alasanWajib') : ''));
+    var a = await isian(t(key) + (i ? '\n' + t('alasanWajib') : ''), '', o);
     if (a === null) return null;
     a = a.trim();
     if (a.length >= 3) return a;
   }
   toast(t('alasanWajib'), 'bad');
   return null;
+}
+
+/* v13.2 (Max, 6 Nov 2026): SEMUA hapus / batal lewat sini.
+   ① "Yakin mau hapus / membatalkan {apa}?"  [Kembali] [Ya, hapus]   →   ② alasan (wajib)  [Kembali] [Hapus].
+   Mengembalikan alasan, atau null kalau tidak jadi. hapus=true → kata "hapus", selain itu "membatalkan". */
+var APA = {};   // id → sebutan barangnya untuk dialog (diisi saat kartu / baris digambar)
+function apa(id, teks){ APA[id] = teks; return ''; }
+async function yakinHapus(sebutan, kunciAlasan, hapus, ket){
+  var ya = await dialog(t(hapus ? 'yakinHapus' : 'yakinBatal').replace('{x}', sebutan) + (ket ? '\n' + ket : ''), false, '',
+                        { ok: t(hapus ? 'yaHapus' : 'yaBatalkan'), batal: t('kembali'), bahaya: true });
+  if (!ya) return null;
+  return mintaAlasan(kunciAlasan, { ok: t(hapus ? 'dlgHapus' : 'dlgBatalkan'), batal: t('kembali'), bahaya: true });
 }
 
 /* v11.2: foto menyusul — "+ Foto" di riwayat / layar detail: pilih file → unggah ke entri yang sudah tersimpan */
@@ -9219,7 +9269,8 @@ function fotoEntriTerpilih(ev){
     if (S.shiftEdit && S.shiftEdit.id === tg.id){ var fb = $('shiftPhoto'); fb.innerHTML = '<img src="'+esc(r.foto)+'">'+'<div class="btnrow" style="justify-content:flex-end;padding:6px">'+tombolGantiFoto(tg.id)+'</div>'; fb.className = 'photo filled'; fb.onclick = null; }
     if (S.view === 'beli' || S.view === 'jual') muatRiwayat('rcv');
     if (S.view === 'rusak') muatRusakRiwayat();
-    if (S.view === 'shift') muatShift();
+    if (S.shiftLihat && S.shiftLihat.id === tg.id){ S.shiftLihat.foto = r.foto; S.shiftLihat.bolehFoto = false; S.shiftLihat.bolehGanti = true; if (S.view === 'shift' && S.shiftTab === 'detail') gambarDetailShift(); }
+    if (S.view === 'shift' && S.shiftTab === 'list') muatShift();
     if (S.view === 'daur') segDaur(S.daurTab);
     muatKonteks(true);
   }).catch(function(e){ toast(e.message || t('gagal'), 'bad'); });
@@ -9559,17 +9610,26 @@ function pakaiOcr(q){
        mesin blowing & cutting dicatat terpisah (operator masing-masing)
    ================================================================= */
 function segShift(tab){
+  /* v13.2: 'detail' = satu laporan, HANYA LIHAT; 'edit' = form berisi laporan itu (hanya lewat tombol Edit laporan);
+     'new' selalu form kosong — laporan lama tidak pernah ikut terbawa ke "+ Isi laporan". */
+  if (tab === 'detail' && !S.shiftLihat) tab = 'list';
+  if (tab === 'edit' && !S.shiftEdit) tab = 'list';
+  if (tab !== 'edit') S.shiftEdit = null;
   S.shiftTab = tab;
-  $('segShiftList').classList.toggle('on', tab==='list');
+  $('segShiftList').classList.toggle('on', tab==='list' || tab==='detail' || tab==='edit');
   $('segShiftNew').classList.toggle('on', tab==='new');
   $('segShiftRep').classList.toggle('on', tab==='rep');
+  $('shiftSeg').classList.toggle('hide', tab==='edit');   // selama mengubah: keluar hanya lewat Batal ubah / Simpan perubahan
   $('shiftList').classList.toggle('hide', tab!=='list');
-  $('shiftForm').classList.toggle('hide', tab!=='new');
+  $('shiftDetail').classList.toggle('hide', tab!=='detail');
+  $('shiftForm').classList.toggle('hide', tab!=='new' && tab!=='edit');
   $('shiftRep').classList.toggle('hide', tab!=='rep');
   var boleh = !!(S.ctx && S.ctx.modul && S.ctx.modul.PRODUKSI);
   $('segShiftNew').classList.toggle('hide', !boleh);
   if (tab==='list'){ if (!$('shiftTglFilter').value && !S.shiftSemua) $('shiftTglFilter').value = hariIniStr(); muatShift(); }
-  if (tab==='new' && !S.shiftEdit) shiftFormBaru();
+  if (tab==='new') shiftFormBaru();
+  if (tab==='detail') gambarDetailShift();
+  if (tab==='edit') labelFormShift();
   if (tab==='rep') repProduksi('shiftRep', S.shiftBulan);
 }
 function geserHariShift(n){
@@ -9617,7 +9677,7 @@ function perKualTxt(list){ return list.length ? list.map(function(h){ return esc
 function pillBs(p){ return '<span class="pill '+(p>10?'bad':p>5?'warn':'ok')+'" style="margin-left:6px">'+n2(p)+'% BS</span>'; }
 function kartuShift(r){
   var b = r.blowing, c = r.cutting;
-  var h = '<div class="job'+(r.status === 'DIBATALKAN' ? ' batal' : '')+'" onclick="bukaEditShift(\''+esc(r.id)+'\')" style="cursor:pointer">' +
+  var h = '<div class="job'+(r.status === 'DIBATALKAN' ? ' batal' : '')+'" onclick="bukaShift(\''+esc(r.id)+'\')" style="cursor:pointer">' +
     '<div style="display:flex;align-items:flex-start;gap:10px">' +
       '<div style="flex:1;min-width:0"><b>'+esc(t('shiftKe'))+' '+esc(r.shift)+' <small style="font-weight:400;color:var(--muted)">'+esc(r.jam || jamShift(r.shift))+'</small></b>' +
         '<div class="m">'+esc(r.pencatat)+(r.logEdit?' · <i>'+esc(t('diubah'))+'</i>':'')+(r.foto ? ' · '+ikon('kamera','tx')+'' : (r.bolehFoto ? ' · <span style="color:var(--warn,#b45309)">'+ikon('kamera','tx')+' '+esc(t('belumFoto'))+'</span>' : ''))+'</div>'+((r.bolehFoto && !r.foto) || (r.foto && r.bolehGanti) ? '<div style="margin-top:4px">'+tombolFoto(r)+'</div>' : '')+'</div>' +
@@ -9645,9 +9705,9 @@ function shiftFormBaru(){
   S.baris.ambil = [{ kode:'', qty:'' }];
   S.foto.shift = null; hapusFoto('shift'); $('shiftPhoto').onclick = function(){ pilihFoto('shift'); };
   $('shiftCatatan').value = '';
-  $('shiftFormT').textContent = t('shiftFormT'); $('shiftFormS').textContent = t('shiftFormS');
+  labelFormShift();
   $('shiftInfo').classList.add('hide'); $('shiftLog').classList.add('hide');
-  $('btnBatalShift').classList.add('hide'); $('btnSimpanShift').classList.remove('hide');
+  $('btnSimpanShift').classList.remove('hide');
   setTanggal('shiftTanggal');
   /* shift berikutnya: yang belum diisi hari ini */
   var hariIni = (S.shiftCache || []).filter(function(r){ return r.tanggal === hariIniStr(); });
@@ -9657,6 +9717,16 @@ function shiftFormBaru(){
   setBacaSaja(['shiftTanggal','blowingOperator','cuttingOperator','shiftCatatan'], false);
   $('shiftForm').querySelectorAll('input, button').forEach(function(x){ x.disabled = false; });
   gambarShiftForm();
+}
+/* v13.2: judul + tombol form menurut mode — laporan baru ("Simpan laporan") atau mengubah yang sudah ada ("Simpan perubahan" + pita Mode edit) */
+function labelFormShift(){
+  var r = S.shiftEdit, ei = $('shiftEditInfo');
+  ei.classList.toggle('hide', !r);
+  ei.innerHTML = r ? ikon('pensil') + '<div><b>'+esc(t('modeEdit'))+' · '+esc(judulShift(r))+'</b><br>'+esc(t('modeEditInfo'))+'</div>' : '';
+  $('shiftFormT').textContent = r ? t('shiftEditT') : t('shiftFormT');
+  $('shiftFormS').textContent = r ? r.waktu + ' · ' + r.pencatat : t('shiftFormS');
+  $('btnSimpanShift').textContent = t(r ? 'simpanPerubahan' : 'btnSimpanShift');
+  $('btnTutupShift').textContent = t(r ? 'batalUbah' : 'btnBatal');
 }
 function gambarShiftForm(){
   var d = S.shift;
@@ -9758,58 +9828,113 @@ function simpanShiftUI(){
     if (!p.cutting.rollPakai.length && !p.cutting.hasil.length && !p.cutting.bs.length){ galat(t('wajibIsiCutting'), 'cuttingRollLines'); return; }
   }
   var b = $('btnSimpanShift'); sibuk(b, true);
-  var janji = S.shiftEdit ? panggil('ubahLaporanShift',[S.shiftEdit.id, p, S.ident]) : panggil('simpanLaporanShift',[p, S.ident]);
+  var edit = S.shiftEdit, teksBtn = t(edit ? 'simpanPerubahan' : 'btnSimpanShift');
+  var janji = edit ? panggil('ubahLaporanShift',[edit.id, p, S.ident]) : panggil('simpanLaporanShift',[p, S.ident]);
   janji.then(function(r){
-    sibuk(b,false,t('btnSimpanShift'));
+    sibuk(b,false,teksBtn);
     var lap = r.laporan || r;
-    toast((S.shiftEdit ? t('tersimpanEdit') : t('shiftTersimpan'))+' · '+esc(t('shiftKe'))+' '+lap.shift+' · roll '+kg(lap.blowing.totalHasil)+' · polybag '+kg(lap.cutting.totalHasil), 'ok');
-    S.shiftEdit = null; S.shiftSemua = false; $('shiftTglFilter').value = p.tanggal || hariIniStr();
-    segShift('list'); muatKonteks(true);
-  }).catch(function(e){ sibuk(b,false,t('btnSimpanShift')); toast(e.message,'bad'); });
+    toast((edit ? t('tersimpanEdit') : t('shiftTersimpan'))+' · '+esc(t('shiftKe'))+' '+lap.shift+' · roll '+kg(lap.blowing.totalHasil)+' · polybag '+kg(lap.cutting.totalHasil), 'ok');
+    S.shiftSemua = false; $('shiftTglFilter').value = lap.tanggal || p.tanggal || hariIniStr();
+    if (edit){ S.shiftLihat = lap; segShift('detail'); window.scrollTo(0,0); }   // sesudah mengubah: kembali ke layar lihat laporan yang sama
+    else segShift('list');
+    muatKonteks(true);
+  }).catch(function(e){ sibuk(b,false,teksBtn); toast(e.message,'bad'); });
 }
-function bukaEditShift(id){
+/* ---------- v13.2: detail laporan — HANYA LIHAT. Tidak ada kolom isian di layar ini, jadi tidak bisa salah tekan;
+   mengubah hanya lewat "Edit laporan", menghapus lewat "Hapus laporan" (konfirmasi + alasan). ---------- */
+function judulShift(r){ return t('shiftKe') + ' ' + r.shift + ' · ' + tglPanjang(String(r.tanggal)); }
+function bukaShift(id){
   panggil('ambilLaporanShift',[id, S.ident]).then(function(r){
-    S.shiftEdit = r;
-    S.shift = shiftKosong(); S.shift.shift = r.shift;
-    S.shift.blowing.aktif = r.blowing.aktif; S.shift.blowing.operator = r.blowing.operator.slice();
-    r.blowing.hasil.forEach(function(h){ S.shift.blowing.hasil[h.kualitas] = h.qty; });
-    r.blowing.bs.forEach(function(h){ S.shift.blowing.bs[h.kualitas] = h.qty; });
-    S.shift.cutting.aktif = r.cutting.aktif; S.shift.cutting.operator = r.cutting.operator.slice();
-    r.cutting.rollPakai.forEach(function(h){ S.shift.cutting.roll[h.kualitas] = h.qty; });
-    r.cutting.hasil.forEach(function(h){ S.shift.cutting.hasil[h.kualitas] = h.qty; });
-    r.cutting.bs.forEach(function(h){ S.shift.cutting.bs[h.kualitas] = h.qty; });
-    S.baris.ambil = r.blowing.ambil.length ? r.blowing.ambil.map(function(a){ return { kode:a.kode, qty:a.qty }; }) : [{ kode:'', qty:'' }];
-    S.foto.shift = null; hapusFoto('shift'); $('shiftPhoto').onclick = function(){ pilihFoto('shift'); };
-    $('shiftCatatan').value = r.catatan || '';
-    setTanggal('shiftTanggal'); $('shiftTanggal').value = r.tanggal;
-    var baca = !r.bolehEdit;
-    $('shiftFormT').textContent = baca ? t('shiftDetailT') : t('shiftEditT');
-    $('shiftFormS').textContent = r.waktu + ' · ' + r.pencatat + (r.status==='DIBATALKAN' ? ' · '+t('dibatalkan') : '');
-    var info = $('shiftInfo'); info.classList.toggle('hide', !baca);
-    info.innerHTML = baca ? ikon('gembok','tx') + ' ' + esc(t('hanyaLihat') + (r.status==='DIBATALKAN' ? ' — '+t('kunciDIBATALKAN') : (S.ctx && S.ctx.bisaReview ? ' — '+t('kunciBULAN_TUTUP') : ' — '+t('hanyaManagerShift')))) : '';
-    var lg = $('shiftLog'); lg.classList.toggle('hide', !r.logEdit); lg.setAttribute('data-judul', t('logJudul')); lg.textContent = r.logEdit || '';
-    $('btnBatalShift').classList.toggle('hide', baca);
-    $('btnSimpanShift').classList.toggle('hide', baca);
-    tampil('shift');
-    S.shiftTab = 'new';
-    $('segShiftList').classList.remove('on'); $('segShiftNew').classList.add('on'); $('segShiftRep').classList.remove('on');
-    $('shiftList').classList.add('hide'); $('shiftRep').classList.add('hide'); $('shiftForm').classList.remove('hide');
-    $('shiftForm').querySelectorAll('input, button').forEach(function(x){ x.disabled = false; });
-    gambarShiftForm();
-    setBacaSaja(['shiftTanggal','blowingOperator','cuttingOperator','shiftCatatan'], baca);
-    if (baca) $('shiftForm').querySelectorAll('input[type=number], input[type=checkbox], #ambilLines input, #ambilLines button, #shiftPilihWrap button, .chip button, #shiftForm .btn.sm').forEach(function(x){ x.disabled = true; });
-    var fb = $('shiftPhoto');
-    if (r.foto){ fb.innerHTML = '<img src="'+esc(r.foto)+'">'+(r.bolehGanti ? '<div class="btnrow" style="justify-content:flex-end;padding:6px">'+tombolGantiFoto(r.id)+'</div>' : ''); fb.className = 'photo filled'; fb.onclick = null; }
-    else if (r.bolehFoto){ fb.innerHTML = '<div class="p1">'+ikon('kamera')+' '+esc(t('tambahFoto'))+'</div><div class="p2">'+esc(t('belumFoto'))+'</div>'; fb.className = 'photo'; fb.onclick = function(){ fotoEntri(r.id); }; }
+    S.shiftLihat = r; S.shiftEdit = null; S.shiftTab = 'detail';
+    if (S.view !== 'shift') tampil('shift'); else segShift('detail');
     window.scrollTo(0,0);
   }).catch(function(e){ toast(e.message,'bad'); });
 }
+function bukaEditShift(id){ bukaShift(id); }   // nama lama (tautan kalender dsb.) — sekarang selalu ke layar lihat dulu
+function gambarDetailShift(){
+  var r = S.shiftLihat, el = $('shiftDetail');
+  if (!r){ el.innerHTML = ''; return; }
+  var b = r.blowing, c = r.cutting, batal = r.status === 'DIBATALKAN';
+  function kv(l, v){ return '<div class="kv"><span>'+l+'</span><b>'+v+'</b></div>'; }
+  function bagian(judul, list, perItem){
+    return '<h3 class="sec">'+esc(judul)+' <span class="unit">kg</span></h3>' +
+      (list.length ? list.map(function(x){ return kv(perItem ? esc(x.nama) : esc(t('kual'+x.kualitas))+' <small>· '+esc(x.nama)+'</small>', n2(x.qty)+' kg'); }).join('') : kv('—', ''));
+  }
+  function ringkas(hasil, labelHasil, bs, persen, masuk, labelMasuk){
+    return '<div class="banner n" style="margin:12px 0 0"><div class="bigrow"><span class="big">'+n2(hasil)+'<span class="u">kg</span></span><span style="font-size:12.5px">'+esc(labelHasil)+'</span>' +
+      '<span style="margin-left:auto;font-size:12.5px">BS <b>'+n2(bs)+' kg</b> ('+n2(persen)+'%)</span></div>' +
+      '<div style="font-size:12px;margin-top:4px">'+esc(labelMasuk)+' <b>'+n2(masuk)+' kg</b></div></div>';
+  }
+  function mesin(blow, m, isi){
+    return '<div class="card mesin'+(m.aktif ? '' : ' off')+'"><div class="mesinhead"><span class="mt '+(blow ? 'mt-b' : 'mt-c')+'">'+ikon(blow ? 'angin' : 'gunting')+'</span>' +
+      '<div style="flex:1;min-width:0"><b>'+esc(t(blow ? 'mesinBlowingT' : 'mesinCuttingT'))+'</b><div class="hint" style="margin:2px 0 0">' +
+      (m.aktif ? ikon('orang','tx')+' '+esc(m.operator.join(', ') || '—') : esc(t('mesinTidakJalan')))+'</div></div></div>'+(m.aktif ? isi : '')+'</div>';
+  }
+  var kunci = r.bolehEdit ? '' : batal ? t('kunciDIBATALKAN') : (S.ctx && S.ctx.bisaReview && S.ctx.modul && S.ctx.modul.PRODUKSI ? t('kunciBULAN_TUTUP') : t('hanyaManagerShift'));
+  var h = '<div class="card">' +
+    '<div class="lihatbar"><span class="tag">'+ikon('mata','tx')+' '+esc(t('modeLihat'))+'</span>' +
+      (r.bolehEdit ? '<button class="btn sm" id="btnEditShiftAtas" onclick="editShift()">'+ikon('pensil')+esc(t('btnEditShift'))+'</button>' : '')+'</div>' +
+    '<h2 id="shiftDetailT">'+esc(t('shiftKe'))+' '+esc(r.shift)+' <small style="font-weight:400;color:var(--muted)">'+esc(r.jam || jamShift(r.shift))+'</small></h2>' +
+    '<div class="sub">'+esc(tglPanjang(String(r.tanggal)))+(batal ? ' · '+esc(t('dibatalkan')) : '')+(r.logEdit ? ' · '+esc(t('diubah')) : '')+'</div>' +
+    kv(esc(t('dicatatOleh')), esc(r.pencatat)+' · '+esc(r.waktu)) +
+    (r.bolehEdit ? '<div class="hint" style="margin-top:10px">'+esc(t('lihatShiftInfo'))+'</div>'
+                 : '<div class="banner warn" style="margin:10px 0 0">'+ikon('gembok','tx')+' '+esc(t('hanyaLihat')+' — '+kunci)+'</div>') +
+    '</div>';
+  h += mesin(true, b, bagian(t('secAmbil'), b.ambil, true) + bagian(t('secHasilRoll'), b.hasil) + bagian(t('secBsBlowing'), b.bs) +
+        ringkas(b.totalHasil, t('rollJadi'), b.totalBs, b.persenBs, b.totalAmbil, t('secAmbilS')));
+  h += mesin(false, c, bagian(t('secRollPakai'), c.rollPakai) + bagian(t('secHasilPolybag'), c.hasil) + bagian(t('secBsCutting'), c.bs) +
+        ringkas(c.totalHasil, t('polybagJadi'), c.totalBs, c.persenBs, c.totalRoll, t('rollPakai')));
+  h += '<div class="card">' +
+    '<div class="field"><label>'+esc(t('lihatFoto'))+'</label>' +
+      (r.foto ? '<div class="photo filled" style="cursor:default"><img src="'+esc(r.foto)+'"></div>' : '<div style="font-size:13px;color:var(--muted)">'+esc(t('belumFoto'))+'</div>') +
+      ((r.bolehFoto && !r.foto) || (r.foto && r.bolehGanti) ? '<div style="margin-top:6px">'+tombolFoto(r)+'</div>' : '')+'</div>' +
+    (r.catatan ? '<div class="field"><label>'+esc(t('lihatCatatan'))+'</label><div style="font-size:14px;white-space:pre-line">'+esc(r.catatan)+'</div></div>' : '') +
+    (r.logEdit ? '<div class="logedit" data-judul="'+esc(t('logJudul'))+'">'+esc(r.logEdit)+'</div>' : '') +
+    (r.bolehEdit ? '<button class="btn" id="btnEditShift" onclick="editShift()">'+ikon('pensil')+esc(t('btnEditShift'))+'</button>' : '') +
+    '<div class="btnrow" style="margin-top:8px"><button class="btn sec" id="btnKembaliShift" onclick="segShift(\'list\')">'+ikon('kiri')+esc(t('kembali'))+'</button>' +
+      (r.bolehEdit ? '<button class="btn ghost" id="btnHapusShift" onclick="batalShiftUI()">'+ikon('sampah')+esc(t('btnHapusShift'))+'</button>' : '')+'</div>' +
+    '</div>';
+  el.innerHTML = h;
+}
+/* "Edit laporan" di layar lihat → form yang sama dengan isi laporan itu; pita "Mode edit" + tombol "Simpan perubahan" */
+function editShift(){
+  var r = S.shiftLihat; if (!r || !r.bolehEdit) return;
+  S.shiftEdit = r;
+  S.shift = shiftKosong(); S.shift.shift = r.shift;
+  S.shift.blowing.aktif = r.blowing.aktif; S.shift.blowing.operator = r.blowing.operator.slice();
+  r.blowing.hasil.forEach(function(h){ S.shift.blowing.hasil[h.kualitas] = h.qty; });
+  r.blowing.bs.forEach(function(h){ S.shift.blowing.bs[h.kualitas] = h.qty; });
+  S.shift.cutting.aktif = r.cutting.aktif; S.shift.cutting.operator = r.cutting.operator.slice();
+  r.cutting.rollPakai.forEach(function(h){ S.shift.cutting.roll[h.kualitas] = h.qty; });
+  r.cutting.hasil.forEach(function(h){ S.shift.cutting.hasil[h.kualitas] = h.qty; });
+  r.cutting.bs.forEach(function(h){ S.shift.cutting.bs[h.kualitas] = h.qty; });
+  S.baris.ambil = r.blowing.ambil.length ? r.blowing.ambil.map(function(a){ return { kode:a.kode, qty:a.qty }; }) : [{ kode:'', qty:'' }];
+  S.foto.shift = null; hapusFoto('shift'); $('shiftPhoto').onclick = function(){ pilihFoto('shift'); };
+  $('shiftCatatan').value = r.catatan || '';
+  setTanggal('shiftTanggal'); $('shiftTanggal').value = r.tanggal;
+  $('shiftInfo').classList.add('hide');
+  var lg = $('shiftLog'); lg.classList.toggle('hide', !r.logEdit); lg.setAttribute('data-judul', t('logJudul')); lg.textContent = r.logEdit || '';
+  $('btnSimpanShift').classList.remove('hide');
+  segShift('edit');
+  $('shiftForm').querySelectorAll('input, button').forEach(function(x){ x.disabled = false; });
+  setBacaSaja(['shiftTanggal','blowingOperator','cuttingOperator','shiftCatatan'], false);
+  gambarShiftForm();
+  var fb = $('shiftPhoto');
+  if (r.foto){ fb.innerHTML = '<img src="'+esc(r.foto)+'">'+(r.bolehGanti ? '<div class="btnrow" style="justify-content:flex-end;padding:6px">'+tombolGantiFoto(r.id)+'</div>' : ''); fb.className = 'photo filled'; fb.onclick = null; }
+  else if (r.bolehFoto){ fb.innerHTML = '<div class="p1">'+ikon('kamera')+' '+esc(t('tambahFoto'))+'</div><div class="p2">'+esc(t('belumFoto'))+'</div>'; fb.className = 'photo'; fb.onclick = function(){ fotoEntri(r.id); }; }
+  window.scrollTo(0,0);
+}
+/* tombol kiri di bawah form: laporan baru → "Batal" (ke daftar); mode edit → "Batal ubah" (kembali ke layar lihat, tidak ada yang tersimpan) */
+function tutupFormShift(){
+  if (S.shiftEdit){ S.shiftLihat = S.shiftEdit; segShift('detail'); window.scrollTo(0,0); }
+  else segShift('list');
+}
 async function batalShiftUI(){
-  if (!S.shiftEdit) return;
-  if (!await tanya(t('konfirmBatalShift'))) return;
-  var alasan = await mintaAlasan('alasanBatalSendiri'); if (alasan === null) return;
-  panggil('batalkanLaporanShift',[S.shiftEdit.id, alasan, S.ident]).then(function(){
-    toast(t('shiftDibatalkan'),'ok'); S.shiftEdit = null; segShift('list'); muatKonteks(true);
+  var r = S.shiftLihat; if (!r) return;
+  var alasan = await yakinHapus(t('apaShift').replace('{x}', judulShift(r)), 'alasanHapusShift', true, t('stokDisesuaikan'));
+  if (alasan === null) return;
+  panggil('batalkanLaporanShift',[r.id, alasan, S.ident]).then(function(){
+    toast(t('shiftDihapus'),'ok'); S.shiftLihat = null; segShift('list'); muatKonteks(true);
   }).catch(function(e){ toast(e.message,'bad'); });
 }
 function muatKonfigShift(){
@@ -10259,8 +10384,8 @@ function simpanEditUI(){
 
 async function batalkanEntriUI(){
   if (!S.edit) return;
-  if (!await tanya(t('konfirmBatal'))) return;
-  var alasan = await mintaAlasan('alasanBatalSendiri'); if (alasan === null) return;
+  var alasan = await yakinHapus(t('apaEntri').replace('{x}', n2(S.edit.qty)+' kg '+namaItem(S.edit.kode)), 'alasanBatalSendiri', false, t('stokDisesuaikan')); if (alasan === null) return;
+  if (!S.edit) return;
   var idBatal = S.edit.id;
   panggil('batalkanEntriSendiri',[S.edit.id, alasan, S.ident]).then(function(r){
     S.baruBatal = idBatal;
@@ -10541,8 +10666,8 @@ function simpanSkuUI(){
 }
 async function hapusSkuUI(){
   var r = S.skuEdit; if (!r) return;
-  if (!await tanya(t('skuHapusKonfirm'))) return;
-  panggil('hapusSku',[r.kode, S.ident]).then(function(res){
+  var alasan = await yakinHapus('SKU '+r.kode+' · '+r.nama, 'alasanHapus', true, t('skuHapusKet')); if (alasan === null) return;
+  panggil('hapusSku',[r.kode, S.ident, alasan]).then(function(res){
     toast(res.dihapus ? t('skuDihapus') : t('skuDinonaktifkan'), res.dihapus ? 'ok' : '');
     tutupSku(); admSku(); muatKonteks(true);
   }).catch(function(e){ toast(e.message,'bad'); });
@@ -10711,7 +10836,7 @@ function kartuDo(d){
     : '<button class="btn sec sm" onclick="cetakDo(\''+esc(d.id)+'\',\''+esc(d.noSuratJalan)+'\',\''+esc(d.tujuan)+'\')">'+ikon('cetak')+''+esc(t('doCetak'))+'</button>';
   if (siap){
     if (d.bolehUbah) aksi += '<button class="btn sec sm" onclick="ubahDoUI(\''+esc(d.id)+'\')">'+ikon('pensil')+''+esc(t('doUbah'))+'</button>';
-    if (d.bolehBatal) aksi += '<button class="btn ghost sm" onclick="batalDoUI(\''+esc(d.id)+'\')">'+ikon('silang')+''+esc(t('doBatal'))+'</button>';
+    if (d.bolehBatal) aksi += apa(d.id, (d.noSuratJalan || d.id) + (d.tujuan ? ' · ' + d.tujuan : '')) + '<button class="btn ghost sm" onclick="batalDoUI(\''+esc(d.id)+'\')">'+ikon('silang')+''+esc(t('doBatal'))+'</button>';
   } else if (d.bolehFoto){
     aksi += '<button class="btn '+(d.foto ? 'sec ' : '')+'sm" onclick="fotoDoUI(\''+esc(d.id)+'\','+(d.foto ? 'true' : 'false')+')">'+ikon(d.foto ? 'ulang' : 'kamera')+''+esc(t(d.foto ? 'doGantiFoto' : 'doFoto'))+'</button>';
   }
@@ -10753,7 +10878,7 @@ function ubahDoUI(id){
   }).catch(function(e){ toast(e.message,'bad'); });
 }
 async function batalDoUI(id){
-  var alasan = await mintaAlasan('alasanBatalDo'); if (alasan === null) return;
+  var alasan = await yakinHapus('DO ' + (APA[id] || id), 'alasanBatalDo'); if (alasan === null) return;
   panggil('batalkanKiriman',[id, alasan, S.ident]).then(function(){ toast(t('doDibatalkan'), ''); segarkanSetelahDo(); }).catch(function(e){ toast(e.message,'bad'); });
 }
 /* ---- lembar Kirim ---- */
@@ -11237,6 +11362,7 @@ function barisPoHtml(b, lihat, tutup){
     (b.ukuran ? '<div class="spek">'+ikon('penggaris','tx')+' '+esc(t('ukuranS'))+' '+esc(b.ukuran)+'</div>' : '') +
     (b.logEdit ? '<div style="font-size:11px;color:var(--muted);white-space:pre-line;margin-top:3px"><i>'+esc(b.logEdit)+'</i></div>' : '') +
     (bisaUbah ? '<div class="btnrow" style="margin-top:7px;justify-content:flex-end">' +
+        apa(b.id, (b.noPo || '') + ' · ' + b.item + ' ' + n2(b.qty) + ' kg') +
         '<button class="btn ghost xs" onclick="batalPoUI(\''+esc(b.id)+'\')">'+ikon('silang')+''+esc(t('batalPo'))+'</button>' +
         '<button class="btn sec xs" onclick="poEditBaris(\''+esc(b.id)+'\')">'+ikon('pensil')+''+esc(t('ubahPo'))+'</button></div>' : '') +
   '</div>';
@@ -11271,7 +11397,7 @@ function simpanUbahPo(id){
   }).catch(function(e){ sibuk(btn,false); toast(e.message,'bad'); });
 }
 async function batalPoUI(id){
-  var alasan = await mintaAlasan('alasanBatalPo'); if (alasan === null) return;
+  var alasan = await yakinHapus('PO ' + (APA[id] || id), 'alasanBatalPo'); if (alasan === null) return;
   panggil('batalkanPo',[id, alasan, S.ident]).then(function(){
     toast(t('poDibatalkan'), 'ok'); muatKonteks(true); segPo(S.poTab);
   }).catch(function(e){ toast(e.message,'bad'); });
@@ -11455,14 +11581,14 @@ function muatRusakRiwayat(){
   panggil('daftarKerusakan',[S.ident,'SEMUA',30]).then(function(rows){
     if (!rows.length){ el.innerHTML = '<div style="font-size:12.5px;color:var(--muted);padding:6px 0">'+esc(t('kosongRusak'))+'</div>'; return; }
     el.innerHTML = rows.map(function(r){
-      return '<div class="hist'+(r.status === 'DIBATALKAN' ? ' batal' : '')+'"><span class="hq">'+n2(r.qty)+' kg</span>' +
+      return apa(r.id, r.item+' '+n2(r.qty)+' kg') + '<div class="hist'+(r.status === 'DIBATALKAN' ? ' batal' : '')+'"><span class="hq">'+n2(r.qty)+' kg</span>' +
         '<span class="hx"><b>'+esc(r.item)+'</b><small>'+esc(r.tanggal)+' · '+esc(r.penyebab)+(r.catatanTinjau?' · '+esc(r.catatanTinjau):'')+'</small></span>' +
         '<span class="hb">'+pillStatus(r.status)+tombolFoto(r)+(r.status==='DISETUJUI' && S.ctx && S.ctx.bisaReview && S.ctx.modul && S.ctx.modul.GUDANG ? ' <button class="btn ghost xs" onclick="tinjauRusak(\''+esc(r.id)+'\')" aria-label="'+esc(t('btnBatal'))+'">'+ikon('silang')+'</button>' : '')+'</span></div>';
     }).join('');
   }).catch(function(e){ el.innerHTML = '<div class="banner bad">'+esc(e.message)+'</div>'; });
 }
 async function tinjauRusak(id, aksi){
-  var catatan = await mintaAlasan('alasanBatal'); if (catatan === null) return;
+  var catatan = await yakinHapus(t('apaRusak').replace('{x}', APA[id] || id), 'alasanBatal', false, t('stokDisesuaikan')); if (catatan === null) return;
   panggil('tinjauKerusakan',[id, 'batal', catatan, S.ident]).then(function(){
     toast(t('rusakDibatalkan'), '');
     muatKonteks(true); muatRusakRiwayat();
@@ -11659,6 +11785,7 @@ function barisSoHtml(b, lihat, tutup){
     (b.ukuran ? '<div class="spek">'+ikon('penggaris','tx')+' '+esc(t('ukuranS'))+' '+esc(b.ukuran)+'</div>' : '') +
     (b.logEdit ? '<div style="font-size:11px;color:var(--muted);white-space:pre-line;margin-top:3px"><i>'+esc(b.logEdit)+'</i></div>' : '') +
     (aktif && !tutup && !modeMana && bisaUbah ? '<div class="btnrow" style="margin-top:7px;justify-content:flex-end">' +
+        apa(b.id, (b.noSo || '') + ' · ' + b.item + ' ' + n2(b.qty) + ' kg') +
         '<button class="btn ghost xs" onclick="batalSoUI(\''+esc(b.id)+'\')">'+ikon('silang')+''+esc(t('batalSo'))+'</button>' +
         '<button class="btn sec xs" onclick="soEditBaris(\''+esc(b.id)+'\')">'+ikon('pensil')+''+esc(t('ubahSo'))+'</button></div>' : '') +
   '</div>';
@@ -11693,7 +11820,7 @@ function simpanUbahSo(id){
   }).catch(function(e){ sibuk(btn,false); toast(e.message,'bad'); });
 }
 async function batalSoUI(id){
-  var alasan = await mintaAlasan('alasanBatalSo'); if (alasan === null) return;
+  var alasan = await yakinHapus('SO ' + (APA[id] || id), 'alasanBatalSo'); if (alasan === null) return;
   panggil('batalkanSo',[id, alasan, S.ident]).then(function(){
     toast(t('soDibatalkan'), 'ok'); muatKonteks(true); segSo(S.soTab);
   }).catch(function(e){ toast(e.message,'bad'); });
@@ -11960,6 +12087,7 @@ function kartuDaur(d, penuh){
     (d.status !== 'DIBATALKAN' && (d.bolehUbah || d.bolehBatal || (S.ctx && S.ctx.bisaSj)) ?
       '<div id="jasa-'+esc(d.id)+'"></div><div class="btnrow" style="margin-top:8px;justify-content:flex-end">' +
         (S.ctx && S.ctx.bisaSj ? '<button class="btn sec xs" onclick="'+(d.idKiriman ? 'cetakDo(\''+esc(d.idKiriman)+'\',\''+esc(d.noSuratJalan||'')+'\',\''+esc(d.vendor)+'\')' : 'bukaDok(\'SJ\',\''+esc(d.id)+'\',{nomor:\''+esc(d.noSuratJalan||'')+'\',sub:\''+esc(d.vendor)+'\'})')+'">'+ikon(d.idKiriman ? 'cetak' : 'dokumen')+''+esc(t(d.idKiriman ? 'doCetak' : 'dokSj'))+'</button>' : '') +   /* v12.9: surat jalan BS ke jasa daur ulang */
+        apa(d.id, d.vendor + ' · ' + d.tanggal + ' · ' + n2(d.scrapKg) + ' kg') +
         (d.bolehBatal ? '<button class="btn ghost xs" onclick="batalDaurUI(\''+esc(d.id)+'\')">'+ikon('silang')+''+esc(t('batalDaur'))+'</button>' : '') +
         (d.bolehUbah && d.status === 'SELESAI' ? '<button class="btn sec xs" onclick="bukaJasaUI(\''+esc(d.id)+'\')">'+ikon('pensil')+''+esc(t('isiJasa'))+'</button>' : '') +
         (d.status === 'BERJALAN' && S.view === 'daur' ? '<button class="btn xs" onclick="segDaur(\'list\');setTimeout(function(){bukaTerimaDaur(\''+esc(d.id)+'\')},400)">'+esc(t('terimaHasil'))+'</button>' : '') +
@@ -11993,7 +12121,7 @@ function simpanJasaUI(id){
   }).catch(function(e){ toast(e.message,'bad'); });
 }
 async function batalDaurUI(id){
-  var alasan = await mintaAlasan('alasanBatalDaur'); if (alasan === null) return;
+  var alasan = await yakinHapus(t('apaDaur').replace('{x}', APA[id] || id), 'alasanBatalDaur'); if (alasan === null) return;
   panggil('batalkanDaurUlang',[id, alasan, S.ident]).then(function(){
     toast(t('daurDibatalkan'), 'ok'); tutupDaur(); muatKonteks(true);
     if (S.view === 'daur') segDaur(S.daurTab);

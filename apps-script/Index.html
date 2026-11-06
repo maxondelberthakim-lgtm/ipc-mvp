@@ -50,6 +50,8 @@
   <symbol id="i-gembok" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7.5a4 4 0 0 1 8 0V11"/></symbol>
   <symbol id="i-gembokBuka" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7.5a4 4 0 0 1 7.8-1.3"/></symbol>
   <symbol id="i-pin" viewBox="0 0 24 24"><circle cx="7.5" cy="15.5" r="4.5"/><path d="M10.8 12.2 20 3M17 6l2.5 2.5M14.5 8.5 17 11"/></symbol>
+  <symbol id="i-mata" viewBox="0 0 24 24"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="2.8"/></symbol>
+  <symbol id="i-sampah" viewBox="0 0 24 24"><path d="M4 7h16"/><path d="M9.5 7V4.5h5V7"/><path d="M6.5 7l.8 12a1.5 1.5 0 0 0 1.5 1.5h6.4a1.5 1.5 0 0 0 1.5-1.5l.8-12"/><path d="M10 11v6M14 11v6"/></symbol>
   <symbol id="i-pensil" viewBox="0 0 24 24"><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4.5 1.5L5 15z"/><path d="m14.5 5.5 3 3"/></symbol>
   <symbol id="i-dokumen" viewBox="0 0 24 24"><path d="M14 3H6.5A1.5 1.5 0 0 0 5 4.5v15A1.5 1.5 0 0 0 6.5 21h11a1.5 1.5 0 0 0 1.5-1.5V8z"/><path d="M14 3v5h5M9 13h6M9 17h6"/></symbol>
   <symbol id="i-cari" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20.5 20.5 16 16"/></symbol>
@@ -339,7 +341,7 @@
 
   <!-- ============ ① LAPORAN SHIFT PRODUKSI (v10) ============ -->
   <section id="v-shift" class="hide">
-    <div class="seg">
+    <div class="seg" id="shiftSeg">
       <button id="segShiftList" class="on" onclick="segShift('list')" data-i18n="segShiftList">Laporan</button>
       <button id="segShiftNew" onclick="segShift('new')" data-i18n="segShiftNew">+ Isi laporan</button>
       <button id="segShiftRep" onclick="segShift('rep')" data-i18n="segShiftRep">Rekap bulan</button>
@@ -357,7 +359,11 @@
       <div id="shiftRows"><div class="load">…</div></div>
     </div>
 
+    <!-- v13.2: detail laporan — HANYA LIHAT (tidak ada kolom isian); mengubah hanya lewat tombol "Edit laporan" -->
+    <div id="shiftDetail" class="hide"></div>
+
     <div id="shiftForm" class="hide">
+      <div class="banner modeedit hide" id="shiftEditInfo"></div>
       <div class="card">
         <h2 id="shiftFormT" data-i18n="shiftFormT">Laporan shift</h2>
         <div class="sub" id="shiftFormS" data-i18n="shiftFormS">Satu laporan per shift (12 jam). Operator blowing dan cutting dicatat terpisah. Tidak perlu persetujuan — stok langsung ikut.</div>
@@ -434,8 +440,7 @@
         </div>
         <div class="logedit hide" id="shiftLog"></div>
         <div class="btnrow">
-          <button class="btn ghost hide" id="btnBatalShift" onclick="batalShiftUI()" data-i18n="btnBatalShift">Batalkan laporan</button>
-          <button class="btn sec" onclick="segShift('list')" data-i18n="btnBatal">Batal</button>
+          <button class="btn sec" id="btnTutupShift" onclick="tutupFormShift()" data-i18n="btnBatal">Batal</button>
           <button class="btn ok" id="btnSimpanShift" onclick="simpanShiftUI()" data-i18n="btnSimpanShift">Simpan laporan</button>
         </div>
       </div>

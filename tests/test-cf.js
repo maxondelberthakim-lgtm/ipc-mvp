@@ -81,7 +81,7 @@ console.log('— 4. Potongan: >64 baris, hapus baris, migrasi & impor —');
   const kodeBaru = JSON.parse(C.m.panggil('tambahMaster', ['item', { nama: 'Uji Hapus', kategori: 'BAHAN_BAKU' }, SPV], 'tm1'));
   ok('tambahMaster ok', kodeBaru.ok && kodeBaru.data.kode, kodeBaru);
   const nItem = C.m.SS.sheets['Master_Item'].rows.length;
-  const h = JSON.parse(C.m.panggil('hapusSku', [kodeBaru.data.kode, SPV], 'hs1'));
+  const h = JSON.parse(C.m.panggil('hapusSku', [kodeBaru.data.kode, SPV, 'uji hapus'], 'hs1'));
   ok('hapusSku ok, baris berkurang', h.ok && C.m.SS.sheets['Master_Item'].rows.length === nItem - 1, h);
   C.db.close(); const D = bukaMesin();
   ok('Master_Item setelah hapus + muat ulang konsisten', D.m.SS.sheets['Master_Item'].rows.length === nItem - 1 && !D.m.SS.sheets['Master_Item'].rows.some(r => r[0] === kodeBaru.data.kode));
@@ -124,7 +124,7 @@ console.log('— 6. Migrasi v9 → v10 di atas data sungguhan (cloudflare/ipc-li
     ok('impor data v9 jalan', hasil.some((x) => /^Master_Item:/.test(x)), hasil);
     const ADM6 = { nama: 'Admin', pin: String(data.Master_Pengguna.find((r) => r[1] === 'Admin')[4]) };
     const k = JSON.parse(G6.m.panggil('getKonteks', [ADM6], 'mig-1'));
-    ok('getKonteks setelah migrasi ok (versi 11.1)', k.ok && k.data.app.versi === '13.1.0', k.error);
+    ok('getKonteks setelah migrasi ok (versi 11.1)', k.ok && k.data.app.versi === '13.2.0', k.error);
     ok('peta kualitas lengkap (roll/polybag/BS ditambahkan)', k.data.kualitas.length === 3 && k.data.kualitas.every((q) => q.biji && q.roll && q.jadi && q.bs), k.data.kualitas);
     ok('RM-BS-* lama dinonaktifkan, SCR-BS-* aktif', !k.data.items.some((i) => /^RM-BS-/.test(i.kode)) && k.data.items.some((i) => i.kode === 'SCR-BS-KW' && i.kategori === 'SCRAP'));
     ok('item lama (FG-PB-HP, RM-BIJI-PLASTIK-DAUR-UL) tetap ada', k.data.items.some((i) => i.kode === 'FG-PB-HP') && k.data.items.some((i) => i.kode === 'RM-BIJI-PLASTIK-DAUR-UL'));
