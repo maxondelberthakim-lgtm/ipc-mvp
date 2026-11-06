@@ -81,11 +81,14 @@ function simpanKontakWa(p, ident) {
     return { ok: true, id: id, nama: nama, nomor: nomor };
   } finally { lock.releaseLock(); }
 }
-function hapusKontakWa(id, ident) {
+/** v13.2: alasan wajib (tercatat di Log_Audit). Kontak hanya dinonaktifkan — tidak dihapus dari sheet. */
+function hapusKontakWa(id, ident, alasan) {
   var u = penggunaSaatIni_(ident);
   if (!bolehDokumen_(u)) throw new Error('Hanya akun dengan akses PO / Sales order.');
+  alasan = alasanWajib_(alasan);
   var r = cariEntri_(SHEET.KONTAK_WA, id);
   ubahBaris_(SHEET.KONTAK_WA, r._baris, { Aktif: 'TIDAK' });
+  catatLog_('KONTAK_WA_HAPUS', id, (r.Nama || '') + ' ' + (r.Nomor || '') + ' — ' + alasan);
   return { ok: true };
 }
 

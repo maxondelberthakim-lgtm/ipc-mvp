@@ -46,7 +46,7 @@ console.log('— Migrasi v8 → v9: Stok_Awal_GP digabung, kolom dihapus, sheet 
   ctx.lupakanMemo_();
 }
 ctx.setupSistem();
-ok('versi 13.1.0', ctx.APP.versi==='13.1.0');
+ok('versi 13.2.0', ctx.APP.versi==='13.2.0');
 ok('stok awal 0 di seed → laporan stok kosong (belum ada transaksi)', ctx.laporanStok(SPV).daftar.length===0);
 
 console.log('\n— Tambah master dari form (semua peran) —');
@@ -70,7 +70,7 @@ console.log('\n— Tambah master dari form (semua peran) —');
   tolak('jenis tak dikenal', ()=>ctx.tambahMaster('WARNA', {nama:'x'}, STAF), /tidak dikenal/);
   /* nonaktif → ditambah lagi = diaktifkan */
   ctx.simpanPenerimaan({jenis:'MASUK',supplier:'PT Chassen Jaya',noSuratJalan:'SJ/X',baris:[{kode:i2.kode,qty:1}],ident:STAF});
-  ctx.hapusSku(i2.kode, SPV);
+  ctx.hapusSku(i2.kode, SPV, 'uji nonaktif');
   ok('SKU dinonaktifkan hilang dari dropdown', !ctx.getKonteks(STAF).items.some(x=>x.kode===i2.kode));
   const i4 = ctx.tambahMaster('ITEM', {nama:'biji plastik daur ulang hitam!'}, STAF);
   ok('tambah nama yang sama → SKU lama diaktifkan lagi, bukan dobel', i4.ada && i4.kode===i2.kode && ctx.getKonteks(STAF).items.some(x=>x.kode===i2.kode), i4);

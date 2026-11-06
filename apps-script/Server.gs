@@ -1664,10 +1664,11 @@ function simpanSku(p, ident) {
   }
 }
 
-/** Hapus beneran kalau belum pernah dipakai; kalau sudah, nonaktifkan. */
-function hapusSku(kode, ident) {
+/** Hapus beneran kalau belum pernah dipakai; kalau sudah, nonaktifkan. v13.2: alasan wajib (tercatat di Log_Audit). */
+function hapusSku(kode, ident, alasan) {
   var u = penggunaSaatIni_(ident);
   if (!bolehReview_(u) || !bolehModul_(u, MODUL.MANAJEMEN)) throw new Error('Hanya akun dengan akses Manajemen (Manager / Admin).');
+  alasan = alasanWajib_(alasan);
   var lock = LockService.getScriptLock();
   lock.waitLock(20000);
   lupakanMemo_();   // di dalam lock: baca ulang dari sheet, jangan pakai memo sebelum lock
@@ -1677,12 +1678,12 @@ function hapusSku(kode, ident) {
     if (!target) throw new Error('SKU tidak ditemukan: ' + kode);
     if (skuDipakai_()[kode]) {
       ubahBaris_(SHEET.ITEM, target._baris, { Aktif: 'TIDAK' });
-      catatLog_('ADMIN_SKU', kode, 'nonaktif (sudah dipakai)');
+      catatLog_('ADMIN_SKU', kode, 'nonaktif (sudah dipakai) — ' + alasan);
       return { ok: true, dihapus: false, dinonaktifkan: true };
     }
     sheet_(SHEET.ITEM).deleteRow(target._baris);
     lupakanMemo_(SHEET.ITEM);
-    catatLog_('ADMIN_SKU', kode, 'hapus');
+    catatLog_('ADMIN_SKU', kode, 'hapus ' + (target.Nama_Item || '') + ' — ' + alasan);
     return { ok: true, dihapus: true, dinonaktifkan: false };
   } finally {
     lock.releaseLock();

@@ -16,7 +16,7 @@ ok('kode dinormalisasi', r1.kode==='RM-PISTACHIO', r1);
 ok('SKU bertambah 1', ctx.daftarSku(ANTO).length===n0+1, ctx.daftarSku(ANTO).length-n0);
 const rR = ctx.simpanSku({kode:'WIP-ROLL-HITAM', nama:'Roll Hitam', kategori:'ROLL', kualitas:'KW'}, ANTO);
 ok('SKU kategori ROLL dengan kualitas bisa ditambah', rR.ok && ctx.daftarSku(ANTO).find(s=>s.kode==='WIP-ROLL-HITAM').kategori==='ROLL' && ctx.daftarSku(ANTO).find(s=>s.kode==='WIP-ROLL-HITAM').kualitas==='KW', rR);
-ctx.hapusSku('WIP-ROLL-HITAM', ANTO);
+ctx.hapusSku('WIP-ROLL-HITAM', ANTO, 'salah input');
 tolak('kualitas tak dikenal ditolak', ()=>ctx.simpanSku({kode:'FG-PB-X', nama:'Polybag X', kategori:'BARANG_JADI', kualitas:'PREMIUM'}, ANTO), /Kualitas/);
 
 ok('muncul di dropdown', ctx.getKonteks(ANTO).items.some(i=>i.kode==='RM-PISTACHIO'));
@@ -28,11 +28,11 @@ const b = ctx.daftarSku(ANTO).find(s=>s.kode==='RM-PISTACHIO').baris;
 ctx.simpanSku({baris:b, kode:'RM-PISTACHIO', nama:'Pistachio Mentah Iran', kategori:'BAHAN_BAKU', harga:330000, awal:50}, ANTO);
 ok('ubah nama', ctx.daftarSku(ANTO).find(s=>s.kode==='RM-PISTACHIO').nama==='Pistachio Mentah Iran');
 // belum dipakai -> hapus beneran
-const h1 = ctx.hapusSku('RM-PISTACHIO', ANTO);
+const h1 = ctx.hapusSku('RM-PISTACHIO', ANTO, 'tidak dipakai lagi');
 ok('belum dipakai -> dihapus beneran', h1.dihapus===true && !ctx.daftarSku(ANTO).some(s=>s.kode==='RM-PISTACHIO'), h1);
 // sudah dipakai -> nonaktif
 ctx.simpanPenerimaan({jenis:'MASUK',supplier:'X',noSuratJalan:'A',baris:[{kode:'RM-AF',qty:10}],ident:YANTO});
-const h2 = ctx.hapusSku('RM-AF', ANTO);
+const h2 = ctx.hapusSku('RM-AF', ANTO, 'tidak dijual lagi');
 ok('sudah dipakai -> dinonaktifkan, bukan dihapus', h2.dinonaktifkan===true && ctx.daftarSku(ANTO).find(s=>s.kode==='RM-AF').aktif===false, h2);
 ok('nonaktif hilang dari dropdown', !ctx.getKonteks(ANTO).items.some(i=>i.kode==='RM-AF'));
 ok('riwayat stok tetap utuh', ctx.laporanStok(ANTO).daftar.find(s=>s.kode==='RM-AF').beli===10);

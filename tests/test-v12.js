@@ -40,7 +40,7 @@ const k2 = ctx.simpanKontakWa({nama:'Budi Nursery', nomor:'+62 812 3456 7890'}, 
 ok('nomor sama → kontak yang sama diperbarui (tidak dobel)', k2.id===k1.id && ctx.daftarKontakWa(YS).length===1 && ctx.daftarKontakWa(YS)[0].nama==='Budi Nursery');
 ctx.simpanKontakWa({nama:'Supplier Biji', nomor:'62811000111'}, YS);
 ok('2 kontak, urut nama', ctx.daftarKontakWa(SM).map(k=>k.nama).join('|')==='Budi Nursery|Supplier Biji');
-ctx.hapusKontakWa(k1.id, YS);
+ctx.hapusKontakWa(k1.id, YS, 'nomor sudah ganti');
 ok('hapus kontak → nonaktif', ctx.daftarKontakWa(YS).length===1);
 tolak('Bastari tidak boleh lihat kontak', ()=>ctx.daftarKontakWa(MP), /akses PO/);
 

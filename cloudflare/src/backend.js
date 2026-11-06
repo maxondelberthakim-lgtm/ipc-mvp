@@ -18,7 +18,7 @@ export function pasangBackend(G) {
 
 var APP = {
   nama: 'IPC — Inventory & Production Control',
-  versi: '13.1.0',
+  versi: '13.2.0',
   zona: 'Asia/Jakarta',
   satuan: 'kg',
   folderFoto: 'IPC Foto Bukti'
@@ -2201,10 +2201,11 @@ function simpanSku(p, ident) {
   }
 }
 
-/** Hapus beneran kalau belum pernah dipakai; kalau sudah, nonaktifkan. */
-function hapusSku(kode, ident) {
+/** Hapus beneran kalau belum pernah dipakai; kalau sudah, nonaktifkan. v13.2: alasan wajib (tercatat di Log_Audit). */
+function hapusSku(kode, ident, alasan) {
   var u = penggunaSaatIni_(ident);
   if (!bolehReview_(u) || !bolehModul_(u, MODUL.MANAJEMEN)) throw new Error('Hanya akun dengan akses Manajemen (Manager / Admin).');
+  alasan = alasanWajib_(alasan);
   var lock = LockService.getScriptLock();
   lock.waitLock(20000);
   lupakanMemo_();   // di dalam lock: baca ulang dari sheet, jangan pakai memo sebelum lock
@@ -2214,12 +2215,12 @@ function hapusSku(kode, ident) {
     if (!target) throw new Error('SKU tidak ditemukan: ' + kode);
     if (skuDipakai_()[kode]) {
       ubahBaris_(SHEET.ITEM, target._baris, { Aktif: 'TIDAK' });
-      catatLog_('ADMIN_SKU', kode, 'nonaktif (sudah dipakai)');
+      catatLog_('ADMIN_SKU', kode, 'nonaktif (sudah dipakai) — ' + alasan);
       return { ok: true, dihapus: false, dinonaktifkan: true };
     }
     sheet_(SHEET.ITEM).deleteRow(target._baris);
     lupakanMemo_(SHEET.ITEM);
-    catatLog_('ADMIN_SKU', kode, 'hapus');
+    catatLog_('ADMIN_SKU', kode, 'hapus ' + (target.Nama_Item || '') + ' — ' + alasan);
     return { ok: true, dihapus: true, dinonaktifkan: false };
   } finally {
     lock.releaseLock();
@@ -5303,11 +5304,14 @@ function simpanKontakWa(p, ident) {
     return { ok: true, id: id, nama: nama, nomor: nomor };
   } finally { lock.releaseLock(); }
 }
-function hapusKontakWa(id, ident) {
+/** v13.2: alasan wajib (tercatat di Log_Audit). Kontak hanya dinonaktifkan — tidak dihapus dari sheet. */
+function hapusKontakWa(id, ident, alasan) {
   var u = penggunaSaatIni_(ident);
   if (!bolehDokumen_(u)) throw new Error('Hanya akun dengan akses PO / Sales order.');
+  alasan = alasanWajib_(alasan);
   var r = cariEntri_(SHEET.KONTAK_WA, id);
   ubahBaris_(SHEET.KONTAK_WA, r._baris, { Aktif: 'TIDAK' });
+  catatLog_('KONTAK_WA_HAPUS', id, (r.Nama || '') + ' ' + (r.Nomor || '') + ' — ' + alasan);
   return { ok: true };
 }
 

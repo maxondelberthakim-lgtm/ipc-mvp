@@ -134,6 +134,61 @@ await p.evaluate(() => simpanShiftUI()); await W(2500);
 ok('laporan shift tersimpan oleh Bastari', toasts.some(t => /Laporan shift tersimpan/i.test(t)), toasts.slice(-1));
 const kartu = await T('#shiftRows');
 ok('kartu: Blowing Sri · Cutting Rina · pencatat Bastari', /Sri/.test(kartu) && /Rina/.test(kartu) && /Bastari/.test(kartu), kartu.slice(0, 200));
+
+/* ---- v13.2: kartu laporan → layar LIHAT (tanpa kolom isian) → Edit laporan → Batal ubah / Simpan perubahan → Hapus (konfirmasi + alasan) ---- */
+{
+  const nApi = (fn) => api.filter(a => a.fn === fn).length;
+  const jmlShift = async () => (await p.evaluate(() => panggil('daftarLaporanShift', [S.ident, 14, '']))).length;
+  const n0 = await jmlShift();
+  await p.click('#shiftRows .job .bb'); await W(1200);
+  ok('v13.2: ketuk kartu → layar lihat; form tersembunyi; tab "Laporan" tetap menyala', !(await hidden('#shiftDetail')) && (await hidden('#shiftForm')) && (await hidden('#shiftList')) && (await p.$eval('#segShiftList', e => e.classList.contains('on'))) && !(await p.$eval('#segShiftNew', e => e.classList.contains('on'))));
+  ok('v13.2: layar lihat tidak punya kolom isian sama sekali (tidak bisa salah tekan)', (await p.$$eval('#shiftDetail input, #shiftDetail textarea, #shiftDetail select, #shiftDetail [contenteditable]', e => e.length)) === 0);
+  await p.screenshot({ path: OUT + '/v132-1-lihat.png', fullPage: true });
+  const det = await T('#shiftDetail');
+  ok('v13.2: layar lihat: tanda "Hanya lihat", Shift 1, operator, angka, tombol Edit laporan + Hapus laporan + Kembali', /Hanya lihat/.test(det) && /Shift 1/.test(det) && /Sri/.test(det) && /Rina/.test(det) && /240/.test(det) && /235/.test(det) && /Bastari/.test(det) && !!(await p.$('#btnEditShift')) && !!(await p.$('#btnHapusShift')) && !!(await p.$('#btnKembaliShift')), det.slice(0, 300));
+  const nUbah0 = nApi('ubahLaporanShift');
+  await p.click('#btnEditShift'); await W(600);
+  ok('v13.2: Edit laporan → form + pita "Mode edit" (Shift 1), tombol "Simpan perubahan" / "Batal ubah", tab disembunyikan', !(await hidden('#shiftForm')) && (await hidden('#shiftDetail')) && !(await hidden('#shiftEditInfo')) && /Mode edit/.test(await T('#shiftEditInfo')) && /Shift 1/.test(await T('#shiftEditInfo')) && /bukan membuat laporan baru/.test(await T('#shiftEditInfo')) &&
+     (await T('#btnSimpanShift')) === 'Simpan perubahan' && (await T('#btnTutupShift')) === 'Batal ubah' && (await hidden('#shiftSeg')) && (await T('#shiftFormT')) === 'Ubah laporan shift');
+  await p.screenshot({ path: OUT + '/v132-2-edit.png', fullPage: true });
+  ok('v13.2: form edit terisi angka laporan & bisa diubah', (await p.$eval('#blowingHasilLines input', e => e.value)) === '240' && !(await p.$eval('#blowingHasilLines input', e => e.disabled)) && (await p.$$eval('#blowingOpChips .chip', e => e.length)) === 1);
+  await (await p.$$('#blowingHasilLines input'))[0].fill('999'); await W(100);
+  await p.click('#btnTutupShift'); await W(500);
+  ok('v13.2: Batal ubah → kembali ke layar lihat, angka lama (240), tidak ada yang tersimpan', !(await hidden('#shiftDetail')) && (await hidden('#shiftForm')) && /240/.test(await T('#shiftDetail')) && !/999/.test(await T('#shiftDetail')) && nApi('ubahLaporanShift') === nUbah0 && !(await hidden('#shiftSeg')));
+  await p.click('#btnEditShiftAtas'); await W(500);
+  await p.fill('#shiftCatatan', 'catatan e2e 13.2'); await p.click('#btnSimpanShift'); await W(2500);
+  ok('v13.2: Simpan perubahan → "Perubahan tersimpan", kembali ke layar lihat laporan yang sama (catatan + riwayat perubahan), jumlah laporan tetap', toasts.slice(-1).some(t => /Perubahan tersimpan/.test(t)) && !(await hidden('#shiftDetail')) && /catatan e2e 13\.2/.test(await T('#shiftDetail')) && !!(await p.$('#shiftDetail .logedit')) && nApi('ubahLaporanShift') === nUbah0 + 1 && (await jmlShift()) === n0, [toasts.slice(-1), await jmlShift(), n0]);
+  /* "+ Isi laporan" sesudah melihat / mengubah = form KOSONG (laporan lama tidak ikut terbawa) */
+  await p.click('#segShiftNew'); await W(600);
+  ok('v13.2: "+ Isi laporan" sesudah edit → form kosong: tanpa pita Mode edit, "Simpan laporan", operator & angka kosong', !(await hidden('#shiftForm')) && (await hidden('#shiftEditInfo')) && (await T('#btnSimpanShift')) === 'Simpan laporan' && (await T('#btnTutupShift')) === 'Batal' && (await p.$$eval('#blowingOpChips .chip', e => e.length)) === 0 && (await p.$eval('#blowingHasilLines input', e => e.value)) === '' && (await p.evaluate(() => S.shiftEdit === null)));
+  /* laporan shift 2 (kecil) lalu dihapus lewat UI — dialog dijawab manual */
+  await p.fill('#blowingOperator', 'Sri'); await p.keyboard.press('Enter'); await W(200);
+  await p.evaluate(() => { toggleMesin('cutting', false); S.baris.ambil[0].kode = 'RM-BP-KW'; S.baris.ambil[0].qty = '2'; gambarBaris('ambil'); pilihShift('2'); });
+  await (await p.$$('#blowingHasilLines input'))[0].fill('1'); await W(100);
+  await p.click('#btnSimpanShift'); await W(2500);
+  ok('v13.2: laporan shift 2 tersimpan (2 laporan)', (await jmlShift()) === n0 + 1, toasts.slice(-1));
+  await p.evaluate(() => { window.__dlgManual = true; });
+  await p.locator('#shiftRows .job').nth(1).locator('.bb').click(); await W(1200);
+  ok('v13.2: laporan shift 2 terbuka di layar lihat', /Shift 2/.test(await T('#shiftDetailT')));
+  const nBatal0 = nApi('batalkanLaporanShift');
+  await p.click('#btnHapusShift'); await p.waitForSelector('#dlgWrap:not(.hide)'); await W(150);
+  await p.screenshot({ path: OUT + '/v132-3-yakin.png' });
+  const pesan1 = await p.$eval('#dlgPesan', e => e.textContent);
+  ok('v13.2: Hapus laporan → "Yakin mau hapus laporan Shift 2 · …?" dengan tombol [Kembali] [Ya, hapus] (merah), belum minta alasan', /^Yakin mau hapus laporan Shift 2 · /.test(pesan1) && /Stok akan disesuaikan/.test(pesan1) && (await T('#dlgOk')) === 'Ya, hapus' && (await T('#dlgBatal')) === 'Kembali' && (await hidden('#dlgInput')) && (await p.$eval('#dlgOk', e => e.classList.contains('danger'))), pesan1);
+  await p.click('#dlgBatal'); await W(300);
+  ok('v13.2: Kembali → tidak ada yang dihapus, tetap di layar lihat', (await hidden('#dlgWrap')) && !(await hidden('#shiftDetail')) && nApi('batalkanLaporanShift') === nBatal0 && (await jmlShift()) === n0 + 1);
+  await p.click('#btnHapusShift'); await p.waitForSelector('#dlgWrap:not(.hide)'); await W(150);
+  await p.click('#dlgOk'); await W(300);
+  await p.screenshot({ path: OUT + '/v132-4-alasan.png' });
+  ok('v13.2: Ya, hapus → lembar alasan (wajib) dengan tombol [Kembali] [Hapus]', !(await hidden('#dlgWrap')) && !(await hidden('#dlgInput')) && /Kenapa laporan ini dihapus/.test(await T('#dlgPesan')) && (await T('#dlgOk')) === 'Hapus' && (await T('#dlgBatal')) === 'Kembali');
+  await p.fill('#dlgInput', 'x'); await p.click('#dlgOk'); await W(300);
+  ok('v13.2: alasan < 3 huruf → ditanya lagi, belum dihapus', !(await hidden('#dlgWrap')) && nApi('batalkanLaporanShift') === nBatal0);
+  await p.fill('#dlgInput', 'salah shift (e2e)'); await p.click('#dlgOk'); await W(2500);
+  ok('v13.2: alasan diisi → laporan dihapus, kembali ke daftar, tinggal laporan shift 1', toasts.slice(-1).some(t => /Laporan shift dihapus/.test(t)) && !(await hidden('#shiftList')) && (await jmlShift()) === n0 && nApi('batalkanLaporanShift') === nBatal0 + 1, toasts.slice(-1));
+  await p.evaluate(() => { window.__dlgManual = false; });
+  ok('v13.2: tombol dialog kembali ke "Batal" / "OK" untuk pertanyaan biasa', await p.evaluate(async () => { const j = tanya('uji'); await new Promise(r => setTimeout(r, 30)); const b = [document.getElementById('dlgBatal').textContent, document.getElementById('dlgOk').textContent, document.getElementById('dlgOk').classList.contains('danger')]; dlgJawab(false); await j; return b[0] === 'Batal' && b[1] === 'OK' && b[2] === false; }));
+  await p.evaluate(() => tampil('home')); await W(400);
+}
 await p.evaluate(() => { tampil('admin'); segAdm('opprod'); }); await W(1200);
 ok('Bastari: tab Opname produksi tampil; Opname gudang / SKU / Rekonsiliasi tersembunyi', !(await hidden('#segAdmOpprod')) && (await hidden('#segAdmOpname')) && (await hidden('#segAdmSku')) && (await hidden('#segAdmRekon')));
 await p.evaluate(() => { opprodIsi('polybag', 'KW', '230'); opprodIsi('bs', 'KW', '20'); opprodIsi('biji', 'RM-BP-KW', '5'); opprodIsi('roll', 'KW', '4'); S.opprod.wip = '3'; opprodRingkas(); });
@@ -525,11 +580,13 @@ await p.evaluate(() => { tampil('so'); segSo('aktif'); }); await W(1200);
 if (await p.$('#soBody .btn.ghost')) {
   await p.evaluate(() => { window.__dlgManual = true; });
   await p.click('#soBody .btn.ghost >> nth=0'); await p.waitForSelector('#dlgWrap:not(.hide)'); await W(150);
-  ok('v12.10: Batalkan SO → lembar alasan di dalam app (kata-kata sama, isian terfokus)', (await T('#dlgPesan')) === (await p.evaluate(() => t('alasanBatalSo'))) && (await p.evaluate(() => document.activeElement && document.activeElement.id === 'dlgInput')), await T('#dlgPesan'));
+  ok('v13.2: Batalkan SO → dulu "Yakin mau membatalkan SO …?" [Kembali] [Ya, batalkan]', /^Yakin mau membatalkan SO SO-/.test(await T('#dlgPesan')) && (await T('#dlgOk')) === 'Ya, batalkan' && (await T('#dlgBatal')) === 'Kembali' && (await hidden('#dlgInput')), await T('#dlgPesan'));
+  await p.click('#dlgOk'); await p.waitForSelector('#dlgInput:not(.hide)'); await W(150);
+  ok('v12.10: … lalu lembar alasan di dalam app (kata-kata sama, isian terfokus)', (await T('#dlgPesan')) === (await p.evaluate(() => t('alasanBatalSo'))) && (await p.evaluate(() => document.activeElement && document.activeElement.id === 'dlgInput')) && (await T('#dlgOk')) === 'Batalkan', await T('#dlgPesan'));
   await p.fill('#dlgInput', 'ab'); await p.click('#dlgOk'); await W(250);
   ok('v12.10: alasan < 3 huruf → ditanya lagi + "alasan wajib"', !(await hidden('#dlgWrap')) && (await p.$eval('#dlgPesan', e => e.textContent)) === (await p.evaluate(() => t('alasanBatalSo') + '\n' + t('alasanWajib'))));
   await p.click('#dlgBatal'); await W(300);
-  ok('v12.10: Batal → lembar tertutup, SO tidak dibatalkan', (await hidden('#dlgWrap')) && !toasts.slice(-1).some(t => /dibatalkan/i.test(t)));
+  ok('v12.10: Kembali → lembar tertutup, SO tidak dibatalkan', (await hidden('#dlgWrap')) && !toasts.slice(-1).some(t => /dibatalkan/i.test(t)));
   await p.evaluate(() => { window.__dlgManual = false; });
 }
 await p.evaluate(() => { segSo('baru'); }); await W(500);
