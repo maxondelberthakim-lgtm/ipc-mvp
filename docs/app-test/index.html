@@ -2681,13 +2681,14 @@ function gambarBaris(k){
       '<div class="top"><span class="no">#'+(i+1)+'</span>' +
         (S.baris[k].length>1 || terkunci ? '<button class="x" onclick="hapusBaris(\''+k+'\','+i+')">'+ikon('silang')+''+esc(t('hapus'))+'</button>' : '') +
       '</div>' + sel +
+      (k === 'so' ? ukuranHtml : '') +   /* v13.2.1 (Max 7 Nov): SO = barang → ukuran → qty → harga */
       '<div id="hs-'+k+'-'+i+'"></div>' +
       '<div class="row" style="margin-top:8px">' +
         '<input type="number" inputmode="decimal" step="any" min="0" placeholder="'+esc(t('qty'))+'" value="'+esc(b.qty)+'" oninput="ubahBaris(\''+k+'\','+i+',\'qty\',this.value)">' +
         (BARIS_BAL[k]
           ? '<div class="w90"><select onchange="ubahBaris(\''+k+'\','+i+',\'satuan\',this.value)" style="text-align:center;font-weight:600"><option value="kg"'+(b.satuan==='bal'?'':' selected')+'>'+esc(t('satuanKg'))+'</option><option value="bal"'+(b.satuan==='bal'?' selected':'')+'>'+esc(t('satuanBal'))+'</option></select></div>'
           : '<div class="w90"><input value="kg" readonly style="background:#f3f4f6;text-align:center;font-weight:600"></div>') +
-      '</div>' + ekstra + ukuranHtml + '</div>';
+      '</div>' + ekstra + (k === 'so' ? '' : ukuranHtml) + '</div>';
   }).join('');
   S.baris[k].forEach(function(b, i){
     var inp = $('cb-'+k+'-'+i);
@@ -5518,6 +5519,7 @@ function cariSoBaris(id){
 function soEditBaris(id){
   var b = cariSoBaris(id), el = $('sor-'+id); if (!b || !el) return;
   el.innerHTML = '<b style="font-size:14px">'+esc(b.item)+'</b>' +
+    '<div class="field" style="margin-top:8px"><label>'+esc(t('lblUkuranBaris'))+'</label><input id="se-uk-'+esc(id)+'" value="'+esc(b.ukuran||'')+'"></div>' +
     '<div class="row" style="margin-top:8px"><input type="number" inputmode="decimal" step="any" min="0" id="se-qty-'+esc(id)+'" value="'+esc(b.qty)+'" placeholder="'+esc(t('qty'))+'">' +
       '<div class="w90"><input value="kg" readonly style="background:#f3f4f6;text-align:center;font-weight:600"></div></div>' +
     (lihatHpp() ? '<div class="row" style="margin-top:8px"><input type="number" inputmode="decimal" step="any" min="0" id="se-harga-'+esc(id)+'" value="'+esc(b.harga)+'" placeholder="'+esc(t('lblHargaJual'))+'">' +
@@ -5525,7 +5527,6 @@ function soEditBaris(id){
     '<div class="row" style="margin-top:8px"><div class="field" style="flex:1"><label>'+esc(t('lblTanggalKirim'))+'</label><input type="date" id="se-kirim-'+esc(id)+'" value="'+esc(b.tanggalKirim)+'"></div>' +
       '<div class="field" style="flex:1"><label>'+esc(t('lblTop'))+'</label><input type="number" inputmode="numeric" min="0" max="365" id="se-top-'+esc(id)+'" value="'+esc(b.topHari||0)+'"></div></div>' +
     '<div class="field"><label>'+esc(t('topDari'))+'</label><select id="se-topdari-'+esc(id)+'"><option value="KIRIM"'+(b.topDari!=='DOKUMEN'?' selected':'')+'>'+esc(t('topDariKirimSo'))+'</option><option value="DOKUMEN"'+(b.topDari==='DOKUMEN'?' selected':'')+'>'+esc(t('topDariDokSo'))+'</option></select></div>' +
-    '<div class="field"><label>'+esc(t('lblUkuranBaris'))+'</label><input id="se-uk-'+esc(id)+'" value="'+esc(b.ukuran||'')+'"></div>' +
     '<div class="field"><label>'+esc(t('lblCatatan'))+'</label><input id="se-cat-'+esc(id)+'" value="'+esc(b.catatan)+'"></div>' +
     '<div class="btnrow"><button class="btn ghost sm" onclick="segSo(S.soTab)">'+esc(t('batal'))+'</button>' +
       '<button class="btn sm" id="se-btn-'+esc(id)+'" onclick="simpanUbahSo(\''+esc(id)+'\')">'+esc(t('simpanPerubahan'))+'</button></div>';
