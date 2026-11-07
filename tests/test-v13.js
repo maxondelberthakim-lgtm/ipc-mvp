@@ -24,7 +24,7 @@ console.log('— Skema & akses v13 —');
 const ss = ctx.SpreadsheetApp.getActiveSpreadsheet();
 ok('sheet Kiriman & Kiriman_Detail ada', !!ss.getSheetByName('Kiriman') && !!ss.getSheetByName('Kiriman_Detail'));
 ok('Pengiriman & Daur_Ulang punya kolom ID_Kiriman', ctx.HEADER['Pengiriman'].indexOf('ID_Kiriman') >= 0 && ctx.HEADER['Daur_Ulang'].indexOf('ID_Kiriman') >= 0);
-ok('versi 13.2.0', ctx.APP.versi === '13.2.0');
+ok('versi 13.2.1', ctx.APP.versi === '13.2.1');
 { const ky = ctx.getKonteks(YS), kd = ctx.getKonteks(SM), kb = ctx.getKonteks(MP), ks = ctx.getKonteks(STAF);
   ok('konteks: bisaKirim Yansen (GUDANG) true; Deny (SO saja), Bastari (PRODUKSI), STAF false', ky.bisaKirim === true && kd.bisaKirim === false && kb.bisaKirim === false && ks.bisaKirim === false, [ky.bisaKirim, kd.bisaKirim, kb.bisaKirim, ks.bisaKirim]);
   ok('konteks: penghitung siapKirim & belumFotoSj ada (0)', ky.ringkasan.siapKirim === 0 && ky.ringkasan.belumFotoSj === 0 && kd.ringkasan.siapKirim === 0); }
