@@ -2680,8 +2680,8 @@ function gambarBaris(k){
       '<div class="top"><span class="no">#'+(i+1)+'</span>' +
         (S.baris[k].length>1 || terkunci ? '<button class="x" onclick="hapusBaris(\''+k+'\','+i+')">'+ikon('silang')+''+esc(t('hapus'))+'</button>' : '') +
       '</div>' + sel +
-      (k === 'so' ? ukuranHtml : '') +   /* v13.2.1 (Max 7 Nov): SO = barang → ukuran → qty → harga */
       '<div id="hs-'+k+'-'+i+'"></div>' +
+      (k === 'so' ? ukuranHtml : '') +   /* v13.2.1 (Max 7 & 9 Nov): SO = barang → tersedia → ukuran → qty → harga */
       '<div class="row" style="margin-top:8px">' +
         '<input type="number" inputmode="decimal" step="any" min="0" placeholder="'+esc(t('qty'))+'" value="'+esc(b.qty)+'" oninput="ubahBaris(\''+k+'\','+i+',\'qty\',this.value)">' +
         (BARIS_BAL[k]
