@@ -207,7 +207,7 @@ await p.click('#cb-so-0'); await p.type('#cb-so-0', 'Polybag KW'); await W(300);
 ok('v12: baris SO punya pilihan satuan kg/bal', (await p.$$eval('#soLines select', s => s.length)) >= 1);
 ok('v12.1: baris SO punya kolom ukuran, terisi dari master SKU saat pilih item', (await p.$('#uk-so-0')) !== null);
 await p.evaluate(() => document.getElementById('soLines').scrollIntoView({ block: 'start' })); await W(200); await p.screenshot({ path: OUT + '/v1321-so-baris.png' });
-ok('v13.2.1: urutan baris SO = barang → ukuran → qty → harga', await p.evaluate(() => { const l = document.querySelector('#soLines .line'); if (!l) return false; const el = [...l.querySelectorAll('input')].filter(x => !x.readOnly); const i = (f) => el.findIndex(f);
+ok('v13.2.1: urutan baris SO = barang → tersedia → ukuran → qty → harga', await p.evaluate(() => { const l = document.querySelector('#soLines .line'); if (!l) return false; const hs = document.getElementById('hs-so-0'), ukEl = document.getElementById('uk-so-0'), cbEl = document.getElementById('cb-so-0'); if (!/Tersedia/.test(hs.textContent) || !(cbEl.compareDocumentPosition(hs) & 4) || !(hs.compareDocumentPosition(ukEl) & 4)) return false; const el = [...l.querySelectorAll('input')].filter(x => !x.readOnly); const i = (f) => el.findIndex(f);
   const cb = i(x => x.id === 'cb-so-0'), uk = i(x => x.id === 'uk-so-0'), qty = i(x => x.placeholder === t('qty')), hrg = i(x => x.placeholder === t('lblHargaJual'));
   return cb === 0 && uk === 1 && qty === 2 && (hrg === 3 || (hrg === -1 && !lihatHpp())); }));
 ok('v12.1: form SO punya pilihan TOP dihitung dari (kirim / tanggal SO)', (await p.$$eval('#soTopDari option', o => o.map(x => x.value).join())) === 'KIRIM,DOKUMEN');
