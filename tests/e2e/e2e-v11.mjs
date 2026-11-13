@@ -575,7 +575,7 @@ ok('v12.10: Laporan Produksi → 5 kartu KPI + grafik harian SVG', (await p.$$ev
   await p.mouse.move(bb.x + bb.width * 0.97, bb.y + bb.height * 0.5); await W(300);
   ok('v12.10: arahkan ke grafik → tooltip (kg / tanggal) + garis bantu', await p.evaluate(() => { const t = document.querySelector('.tip.on'), x = document.querySelector('#repBody .grafik .xh'); return !!t && /kg|shift/.test(t.textContent) && x && getComputedStyle(x).opacity === '1'; }));
   await p.mouse.move(5, 5); await W(200); }
-for (const [tab, n] of [['stok', 5], ['beli', 3], ['jual', 3]]) {
+for (const [tab, n] of [['stok', 3], ['beli', 3], ['jual', 3]]) {   /* v13.3: stok = kartu angka per kategori (awal: Bahan baku) */
   await p.evaluate((t) => segRep(t), tab); await p.waitForFunction(() => !document.querySelector('#repBody .load')); await W(900);
   const k = await p.$$eval('#repBody .kpi', e => e.length);
   ok('v12.10: Laporan ' + tab + ' → kartu KPI' + (tab === 'stok' ? '' : ' + grafik 30 hari'), k >= n && (tab === 'stok' || !!(await p.$('#repBody .grafik svg'))), k);
@@ -607,6 +607,58 @@ ok('STAF baru: tile gudang tampil, PO/SO/Admin tidak, tidak ada Rp', (await p.$$
 ok('STAF baru: nilai stok ditolak server', !(await rpc('laporanNilaiStok', [])).ok);
 await p.reload(); await W(2500);
 ok('setelah reload: sesi tetap & stok dari SQLite', await p.evaluate(() => S.ctx && S.ctx.stok['FG-PB-KW'] && S.ctx.stok['FG-PB-KW'].gbj === 135));
+
+/* ---- v13.3 (Max 13 Nov): Laporan → Stok dipisah per kategori; satu SKU BS untuk semua kualitas ---- */
+{
+  ok('v13.3: login Admin', /Admin/.test(await login('Admin', '1234')));
+  await p.evaluate(() => { tampil('report'); segRep('stok'); }); await p.waitForSelector('#stokSeg'); await W(400);
+  const stokNama = () => p.$$eval('#repBody .stokrow .nm', e => e.map(x => x.textContent));
+  ok('v13.3: Stok punya 4 bagian (Bahan baku, Roll, Barang jadi, BS); awal = Bahan baku', (await p.$$eval('#stokSeg button', b => b.map(x => x.textContent).join('|'))) === 'Bahan baku|Roll|Barang jadi|BS' && (await p.$eval('#stokSeg-BAHAN_BAKU', e => e.classList.contains('on'))) && (await T('#stokJudul')) === 'Stok bahan baku');
+  const bahan = await stokNama();
+  ok('v13.3: Bahan baku hanya bahan baku (biji, tanpa polybag/roll/BS)', bahan.some(n => /Biji Plastik/.test(n)) && !bahan.some(n => /Polybag|Roll|BS/.test(n)), bahan);
+  await p.click('#stokSeg-BARANG_JADI'); await W(300);
+  const jadi = await stokNama();
+  ok('v13.3: Barang jadi = polybag saja', (await T('#stokJudul')) === 'Stok barang jadi' && jadi.length > 0 && jadi.every(n => /Polybag/.test(n)), jadi);
+  await p.click('#stokSeg-ROLL'); await W(300);
+  const roll = await stokNama();
+  ok('v13.3: Roll = roll saja', (await T('#stokJudul')) === 'Stok roll' && roll.length > 0 && roll.every(n => /Roll/.test(n)), roll);
+  await p.click('#stokSeg-SCRAP'); await W(300);
+  const bs0 = await stokNama();
+  ok('v13.3: BS = scrap saja; total stok BS di kartu angka', (await T('#stokJudul')) === 'Stok BS' && bs0.length > 0 && bs0.every(n => /BS/.test(n)) && !!(await p.$('#repBody .kpi')), bs0);
+  await p.click('#repBody .stokrow'); await W(300);
+  ok('v13.3: ketuk barang → rincian asal angka tetap ada', !(await hidden('#repBody .neraca')));
+  /* satu SKU BS: buat SCR-BS, gabungkan BS per kualitas (gabungItem lewat /admin/jalankan, sama seperti di live), hapus SKU lama */
+  ok('v13.3: Admin membuat SKU SCR-BS (scrap tanpa kualitas)', (await rpc('simpanSku', [{ kode: 'SCR-BS', nama: 'BS (KW + Super + Super Plus)', kategori: 'SCRAP' }])).ok);
+  const jalankan = async (fn, args) => (await fetch('http://127.0.0.1:8787/admin/jalankan', { method: 'POST', headers: { 'X-Admin-Key': 'uji-lokal' }, body: JSON.stringify({ fn, args }) })).json();
+  const gb = [];
+  for (const k of ['SCR-BS-KW', 'SCR-BS-SUP', 'SCR-BS-SPL']) gb.push(await jalankan('gabungItem', [k, 'SCR-BS']));
+  ok('v13.3: gabungItem ×3 ke SCR-BS lewat /admin/jalankan', gb.every(g => g.ok), gb.map(g => g.error || (g.data && g.data.total)));
+  const hp = [];
+  for (const k of ['SCR-BS-KW', 'SCR-BS-SUP', 'SCR-BS-SPL']) hp.push(await p.evaluate((k) => panggil('hapusSku', [k, S.ident, 'digabung ke SCR-BS']).then(r => ({ ok: true, r }), e => ({ ok: false, e: e.message })), k));   /* alasan sesudah ident */
+  ok('v13.3: SKU BS lama dihapus permanen', hp.every(h => h.ok && h.r.dihapus), hp);
+  ok('v13.3: login Bastari', /Bastari/.test(await login('Bastari', '4433')));
+  await p.evaluate(() => tampil('shift')); await W(700);
+  await p.evaluate(() => segShift('new')); await W(700);
+  ok('v13.3: form shift: SATU baris BS per mesin (bukan per kualitas), judul tanpa "per kualitas"', (await p.$$eval('#blowingBsLines .line', e => e.length)) === 1 && (await p.$$eval('#cuttingBsLines .line', e => e.length)) === 1 && /^BS blowing kg$/.test(await T('#secBsBlowingT')) && /BS \(KW \+ Super \+ Super Plus\)/.test(await T('#blowingBsLines')));
+  const kemarin = await p.evaluate(() => { const d = new Date(); d.setDate(d.getDate() - 1); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); });
+  await p.evaluate((tg) => { document.getElementById('shiftTanggal').value = tg; pilihShift('1'); toggleMesin('cutting', false); }, kemarin);
+  await p.fill('#blowingOperator', 'Sri'); await p.keyboard.press('Enter'); await W(200);
+  await p.evaluate(() => { S.baris.ambil[0].kode = 'RM-BP-KW'; S.baris.ambil[0].qty = '120'; gambarBaris('ambil'); ringkasShift(); });
+  await (await p.$$('#blowingHasilLines input'))[0].fill('110'); await p.fill('#blowingBsLines input', '7'); await W(150);
+  ok('v13.3: ringkasan blowing menghitung BS satu baris (7 kg)', /BS 7 kg/.test((await T('#blowingRingkas')).replace(/\s+/g, ' ')), await T('#blowingRingkas'));
+  await p.click('#btnSimpanShift'); await W(2500);
+  const lap = await p.evaluate((tg) => panggil('daftarLaporanShift', [S.ident, 14, tg]).then(r => r.find(x => x.shift === '1')), kemarin);
+  ok('v13.3: tersimpan: satu baris BS SCR-BS 7 kg tanpa kualitas', !!lap && lap.blowing.bs.length === 1 && lap.blowing.bs[0].kode === 'SCR-BS' && lap.blowing.bs[0].kualitas === '' && lap.blowing.bs[0].qty === 7, lap && lap.blowing.bs);
+  await p.evaluate((id) => bukaShift(id), lap.id); await W(1200);
+  ok('v13.3: layar lihat menulis nama BS baru + 7 kg', /BS \(KW \+ Super \+ Super Plus\)\s*7 kg/.test(await T('#shiftDetail')));
+  await p.click('#btnEditShift'); await W(600);
+  ok('v13.3: Edit: satu baris BS berisi 7', (await p.$$eval('#blowingBsLines input', e => e.length)) === 1 && (await p.$eval('#blowingBsLines input', e => e.value)) === '7');
+  await p.click('#btnTutupShift'); await W(400);
+  await p.evaluate(() => { tampil('report'); segRep('stok'); }); await p.waitForSelector('#stokSeg'); await W(300);
+  await p.click('#stokSeg-SCRAP'); await W(300);
+  ok('v13.3: Stok BS tinggal satu SKU: BS (KW + Super + Super Plus)', JSON.stringify(await stokNama()) === JSON.stringify(['BS (KW + Super + Super Plus)']), await stokNama());
+  await p.screenshot({ path: OUT + '/v133-stok-bs.png' });
+}
 
 ok('v12.10: tidak ada dialog bawaan browser (prompt / confirm) sepanjang uji', nativeDialog === 0, nativeDialog);
 console.log('\nAPI:', api.length, 'panggilan; rata-rata', Math.round(api.reduce((s, a) => s + a.ms, 0) / api.length), 'ms; terlama', Math.max(...api.map(a => a.ms)), 'ms (' + api.slice().sort((a, b) => b.ms - a.ms)[0].fn + '); non-200:', api.filter(a => a.status !== 200).length);

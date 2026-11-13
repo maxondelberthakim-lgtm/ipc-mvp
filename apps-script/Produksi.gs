@@ -11,7 +11,18 @@
  * masing-masing ditotal; sisanya dihitung di opname produksi akhir bulan (rekonsiliasi).
  **********************************************************************/
 
-/** Peta kualitas → SKU biji plastik / roll / polybag / BS (dari Master_Item.Kualitas + Kategori). */
+/** v13.3 (Max 13 Nov 2026): semua BS dicampur lalu didaur ulang jadi biji KW → boleh SATU SKU BS untuk semua kualitas.
+    BS umum = scrap aktif TANPA kualitas; utamakan kode SCR-BS, selain itu hanya kalau cuma ada satu calon. null = tidak ada. */
+function bsUmum_() {
+  var c = baca_(SHEET.ITEM).filter(function (r) {
+    return r.Kode_Item && String(r.Aktif).toUpperCase() !== 'TIDAK' && r.Kategori === KATEGORI_ITEM.SCRAP && !String(r.Kualitas || '').trim();
+  });
+  var it = c.filter(function (r) { return String(r.Kode_Item).toUpperCase() === 'SCR-BS'; })[0] || (c.length === 1 ? c[0] : null);
+  return it ? { kode: it.Kode_Item, nama: it.Nama_Item } : null;
+}
+
+/** Peta kualitas → SKU biji plastik / roll / polybag / BS (dari Master_Item.Kualitas + Kategori).
+    Kualitas yang tidak punya SKU BS sendiri memakai BS umum (`bsUmum: true`). */
 function petaKualitas_() {
   var per = {};
   baca_(SHEET.ITEM).forEach(function (r) {
@@ -24,6 +35,8 @@ function petaKualitas_() {
     else if (r.Kategori === KATEGORI_ITEM.SCRAP) per[q].bs = per[q].bs || it;
     else if (r.Kategori === KATEGORI_ITEM.BAHAN_BAKU) per[q].biji = per[q].biji || it;
   });
+  var umum = bsUmum_();
+  if (umum) Object.keys(per).forEach(function (k) { if (!per[k].bs) { per[k].bs = umum; per[k].bsUmum = true; } });
   var urut = [KUALITAS.KW, KUALITAS.SUPER, KUALITAS.SUPER_PLUS];
   return Object.keys(per).sort(function (a, b) {
     var ia = urut.indexOf(a), ib = urut.indexOf(b);
@@ -58,7 +71,8 @@ function konfigurasiShift(ident) {
   var bahan = baca_(SHEET.ITEM).filter(function (r) {
     return r.Kode_Item && String(r.Aktif).toUpperCase() !== 'TIDAK' && (r.Kategori === KATEGORI_ITEM.BAHAN_BAKU || r.Kategori === KATEGORI_ITEM.KEDUANYA);
   }).map(function (r) { return { kode: r.Kode_Item, nama: r.Nama_Item, kualitas: r.Kualitas || '' }; });
-  return { kualitas: kualitas, kurang: kurang, bahan: bahan, operator: daftarOperator_(), shift: DAFTAR_SHIFT, jamShift: JAM_SHIFT, hariIni: tglStr_(new Date()) };
+  var umum = bsUmum_();
+  return { kualitas: kualitas, kurang: kurang, bahan: bahan, operator: daftarOperator_(), shift: DAFTAR_SHIFT, jamShift: JAM_SHIFT, hariIni: tglStr_(new Date()), bsUmum: umum ? umum.kode : '' };
 }
 
 function bolehShift_(u) { return bolehReview_(u) && bolehModul_(u, MODUL.PRODUKSI); }
@@ -116,16 +130,27 @@ function susunShift_(p) {
   var tanggal = tglValid_(p.tanggal);
   var shift = String(p.shift || '').trim();
   if (DAFTAR_SHIFT.indexOf(shift) < 0) throw new Error('Shift harus 1 atau 2.');
-  var peta = petaItem_(), kual = {};
+  var peta = petaItem_(), kual = {}, umum = bsUmum_();
   petaKualitas_().forEach(function (q) { kual[q.kualitas] = q; });
-  function perKualitas(list, ambilSku, label) {
-    var out = [], total = 0;
+  /* bolehUmum (baris BS): kualitas kosong = BS umum; baris yang memakai BS umum disimpan tanpa kualitas dan digabung jadi satu */
+  function perKualitas(list, ambilSku, label, bolehUmum) {
+    var out = [], idx = {}, total = 0;
     (list || []).forEach(function (h) {
       var q = angka_(h.qty); if (q <= 0) return;
-      var k = kual[h.kualitas]; if (!k) throw new Error('Kualitas tidak dikenal: ' + h.kualitas);
-      var it = ambilSku(k);
-      if (!it) throw new Error('SKU ' + label + ' untuk kualitas ' + k.nama + ' belum ada di Master_Item.');
-      out.push({ kode: it.kode, nama: it.nama, kualitas: k.kualitas, qty: q }); total += q;
+      var it, kq;
+      if (bolehUmum && !String(h.kualitas || '').trim()) {
+        if (!umum) throw new Error('SKU BS umum belum ada di Master_Item — isi BS per kualitas.');
+        it = umum; kq = '';
+      } else {
+        var k = kual[h.kualitas]; if (!k) throw new Error('Kualitas tidak dikenal: ' + h.kualitas);
+        it = ambilSku(k);
+        if (!it) throw new Error('SKU ' + label + ' untuk kualitas ' + k.nama + ' belum ada di Master_Item.');
+        kq = (bolehUmum && umum && it.kode === umum.kode) ? '' : k.kualitas;
+      }
+      var kunci = it.kode + '|' + kq;
+      if (idx[kunci] !== undefined) out[idx[kunci]].qty += q;
+      else { idx[kunci] = out.length; out.push({ kode: it.kode, nama: it.nama, kualitas: kq, qty: q }); }
+      total += q;
     });
     return { list: out, total: total };
   }
@@ -144,7 +169,7 @@ function susunShift_(p) {
       blowing.ambil.push({ kode: it.kode, nama: it.nama, kualitas: it.kualitas || '', qty: q }); blowing.totalAmbil += q;
     });
     var hb = perKualitas(b.hasil, function (k) { return k.roll; }, 'roll'); blowing.hasil = hb.list; blowing.totalHasil = hb.total;
-    var bb = perKualitas(b.bs, function (k) { return k.bs; }, 'BS'); blowing.bs = bb.list; blowing.totalBs = bb.total;
+    var bb = perKualitas(b.bs, function (k) { return k.bs; }, 'BS', true); blowing.bs = bb.list; blowing.totalBs = bb.total;
     if (!blowing.ambil.length && !blowing.hasil.length && !blowing.bs.length) throw new Error('Blowing: isi biji plastik yang diambil dan/atau roll jadi.');
   }
 
@@ -156,7 +181,7 @@ function susunShift_(p) {
     if (!cutting.operator) throw new Error('Operator cutting belum diisi.');
     var rc = perKualitas(c.rollPakai, function (k) { return k.roll; }, 'roll'); cutting.roll = rc.list; cutting.totalRoll = rc.total;
     var hc = perKualitas(c.hasil, function (k) { return k.jadi; }, 'polybag'); cutting.hasil = hc.list; cutting.totalHasil = hc.total;
-    var bc = perKualitas(c.bs, function (k) { return k.bs; }, 'BS'); cutting.bs = bc.list; cutting.totalBs = bc.total;
+    var bc = perKualitas(c.bs, function (k) { return k.bs; }, 'BS', true); cutting.bs = bc.list; cutting.totalBs = bc.total;
     if (!cutting.roll.length && !cutting.hasil.length && !cutting.bs.length) throw new Error('Cutting: isi roll yang diambil dan/atau polybag jadi.');
   }
   if (!blowing.aktif && !cutting.aktif) throw new Error('Isi minimal satu mesin (blowing atau cutting).');
@@ -318,6 +343,7 @@ function laporanProduksi(bulan, ident) {
   });
   det.forEach(function (d) {
     var r = aktif[d.ID_Shift]; if (!r || !dalamBulan_(r.Tanggal, bulan)) return;
+    if (d.Jenis === JENIS_SHIFT.BS && !d.Kualitas) return;   // v13.3: BS umum tidak per kualitas (tetap di total & per mesin)
     var q = d.Kualitas || '(tanpa kualitas)';
     var pk = sel(perKualitas, q, function () { return { kualitas: q, nama: NAMA_KUALITAS[q] || q, ambil: 0, roll: 0, rollPakai: 0, jadi: 0, bsBlowing: 0, bsCutting: 0, bs: 0 }; });
     var qty = angka_(d.Qty_Kg);

@@ -972,7 +972,7 @@ nav button.ditekan .g{transform:scale(.88)}
           <button class="btn sec sm" onclick="tambahBaris('ambil')" data-i18n="btnTambahBahan">+ Tambah bahan</button>
           <h3 class="sec" data-i18n="secHasilRoll">Roll jadi per kualitas <span class="unit">kg</span></h3>
           <div id="blowingHasilLines"></div>
-          <h3 class="sec" data-i18n="secBsBlowing">BS blowing per kualitas <span class="unit">kg</span></h3>
+          <h3 class="sec" id="secBsBlowingT" data-i18n="secBsBlowing">BS blowing per kualitas <span class="unit">kg</span></h3>
           <div id="blowingBsLines"></div>
           <div class="banner n" id="blowingRingkas" style="margin:12px 0 0"></div>
         </div>
@@ -996,7 +996,7 @@ nav button.ditekan .g{transform:scale(.88)}
           <div id="cuttingRollLines"></div>
           <h3 class="sec" data-i18n="secHasilPolybag">Polybag jadi per kualitas <span class="unit">kg</span></h3>
           <div id="cuttingHasilLines"></div>
-          <h3 class="sec" data-i18n="secBsCutting">BS cutting per kualitas <span class="unit">kg</span></h3>
+          <h3 class="sec" id="secBsCuttingT" data-i18n="secBsCutting">BS cutting per kualitas <span class="unit">kg</span></h3>
           <div id="cuttingBsLines"></div>
           <div class="banner n" id="cuttingRingkas" style="margin:12px 0 0"></div>
         </div>
@@ -1411,7 +1411,7 @@ nav button.ditekan .g{transform:scale(.88)}
 
 var APP = {
   nama: 'IPC — Inventory & Production Control',
-  versi: '13.2.1',
+  versi: '13.3.0',
   zona: 'Asia/Jakarta',
   satuan: 'kg',
   folderFoto: 'IPC Foto Bukti'
@@ -5868,7 +5868,18 @@ function laporanDaurUlang(hari, ident) {
  * masing-masing ditotal; sisanya dihitung di opname produksi akhir bulan (rekonsiliasi).
  **********************************************************************/
 
-/** Peta kualitas → SKU biji plastik / roll / polybag / BS (dari Master_Item.Kualitas + Kategori). */
+/** v13.3 (Max 13 Nov 2026): semua BS dicampur lalu didaur ulang jadi biji KW → boleh SATU SKU BS untuk semua kualitas.
+    BS umum = scrap aktif TANPA kualitas; utamakan kode SCR-BS, selain itu hanya kalau cuma ada satu calon. null = tidak ada. */
+function bsUmum_() {
+  var c = baca_(SHEET.ITEM).filter(function (r) {
+    return r.Kode_Item && String(r.Aktif).toUpperCase() !== 'TIDAK' && r.Kategori === KATEGORI_ITEM.SCRAP && !String(r.Kualitas || '').trim();
+  });
+  var it = c.filter(function (r) { return String(r.Kode_Item).toUpperCase() === 'SCR-BS'; })[0] || (c.length === 1 ? c[0] : null);
+  return it ? { kode: it.Kode_Item, nama: it.Nama_Item } : null;
+}
+
+/** Peta kualitas → SKU biji plastik / roll / polybag / BS (dari Master_Item.Kualitas + Kategori).
+    Kualitas yang tidak punya SKU BS sendiri memakai BS umum (`bsUmum: true`). */
 function petaKualitas_() {
   var per = {};
   baca_(SHEET.ITEM).forEach(function (r) {
@@ -5881,6 +5892,8 @@ function petaKualitas_() {
     else if (r.Kategori === KATEGORI_ITEM.SCRAP) per[q].bs = per[q].bs || it;
     else if (r.Kategori === KATEGORI_ITEM.BAHAN_BAKU) per[q].biji = per[q].biji || it;
   });
+  var umum = bsUmum_();
+  if (umum) Object.keys(per).forEach(function (k) { if (!per[k].bs) { per[k].bs = umum; per[k].bsUmum = true; } });
   var urut = [KUALITAS.KW, KUALITAS.SUPER, KUALITAS.SUPER_PLUS];
   return Object.keys(per).sort(function (a, b) {
     var ia = urut.indexOf(a), ib = urut.indexOf(b);
@@ -5915,7 +5928,8 @@ function konfigurasiShift(ident) {
   var bahan = baca_(SHEET.ITEM).filter(function (r) {
     return r.Kode_Item && String(r.Aktif).toUpperCase() !== 'TIDAK' && (r.Kategori === KATEGORI_ITEM.BAHAN_BAKU || r.Kategori === KATEGORI_ITEM.KEDUANYA);
   }).map(function (r) { return { kode: r.Kode_Item, nama: r.Nama_Item, kualitas: r.Kualitas || '' }; });
-  return { kualitas: kualitas, kurang: kurang, bahan: bahan, operator: daftarOperator_(), shift: DAFTAR_SHIFT, jamShift: JAM_SHIFT, hariIni: tglStr_(new Date()) };
+  var umum = bsUmum_();
+  return { kualitas: kualitas, kurang: kurang, bahan: bahan, operator: daftarOperator_(), shift: DAFTAR_SHIFT, jamShift: JAM_SHIFT, hariIni: tglStr_(new Date()), bsUmum: umum ? umum.kode : '' };
 }
 
 function bolehShift_(u) { return bolehReview_(u) && bolehModul_(u, MODUL.PRODUKSI); }
@@ -5973,16 +5987,27 @@ function susunShift_(p) {
   var tanggal = tglValid_(p.tanggal);
   var shift = String(p.shift || '').trim();
   if (DAFTAR_SHIFT.indexOf(shift) < 0) throw new Error('Shift harus 1 atau 2.');
-  var peta = petaItem_(), kual = {};
+  var peta = petaItem_(), kual = {}, umum = bsUmum_();
   petaKualitas_().forEach(function (q) { kual[q.kualitas] = q; });
-  function perKualitas(list, ambilSku, label) {
-    var out = [], total = 0;
+  /* bolehUmum (baris BS): kualitas kosong = BS umum; baris yang memakai BS umum disimpan tanpa kualitas dan digabung jadi satu */
+  function perKualitas(list, ambilSku, label, bolehUmum) {
+    var out = [], idx = {}, total = 0;
     (list || []).forEach(function (h) {
       var q = angka_(h.qty); if (q <= 0) return;
-      var k = kual[h.kualitas]; if (!k) throw new Error('Kualitas tidak dikenal: ' + h.kualitas);
-      var it = ambilSku(k);
-      if (!it) throw new Error('SKU ' + label + ' untuk kualitas ' + k.nama + ' belum ada di Master_Item.');
-      out.push({ kode: it.kode, nama: it.nama, kualitas: k.kualitas, qty: q }); total += q;
+      var it, kq;
+      if (bolehUmum && !String(h.kualitas || '').trim()) {
+        if (!umum) throw new Error('SKU BS umum belum ada di Master_Item — isi BS per kualitas.');
+        it = umum; kq = '';
+      } else {
+        var k = kual[h.kualitas]; if (!k) throw new Error('Kualitas tidak dikenal: ' + h.kualitas);
+        it = ambilSku(k);
+        if (!it) throw new Error('SKU ' + label + ' untuk kualitas ' + k.nama + ' belum ada di Master_Item.');
+        kq = (bolehUmum && umum && it.kode === umum.kode) ? '' : k.kualitas;
+      }
+      var kunci = it.kode + '|' + kq;
+      if (idx[kunci] !== undefined) out[idx[kunci]].qty += q;
+      else { idx[kunci] = out.length; out.push({ kode: it.kode, nama: it.nama, kualitas: kq, qty: q }); }
+      total += q;
     });
     return { list: out, total: total };
   }
@@ -6001,7 +6026,7 @@ function susunShift_(p) {
       blowing.ambil.push({ kode: it.kode, nama: it.nama, kualitas: it.kualitas || '', qty: q }); blowing.totalAmbil += q;
     });
     var hb = perKualitas(b.hasil, function (k) { return k.roll; }, 'roll'); blowing.hasil = hb.list; blowing.totalHasil = hb.total;
-    var bb = perKualitas(b.bs, function (k) { return k.bs; }, 'BS'); blowing.bs = bb.list; blowing.totalBs = bb.total;
+    var bb = perKualitas(b.bs, function (k) { return k.bs; }, 'BS', true); blowing.bs = bb.list; blowing.totalBs = bb.total;
     if (!blowing.ambil.length && !blowing.hasil.length && !blowing.bs.length) throw new Error('Blowing: isi biji plastik yang diambil dan/atau roll jadi.');
   }
 
@@ -6013,7 +6038,7 @@ function susunShift_(p) {
     if (!cutting.operator) throw new Error('Operator cutting belum diisi.');
     var rc = perKualitas(c.rollPakai, function (k) { return k.roll; }, 'roll'); cutting.roll = rc.list; cutting.totalRoll = rc.total;
     var hc = perKualitas(c.hasil, function (k) { return k.jadi; }, 'polybag'); cutting.hasil = hc.list; cutting.totalHasil = hc.total;
-    var bc = perKualitas(c.bs, function (k) { return k.bs; }, 'BS'); cutting.bs = bc.list; cutting.totalBs = bc.total;
+    var bc = perKualitas(c.bs, function (k) { return k.bs; }, 'BS', true); cutting.bs = bc.list; cutting.totalBs = bc.total;
     if (!cutting.roll.length && !cutting.hasil.length && !cutting.bs.length) throw new Error('Cutting: isi roll yang diambil dan/atau polybag jadi.');
   }
   if (!blowing.aktif && !cutting.aktif) throw new Error('Isi minimal satu mesin (blowing atau cutting).');
@@ -6175,6 +6200,7 @@ function laporanProduksi(bulan, ident) {
   });
   det.forEach(function (d) {
     var r = aktif[d.ID_Shift]; if (!r || !dalamBulan_(r.Tanggal, bulan)) return;
+    if (d.Jenis === JENIS_SHIFT.BS && !d.Kualitas) return;   // v13.3: BS umum tidak per kualitas (tetap di total & per mesin)
     var q = d.Kualitas || '(tanpa kualitas)';
     var pk = sel(perKualitas, q, function () { return { kualitas: q, nama: NAMA_KUALITAS[q] || q, ambil: 0, roll: 0, rollPakai: 0, jadi: 0, bsBlowing: 0, bsCutting: 0, bs: 0 }; });
     var qty = angka_(d.Qty_Kg);
@@ -7712,6 +7738,11 @@ var T = {
     thWaktu:'Waktu', thQty:'Qty', thPencatat:'Pencatat', thFoto:'Foto',
     thSupplier:'Supplier', thJenis:'Jenis', thSJ:'Surat jalan',
     lihat:'lihat', hariTerakhir:'hari terakhir', perProduk:'Susut per produk',
+    /* v13.3: Stok per kategori; satu SKU BS */
+    segStokBAHAN_BAKU:'Bahan baku', segStokROLL:'Roll', segStokBARANG_JADI:'Barang jadi', segStokSCRAP:'BS',
+    stokJudulBAHAN_BAKU:'Stok bahan baku', stokJudulROLL:'Stok roll', stokJudulBARANG_JADI:'Stok barang jadi', stokJudulSCRAP:'Stok BS',
+    kosongKatStok:'Belum ada stok di kategori ini.', stokDihasilkan:'Hasil produksi', stokDipotong:'Dipotong (cutting)',
+    secBsBlowingSatu:'BS blowing', secBsCuttingSatu:'BS cutting',
     stokBerjalan:'Stok berjalan', arusStok:'Arus stok per item',
     ketukRincian:'Ketuk item untuk lihat dari mana angkanya',
     nrStokAwal:'Stok awal', nrBeli:'Beli dari supplier', nrReturSup:'Retur ke supplier',
@@ -8007,6 +8038,11 @@ var T = {
     thWaktu:'Time', thQty:'Qty', thPencatat:'Logged by', thFoto:'Photo',
     thSupplier:'Supplier', thJenis:'Type', thSJ:'Delivery note',
     lihat:'view', hariTerakhir:'days', perProduk:'Shrinkage by product',
+    /* v13.3 */
+    segStokBAHAN_BAKU:'Raw materials', segStokROLL:'Rolls', segStokBARANG_JADI:'Finished goods', segStokSCRAP:'BS',
+    stokJudulBAHAN_BAKU:'Raw material stock', stokJudulROLL:'Roll stock', stokJudulBARANG_JADI:'Finished goods stock', stokJudulSCRAP:'BS (scrap) stock',
+    kosongKatStok:'No stock in this category yet.', stokDihasilkan:'Produced', stokDipotong:'Cut (cutting)',
+    secBsBlowingSatu:'Blowing BS', secBsCuttingSatu:'Cutting BS',
     stokBerjalan:'Running stock', arusStok:'Stock flow by item',
     ketukRincian:'Tap an item to see where the number comes from',
     nrStokAwal:'Opening stock', nrBeli:'Bought from supplier', nrReturSup:'Returned to supplier',
@@ -9674,7 +9710,7 @@ function muatShift(){
   }).catch(function(e){ if (token !== S.shiftToken) return; el.innerHTML = '<div class="banner bad">'+esc(e.message)+'</div>'; });
 }
 function labelMesin(m){ return m==='BLOWING' ? ikon('angin')+' Blowing' : ikon('gunting')+' Cutting'; }
-function perKualTxt(list){ return list.length ? list.map(function(h){ return esc(t('kual'+h.kualitas))+' <b>'+n2(h.qty)+'</b>'; }).join(' · ') : '—'; }
+function perKualTxt(list){ return list.length ? list.map(function(h){ return (h.kualitas ? esc(t('kual'+h.kualitas))+' ' : '')+'<b>'+n2(h.qty)+'</b>'; }).join(' · ') : '—'; }
 function pillBs(p){ return '<span class="pill '+(p>10?'bad':p>5?'warn':'ok')+'" style="margin-left:6px">'+n2(p)+'% BS</span>'; }
 function kartuShift(r){
   var b = r.blowing, c = r.cutting;
@@ -9777,14 +9813,33 @@ function barisKual(m, jenis, q, sku){
     '<div class="w90"><input type="number" inputmode="decimal" step="any" min="0" placeholder="0" value="'+esc(v)+'" oninput="ubahNilai(\''+m+'\',\''+jenis+'\',\''+esc(q.kualitas)+'\',this.value)"></div>' +
     '<div style="flex:0 0 auto;font-weight:600;font-size:12px">kg</div></div></div>';
 }
+/* v13.3 (Max 13 Nov): semua BS dicampur → kalau semua kualitas memakai SKU BS yang sama, form cukup SATU baris BS per mesin.
+   Nilainya disimpan di kunci '' dan dikirim sebagai satu baris; per-kualitas tetap dipakai kalau tiap kualitas punya SKU BS sendiri. */
+function bsTunggal(){
+  var ks = kualitasList(), k = ks.length ? ks[0].bs : '';
+  if (!k) return '';
+  for (var i = 1; i < ks.length; i++) if (ks[i].bs !== k) return '';
+  return k;
+}
+function barisBsTunggal(m, sku){
+  var v = S.shift[m].bs[''] || '';
+  var st = S.ctx && S.ctx.stok && S.ctx.stok[sku] ? S.ctx.stok[sku].gbj : null;
+  return '<div class="line" style="padding:8px 10px"><div class="row" style="align-items:center">' +
+    '<div style="flex:1;min-width:0"><b style="font-size:13.5px">BS</b><br><small style="color:var(--muted)">'+esc(namaItem(sku))+'</small>' +
+      (st !== null ? '<br><small style="color:var(--muted)">'+esc(t('stokGBJ'))+' '+n2(st)+' kg</small>' : '')+'</div>' +
+    '<div class="w90"><input type="number" inputmode="decimal" step="any" min="0" placeholder="0" value="'+esc(v)+'" oninput="ubahNilai(\''+m+'\',\'bs\',\'\',this.value)"></div>' +
+    '<div style="flex:0 0 auto;font-weight:600;font-size:12px">kg</div></div></div>';
+}
+function judulBs(id, kunci){ var el = $(id); if (!el) return; el.setAttribute('data-i18n', kunci); var u = el.querySelector('.unit'); el.textContent = t(kunci) + ' '; if (u) el.appendChild(u); }
 function gambarHasilBs(){
-  var ks = kualitasList();
+  var ks = kualitasList(), tung = bsTunggal();
+  judulBs('secBsBlowingT', tung ? 'secBsBlowingSatu' : 'secBsBlowing'); judulBs('secBsCuttingT', tung ? 'secBsCuttingSatu' : 'secBsCutting');
   if (!ks.length){ ['blowingHasilLines','cuttingRollLines','cuttingHasilLines'].forEach(function(id){ $(id).innerHTML = '<div class="banner warn">'+esc(t('kualitasKosong'))+'</div>'; }); $('blowingBsLines').innerHTML = $('cuttingBsLines').innerHTML = ''; return; }
   $('blowingHasilLines').innerHTML = ks.map(function(q){ return barisKual('blowing','hasil', q, q.roll); }).join('');
-  $('blowingBsLines').innerHTML    = ks.map(function(q){ return barisKual('blowing','bs', q, q.bs); }).join('');
+  $('blowingBsLines').innerHTML    = tung ? barisBsTunggal('blowing', tung) : ks.map(function(q){ return barisKual('blowing','bs', q, q.bs); }).join('');
   $('cuttingRollLines').innerHTML  = ks.map(function(q){ return barisKual('cutting','roll', q, q.roll); }).join('');
   $('cuttingHasilLines').innerHTML = ks.map(function(q){ return barisKual('cutting','hasil', q, q.jadi); }).join('');
-  $('cuttingBsLines').innerHTML    = ks.map(function(q){ return barisKual('cutting','bs', q, q.bs); }).join('');
+  $('cuttingBsLines').innerHTML    = tung ? barisBsTunggal('cutting', tung) : ks.map(function(q){ return barisKual('cutting','bs', q, q.bs); }).join('');
 }
 function ubahNilai(m, jenis, kual, v){ S.shift[m][jenis][kual] = v; ringkasShift(); }
 function totalObj(o){ var n = 0; Object.keys(o).forEach(function(k){ var q = parseFloat(o[k]); if (!isNaN(q)) n += q; }); return n; }
@@ -9810,11 +9865,13 @@ function ringkasShift(){
     (kurang.length ? '<br><span style="color:var(--danger)">'+esc(t('rollKurangStok'))+': '+esc(kurang.join(', '))+'</span>' : '')+'</div>';
 }
 function kumpulShift(){
-  var d = S.shift, ks = kualitasList();
+  var d = S.shift, ks = kualitasList(), tung = bsTunggal();
   function list(o){ return ks.filter(function(q){ return parseFloat(o[q.kualitas]) > 0; }).map(function(q){ return { kualitas:q.kualitas, qty: parseFloat(o[q.kualitas]) }; }); }
+  /* satu SKU BS: kirim satu baris (kualitas mana pun dipetakan ke SKU BS yang sama; server menyimpannya tanpa kualitas) */
+  function listBs(o){ if (!tung) return list(o); var n = totalObj(o); return n > 0 ? [{ kualitas: ks[0].kualitas, qty: n }] : []; }
   return { tanggal: ambilTanggal('shiftTanggal'), shift: d.shift,
-           blowing: d.blowing.aktif ? { operator: d.blowing.operator.slice(), ambil: ambilBaris('ambil'), hasil: list(d.blowing.hasil), bs: list(d.blowing.bs) } : null,
-           cutting: d.cutting.aktif ? { operator: d.cutting.operator.slice(), rollPakai: list(d.cutting.roll), hasil: list(d.cutting.hasil), bs: list(d.cutting.bs) } : null,
+           blowing: d.blowing.aktif ? { operator: d.blowing.operator.slice(), ambil: ambilBaris('ambil'), hasil: list(d.blowing.hasil), bs: listBs(d.blowing.bs) } : null,
+           cutting: d.cutting.aktif ? { operator: d.cutting.operator.slice(), rollPakai: list(d.cutting.roll), hasil: list(d.cutting.hasil), bs: listBs(d.cutting.bs) } : null,
            catatan: $('shiftCatatan').value, foto: S.foto.shift };
 }
 function simpanShiftUI(){
@@ -9859,7 +9916,7 @@ function gambarDetailShift(){
   function kv(l, v){ return '<div class="kv"><span>'+l+'</span><b>'+v+'</b></div>'; }
   function bagian(judul, list, perItem){
     return '<h3 class="sec">'+esc(judul)+' <span class="unit">kg</span></h3>' +
-      (list.length ? list.map(function(x){ return kv(perItem ? esc(x.nama) : esc(t('kual'+x.kualitas))+' <small>· '+esc(x.nama)+'</small>', n2(x.qty)+' kg'); }).join('') : kv('—', ''));
+      (list.length ? list.map(function(x){ return kv(perItem || !x.kualitas ? esc(x.nama) : esc(t('kual'+x.kualitas))+' <small>· '+esc(x.nama)+'</small>', n2(x.qty)+' kg'); }).join('') : kv('—', ''));
   }
   function ringkas(hasil, labelHasil, bs, persen, masuk, labelMasuk){
     return '<div class="banner n" style="margin:12px 0 0"><div class="bigrow"><span class="big">'+n2(hasil)+'<span class="u">kg</span></span><span style="font-size:12.5px">'+esc(labelHasil)+'</span>' +
@@ -9881,9 +9938,10 @@ function gambarDetailShift(){
     (r.bolehEdit ? '<div class="hint" style="margin-top:10px">'+esc(t('lihatShiftInfo'))+'</div>'
                  : '<div class="banner warn" style="margin:10px 0 0">'+ikon('gembok','tx')+' '+esc(t('hanyaLihat')+' — '+kunci)+'</div>') +
     '</div>';
-  h += mesin(true, b, bagian(t('secAmbil'), b.ambil, true) + bagian(t('secHasilRoll'), b.hasil) + bagian(t('secBsBlowing'), b.bs) +
+  var tungBs = bsTunggal();
+  h += mesin(true, b, bagian(t('secAmbil'), b.ambil, true) + bagian(t('secHasilRoll'), b.hasil) + bagian(t(tungBs ? 'secBsBlowingSatu' : 'secBsBlowing'), b.bs) +
         ringkas(b.totalHasil, t('rollJadi'), b.totalBs, b.persenBs, b.totalAmbil, t('secAmbilS')));
-  h += mesin(false, c, bagian(t('secRollPakai'), c.rollPakai) + bagian(t('secHasilPolybag'), c.hasil) + bagian(t('secBsCutting'), c.bs) +
+  h += mesin(false, c, bagian(t('secRollPakai'), c.rollPakai) + bagian(t('secHasilPolybag'), c.hasil) + bagian(t(tungBs ? 'secBsCuttingSatu' : 'secBsCutting'), c.bs) +
         ringkas(c.totalHasil, t('polybagJadi'), c.totalBs, c.persenBs, c.totalRoll, t('rollPakai')));
   h += '<div class="card">' +
     '<div class="field"><label>'+esc(t('lihatFoto'))+'</label>' +
@@ -9904,11 +9962,12 @@ function editShift(){
   S.shift = shiftKosong(); S.shift.shift = r.shift;
   S.shift.blowing.aktif = r.blowing.aktif; S.shift.blowing.operator = r.blowing.operator.slice();
   r.blowing.hasil.forEach(function(h){ S.shift.blowing.hasil[h.kualitas] = h.qty; });
-  r.blowing.bs.forEach(function(h){ S.shift.blowing.bs[h.kualitas] = h.qty; });
+  var tung = bsTunggal();   // v13.3: satu SKU BS → semua baris BS laporan ini dijumlah ke satu baris
+  r.blowing.bs.forEach(function(h){ var k = tung ? '' : h.kualitas; S.shift.blowing.bs[k] = (parseFloat(S.shift.blowing.bs[k]) || 0) + h.qty; });
   S.shift.cutting.aktif = r.cutting.aktif; S.shift.cutting.operator = r.cutting.operator.slice();
   r.cutting.rollPakai.forEach(function(h){ S.shift.cutting.roll[h.kualitas] = h.qty; });
   r.cutting.hasil.forEach(function(h){ S.shift.cutting.hasil[h.kualitas] = h.qty; });
-  r.cutting.bs.forEach(function(h){ S.shift.cutting.bs[h.kualitas] = h.qty; });
+  r.cutting.bs.forEach(function(h){ var k = tung ? '' : h.kualitas; S.shift.cutting.bs[k] = (parseFloat(S.shift.cutting.bs[k]) || 0) + h.qty; });
   S.baris.ambil = r.blowing.ambil.length ? r.blowing.ambil.map(function(a){ return { kode:a.kode, qty:a.qty }; }) : [{ kode:'', qty:'' }];
   S.foto.shift = null; hapusFoto('shift'); $('shiftPhoto').onclick = function(){ pilihFoto('shift'); };
   $('shiftCatatan').value = r.catatan || '';
@@ -10150,7 +10209,7 @@ function repProduksi(target, bulan){
     h += '<div class="card"><h2>'+esc(t('perKualitas'))+'</h2><div class="batang" style="margin-top:12px">' + r.perKualitas.map(function(p, i){
       var porsi = tot.jadi > 0 ? p.jadi / tot.jadi * 100 : 0;
       return batangHtml({ nama:esc(t('kual'+p.kualitas) === 'kual'+p.kualitas ? p.nama : t('kual'+p.kualitas)), nilai:p.jadi, lebar:porsi, pct:n2(Math.round(porsi * 10) / 10)+'%',
-        meta:esc(t('rollJadi'))+' '+n2(p.roll)+' · '+esc(t('rollPakai'))+' '+n2(p.rollPakai)+' · BS '+n2(p.bs)+' kg ('+n2(p.persenBs)+'%)' }, i);
+        meta:esc(t('rollJadi'))+' '+n2(p.roll)+' · '+esc(t('rollPakai'))+' '+n2(p.rollPakai)+(p.bs > 0 ? ' · BS '+n2(p.bs)+' kg ('+n2(p.persenBs)+'%)' : '') }, i);
     }).join('') + '</div></div>';
     var maxOp = {}; r.perOperator.forEach(function(p){ maxOp[p.mesin] = Math.max(maxOp[p.mesin] || 0, p.hasil); });
     h += '<div class="card"><h2>'+esc(t('perOperator'))+'</h2><div class="batang" style="margin-top:12px">' + r.perOperator.map(function(p, i){
@@ -10425,11 +10484,15 @@ function admOpprod(){
     return '<div class="oprow two"><div class="nm">'+esc(t('kual'+q.kualitas))+'<small>'+esc(q.kualitas)+'</small></div>' +
       '<input type="number" inputmode="decimal" step="any" min="0" placeholder="0" value="'+esc(o[jenis][q.kualitas]||'')+'" oninput="opprodIsi(\''+jenis+'\',\''+esc(q.kualitas)+'\',this.value)"></div>';
   }
-  var bahan = itemsFilter('bahan');
+  var bahan = itemsFilter('bahan'), tungBs = bsTunggal();
+  function barisBs(){
+    return '<div class="oprow two"><div class="nm">BS<small>'+esc(namaItem(tungBs))+'</small></div>' +
+      '<input type="number" inputmode="decimal" step="any" min="0" placeholder="0" value="'+esc(totalObj(o.bs)||'')+'" oninput="S.opprod.bs={\'\':this.value};opprodRingkas()"></div>';
+  }
   var h = '<div class="card"><h2>'+esc(t('opprodT'))+'</h2><div class="sub">'+esc(t('opprodS'))+'</div>' +
     '<div class="field"><label>'+esc(t('opprodBulan'))+'</label><input type="month" id="opprodBulan" value="'+esc(o.bulan)+'" max="'+esc(bulanStr(new Date()))+'" onchange="S.opprod.bulan=this.value"></div>' +
     '<h3 class="sec">'+esc(t('opprodPolybag'))+' <span class="unit">kg</span></h3>' + ks.map(function(q){ return barisK('polybag', q); }).join('') +
-    '<h3 class="sec">'+esc(t('opprodBs'))+' <span class="unit">kg</span></h3>' + ks.map(function(q){ return barisK('bs', q); }).join('') +
+    '<h3 class="sec">'+esc(t('opprodBs'))+' <span class="unit">kg</span></h3>' + (tungBs ? barisBs() : ks.map(function(q){ return barisK('bs', q); }).join('')) +
     '<h3 class="sec">'+esc(t('opprodBiji'))+' <span class="unit">kg</span></h3>' + bahan.map(function(i){
       return '<div class="oprow two"><div class="nm">'+esc(i.nama)+'<small>'+esc(i.kode)+'</small></div>' +
         '<input type="number" inputmode="decimal" step="any" min="0" placeholder="0" value="'+esc(o.biji[i.kode]||'')+'" oninput="opprodIsi(\'biji\',\''+esc(i.kode)+'\',this.value)"></div>';
@@ -10461,7 +10524,8 @@ function opprodRingkas(){
 function simpanOpprodUI(){
   var o = S.opprod, ks = kualitasList();
   function list(m){ return ks.filter(function(q){ return parseFloat(m[q.kualitas]) > 0; }).map(function(q){ return { kualitas:q.kualitas, qty: parseFloat(m[q.kualitas]) }; }); }
-  var p = { bulan: ($('opprodBulan').value || o.bulan), polybag: list(o.polybag), bs: list(o.bs), roll: list(o.roll),
+  var tungBs = bsTunggal(), bsKg = totalObj(o.bs);
+  var p = { bulan: ($('opprodBulan').value || o.bulan), polybag: list(o.polybag), bs: tungBs ? (bsKg > 0 ? [{ kualitas: ks[0].kualitas, qty: bsKg }] : []) : list(o.bs), roll: list(o.roll),
             biji: Object.keys(o.biji).filter(function(k){ return parseFloat(o.biji[k]) > 0; }).map(function(k){ return { kode:k, qty: parseFloat(o.biji[k]) }; }),
             wipMesin: parseFloat(o.wip)||0, catatan: $('opprodCatatan').value };
   if (opprodTotal().total <= 0){ toast(t('opprodWajib'),'bad'); return; }
@@ -11075,41 +11139,63 @@ function pillSusut(st){
   return '<span class="pill n">'+esc(st||'—')+'</span>';
 }
 
+/* v13.3 (Max 13 Nov): Stok dipisah — Bahan baku · Roll · Barang jadi · BS. Satu panggilan server, pindah kategori tanpa memuat ulang. */
+var KAT_STOK = ['BAHAN_BAKU', 'ROLL', 'BARANG_JADI', 'SCRAP'];
+function grupStok(k){ return k === 'ROLL' ? 'ROLL' : (k === 'BARANG_JADI' || k === 'KEDUANYA') ? 'BARANG_JADI' : k === 'SCRAP' ? 'SCRAP' : 'BAHAN_BAKU'; }
 function repStok(){
   panggil('laporanStok',[S.ident]).then(function(r){
     if (S.repTab !== 'stok') return;   /* balasan tab lama: abaikan */
-    if (!r.daftar.length){
-      $('repBody').innerHTML = '<div class="empty"><span class="g">'+ikon('kotak')+'</span>'+esc(t('kosongData'))+'</div>'; return;
-    }
+    S.stokData = r;
     STOK_CACHE = {};
     r.daftar.forEach(function(s){ STOK_CACHE[s.kode] = s; });
-    var tt = r.total;
-    var h = '<div class="kpis">' +
-      kpiHtml({ lebar:true, ikon:'kotak', label:t('nrTotal'), nilai:tt.total }) +
-      kpiHtml({ ikon:'terima', label:t('totalMasuk'), nilai:tt.beli }) +
-      kpiHtml({ ikon:'truk', label:t('totalKeluar'), nilai:tt.jual }) +
-      kpiHtml({ ikon:'retur', label:t('totalRetur'), nilai:tt.retur, buruk:tt.retur > 0 }) +
-      kpiHtml({ ikon:'retur', label:t('totalReturCust'), nilai:tt.returCust, buruk:tt.returCust > 0 }) +
-      (tt.rusak ? kpiHtml({ ikon:'awas', label:t('nrRusak'), nilai:tt.rusak, buruk:true }) : '') +
-      (tt.daurKirim ? kpiHtml({ ikon:'daur', label:t('nrDaurKirim')+' → '+t('nrDaurHasil').toLowerCase(), nilai:tt.daurKirim, catatan:'→ '+n2(tt.daurHasil)+' kg' }) : '') +
-    '</div>';
-    var maks = Math.max.apply(null, r.daftar.map(function(s){ return s.total; }).concat([1]));
-    h += '<div class="card"><h2>'+esc(t('stokBerjalan'))+'</h2>' +
-      '<div class="sub">'+esc(t('ketukRincian'))+'</div>' +
-      r.daftar.map(function(s, i){
-        return '<div class="listrow">' +
-          '<button class="stokrow" onclick="toggleNeraca(\''+esc(s.kode)+'\')">' +
-            '<span class="nm">'+esc(s.nama)+'</span>' +
-            '<span class="vl"'+(s.total<0?' style="color:var(--danger)"':'')+'>'+n2(s.total)+' kg</span>' +
-            '<span class="cv" id="cv-'+esc(s.kode)+'">▾</span>' +
-          '</button>' +
-          (s.total > 0 ? '<div class="bar"><i style="width:'+(s.total / maks * 100).toFixed(1)+'%;background:var(--primary);animation-delay:'+(Math.min(i, 10) * 40)+'ms"></i></div>' : '') +
-          '<div class="sub2">'+esc(s.kode)+(s.kategori==='SCRAP'?' · scrap':'')+'</div>' +
-          '<div class="neraca hide" id="nr-'+esc(s.kode)+'"></div>' +
-        '</div>';
-      }).join('') + '</div>';
-    var el = $('repBody'); el.innerHTML = h; pasangGrafik(el); animSekali(el, 'ganti-isi');
+    gambarStok();
   }).catch(function(e){ $('repBody').innerHTML = '<div class="banner bad">'+esc(e.message)+'</div>'; });
+}
+function pilihKatStok(k){ S.stokKat = k; GANTI_LAYAR++; gambarStok(); }
+function gambarStok(){
+  var r = S.stokData; if (!r || S.repTab !== 'stok') return;
+  var kat = KAT_STOK.indexOf(S.stokKat) >= 0 ? S.stokKat : 'BAHAN_BAKU';
+  var daftar = r.daftar.filter(function(s){ return grupStok(s.kategori) === kat; });
+  var h = '<div class="seg" id="stokSeg" style="margin-bottom:12px">' + KAT_STOK.map(function(k){
+    return '<button id="stokSeg-'+k+'" class="'+(k===kat?'on':'')+'" onclick="pilihKatStok(\''+k+'\')">'+esc(t('segStok'+k))+'</button>';
+  }).join('') + '</div>';
+  if (!daftar.length){
+    var el0 = $('repBody'); el0.innerHTML = h + '<div class="empty"><span class="g">'+ikon('kotak')+'</span>'+esc(t('kosongKatStok'))+'</div>'; return;
+  }
+  var tt = {}; ['total','beli','retur','jual','returCust','dipakai','dihasilkan','daurKirim','daurHasil','rusak'].forEach(function(f){
+    tt[f] = 0; daftar.forEach(function(s){ tt[f] += s[f] || 0; });
+  });
+  var kpi = kpiHtml({ lebar:true, ikon:'kotak', label:t('nrTotal'), nilai:tt.total });
+  if (kat === 'BAHAN_BAKU'){
+    kpi += kpiHtml({ ikon:'terima', label:t('nrBeli'), nilai:tt.beli }) + kpiHtml({ ikon:'pabrik', label:t('nrDipakai'), nilai:tt.dipakai });
+    if (tt.daurHasil) kpi += kpiHtml({ ikon:'daur', label:t('nrDaurHasil'), nilai:tt.daurHasil });
+    if (tt.retur) kpi += kpiHtml({ ikon:'retur', label:t('nrReturSup'), nilai:tt.retur, buruk:true });
+  } else if (kat === 'ROLL'){
+    kpi += kpiHtml({ ikon:'roll', label:t('stokDihasilkan'), nilai:tt.dihasilkan }) + kpiHtml({ ikon:'gunting', label:t('stokDipotong'), nilai:tt.dipakai });
+  } else if (kat === 'BARANG_JADI'){
+    kpi += kpiHtml({ ikon:'pabrik', label:t('stokDihasilkan'), nilai:tt.dihasilkan }) + kpiHtml({ ikon:'truk', label:t('nrJual'), nilai:tt.jual });
+    if (tt.returCust) kpi += kpiHtml({ ikon:'retur', label:t('nrReturCust'), nilai:tt.returCust, buruk:true });
+  } else {
+    kpi += kpiHtml({ ikon:'pabrik', label:t('stokDihasilkan'), nilai:tt.dihasilkan }) + kpiHtml({ ikon:'daur', label:t('nrDaurKirim'), nilai:tt.daurKirim });
+  }
+  if (tt.rusak) kpi += kpiHtml({ ikon:'awas', label:t('nrRusak'), nilai:tt.rusak, buruk:true });
+  h += '<div class="kpis">' + kpi + '</div>';
+  var maks = Math.max.apply(null, daftar.map(function(s){ return s.total; }).concat([1]));
+  h += '<div class="card"><h2 id="stokJudul">'+esc(t('stokJudul'+kat))+'</h2>' +
+    '<div class="sub">'+esc(t('ketukRincian'))+'</div>' +
+    daftar.map(function(s, i){
+      return '<div class="listrow">' +
+        '<button class="stokrow" onclick="toggleNeraca(\''+esc(s.kode)+'\')">' +
+          '<span class="nm">'+esc(s.nama)+'</span>' +
+          '<span class="vl"'+(s.total<0?' style="color:var(--danger)"':'')+'>'+n2(s.total)+' kg</span>' +
+          '<span class="cv" id="cv-'+esc(s.kode)+'">▾</span>' +
+        '</button>' +
+        (s.total > 0 ? '<div class="bar"><i style="width:'+(s.total / maks * 100).toFixed(1)+'%;background:var(--primary);animation-delay:'+(Math.min(i, 10) * 40)+'ms"></i></div>' : '') +
+        '<div class="sub2">'+esc(s.kode)+'</div>' +
+        '<div class="neraca hide" id="nr-'+esc(s.kode)+'"></div>' +
+      '</div>';
+    }).join('') + '</div>';
+  var el = $('repBody'); el.innerHTML = h; pasangGrafik(el); animSekali(el, 'ganti-isi');
 }
 
 var STOK_CACHE = {};
