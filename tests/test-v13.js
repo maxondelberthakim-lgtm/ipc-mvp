@@ -265,6 +265,12 @@ console.log('— v13.3: satu SKU BS untuk semua kualitas (Max 13 Nov); laporan s
   ok('SKU BS lama yang sudah kosong bisa dihapus permanen (alasan wajib)', BSL.every(k => ctx.hapusSku(k, ADM, 'digabung ke SCR-BS').dihapus === true) && !ctx.daftarSku(ADM).some(s => BSL.indexOf(s.kode) >= 0));
   ok('sesudah dihapus: semua kualitas tetap memakai SCR-BS; simpan laporan baru tetap jalan', ctx.petaKualitas_().every(q => q.bs.kode === 'SCR-BS') &&
      ctx.simpanLaporanShift({tanggal:geser(-5), shift:'1', blowing:{operator:['Sri'], ambil:[{kode:BJ, qty:10}], hasil:[{kualitas:'SUPER', qty:9}], bs:[{kualitas:'SUPER', qty:1}]}}, MP).blowing.bs[0].kode === 'SCR-BS');
+  ctx.hapusSku('RM-PG-SPL', ADM, 'tidak dipakai');
+  ctx.migrasiSkema();
+  ok('migrasiSkema (jalan tiap impor / versi baru) TIDAK menghidupkan lagi SKU yang dihapus / digabung admin', !ctx.daftarSku(ADM).some(s => BSL.indexOf(s.kode) >= 0 || s.kode === 'RM-PG-SPL') && ctx.petaKualitas_().every(q => q.bs.kode === 'SCR-BS'));
+  { const sh = ctx.SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SH.ITEM), r = baca(SH.ITEM).find(x => x.Kode_Item === 'FG-PB-SUP');
+    sh.deleteRow(r._baris); ctx.lupakanMemo_(SH.ITEM); ctx.migrasiSkema(); }
+  ok('… SKU bawaan yang hilang tanpa dihapus admin tetap ditambah lagi (perilaku lama)', baca(SH.ITEM).some(x => x.Kode_Item === 'FG-PB-SUP'));
   const ls = ctx.laporanStok(SPV).daftar;
   ok('laporanStok membawa kategori tiap barang (menu Stok per kategori)', ls.every(s => typeof s.kategori === 'string') && ls.some(s => s.kode === 'SCR-BS' && s.kategori === 'SCRAP') && ls.some(s => s.kategori === 'BAHAN_BAKU') && ls.some(s => s.kategori === 'BARANG_JADI')); }
 

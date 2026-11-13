@@ -4120,6 +4120,16 @@ function migrasiV9_(ss) {
  *  - Setting METODE_HPP 'FIFO' → 'RATA'.
  * Aman dijalankan berulang.
  */
+/** v13.3: kode SKU yang sengaja dihapus (ADMIN_SKU "hapus …") atau digabung (GABUNG_ITEM "A → B", A) — dari Log_Audit. */
+function skuDihapusAdmin_() {
+  var d = {};
+  baca_(SHEET.LOG).forEach(function (r) {
+    if (r.Aksi === 'ADMIN_SKU' && /^hapus/i.test(String(r.Detail || ''))) d[String(r.Referensi || '').toUpperCase()] = true;
+    else if (r.Aksi === 'GABUNG_ITEM') { var a = String(r.Referensi || '').split(' → ')[0]; if (a) d[a.trim().toUpperCase()] = true; }
+  });
+  return d;
+}
+
 function migrasiV10_(ss) {
   ['Pekerjaan', 'Pekerjaan_Detail', 'Master_Standar_Susut'].forEach(function (n) {
     var sh = ss.getSheetByName(n);
@@ -4136,11 +4146,14 @@ function migrasiV10_(ss) {
       sh.getRange(1, terakhir + 1).setValue('Kualitas');
       lupakanMemo_(SHEET.ITEM);
     }
-    /* kualitas + SKU baru dari DUMMY_ITEM (yang belum ada) */
-    var rows = baca_(SHEET.ITEM), ada = {};
+    /* kualitas + SKU baru dari DUMMY_ITEM (yang belum ada).
+       v13.3: migrasi ini jalan di setiap impor & setiap versi baru — SKU bawaan yang SENGAJA dihapus / digabung admin
+       (tercatat di Log_Audit) tidak ditambah lagi, dan BS per kualitas tidak ditambah kalau sudah ada BS umum (SCR-BS). */
+    var rows = baca_(SHEET.ITEM), ada = {}, dihapus = skuDihapusAdmin_(), adaBsUmum = !!bsUmum_();
     rows.forEach(function (r) { ada[String(r.Kode_Item).toUpperCase()] = r; });
     DUMMY_ITEM.forEach(function (d) {
       var r = ada[String(d[0]).toUpperCase()];
+      if (!r && (dihapus[String(d[0]).toUpperCase()] || (adaBsUmum && d[2] === KATEGORI_ITEM.SCRAP && d[6]))) return;
       if (!r) tambah_(SHEET.ITEM, { Kode_Item: d[0], Nama_Item: d[1], Kategori: d[2], Harga_Per_Kg: d[3], Stok_Awal: d[4], Aktif: d[5], Kualitas: d[6] || '' });
       else if (!String(r.Kualitas || '').trim() && d[6]) ubahBaris_(SHEET.ITEM, r._baris, { Kualitas: d[6], Kategori: r.Kategori === KATEGORI_ITEM.BAHAN_BAKU && d[2] === KATEGORI_ITEM.SCRAP ? d[2] : r.Kategori });
     });
