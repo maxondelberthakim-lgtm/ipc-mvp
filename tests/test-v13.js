@@ -24,7 +24,7 @@ console.log('— Skema & akses v13 —');
 const ss = ctx.SpreadsheetApp.getActiveSpreadsheet();
 ok('sheet Kiriman & Kiriman_Detail ada', !!ss.getSheetByName('Kiriman') && !!ss.getSheetByName('Kiriman_Detail'));
 ok('Pengiriman & Daur_Ulang punya kolom ID_Kiriman', ctx.HEADER['Pengiriman'].indexOf('ID_Kiriman') >= 0 && ctx.HEADER['Daur_Ulang'].indexOf('ID_Kiriman') >= 0);
-ok('versi 13.2.1', ctx.APP.versi === '13.2.1');
+ok('versi 13.3.0', ctx.APP.versi === '13.3.0');
 { const ky = ctx.getKonteks(YS), kd = ctx.getKonteks(SM), kb = ctx.getKonteks(MP), ks = ctx.getKonteks(STAF);
   ok('konteks: bisaKirim Yansen (GUDANG) true; Deny (SO saja), Bastari (PRODUKSI), STAF false', ky.bisaKirim === true && kd.bisaKirim === false && kb.bisaKirim === false && ks.bisaKirim === false, [ky.bisaKirim, kd.bisaKirim, kb.bisaKirim, ks.bisaKirim]);
   ok('konteks: penghitung siapKirim & belumFotoSj ada (0)', ky.ringkasan.siapKirim === 0 && ky.ringkasan.belumFotoSj === 0 && kd.ringkasan.siapKirim === 0); }
@@ -234,6 +234,39 @@ console.log('— v13.2: laporan shift bisa diubah / dihapus kapan saja (sampai t
   const kw = ctx.simpanKontakWa({nama:'Kontak Uji', nomor:'0811222333'}, YS);
   tolak('hapus kontak WA tanpa alasan ditolak', () => ctx.hapusKontakWa(kw.id, YS), /Alasan/);
   ok('hapus kontak WA dengan alasan: nonaktif + Log_Audit', ctx.hapusKontakWa(kw.id, YS, 'nomor salah').ok && !ctx.daftarKontakWa(YS).some(x => x.id === kw.id) && log('KONTAK_WA_HAPUS').some(l => l.Referensi === kw.id && /nomor salah/.test(l.Detail))); }
+
+console.log('— v13.3: satu SKU BS untuk semua kualitas (Max 13 Nov); laporan stok membawa kategori —');
+{ const BJ = 'RM-BP-KW', BSL = ['SCR-BS-KW', 'SCR-BS-SUP', 'SCR-BS-SPL'];
+  const stk = (k) => { const s = ctx.hitungStokSemua_()[k]; return s ? s.gbj : 0; };
+  ok('awal: tiap kualitas memakai SKU BS-nya sendiri', ctx.petaKualitas_().every(q => q.bs && BSL.indexOf(q.bs.kode) >= 0 && !q.bsUmum) && !ctx.konfigurasiShift(MP).bsUmum);
+  ctx.simpanSku({kode:'SCR-BS', nama:'BS (KW + Super + Super Plus)', kategori:'SCRAP'}, ADM);
+  ok('SCR-BS dibuat (scrap tanpa kualitas) → BS per kualitas yang masih aktif tetap dipakai', ctx.petaKualitas_().every(q => q.bs.kode !== 'SCR-BS') && ctx.konfigurasiShift(MP).bsUmum === 'SCR-BS');
+  const total0 = BSL.reduce((a, k) => a + stk(k), 0);
+  const nDetBs = baca(SH.SHIFT_DETAIL).filter(d => d.Jenis === 'BS').length;
+  BSL.forEach(k => ctx.gabungItem(k, 'SCR-BS'));
+  ok('gabungItem ×3: stok SCR-BS = jumlah BS lama, BS lama 0', Math.abs(stk('SCR-BS') - total0) < 1e-6 && BSL.every(k => Math.abs(stk(k)) < 1e-6), [stk('SCR-BS'), total0]);
+  ok('… semua baris BS laporan shift pindah ke SCR-BS tanpa kualitas', baca(SH.SHIFT_DETAIL).filter(d => d.Jenis === 'BS').length === nDetBs && baca(SH.SHIFT_DETAIL).filter(d => d.Jenis === 'BS').every(d => d.Kode_Item === 'SCR-BS' && !d.Kualitas));
+  ok('semua kualitas memakai SCR-BS; form tidak melaporkan SKU BS kurang', ctx.petaKualitas_().every(q => q.bs.kode === 'SCR-BS' && q.bsUmum) && !ctx.konfigurasiShift(MP).kurang.some(x => /BS/.test(x)) && ctx.getKonteks(MP).kualitas.every(q => q.bs === 'SCR-BS'));
+  const tg = geser(-4), s0 = stk('SCR-BS');
+  const l1 = ctx.simpanLaporanShift({tanggal:tg, shift:'2',
+    blowing:{operator:['Sri'], ambil:[{kode:BJ, qty:100}], hasil:[{kualitas:'KW', qty:90}], bs:[{kualitas:'KW', qty:3}, {kualitas:'SUPER_PLUS', qty:2}]},
+    cutting:{operator:['Rina'], rollPakai:[{kualitas:'KW', qty:50}], hasil:[{kualitas:'KW', qty:47}], bs:[{kualitas:'', qty:3}]}}, MP);
+  const dBs = (id) => baca(SH.SHIFT_DETAIL).filter(d => d.ID_Shift === id && d.Jenis === 'BS');
+  ok('simpan: BS per kualitas (format lama) jadi SATU baris SCR-BS 5 kg; kualitas kosong = BS umum 3 kg', dBs(l1.id).length === 2 && dBs(l1.id).every(d => d.Kode_Item === 'SCR-BS' && !d.Kualitas) && dBs(l1.id).find(d => d.Mesin === 'BLOWING').Qty_Kg === 5 && dBs(l1.id).find(d => d.Mesin === 'CUTTING').Qty_Kg === 3 && l1.blowing.totalBs === 5 && l1.totalBs === 8, dBs(l1.id));
+  ok('… stok SCR-BS +8; laporan lihat: BS tanpa label kualitas, nama SKU baru', Math.abs(stk('SCR-BS') - s0 - 8) < 1e-6 && l1.blowing.bs.length === 1 && l1.blowing.bs[0].kualitas === '' && /BS \(KW \+ Super \+ Super Plus\)/.test(l1.blowing.bs[0].nama));
+  const u = ctx.ubahLaporanShift(l1.id, {tanggal:tg, shift:'2',
+    blowing:{operator:['Sri'], ambil:[{kode:BJ, qty:100}], hasil:[{kualitas:'KW', qty:90}], bs:[{kualitas:'KW', qty:6}]},
+    cutting:{operator:['Rina'], rollPakai:[{kualitas:'KW', qty:50}], hasil:[{kualitas:'KW', qty:47}], bs:[{kualitas:'KW', qty:3}]}}, MP);
+  ok('ubah: BS blowing 5 → 6 kg, tetap satu baris per mesin; stok ikut', u.ok && dBs(l1.id).length === 2 && dBs(l1.id).find(d => d.Mesin === 'BLOWING').Qty_Kg === 6 && Math.abs(stk('SCR-BS') - s0 - 9) < 1e-6);
+  ok('ubah catatan saja: baris BS tanpa kualitas ikut tersimpan ulang', ctx.ubahLaporanShift(l1.id, {catatan:'cek v13.3'}, MP).ok && dBs(l1.id).length === 2 && Math.abs(stk('SCR-BS') - s0 - 9) < 1e-6);
+  const lp = ctx.laporanProduksi(tg.slice(0, 7), MP);
+  ok('laporan produksi: total BS memuat SCR-BS; BS umum tidak dibagi per kualitas', lp.total.bs >= 9 && lp.perKualitas.every(p => !p.bs));
+  ok('opname produksi: BS satu baris (dikirim dengan kualitas pertama) diterima', ctx.simpanOpnameProduksi({bulan: tg.slice(0, 7), bs:[{kualitas:'KW', qty:4}], polybag:[{kualitas:'KW', qty:10}]}, MP).bsKg === 4);
+  ok('SKU BS lama yang sudah kosong bisa dihapus permanen (alasan wajib)', BSL.every(k => ctx.hapusSku(k, ADM, 'digabung ke SCR-BS').dihapus === true) && !ctx.daftarSku(ADM).some(s => BSL.indexOf(s.kode) >= 0));
+  ok('sesudah dihapus: semua kualitas tetap memakai SCR-BS; simpan laporan baru tetap jalan', ctx.petaKualitas_().every(q => q.bs.kode === 'SCR-BS') &&
+     ctx.simpanLaporanShift({tanggal:geser(-5), shift:'1', blowing:{operator:['Sri'], ambil:[{kode:BJ, qty:10}], hasil:[{kualitas:'SUPER', qty:9}], bs:[{kualitas:'SUPER', qty:1}]}}, MP).blowing.bs[0].kode === 'SCR-BS');
+  const ls = ctx.laporanStok(SPV).daftar;
+  ok('laporanStok membawa kategori tiap barang (menu Stok per kategori)', ls.every(s => typeof s.kategori === 'string') && ls.some(s => s.kode === 'SCR-BS' && s.kategori === 'SCRAP') && ls.some(s => s.kategori === 'BAHAN_BAKU') && ls.some(s => s.kategori === 'BARANG_JADI')); }
 
 fs.unlinkSync(__dirname+'/.h13.js');
 console.log('\n================ '+pass+' lulus, '+fail+' gagal ================');
