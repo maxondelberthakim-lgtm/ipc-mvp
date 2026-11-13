@@ -636,6 +636,8 @@ ok('setelah reload: sesi tetap & stok dari SQLite', await p.evaluate(() => S.ctx
   const hp = [];
   for (const k of ['SCR-BS-KW', 'SCR-BS-SUP', 'SCR-BS-SPL']) hp.push(await p.evaluate((k) => panggil('hapusSku', [k, S.ident, 'digabung ke SCR-BS']).then(r => ({ ok: true, r }), e => ({ ok: false, e: e.message })), k));   /* alasan sesudah ident */
   ok('v13.3: SKU BS lama dihapus permanen', hp.every(h => h.ok && h.r.dihapus), hp);
+  const mg = await jalankan('migrasiSkema', []);
+  ok('v13.3: migrasiSkema (seperti sesudah impor / deploy) tidak menghidupkan lagi SKU BS lama', mg.ok && !(await p.evaluate(() => panggil('daftarSku', [S.ident]))).some(s => /^SCR-BS-/.test(s.kode)));
   ok('v13.3: login Bastari', /Bastari/.test(await login('Bastari', '4433')));
   await p.evaluate(() => tampil('shift')); await W(700);
   await p.evaluate(() => segShift('new')); await W(700);
